@@ -1,0 +1,9 @@
+.DS_Store
+node_modules/
+dist/
+.env
+.env.*
+.venv/
+__pycache__/
+db.sqlite3
+archrive-backend/
