@@ -8,7 +8,6 @@ function emptyItem() {
     sku: "",
     category: "",
     unit: "pcs",
-    unit_price: "",
     quantity: 1,
     unit_cost: "",
   };
@@ -59,7 +58,6 @@ function PurchaseForm({ onSubmit }) {
       (item) =>
         item.product_name &&
         item.sku &&
-        item.unit_price &&
         item.quantity &&
         item.unit_cost
     );
@@ -191,16 +189,6 @@ function PurchaseForm({ onSubmit }) {
                 value={item.unit}
                 onChange={(event) => updateItem(index, "unit", event.target.value)}
                 placeholder="Unit"
-              />
-
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={item.unit_price}
-                onChange={(event) => updateItem(index, "unit_price", event.target.value)}
-                placeholder="Unit Price"
-                required
               />
 
               <input

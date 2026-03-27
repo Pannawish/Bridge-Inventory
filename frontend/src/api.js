@@ -52,6 +52,12 @@ export const api = {
   createSale(formData) {
     return request("/sales/", { method: "POST", body: formData });
   },
+  updateSaleStatus(id, status) {
+    return request(`/sales/${id}/`, {
+      method: "PATCH",
+      body: { status },
+    });
+  },
   askChat(question) {
     return request("/chat/", { method: "POST", body: { question } });
   },

@@ -8,11 +8,15 @@ function formatCurrency(value) {
 }
 
 const purchaseStatuses = ["draft", "ordered", "received", "cancelled"];
+const saleStatuses = ["draft", "packed", "shipped", "delivered", "cancelled"];
 
-function TransactionTable({ rows, type, onPurchaseStatusChange }) {
-  const [selectedPurchase, setSelectedPurchase] = useState(null);
+function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChange }) {
+  const [selectedRow, setSelectedRow] = useState(null);
   const title = type === "purchase" ? "Purchase History" : "Sales History";
   const personKey = type === "purchase" ? "supplier_name" : "customer_name";
+  const statuses = type === "purchase" ? purchaseStatuses : saleStatuses;
+  const detailTitle = type === "purchase" ? "Purchase Detail" : "Sales Detail";
+  const detailNameLabel = type === "purchase" ? "Supplier" : "Customer";
 
   return (
     <section className="section-card">
@@ -37,7 +41,7 @@ function TransactionTable({ rows, type, onPurchaseStatusChange }) {
                 <th>Items</th>
                 <th>Total</th>
                 <th>Document</th>
-                {type === "purchase" ? <th>More Information</th> : null}
+                <th>More Information</th>
               </tr>
             </thead>
             <tbody>
@@ -46,15 +50,20 @@ function TransactionTable({ rows, type, onPurchaseStatusChange }) {
                   <td>{row.reference_no}</td>
                   <td>{row[personKey]}</td>
                   <td>
-                    {type === "purchase" ? (
+                    {type === "purchase" || type === "sale" ? (
                       <select
                         className={`status-select status-${row.status}`}
                         value={row.status}
-                        onChange={(event) =>
-                          onPurchaseStatusChange?.(row.id, event.target.value)
-                        }
+                        onChange={(event) => {
+                          const nextStatus = event.target.value;
+                          if (type === "purchase") {
+                            onPurchaseStatusChange?.(row.id, nextStatus);
+                          } else {
+                            onSaleStatusChange?.(row.id, nextStatus);
+                          }
+                        }}
                       >
-                        {purchaseStatuses.map((status) => (
+                        {statuses.map((status) => (
                           <option key={status} value={status}>
                             {status}
                           </option>
@@ -84,17 +93,15 @@ function TransactionTable({ rows, type, onPurchaseStatusChange }) {
                       "-"
                     )}
                   </td>
-                  {type === "purchase" ? (
-                    <td>
-                      <button
-                        className="secondary-button table-action-button"
-                        type="button"
-                        onClick={() => setSelectedPurchase(row)}
-                      >
-                        More Information
-                      </button>
-                    </td>
-                  ) : null}
+                  <td>
+                    <button
+                      className="secondary-button table-action-button"
+                      type="button"
+                      onClick={() => setSelectedRow(row)}
+                    >
+                      More Information
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -102,28 +109,28 @@ function TransactionTable({ rows, type, onPurchaseStatusChange }) {
         </div>
       )}
 
-      {type === "purchase" && selectedPurchase ? (
+      {selectedRow ? (
         <div
           className="modal-backdrop"
           role="presentation"
-          onClick={() => setSelectedPurchase(null)}
+          onClick={() => setSelectedRow(null)}
         >
           <div
             className="detail-modal section-card"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="purchase-detail-title"
+            aria-labelledby="transaction-detail-title"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="section-heading">
               <div>
-                <p className="eyebrow">Purchase Detail</p>
-                <h3 id="purchase-detail-title">{selectedPurchase.reference_no}</h3>
+                <p className="eyebrow">{detailTitle}</p>
+                <h3 id="transaction-detail-title">{selectedRow.reference_no}</h3>
               </div>
               <button
                 className="secondary-button table-action-button"
                 type="button"
-                onClick={() => setSelectedPurchase(null)}
+                onClick={() => setSelectedRow(null)}
               >
                 Close
               </button>
@@ -131,25 +138,31 @@ function TransactionTable({ rows, type, onPurchaseStatusChange }) {
 
             <div className="detail-grid">
               <div>
-                <p className="detail-label">Supplier</p>
-                <strong>{selectedPurchase.supplier_name || "-"}</strong>
+                <p className="detail-label">{detailNameLabel}</p>
+                <strong>{selectedRow[personKey] || "-"}</strong>
               </div>
               <div>
                 <p className="detail-label">Status</p>
-                <strong>{selectedPurchase.status || "-"}</strong>
+                <strong>{selectedRow.status || "-"}</strong>
               </div>
               <div>
                 <p className="detail-label">Transaction Date</p>
-                <strong>{selectedPurchase.transaction_date || "-"}</strong>
+                <strong>{selectedRow.transaction_date || "-"}</strong>
               </div>
               <div>
                 <p className="detail-label">Total Amount</p>
-                <strong>{formatCurrency(selectedPurchase.total_amount)}</strong>
+                <strong>{formatCurrency(selectedRow.total_amount)}</strong>
               </div>
+              {type === "sale" ? (
+                <div>
+                  <p className="detail-label">Payment Receive Date</p>
+                  <strong>{selectedRow.payment_received_date || "-"}</strong>
+                </div>
+              ) : null}
               <div>
                 <p className="detail-label">Document</p>
-                {selectedPurchase.document_url ? (
-                  <a href={selectedPurchase.document_url} target="_blank" rel="noreferrer">
+                {selectedRow.document_url ? (
+                  <a href={selectedRow.document_url} target="_blank" rel="noreferrer">
                     Open document
                   </a>
                 ) : (
@@ -158,7 +171,7 @@ function TransactionTable({ rows, type, onPurchaseStatusChange }) {
               </div>
               <div>
                 <p className="detail-label">Notes</p>
-                <strong>{selectedPurchase.note || "-"}</strong>
+                <strong>{selectedRow.note || "-"}</strong>
               </div>
             </div>
 
@@ -170,17 +183,23 @@ function TransactionTable({ rows, type, onPurchaseStatusChange }) {
                     <tr>
                       <th>Product</th>
                       <th>Quantity</th>
-                      <th>Unit Cost</th>
-                      <th>Unit Price</th>
+                      <th>{type === "purchase" ? "Unit Cost" : "Unit Price"}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedPurchase.items.map((item) => (
+                    {selectedRow.items.map((item) => (
                       <tr key={item.id}>
                         <td>{item.product_name}</td>
                         <td>{item.quantity}</td>
-                        <td>{item.unit_cost ? formatCurrency(item.unit_cost) : "-"}</td>
-                        <td>{item.unit_price ? formatCurrency(item.unit_price) : "-"}</td>
+                        <td>
+                          {type === "purchase"
+                            ? item.unit_cost
+                              ? formatCurrency(item.unit_cost)
+                              : "-"
+                            : item.unit_price
+                              ? formatCurrency(item.unit_price)
+                              : "-"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

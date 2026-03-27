@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api";
 import ChatPanel from "./components/ChatPanel";
 import Dashboard from "./components/Dashboard";
-import { mockDashboard, mockPurchases } from "./mockData";
+import { mockDashboard, mockPurchases, mockSales } from "./mockData";
 import PurchaseForm from "./components/PurchaseForm";
 import SalesForm from "./components/SalesForm";
 import TransactionTable from "./components/TransactionTable";
@@ -21,6 +21,7 @@ function App() {
   const [purchases, setPurchases] = useState([]);
   const [usingMockPurchases, setUsingMockPurchases] = useState(false);
   const [sales, setSales] = useState([]);
+  const [usingMockSales, setUsingMockSales] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -72,8 +73,10 @@ function App() {
 
     if (salesResult.status === "fulfilled") {
       setSales(salesResult.value.results || []);
+      setUsingMockSales(false);
     } else {
-      setSales([]);
+      setSales(mockSales);
+      setUsingMockSales(true);
       failures.push("sales");
     }
 
@@ -136,6 +139,40 @@ function App() {
     try {
       await api.updatePurchaseStatus(purchaseId, nextStatus);
       setNotice(`Purchase ${purchase.reference_no} status updated to ${nextStatus}.`);
+      await loadData();
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  }
+
+  async function handleSaleStatusChange(saleId, nextStatus) {
+    const sale = sales.find((row) => row.id === saleId);
+
+    if (!sale || sale.status === nextStatus) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Change sale ${sale.reference_no} status from ${sale.status} to ${nextStatus}?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setError("");
+
+    if (usingMockSales) {
+      setSales((currentRows) =>
+        currentRows.map((row) => (row.id === saleId ? { ...row, status: nextStatus } : row))
+      );
+      setNotice(`Sale ${sale.reference_no} status updated to ${nextStatus}.`);
+      return;
+    }
+
+    try {
+      await api.updateSaleStatus(saleId, nextStatus);
+      setNotice(`Sale ${sale.reference_no} status updated to ${nextStatus}.`);
       await loadData();
     } catch (requestError) {
       setError(requestError.message);
@@ -245,7 +282,11 @@ function App() {
             {activeTab === "sales" ? (
               <div className="stack-layout">
                 <SalesForm products={products} onSubmit={handleSalesCreate} />
-                <TransactionTable rows={sales} type="sale" />
+                <TransactionTable
+                  rows={sales}
+                  type="sale"
+                  onSaleStatusChange={handleSaleStatusChange}
+                />
               </div>
             ) : null}
 
