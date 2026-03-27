@@ -124,6 +124,32 @@ function App() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1024px)");
+
+    function syncSidebarState(event) {
+      setIsSidebarHidden(event.matches);
+    }
+
+    syncSidebarState(mediaQuery);
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", syncSidebarState);
+      return () => mediaQuery.removeEventListener("change", syncSidebarState);
+    }
+
+    mediaQuery.addListener(syncSidebarState);
+    return () => mediaQuery.removeListener(syncSidebarState);
+  }, []);
+
+  function handleTabSelect(tabId) {
+    setActiveTab(tabId);
+
+    if (window.matchMedia("(max-width: 1024px)").matches) {
+      setIsSidebarHidden(true);
+    }
+  }
+
   async function handlePurchaseCreate(formData) {
     await api.createPurchase(formData);
     setNotice("Purchase transaction saved.");
@@ -257,7 +283,7 @@ function App() {
                 key={tab.id}
                 type="button"
                 className={tab.id === activeTab ? "sidebar-nav-button active" : "sidebar-nav-button"}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabSelect(tab.id)}
               >
                 <span className="sidebar-nav-icon">{tab.shortLabel}</span>
                 <span className="sidebar-nav-text">{tab.label}</span>

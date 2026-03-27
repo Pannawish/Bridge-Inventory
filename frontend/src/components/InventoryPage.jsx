@@ -155,7 +155,7 @@ function InventoryPage({ dashboard }) {
           <span>Current stock sorted {sortOrder === "low-to-high" ? "ascending" : "descending"}</span>
         </div>
 
-        <div className="table-scroll">
+        <div className="table-scroll desktop-table">
           <table>
             <thead>
               <tr>
@@ -203,6 +203,57 @@ function InventoryPage({ dashboard }) {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="mobile-stock-list">
+          {filteredRows.length === 0 ? (
+            <p className="empty-copy">No inventory items match the current search or filter.</p>
+          ) : (
+            filteredRows.map((item) => (
+              <article className="mobile-stock-card" key={`inventory-mobile-${item.product_id}`}>
+                <div className="mobile-stock-header">
+                  <div className="cell-stack">
+                    <strong>{item.product_name}</strong>
+                    <span>{item.sku}</span>
+                  </div>
+                  <span className={`status-badge health-badge ${item.health.tone}`}>
+                    {item.health.label}
+                  </span>
+                </div>
+
+                <div className="mobile-stock-grid">
+                  <div>
+                    <span>Category</span>
+                    <strong>{item.category || "-"}</strong>
+                  </div>
+                  <div>
+                    <span>Total Cost</span>
+                    <strong>{formatCurrency(item.total_cost)}</strong>
+                  </div>
+                  <div>
+                    <span>Current Stock</span>
+                    <strong>{formatNumber(item.current_stock)}</strong>
+                  </div>
+                  <div>
+                    <span>Reorder Point</span>
+                    <strong>{formatNumber(item.reorder_level)}</strong>
+                  </div>
+                  <div>
+                    <span>7-Day Demand</span>
+                    <strong>{formatNumber(item.predicted_7_day_demand)}</strong>
+                  </div>
+                  <div>
+                    <span>Days Left</span>
+                    <strong>{formatNumber(item.days_until_stockout)}</strong>
+                  </div>
+                  <div>
+                    <span>Suggested Restock</span>
+                    <strong>{formatNumber(item.recommended_restock)}</strong>
+                  </div>
+                </div>
+              </article>
+            ))
+          )}
         </div>
       </section>
     </div>

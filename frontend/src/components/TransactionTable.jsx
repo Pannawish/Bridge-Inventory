@@ -30,51 +30,128 @@ function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChan
       {rows.length === 0 ? (
         <p className="empty-copy">No transactions saved yet.</p>
       ) : (
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Reference</th>
-                <th>{type === "purchase" ? "Supplier Name" : "Name"}</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th>Items</th>
-                <th>Total</th>
-                <th>Document</th>
-                <th>More Information</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={`${type}-${row.id}`}>
-                  <td>{row.reference_no}</td>
-                  <td>{row[personKey]}</td>
-                  <td>
-                    {type === "purchase" || type === "sale" ? (
-                      <select
-                        className={`status-select status-${row.status}`}
-                        value={row.status}
-                        onChange={(event) => {
-                          const nextStatus = event.target.value;
-                          if (type === "purchase") {
-                            onPurchaseStatusChange?.(row.id, nextStatus);
-                          } else {
-                            onSaleStatusChange?.(row.id, nextStatus);
-                          }
-                        }}
-                      >
-                        {statuses.map((status) => (
-                          <option key={status} value={status}>
-                            {status}
-                          </option>
+        <>
+          <div className="table-scroll desktop-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>{type === "purchase" ? "Supplier Name" : "Name"}</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Items</th>
+                  <th>Total</th>
+                  <th>Document</th>
+                  <th>More Information</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={`${type}-${row.id}`}>
+                    <td>{row.reference_no}</td>
+                    <td>{row[personKey]}</td>
+                    <td>
+                      {type === "purchase" || type === "sale" ? (
+                        <select
+                          className={`status-select status-${row.status}`}
+                          value={row.status}
+                          onChange={(event) => {
+                            const nextStatus = event.target.value;
+                            if (type === "purchase") {
+                              onPurchaseStatusChange?.(row.id, nextStatus);
+                            } else {
+                              onSaleStatusChange?.(row.id, nextStatus);
+                            }
+                          }}
+                        >
+                          {statuses.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={`status-badge status-${row.status}`}>{row.status}</span>
+                      )}
+                    </td>
+                    <td>{row.transaction_date}</td>
+                    <td>
+                      <div className="item-pill-list">
+                        {row.items.map((item) => (
+                          <span key={item.id} className="item-pill">
+                            {item.product_name} x {item.quantity}
+                          </span>
                         ))}
-                      </select>
-                    ) : (
-                      <span className={`status-badge status-${row.status}`}>{row.status}</span>
-                    )}
-                  </td>
-                  <td>{row.transaction_date}</td>
-                  <td>
+                      </div>
+                    </td>
+                    <td>{formatCurrency(row.total_amount)}</td>
+                    <td>
+                      {row.document_url ? (
+                        <a href={row.document_url} target="_blank" rel="noreferrer">
+                          Open
+                        </a>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td>
+                      <button
+                        className="secondary-button table-action-button"
+                        type="button"
+                        onClick={() => setSelectedRow(row)}
+                      >
+                        More Information
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mobile-record-list">
+            {rows.map((row) => (
+              <article className="mobile-record-card" key={`mobile-${type}-${row.id}`}>
+                <div className="mobile-record-header">
+                  <div className="cell-stack">
+                    <strong>{row.reference_no}</strong>
+                    <span>{row[personKey]}</span>
+                  </div>
+                  {type === "purchase" || type === "sale" ? (
+                    <select
+                      className={`status-select status-${row.status}`}
+                      value={row.status}
+                      onChange={(event) => {
+                        const nextStatus = event.target.value;
+                        if (type === "purchase") {
+                          onPurchaseStatusChange?.(row.id, nextStatus);
+                        } else {
+                          onSaleStatusChange?.(row.id, nextStatus);
+                        }
+                      }}
+                    >
+                      {statuses.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={`status-badge status-${row.status}`}>{row.status}</span>
+                  )}
+                </div>
+
+                <div className="mobile-record-grid">
+                  <div>
+                    <span>Date</span>
+                    <strong>{row.transaction_date}</strong>
+                  </div>
+                  <div>
+                    <span>Total</span>
+                    <strong>{formatCurrency(row.total_amount)}</strong>
+                  </div>
+                  <div className="full-width-mobile">
+                    <span>Items</span>
                     <div className="item-pill-list">
                       {row.items.map((item) => (
                         <span key={item.id} className="item-pill">
@@ -82,31 +159,30 @@ function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChan
                         </span>
                       ))}
                     </div>
-                  </td>
-                  <td>{formatCurrency(row.total_amount)}</td>
-                  <td>
+                  </div>
+                  <div>
+                    <span>Document</span>
                     {row.document_url ? (
                       <a href={row.document_url} target="_blank" rel="noreferrer">
                         Open
                       </a>
                     ) : (
-                      "-"
+                      <strong>-</strong>
                     )}
-                  </td>
-                  <td>
-                    <button
-                      className="secondary-button table-action-button"
-                      type="button"
-                      onClick={() => setSelectedRow(row)}
-                    >
-                      More Information
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                </div>
+
+                <button
+                  className="secondary-button table-action-button mobile-record-button"
+                  type="button"
+                  onClick={() => setSelectedRow(row)}
+                >
+                  More Information
+                </button>
+              </article>
+            ))}
+          </div>
+        </>
       )}
 
       {selectedRow ? (

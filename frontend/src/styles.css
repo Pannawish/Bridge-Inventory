@@ -29,6 +29,7 @@ body,
 
 body {
   margin: 0;
+  overflow-x: hidden;
   font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
   color: var(--text);
   background:
@@ -629,8 +630,14 @@ label textarea:focus,
   overflow-x: auto;
 }
 
+.mobile-record-list,
+.mobile-stock-list {
+  display: none;
+}
+
 table {
   width: 100%;
+  min-width: 680px;
   border-collapse: collapse;
 }
 
@@ -882,6 +889,52 @@ th {
   background: var(--accent-soft);
 }
 
+.mobile-record-card,
+.mobile-stock-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #edf1fb;
+  border-radius: 22px;
+  background: #fff;
+}
+
+.mobile-record-header,
+.mobile-stock-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobile-record-grid,
+.mobile-stock-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
+}
+
+.mobile-record-grid div,
+.mobile-stock-grid div {
+  display: grid;
+  gap: 4px;
+}
+
+.mobile-record-grid span,
+.mobile-stock-grid span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.mobile-record-button {
+  width: 100%;
+}
+
+.full-width-mobile {
+  grid-column: 1 / -1;
+}
+
 .chat-card {
   display: grid;
   gap: 20px;
@@ -1055,24 +1108,53 @@ th {
 @media (max-width: 1024px) {
   .app-shell {
     grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .app-shell.sidebar-hidden {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .app-shell.sidebar-hidden .main-panel {
+    width: 100%;
+    padding-right: 0;
+    padding-left: 0;
   }
 
   .sidebar {
-    position: static;
-    height: auto;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 30;
+    width: min(84vw, 320px);
+    height: calc(100vh - 32px);
+  }
+
+  .sidebar.hidden {
+    width: min(84vw, 320px);
+    padding: 24px 18px;
+    border-color: rgba(90, 104, 150, 0.34);
+    transform: translateX(calc(-100% - 28px));
   }
 
   .topbar {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .topbar-actions {
     width: 100%;
+    flex-direction: column;
   }
 
   .search-shell {
     min-width: 0;
-    flex: 1;
+    width: 100%;
+  }
+
+  .topbar-action-cluster {
+    justify-content: flex-end;
   }
 
   .detail-grid,
@@ -1093,11 +1175,11 @@ th {
   }
 
   .topbar h2 {
-    font-size: 2rem;
+    font-size: 1.65rem;
   }
 
-  .topbar-actions {
-    flex-wrap: wrap;
+  .topbar-title-row {
+    align-items: flex-start;
   }
 
   .search-shell {
@@ -1121,12 +1203,72 @@ th {
     min-width: 0;
   }
 
+  .topbar-meta-strip {
+    flex-wrap: wrap;
+  }
+
+  .topbar-action-cluster {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .sidebar {
+    width: calc(100vw - 32px);
+  }
+
+  .sidebar.hidden {
+    width: calc(100vw - 32px);
+    padding: 20px;
+    border-color: rgba(90, 104, 150, 0.34);
+    transform: translateX(calc(-100% - 24px));
+  }
+
+  .sidebar-content {
+    gap: 14px;
+  }
+
+  .sidebar-nav-button {
+    padding: 11px 12px;
+  }
+
+  .desktop-table {
+    display: none;
+  }
+
+  .mobile-record-list,
+  .mobile-stock-list {
+    display: grid;
+    gap: 14px;
+  }
+
   .metrics-grid,
   .inventory-summary-grid,
   .form-grid,
   .detail-grid,
   .line-item-row {
     grid-template-columns: 1fr;
+  }
+
+  th,
+  td {
+    padding: 12px 10px;
+  }
+
+  .mobile-record-header,
+  .mobile-stock-header,
+  .attention-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mobile-record-grid,
+  .mobile-stock-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .status-select {
+    min-width: 0;
+    width: 100%;
   }
 
   .section-card,
