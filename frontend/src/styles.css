@@ -61,6 +61,19 @@ textarea {
   gap: 24px;
   min-height: 100vh;
   padding: 24px;
+  transition: grid-template-columns 0.28s ease, gap 0.28s ease;
+}
+
+.app-shell.sidebar-hidden {
+  grid-template-columns: 0 minmax(0, 1fr);
+  gap: 0;
+}
+
+.app-shell.sidebar-hidden .main-panel {
+  width: min(1360px, 100%);
+  margin: 0 auto;
+  padding-right: 24px;
+  padding-left: 24px;
 }
 
 .sidebar {
@@ -69,12 +82,29 @@ textarea {
   align-self: start;
   height: calc(100vh - 48px);
   padding: 24px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(90, 104, 150, 0.34);
   border-radius: 32px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.96)),
-    var(--panel);
-  box-shadow: var(--shadow);
+    radial-gradient(circle at top left, rgba(112, 135, 214, 0.18), transparent 28%),
+    linear-gradient(180deg, #23304f, #1c2740 54%, #182236);
+  box-shadow: 0 26px 56px rgba(14, 20, 37, 0.32);
+  transition:
+    width 0.28s ease,
+    padding 0.28s ease,
+    opacity 0.2s ease,
+    transform 0.28s ease,
+    border-color 0.2s ease;
+}
+
+.sidebar.hidden {
+  width: 0;
+  padding-right: 0;
+  padding-left: 0;
+  border-color: transparent;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateX(-32px);
+  pointer-events: none;
 }
 
 .sidebar-content {
@@ -107,6 +137,7 @@ textarea {
 .sidebar h1 {
   font-size: 1.7rem;
   line-height: 1.05;
+  color: #f7f9ff;
 }
 
 .sidebar-label,
@@ -130,10 +161,10 @@ textarea {
 .sidebar-back-button {
   width: 42px;
   height: 42px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(122, 142, 197, 0.28);
   border-radius: 14px;
-  color: var(--text);
-  background: #fff;
+  color: #dbe5ff;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .sidebar-nav {
@@ -150,7 +181,7 @@ textarea {
   padding: 12px 14px;
   border: 1px solid transparent;
   border-radius: 16px;
-  color: var(--text);
+  color: #d8e1fb;
   text-align: left;
   background: transparent;
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
@@ -167,8 +198,15 @@ textarea {
 }
 
 .sidebar-nav-button.active {
-  border-color: #d9e2fb;
-  background: linear-gradient(180deg, #f6f8ff, #edf2ff);
+  border-color: rgba(145, 171, 255, 0.22);
+  color: #ffffff;
+  background: linear-gradient(180deg, rgba(95, 124, 225, 0.26), rgba(76, 103, 201, 0.18));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-nav-button:hover {
+  border-color: rgba(122, 142, 197, 0.18);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .sidebar-nav-icon {
@@ -176,12 +214,12 @@ textarea {
   place-items: center;
   width: 30px;
   height: 30px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(122, 142, 197, 0.22);
   border-radius: 10px;
-  color: var(--accent-deep);
+  color: #e6edff;
   font-size: 0.76rem;
   font-weight: 700;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .sidebar-nav-text {
@@ -205,28 +243,90 @@ textarea {
 .sidebar-refresh-button {
   width: 100%;
   justify-self: stretch;
+  color: #f4f7ff;
+  background: linear-gradient(135deg, #526fda, #3f5dcb);
+  box-shadow: 0 14px 24px rgba(32, 46, 98, 0.34);
 }
 
 .main-panel {
+  position: relative;
   min-width: 0;
   padding: 6px 4px 24px;
 }
 
+.sidebar-reveal-button {
+  position: fixed;
+  top: 30px;
+  left: 24px;
+  z-index: 20;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--text);
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
 .topbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 22px;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-soft);
 }
 
 .topbar h2 {
-  font-size: 2.35rem;
-  line-height: 1.04;
+  font-size: 2rem;
+  line-height: 1;
 }
 
 .topbar-copy-group {
-  max-width: 560px;
+  display: grid;
+  gap: 10px;
+}
+
+.topbar-title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.topbar-tab-badge {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  color: var(--accent-deep);
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: var(--accent-soft);
+}
+
+.topbar-meta-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-meta-pill {
+  padding: 7px 12px;
+  border-radius: 999px;
+  color: var(--accent-deep);
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: var(--accent-soft);
+}
+
+.topbar-meta-text {
+  color: var(--muted);
+  font-size: 0.92rem;
 }
 
 .topbar-actions {
@@ -235,16 +335,25 @@ textarea {
   gap: 12px;
 }
 
+.topbar-action-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+}
+
 .search-shell {
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 360px;
-  padding: 12px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.95);
+  padding: 12px 16px;
+  border: 1px solid var(--line);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: var(--shadow-soft);
+  background: var(--panel-muted);
 }
 
 .search-shell input {
@@ -278,11 +387,14 @@ textarea {
 .icon-button {
   width: 46px;
   height: 46px;
-  border: 1px solid rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--accent-deep);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: var(--shadow-soft);
+  background: #fff;
+}
+
+.icon-button.subtle {
+  color: var(--muted);
 }
 
 .avatar-chip {
@@ -333,9 +445,16 @@ textarea {
   gap: 20px;
 }
 
+.inventory-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
 .stat-card,
 .section-card,
-.trend-card {
+.trend-card,
+.inventory-summary-card {
   border: 1px solid rgba(255, 255, 255, 0.95);
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.94);
@@ -394,6 +513,22 @@ textarea {
 .section-card,
 .trend-card {
   padding: 26px;
+}
+
+.inventory-summary-card {
+  display: grid;
+  gap: 10px;
+  padding: 22px;
+}
+
+.inventory-summary-card span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.inventory-summary-card strong {
+  font-size: 2rem;
+  letter-spacing: -0.03em;
 }
 
 .section-heading {
@@ -548,6 +683,77 @@ th {
   border-bottom: 0;
 }
 
+.stock-report-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.stock-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 280px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.stock-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+
+.stock-search-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  color: var(--accent-deep);
+  font-size: 0.76rem;
+  font-weight: 700;
+  background: var(--accent-soft);
+}
+
+.stock-report-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stock-control {
+  display: grid;
+  gap: 6px;
+  min-width: 150px;
+}
+
+.stock-control span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.stock-report-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.inventory-note {
+  margin: 0 0 18px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
 .attention-list {
   display: grid;
   gap: 18px;
@@ -624,6 +830,21 @@ th {
 .status-select {
   min-width: 132px;
   text-transform: capitalize;
+}
+
+.health-badge.positive {
+  color: var(--success);
+  background: #ecfbf4;
+}
+
+.health-badge.warning {
+  color: #8f6900;
+  background: #fff7dc;
+}
+
+.health-badge.danger {
+  color: var(--danger);
+  background: #fff2f4;
 }
 
 .status-draft,
@@ -822,6 +1043,10 @@ th {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .inventory-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .double-grid {
     grid-template-columns: 1fr;
   }
@@ -879,7 +1104,25 @@ th {
     width: 100%;
   }
 
+  .sidebar-reveal-button {
+    top: 16px;
+    left: 16px;
+  }
+
+  .stock-report-toolbar,
+  .stock-report-summary,
+  .stock-report-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stock-search,
+  .stock-control {
+    min-width: 0;
+  }
+
   .metrics-grid,
+  .inventory-summary-grid,
   .form-grid,
   .detail-grid,
   .line-item-row {

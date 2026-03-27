@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api";
 import ChatPanel from "./components/ChatPanel";
 import Dashboard from "./components/Dashboard";
+import InventoryPage from "./components/InventoryPage";
 import { mockDashboard, mockPurchases, mockSales } from "./mockData";
 import PurchaseForm from "./components/PurchaseForm";
 import SalesForm from "./components/SalesForm";
@@ -27,6 +28,12 @@ const tabs = [
     description: "Customer orders, payment timing, and sales history.",
   },
   {
+    id: "inventory",
+    label: "Inventory",
+    shortLabel: "I",
+    description: "Full stock visibility, reorder points, and stock health.",
+  },
+  {
     id: "chat",
     label: "AI Chat",
     shortLabel: "A",
@@ -36,6 +43,7 @@ const tabs = [
 
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [isSidebarHidden, setIsSidebarHidden] = useState(false);
   const [dashboard, setDashboard] = useState(null);
   const [products, setProducts] = useState([]);
   const [purchases, setPurchases] = useState([]);
@@ -224,8 +232,8 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
+    <div className={isSidebarHidden ? "app-shell sidebar-hidden" : "app-shell"}>
+      <aside className={isSidebarHidden ? "sidebar hidden" : "sidebar"}>
         <div className="sidebar-content">
           <div className="sidebar-top">
             <div className="brand-lockup">
@@ -233,7 +241,12 @@ function App() {
                 <h1>Inventory Management</h1>
               </div>
             </div>
-            <button className="sidebar-back-button" type="button" aria-label="Back">
+            <button
+              className="sidebar-back-button"
+              type="button"
+              aria-label="Hide sidebar"
+              onClick={() => setIsSidebarHidden(true)}
+            >
               &lt;
             </button>
           </div>
@@ -261,22 +274,48 @@ function App() {
       </aside>
 
       <main className="main-panel">
+        {isSidebarHidden ? (
+          <button
+            className="sidebar-reveal-button"
+            type="button"
+            aria-label="Show sidebar"
+            onClick={() => setIsSidebarHidden(false)}
+          >
+            &gt;
+          </button>
+        ) : null}
+
         <header className="topbar">
           <div className="topbar-copy-group">
-            <p className="eyebrow">Workspace</p>
-            <h2>{activeTabDetails.label}</h2>
-            <p className="hero-copy">{activeTabDetails.description}</p>
+            <div className="topbar-title-row">
+              <span className="topbar-tab-badge">{activeTabDetails.shortLabel}</span>
+              <h2>{activeTabDetails.label}</h2>
+            </div>
+            <div className="topbar-meta-strip">
+              <span className="topbar-meta-pill">Live Workspace</span>
+              <span className="topbar-meta-text">Ready for inventory updates</span>
+            </div>
           </div>
           <div className="topbar-actions">
             <label className="search-shell">
               <span className="search-shell-icon">S</span>
               <input type="search" placeholder="Search anything..." />
             </label>
-            <button className="icon-button" type="button" aria-label="Notifications">
-              N
-            </button>
-            <div className="avatar-chip" aria-hidden="true">
-              PW
+            <div className="topbar-action-cluster">
+              <button className="icon-button" type="button" aria-label="Notifications">
+                N
+              </button>
+              <button
+                className="icon-button subtle"
+                type="button"
+                aria-label="Refresh data"
+                onClick={loadData}
+              >
+                R
+              </button>
+              <div className="avatar-chip" aria-hidden="true">
+                PW
+              </div>
             </div>
           </div>
         </header>
@@ -314,6 +353,10 @@ function App() {
                   onSaleStatusChange={handleSaleStatusChange}
                 />
               </div>
+            ) : null}
+
+            {activeTab === "inventory" && dashboard ? (
+              <InventoryPage dashboard={dashboard} />
             ) : null}
 
             {activeTab === "chat" ? (

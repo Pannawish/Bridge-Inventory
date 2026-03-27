@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -81,11 +83,60 @@ function DashboardChart() {
   );
 }
 
+function getStockHealth(item) {
+  if ((item.days_until_stockout || 0) <= 7) {
+    return { label: "Urgent", tone: "danger" };
+  }
+
+  if ((item.days_until_stockout || 0) <= 21) {
+    return { label: "Watch", tone: "warning" };
+  }
+
+  return { label: "Healthy", tone: "positive" };
+}
+
 function Dashboard({ dashboard }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [stockFilter, setStockFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("high-to-low");
   const metrics = dashboard.metrics || {};
   const lowStockItems = dashboard.low_stock_items || [];
   const stockReport = dashboard.stock_report || [];
   const strongestStock = Math.max(...lowStockItems.map((item) => item.reorder_level || 0), 1);
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredStockReport = [...stockReport]
+    .filter((item) => {
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      return (
+        item.product_name?.toLowerCase().includes(normalizedSearch) ||
+        item.sku?.toLowerCase().includes(normalizedSearch)
+      );
+    })
+    .filter((item) => {
+      if (stockFilter === "all") {
+        return true;
+      }
+
+      if (stockFilter === "urgent") {
+        return item.days_until_stockout <= 7;
+      }
+
+      if (stockFilter === "watch") {
+        return item.days_until_stockout > 7 && item.days_until_stockout <= 21;
+      }
+
+      return item.days_until_stockout > 21;
+    })
+    .sort((leftItem, rightItem) => {
+      if (sortOrder === "low-to-high") {
+        return leftItem.current_stock - rightItem.current_stock;
+      }
+
+      return rightItem.current_stock - leftItem.current_stock;
+    });
 
   return (
     <div className="stack-layout">
@@ -175,11 +226,49 @@ function Dashboard({ dashboard }) {
           </div>
         </div>
 
+        <div className="stock-report-toolbar">
+          <label className="stock-search">
+            <span className="stock-search-icon">S</span>
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search product or SKU"
+            />
+          </label>
+
+          <div className="stock-report-actions">
+            <label className="stock-control">
+              <span>Filter</span>
+              <select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)}>
+                <option value="all">All</option>
+                <option value="urgent">Urgent</option>
+                <option value="watch">Watch</option>
+                <option value="healthy">Healthy</option>
+              </select>
+            </label>
+
+            <label className="stock-control">
+              <span>Sort</span>
+              <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)}>
+                <option value="high-to-low">High to Low</option>
+                <option value="low-to-high">Low to High</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div className="stock-report-summary">
+          <span>{filteredStockReport.length} items shown</span>
+          <span>Sorted by current stock</span>
+        </div>
+
         <div className="table-scroll">
           <table>
             <thead>
               <tr>
                 <th>Product</th>
+                <th>Health</th>
                 <th>Current Stock</th>
                 <th>7-Day Demand</th>
                 <th>Days Left</th>
@@ -187,20 +276,37 @@ function Dashboard({ dashboard }) {
               </tr>
             </thead>
             <tbody>
-              {stockReport.map((item) => (
-                <tr key={item.product_id}>
-                  <td>
-                    <div className="cell-stack">
-                      <strong>{item.product_name}</strong>
-                      <span>{item.sku}</span>
-                    </div>
+              {filteredStockReport.length === 0 ? (
+                <tr>
+                  <td colSpan="6">
+                    <p className="empty-copy">No products match the current search or filter.</p>
                   </td>
-                  <td>{formatNumber(item.current_stock)}</td>
-                  <td>{formatNumber(item.predicted_7_day_demand)}</td>
-                  <td>{formatNumber(item.days_until_stockout)}</td>
-                  <td>{formatNumber(item.recommended_restock)}</td>
                 </tr>
-              ))}
+              ) : (
+                filteredStockReport.map((item) => {
+                  const stockHealth = getStockHealth(item);
+
+                  return (
+                    <tr key={item.product_id}>
+                      <td>
+                        <div className="cell-stack">
+                          <strong>{item.product_name}</strong>
+                          <span>{item.sku}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`status-badge health-badge ${stockHealth.tone}`}>
+                          {stockHealth.label}
+                        </span>
+                      </td>
+                      <td>{formatNumber(item.current_stock)}</td>
+                      <td>{formatNumber(item.predicted_7_day_demand)}</td>
+                      <td>{formatNumber(item.days_until_stockout)}</td>
+                      <td>{formatNumber(item.recommended_restock)}</td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
