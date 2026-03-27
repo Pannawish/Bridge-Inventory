@@ -8,10 +8,30 @@ import SalesForm from "./components/SalesForm";
 import TransactionTable from "./components/TransactionTable";
 
 const tabs = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "purchases", label: "Purchases" },
-  { id: "sales", label: "Sales" },
-  { id: "chat", label: "AI Chat" },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    shortLabel: "DB",
+    description: "Overview, stock health, and daily movement.",
+  },
+  {
+    id: "purchases",
+    label: "Purchases",
+    shortLabel: "PO",
+    description: "Supplier entries, receiving flow, and purchase records.",
+  },
+  {
+    id: "sales",
+    label: "Sales",
+    shortLabel: "SO",
+    description: "Customer orders, payment timing, and sales history.",
+  },
+  {
+    id: "chat",
+    label: "AI Chat",
+    shortLabel: "AI",
+    description: "Ask inventory questions and review quick insights.",
+  },
 ];
 
 function App() {
@@ -33,6 +53,7 @@ function App() {
         "Ask about low stock, recent sales, or which products need restocking.",
     },
   ]);
+  const activeTabDetails = tabs.find((tab) => tab.id === activeTab) || tabs[0];
 
   async function loadData() {
     setLoading(true);
@@ -205,58 +226,74 @@ function App() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div>
-          <p className="sidebar-label">Simple Project</p>
-          <h1>Inventory Management</h1>
-          <p className="sidebar-copy">
-            Demo with React, Django, and a
-            read-only AI helper.
-          </p>
-        </div>
-        {/*
-        <div className="sidebar-note">
-          <h3>Main Objectives</h3>
-          <ul>
-            <li>Record purchase and sales transactions with status and files.</li>
-            <li>Create product records directly during purchase entry.</li>
-            <li>Let users query the system in natural language.</li>
-          </ul>
-        </div>
-        */}
+        <div className="sidebar-content">
+          <div className="brand-lockup">
+            <div className="brand-mark">I</div>
+            <div>
+              <p className="sidebar-label">White Theme</p>
+              <h1>Inventory Hub</h1>
+            </div>
+          </div>
 
-        <button className="secondary-button" onClick={loadData} type="button">
-          Refresh Data
-        </button>
-      </aside>
-
-      <main className="main-panel">
-        <header className="hero-panel">
-          <div>
-            <p className="eyebrow">Dashboard</p>
-            <h2>Keep the workflow small, visible, and easy to explain.</h2>
-            <p className="hero-copy">
-              Stock is calculated from purchase and sales history, and
-              prediction uses a simple 30-day sales average.
+          <div className="sidebar-copy-block">
+            <p className="sidebar-copy">
+              Clean inventory workspace for purchases, sales, and stock visibility.
             </p>
           </div>
 
-          {notice ? <div className="notice-banner">{notice}</div> : null}
+          <nav className="sidebar-nav">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                className={tab.id === activeTab ? "sidebar-nav-button active" : "sidebar-nav-button"}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <span className="sidebar-nav-icon">{tab.shortLabel}</span>
+                <span className="sidebar-nav-copy">
+                  <strong>{tab.label}</strong>
+                  <small>{tab.description}</small>
+                </span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="sidebar-support">
+            <p className="sidebar-section-title">Workspace</p>
+            <div className="sidebar-card">
+              <strong>Refresh data</strong>
+              <p>Use the latest backend or mock values in one click.</p>
+              <button className="secondary-button" onClick={loadData} type="button">
+                Refresh Data
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main className="main-panel">
+        <header className="topbar">
+          <div className="topbar-copy-group">
+            <p className="eyebrow">Workspace</p>
+            <h2>{activeTabDetails.label}</h2>
+            <p className="hero-copy">{activeTabDetails.description}</p>
+          </div>
+          <div className="topbar-actions">
+            <label className="search-shell">
+              <span className="search-shell-icon">S</span>
+              <input type="search" placeholder="Search anything..." />
+            </label>
+            <button className="icon-button" type="button" aria-label="Notifications">
+              N
+            </button>
+            <div className="avatar-chip" aria-hidden="true">
+              PW
+            </div>
+          </div>
         </header>
 
+        {notice ? <div className="notice-banner">{notice}</div> : null}
         {error ? <div className="error-banner">{error}</div> : null}
-
-        <nav className="tab-bar">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              className={tab.id === activeTab ? "tab-button active" : "tab-button"}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
 
         {loading ? (
           <section className="section-card loading-card">
