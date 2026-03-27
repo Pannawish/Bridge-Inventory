@@ -67,8 +67,8 @@ textarea {
   position: sticky;
   top: 24px;
   align-self: start;
-  min-height: calc(100vh - 48px);
-  padding: 28px 22px;
+  height: calc(100vh - 48px);
+  padding: 24px 18px;
   border: 1px solid rgba(255, 255, 255, 0.85);
   border-radius: 32px;
   background:
@@ -79,26 +79,22 @@ textarea {
 
 .sidebar-content {
   display: grid;
-  gap: 28px;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 18px;
+  height: 100%;
+}
+
+.sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .brand-lockup {
   display: flex;
   align-items: center;
-  gap: 14px;
-}
-
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 50px;
-  height: 50px;
-  border-radius: 16px;
-  color: #fff;
-  font-size: 1.25rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #111a35, #4168ff);
-  box-shadow: 0 14px 28px rgba(65, 104, 255, 0.24);
+  gap: 12px;
 }
 
 .sidebar h1,
@@ -109,7 +105,7 @@ textarea {
 }
 
 .sidebar h1 {
-  font-size: 1.95rem;
+  font-size: 1.7rem;
   line-height: 1.05;
 }
 
@@ -122,13 +118,6 @@ textarea {
   text-transform: uppercase;
 }
 
-.sidebar-copy-block {
-  padding: 16px 18px;
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  background: var(--panel-muted);
-}
-
 .sidebar-copy,
 .hero-copy,
 .empty-copy,
@@ -138,19 +127,29 @@ textarea {
   line-height: 1.65;
 }
 
+.sidebar-back-button {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--text);
+  background: #fff;
+}
+
 .sidebar-nav {
   display: grid;
-  gap: 10px;
+  align-content: start;
+  gap: 8px;
 }
 
 .sidebar-nav-button {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 1px solid transparent;
-  border-radius: 20px;
+  border-radius: 16px;
   color: var(--text);
   text-align: left;
   background: transparent;
@@ -168,37 +167,26 @@ textarea {
 }
 
 .sidebar-nav-button.active {
-  border-color: #dbe4ff;
-  background: linear-gradient(180deg, #f7f9ff, #eef3ff);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.95);
+  border-color: #d9e2fb;
+  background: linear-gradient(180deg, #f6f8ff, #edf2ff);
 }
 
 .sidebar-nav-icon {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 30px;
+  height: 30px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 10px;
   color: var(--accent-deep);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
   background: #fff;
 }
 
-.sidebar-nav-copy {
-  display: grid;
-  gap: 3px;
-}
-
-.sidebar-nav-copy strong {
+.sidebar-nav-text {
   font-size: 1rem;
   font-weight: 600;
-}
-
-.sidebar-nav-copy small {
-  color: var(--muted);
-  font-size: 0.82rem;
 }
 
 .sidebar-section-title {
@@ -210,23 +198,13 @@ textarea {
   text-transform: uppercase;
 }
 
-.sidebar-card {
-  display: grid;
-  gap: 12px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  background: linear-gradient(180deg, #ffffff, #f8fbff);
+.sidebar-support {
+  align-self: end;
 }
 
-.sidebar-card strong {
-  font-size: 1rem;
-}
-
-.sidebar-card p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.55;
+.sidebar-refresh-button {
+  width: 100%;
+  justify-self: stretch;
 }
 
 .main-panel {
@@ -856,7 +834,7 @@ th {
 
   .sidebar {
     position: static;
-    min-height: auto;
+    height: auto;
   }
 
   .topbar {

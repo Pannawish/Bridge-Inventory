@@ -11,25 +11,25 @@ const tabs = [
   {
     id: "dashboard",
     label: "Dashboard",
-    shortLabel: "DB",
+    shortLabel: "D",
     description: "Overview, stock health, and daily movement.",
   },
   {
     id: "purchases",
     label: "Purchases",
-    shortLabel: "PO",
+    shortLabel: "P",
     description: "Supplier entries, receiving flow, and purchase records.",
   },
   {
     id: "sales",
     label: "Sales",
-    shortLabel: "SO",
+    shortLabel: "S",
     description: "Customer orders, payment timing, and sales history.",
   },
   {
     id: "chat",
     label: "AI Chat",
-    shortLabel: "AI",
+    shortLabel: "A",
     description: "Ask inventory questions and review quick insights.",
   },
 ];
@@ -227,18 +227,15 @@ function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-content">
-          <div className="brand-lockup">
-            <div className="brand-mark">I</div>
-            <div>
-              <p className="sidebar-label">White Theme</p>
-              <h1>Inventory Hub</h1>
+          <div className="sidebar-top">
+            <div className="brand-lockup">
+              <div>
+                <h1>Inventory Management</h1>
+              </div>
             </div>
-          </div>
-
-          <div className="sidebar-copy-block">
-            <p className="sidebar-copy">
-              Clean inventory workspace for purchases, sales, and stock visibility.
-            </p>
+            <button className="sidebar-back-button" type="button" aria-label="Back">
+              &lt;
+            </button>
           </div>
 
           <nav className="sidebar-nav">
@@ -250,23 +247,15 @@ function App() {
                 onClick={() => setActiveTab(tab.id)}
               >
                 <span className="sidebar-nav-icon">{tab.shortLabel}</span>
-                <span className="sidebar-nav-copy">
-                  <strong>{tab.label}</strong>
-                  <small>{tab.description}</small>
-                </span>
+                <span className="sidebar-nav-text">{tab.label}</span>
               </button>
             ))}
           </nav>
 
           <div className="sidebar-support">
-            <p className="sidebar-section-title">Workspace</p>
-            <div className="sidebar-card">
-              <strong>Refresh data</strong>
-              <p>Use the latest backend or mock values in one click.</p>
-              <button className="secondary-button" onClick={loadData} type="button">
-                Refresh Data
-              </button>
-            </div>
+            <button className="secondary-button sidebar-refresh-button" onClick={loadData} type="button">
+              Refresh Data
+            </button>
           </div>
         </div>
       </aside>
