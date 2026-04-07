@@ -452,6 +452,11 @@ textarea {
   gap: 20px;
 }
 
+.supplier-layout {
+  display: grid;
+  gap: 24px;
+}
+
 .stat-card,
 .section-card,
 .trend-card,
@@ -761,6 +766,147 @@ th {
   line-height: 1.65;
 }
 
+.supplier-directory-card {
+  display: grid;
+  gap: 18px;
+}
+
+.supplier-directory-heading {
+  align-items: flex-start;
+}
+
+.supplier-directory-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.supplier-search {
+  flex: 1;
+}
+
+.supplier-search-meta {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.supplier-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.supplier-list-item {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #edf1fb;
+  border-radius: 22px;
+  color: var(--text);
+  text-align: left;
+  background: linear-gradient(180deg, #ffffff, #f8faff);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.supplier-list-item:hover {
+  border-color: #cdd9fb;
+  box-shadow: 0 14px 30px rgba(31, 52, 120, 0.08);
+}
+
+.supplier-list-item.active {
+  border-color: #bfd0ff;
+  background: linear-gradient(180deg, #f7faff, #eef3ff);
+  box-shadow: 0 16px 36px rgba(65, 104, 255, 0.10);
+}
+
+.supplier-list-item span {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.supplier-list-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.supplier-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.supplier-preview-card {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid #edf1fb;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #ffffff, #fbfcff);
+}
+
+.supplier-preview-card span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.supplier-preview-card strong {
+  line-height: 1.45;
+}
+
+.supplier-option-field {
+  display: grid;
+  gap: 10px;
+}
+
+.supplier-option-edit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.supplier-option-edit-row input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--text);
+  background: #fff;
+}
+
+.supplier-option-edit-row input:focus {
+  border-color: #b6c7ff;
+  box-shadow: 0 0 0 4px rgba(65, 104, 255, 0.10);
+}
+
+.supplier-option-edit-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.supplier-modal {
+  width: min(980px, 100%);
+}
+
+.supplier-modal-header {
+  align-items: flex-start;
+}
+
+.supplier-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.supplier-modal-actions .danger-button {
+  margin-right: auto;
+}
+
 .attention-list {
   display: grid;
   gap: 18px;
@@ -1052,6 +1198,8 @@ th {
   width: min(900px, 100%);
   max-height: 90vh;
   overflow: auto;
+  border-color: var(--line);
+  background: #fff;
 }
 
 .detail-grid {
@@ -1102,6 +1250,14 @@ th {
 
   .double-grid {
     grid-template-columns: 1fr;
+  }
+
+  .supplier-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .supplier-preview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1193,7 +1349,8 @@ th {
 
   .stock-report-toolbar,
   .stock-report-summary,
-  .stock-report-actions {
+  .stock-report-actions,
+  .supplier-directory-toolbar {
     flex-direction: column;
     align-items: stretch;
   }
@@ -1249,6 +1406,29 @@ th {
     grid-template-columns: 1fr;
   }
 
+  .supplier-preview-grid,
+  .supplier-option-edit-row {
+    grid-template-columns: 1fr;
+  }
+
+  .supplier-list {
+    grid-template-columns: 1fr;
+  }
+
+  .supplier-search-meta {
+    width: 100%;
+  }
+
+  .supplier-option-edit-actions,
+  .supplier-modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .supplier-modal-actions .danger-button {
+    margin-right: 0;
+  }
+
   th,
   td {
     padding: 12px 10px;
@@ -1264,6 +1444,11 @@ th {
   .mobile-record-grid,
   .mobile-stock-grid {
     grid-template-columns: 1fr;
+  }
+
+  .supplier-list-top {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .status-select {

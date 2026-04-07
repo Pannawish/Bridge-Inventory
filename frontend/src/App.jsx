@@ -6,6 +6,7 @@ import InventoryPage from "./components/InventoryPage";
 import { mockDashboard, mockPurchases, mockSales } from "./mockData";
 import PurchaseForm from "./components/PurchaseForm";
 import SalesForm from "./components/SalesForm";
+import SupplierPage from "./components/SupplierPage";
 import TransactionTable from "./components/TransactionTable";
 
 const tabs = [
@@ -26,6 +27,12 @@ const tabs = [
     label: "Sales",
     shortLabel: "S",
     description: "Customer orders, payment timing, and sales history.",
+  },
+  {
+    id: "suppliers",
+    label: "Supplier",
+    shortLabel: "SP",
+    description: "Supplier contact records, branches, and shipping details.",
   },
   {
     id: "inventory",
@@ -384,6 +391,8 @@ function App() {
             {activeTab === "inventory" && dashboard ? (
               <InventoryPage dashboard={dashboard} />
             ) : null}
+
+            {activeTab === "suppliers" ? <SupplierPage /> : null}
 
             {activeTab === "chat" ? (
               <ChatPanel messages={messages} onAsk={handleAskChat} busy={chatBusy} />
