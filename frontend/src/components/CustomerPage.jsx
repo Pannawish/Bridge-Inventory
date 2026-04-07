@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 
-const STORAGE_KEY = "inventory-management-suppliers";
+const STORAGE_KEY = "inventory-management-customers";
 
-function createSupplier(overrides = {}) {
+function createCustomer(overrides = {}) {
   return {
-    id: `supplier-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `customer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     companyName: "",
     locations: [""],
     selectedLocationIndex: 0,
@@ -18,45 +18,48 @@ function createSupplier(overrides = {}) {
     shippingAddresses: [""],
     selectedShippingAddressIndex: 0,
     remark: "",
+    billingNoteDate: "",
     ...overrides,
   };
 }
 
-const defaultSuppliers = [
-  createSupplier({
-    id: "supplier-1",
-    companyName: "Bangkok Office Supply",
-    locations: ["Bangkok HQ", "Lat Krabang Branch", "Nonthaburi Warehouse"],
+const defaultCustomers = [
+  createCustomer({
+    id: "customer-1",
+    companyName: "Faculty of Engineering",
+    locations: ["Main Campus", "Innovation Building"],
     selectedLocationIndex: 0,
-    emails: ["sales@bangkokoffice.co.th", "support@bangkokoffice.co.th"],
+    emails: ["procurement@eng.example.ac.th", "store@eng.example.ac.th"],
     selectedEmailIndex: 0,
-    tels: ["02-123-4567", "081-234-5678"],
+    tels: ["02-111-2200", "089-111-2200"],
     selectedTelIndex: 0,
-    taxpayerId: "0105559032145",
-    branches: ["Head Office", "Branch 01"],
+    taxpayerId: "0994000151234",
+    branches: ["Main Office", "Warehouse Desk"],
     selectedBranchIndex: 0,
     shippingAddresses: [
-      "89/12 Ratchadaphisek Road, Din Daeng, Bangkok 10400",
-      "12 Motorway Road, Lat Krabang, Bangkok 10520",
+      "99 Phaya Thai Road, Pathum Wan, Bangkok 10330",
+      "21 Rama I Road, Pathum Wan, Bangkok 10330",
     ],
     selectedShippingAddressIndex: 0,
-    remark: "Primary supplier for stationery and semester opening stock.",
+    remark: "Regular bulk customer for notebooks and pens.",
+    billingNoteDate: "Invoice note issued every Friday after delivery confirmation.",
   }),
-  createSupplier({
-    id: "supplier-2",
-    companyName: "Learning Tools Co.",
-    locations: ["Pathum Thani Office", "Ayutthaya Fulfillment Center"],
+  createCustomer({
+    id: "customer-2",
+    companyName: "Student Council",
+    locations: ["Student Union Office", "Event Storage Room"],
     selectedLocationIndex: 0,
-    emails: ["contact@learningtools.co.th"],
+    emails: ["admin@studentcouncil.example.ac.th"],
     selectedEmailIndex: 0,
-    tels: ["035-555-220"],
+    tels: ["02-555-7788"],
     selectedTelIndex: 0,
-    taxpayerId: "0135562009981",
-    branches: ["Branch 02"],
+    taxpayerId: "0107546004451",
+    branches: ["Council Office"],
     selectedBranchIndex: 0,
-    shippingAddresses: ["144 Rangsit-Nakhon Nayok Road, Thanyaburi, Pathum Thani 12110"],
+    shippingAddresses: ["15 University Avenue, Bangkok 10330"],
     selectedShippingAddressIndex: 0,
-    remark: "Handles whiteboard tools and teaching accessories.",
+    remark: "Often requests event supplies on short notice.",
+    billingNoteDate: "Billing note should mention event name and delivery date.",
   }),
 ];
 
@@ -76,55 +79,56 @@ function coerceList(value) {
   return value.map((entry) => `${entry ?? ""}`);
 }
 
-function normalizeSupplier(supplier) {
-  const locations = coerceList(supplier.locations);
-  const emails = coerceList(supplier.emails);
-  const tels = coerceList(supplier.tels);
-  const branches = coerceList(supplier.branches);
-  const shippingAddresses = coerceList(supplier.shippingAddresses);
+function normalizeCustomer(customer) {
+  const locations = coerceList(customer.locations);
+  const emails = coerceList(customer.emails);
+  const tels = coerceList(customer.tels);
+  const branches = coerceList(customer.branches);
+  const shippingAddresses = coerceList(customer.shippingAddresses);
 
   return {
-    id: supplier.id || createSupplier().id,
-    companyName: `${supplier.companyName ?? ""}`,
+    id: customer.id || createCustomer().id,
+    companyName: `${customer.companyName ?? ""}`,
     locations,
-    selectedLocationIndex: clampIndex(locations, supplier.selectedLocationIndex),
+    selectedLocationIndex: clampIndex(locations, customer.selectedLocationIndex),
     emails,
-    selectedEmailIndex: clampIndex(emails, supplier.selectedEmailIndex),
+    selectedEmailIndex: clampIndex(emails, customer.selectedEmailIndex),
     tels,
-    selectedTelIndex: clampIndex(tels, supplier.selectedTelIndex),
-    taxpayerId: `${supplier.taxpayerId ?? ""}`,
+    selectedTelIndex: clampIndex(tels, customer.selectedTelIndex),
+    taxpayerId: `${customer.taxpayerId ?? ""}`,
     branches,
-    selectedBranchIndex: clampIndex(branches, supplier.selectedBranchIndex),
+    selectedBranchIndex: clampIndex(branches, customer.selectedBranchIndex),
     shippingAddresses,
     selectedShippingAddressIndex: clampIndex(
       shippingAddresses,
-      supplier.selectedShippingAddressIndex
+      customer.selectedShippingAddressIndex
     ),
-    remark: `${supplier.remark ?? ""}`,
+    remark: `${customer.remark ?? ""}`,
+    billingNoteDate: `${customer.billingNoteDate ?? ""}`,
   };
 }
 
-function loadSuppliers() {
+function loadCustomers() {
   if (typeof window === "undefined") {
-    return defaultSuppliers;
+    return defaultCustomers;
   }
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
 
     if (!raw) {
-      return defaultSuppliers;
+      return defaultCustomers;
     }
 
     const parsed = JSON.parse(raw);
 
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      return defaultSuppliers;
+      return defaultCustomers;
     }
 
-    return parsed.map(normalizeSupplier);
+    return parsed.map(normalizeCustomer);
   } catch {
-    return defaultSuppliers;
+    return defaultCustomers;
   }
 }
 
@@ -132,7 +136,7 @@ function getSelectedValue(list, index) {
   return list?.[index] || "-";
 }
 
-function SupplierOptionField({
+function CustomerOptionField({
   label,
   options,
   selectedIndex,
@@ -176,21 +180,21 @@ function SupplierOptionField({
   );
 }
 
-function SupplierPage() {
-  const [suppliers, setSuppliers] = useState(() => loadSuppliers());
-  const [selectedSupplierId, setSelectedSupplierId] = useState(null);
-  const [draftSupplier, setDraftSupplier] = useState(null);
+function CustomerPage() {
+  const [customers, setCustomers] = useState(() => loadCustomers());
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+  const [draftCustomer, setDraftCustomer] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify(suppliers.map((supplier) => normalizeSupplier(supplier)))
+      JSON.stringify(customers.map((customer) => normalizeCustomer(customer)))
     );
-  }, [suppliers]);
+  }, [customers]);
 
   useEffect(() => {
-    if (typeof document === "undefined" || !draftSupplier) {
+    if (typeof document === "undefined" || !draftCustomer) {
       return undefined;
     }
 
@@ -200,68 +204,68 @@ function SupplierPage() {
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [draftSupplier]);
+  }, [draftCustomer]);
 
   useEffect(() => {
-    if (selectedSupplierId && !suppliers.some((supplier) => supplier.id === selectedSupplierId)) {
-      setSelectedSupplierId(null);
+    if (selectedCustomerId && !customers.some((customer) => customer.id === selectedCustomerId)) {
+      setSelectedCustomerId(null);
     }
-  }, [selectedSupplierId, suppliers]);
+  }, [selectedCustomerId, customers]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filteredSuppliers = useMemo(
+  const filteredCustomers = useMemo(
     () =>
-      suppliers.filter((supplier) => {
+      customers.filter((customer) => {
         if (!normalizedSearch) {
           return true;
         }
 
         return (
-          supplier.companyName.toLowerCase().includes(normalizedSearch) ||
-          supplier.locations.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
-          supplier.emails.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
-          supplier.tels.some((item) => item.toLowerCase().includes(normalizedSearch))
+          customer.companyName.toLowerCase().includes(normalizedSearch) ||
+          customer.locations.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
+          customer.emails.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
+          customer.tels.some((item) => item.toLowerCase().includes(normalizedSearch))
         );
       }),
-    [normalizedSearch, suppliers]
+    [normalizedSearch, customers]
   );
 
-  function openSupplierEditor(supplier) {
-    setSelectedSupplierId(supplier.id);
-    setDraftSupplier(normalizeSupplier(supplier));
+  function openCustomerEditor(customer) {
+    setSelectedCustomerId(customer.id);
+    setDraftCustomer(normalizeCustomer(customer));
   }
 
-  function closeSupplierEditor() {
-    setDraftSupplier(null);
+  function closeCustomerEditor() {
+    setDraftCustomer(null);
   }
 
-  function updateDraftSupplier(updater) {
-    setDraftSupplier((currentSupplier) =>
-      currentSupplier ? normalizeSupplier(updater(currentSupplier)) : currentSupplier
+  function updateDraftCustomer(updater) {
+    setDraftCustomer((currentCustomer) =>
+      currentCustomer ? normalizeCustomer(updater(currentCustomer)) : currentCustomer
     );
   }
 
   function updateTextField(key, value) {
-    updateDraftSupplier((supplier) => ({ ...supplier, [key]: value }));
+    updateDraftCustomer((customer) => ({ ...customer, [key]: value }));
   }
 
   function updateOptionIndex(indexKey, nextIndex) {
-    updateDraftSupplier((supplier) => ({ ...supplier, [indexKey]: nextIndex }));
+    updateDraftCustomer((customer) => ({ ...customer, [indexKey]: nextIndex }));
   }
 
   function updateOptionValue(listKey, indexKey, nextValue) {
-    updateDraftSupplier((supplier) => {
-      const nextOptions = [...supplier[listKey]];
-      nextOptions[supplier[indexKey]] = nextValue;
-      return { ...supplier, [listKey]: nextOptions };
+    updateDraftCustomer((customer) => {
+      const nextOptions = [...customer[listKey]];
+      nextOptions[customer[indexKey]] = nextValue;
+      return { ...customer, [listKey]: nextOptions };
     });
   }
 
   function addOption(listKey, indexKey) {
-    updateDraftSupplier((supplier) => {
-      const nextOptions = [...supplier[listKey], ""];
+    updateDraftCustomer((customer) => {
+      const nextOptions = [...customer[listKey], ""];
       return {
-        ...supplier,
+        ...customer,
         [listKey]: nextOptions,
         [indexKey]: nextOptions.length - 1,
       };
@@ -269,13 +273,13 @@ function SupplierPage() {
   }
 
   function deleteOption(listKey, indexKey) {
-    updateDraftSupplier((supplier) => {
-      const currentIndex = supplier[indexKey];
-      const currentOptions = supplier[listKey];
+    updateDraftCustomer((customer) => {
+      const currentIndex = customer[indexKey];
+      const currentOptions = customer[listKey];
 
       if (currentOptions.length <= 1) {
         return {
-          ...supplier,
+          ...customer,
           [listKey]: [""],
           [indexKey]: 0,
         };
@@ -283,81 +287,81 @@ function SupplierPage() {
 
       const nextOptions = currentOptions.filter((_, index) => index !== currentIndex);
       return {
-        ...supplier,
+        ...customer,
         [listKey]: nextOptions,
         [indexKey]: clampIndex(nextOptions, currentIndex),
       };
     });
   }
 
-  function handleCreateSupplier() {
-    setDraftSupplier(
-      createSupplier({
-        companyName: `New Supplier ${suppliers.length + 1}`,
+  function handleCreateCustomer() {
+    setDraftCustomer(
+      createCustomer({
+        companyName: `New Customer ${customers.length + 1}`,
       })
     );
   }
 
-  function handleSaveSupplier() {
-    if (!draftSupplier) {
+  function handleSaveCustomer() {
+    if (!draftCustomer) {
       return;
     }
 
-    const nextSupplier = normalizeSupplier(draftSupplier);
-    const exists = suppliers.some((supplier) => supplier.id === nextSupplier.id);
+    const nextCustomer = normalizeCustomer(draftCustomer);
+    const exists = customers.some((customer) => customer.id === nextCustomer.id);
 
-    setSuppliers((currentSuppliers) =>
+    setCustomers((currentCustomers) =>
       exists
-        ? currentSuppliers.map((supplier) =>
-            supplier.id === nextSupplier.id ? nextSupplier : supplier
+        ? currentCustomers.map((customer) =>
+            customer.id === nextCustomer.id ? nextCustomer : customer
           )
-        : [nextSupplier, ...currentSuppliers]
+        : [nextCustomer, ...currentCustomers]
     );
-    setSelectedSupplierId(nextSupplier.id);
-    setDraftSupplier(null);
+    setSelectedCustomerId(nextCustomer.id);
+    setDraftCustomer(null);
   }
 
-  function handleDeleteSupplier() {
-    if (!draftSupplier) {
+  function handleDeleteCustomer() {
+    if (!draftCustomer) {
       return;
     }
 
-    const exists = suppliers.some((supplier) => supplier.id === draftSupplier.id);
+    const exists = customers.some((customer) => customer.id === draftCustomer.id);
 
     if (!exists) {
-      setDraftSupplier(null);
+      setDraftCustomer(null);
       return;
     }
 
     const confirmed = window.confirm(
-      `Delete supplier ${draftSupplier.companyName || "this supplier"}?`
+      `Delete customer ${draftCustomer.companyName || "this customer"}?`
     );
 
     if (!confirmed) {
       return;
     }
 
-    setSuppliers((currentSuppliers) =>
-      currentSuppliers.filter((supplier) => supplier.id !== draftSupplier.id)
+    setCustomers((currentCustomers) =>
+      currentCustomers.filter((customer) => customer.id !== draftCustomer.id)
     );
-    setSelectedSupplierId((currentId) =>
-      currentId === draftSupplier.id ? null : currentId
+    setSelectedCustomerId((currentId) =>
+      currentId === draftCustomer.id ? null : currentId
     );
-    setDraftSupplier(null);
+    setDraftCustomer(null);
   }
 
   const summary = {
-    totalSuppliers: suppliers.length,
-    totalLocations: suppliers.reduce(
-      (sum, supplier) => sum + supplier.locations.filter((item) => item.trim()).length,
+    totalCustomers: customers.length,
+    totalLocations: customers.reduce(
+      (sum, customer) => sum + customer.locations.filter((item) => item.trim()).length,
       0
     ),
-    totalEmails: suppliers.reduce(
-      (sum, supplier) => sum + supplier.emails.filter((item) => item.trim()).length,
+    totalEmails: customers.reduce(
+      (sum, customer) => sum + customer.emails.filter((item) => item.trim()).length,
       0
     ),
-    totalPhones: suppliers.reduce(
-      (sum, supplier) => sum + supplier.tels.filter((item) => item.trim()).length,
+    totalPhones: customers.reduce(
+      (sum, customer) => sum + customer.tels.filter((item) => item.trim()).length,
       0
     ),
   };
@@ -366,8 +370,8 @@ function SupplierPage() {
     <div className="stack-layout">
       <section className="inventory-summary-grid">
         <article className="inventory-summary-card">
-          <span>Total suppliers</span>
-          <strong>{summary.totalSuppliers}</strong>
+          <span>Total customers</span>
+          <strong>{summary.totalCustomers}</strong>
         </article>
         <article className="inventory-summary-card">
           <span>Saved locations</span>
@@ -387,17 +391,17 @@ function SupplierPage() {
         <section className="section-card supplier-directory-card">
           <div className="section-heading supplier-directory-heading">
             <div>
-              <p className="eyebrow">Suppliers</p>
-              <h3>Supplier Directory</h3>
+              <p className="eyebrow">Customers</p>
+              <h3>Customer Directory</h3>
             </div>
-            <button className="primary-button" type="button" onClick={handleCreateSupplier}>
-              New Supplier
+            <button className="primary-button" type="button" onClick={handleCreateCustomer}>
+              New Customer
             </button>
           </div>
 
           <p className="inventory-note">
-            Store supplier details in the frontend for now. Changes are saved when you press the
-            save button in the supplier popup.
+            Store customer details in the frontend for now. Changes are saved when you press the
+            save button in the customer popup.
           </p>
 
           <div className="supplier-directory-toolbar">
@@ -407,37 +411,37 @@ function SupplierPage() {
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search supplier, location, email, or tel"
+                placeholder="Search customer, location, email, or tel"
               />
             </label>
             <div className="stock-report-summary supplier-search-meta">
-              <span>{filteredSuppliers.length} suppliers shown</span>
+              <span>{filteredCustomers.length} customers shown</span>
             </div>
           </div>
 
           <div className="supplier-list">
-            {filteredSuppliers.length === 0 ? (
-              <p className="empty-copy">No suppliers match the current search.</p>
+            {filteredCustomers.length === 0 ? (
+              <p className="empty-copy">No customers match the current search.</p>
             ) : (
-              filteredSuppliers.map((supplier) => {
-                const isActive = supplier.id === selectedSupplierId;
+              filteredCustomers.map((customer) => {
+                const isActive = customer.id === selectedCustomerId;
 
                 return (
                   <button
-                    key={supplier.id}
+                    key={customer.id}
                     type="button"
                     className={isActive ? "supplier-list-item active" : "supplier-list-item"}
-                    onClick={() => openSupplierEditor(supplier)}
+                    onClick={() => openCustomerEditor(customer)}
                   >
                     <div className="supplier-list-top">
-                      <strong>{supplier.companyName || "Unnamed Supplier"}</strong>
+                      <strong>{customer.companyName || "Unnamed Customer"}</strong>
                       <span className="status-badge status-ordered">Saved</span>
                     </div>
                     <span>
-                      {getSelectedValue(supplier.locations, supplier.selectedLocationIndex)}
+                      {getSelectedValue(customer.locations, customer.selectedLocationIndex)}
                     </span>
-                    <span>{getSelectedValue(supplier.emails, supplier.selectedEmailIndex)}</span>
-                    <span>{getSelectedValue(supplier.tels, supplier.selectedTelIndex)}</span>
+                    <span>{getSelectedValue(customer.emails, customer.selectedEmailIndex)}</span>
+                    <span>{getSelectedValue(customer.tels, customer.selectedTelIndex)}</span>
                   </button>
                 );
               })
@@ -446,26 +450,26 @@ function SupplierPage() {
         </section>
       </div>
 
-      {draftSupplier ? (
+      {draftCustomer ? (
         <div className="modal-backdrop">
           <div
             className="detail-modal supplier-modal section-card"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="supplier-modal-title"
+            aria-labelledby="customer-modal-title"
           >
             <div className="section-heading supplier-modal-header">
               <div>
-                <p className="eyebrow">Supplier Details</p>
-                <h3 id="supplier-modal-title">
-                  {draftSupplier.companyName || "New Supplier"}
+                <p className="eyebrow">Customer Details</p>
+                <h3 id="customer-modal-title">
+                  {draftCustomer.companyName || "New Customer"}
                 </h3>
               </div>
               <button
                 className="icon-button subtle"
                 type="button"
-                aria-label="Close supplier details"
-                onClick={closeSupplierEditor}
+                aria-label="Close customer details"
+                onClick={closeCustomerEditor}
               >
                 X
               </button>
@@ -475,33 +479,33 @@ function SupplierPage() {
               className="form-layout"
               onSubmit={(event) => {
                 event.preventDefault();
-                handleSaveSupplier();
+                handleSaveCustomer();
               }}
             >
               <div className="form-grid">
                 <label>
-                  Supplier Company Name
+                  Customer Company Name
                   <input
                     autoFocus
-                    value={draftSupplier.companyName}
+                    value={draftCustomer.companyName}
                     onChange={(event) => updateTextField("companyName", event.target.value)}
-                    placeholder="Supplier company name"
+                    placeholder="Customer company name"
                   />
                 </label>
 
                 <label>
-                  Supplier Taxpayer Identification Number
+                  Customer Taxpayer Identification Number
                   <input
-                    value={draftSupplier.taxpayerId}
+                    value={draftCustomer.taxpayerId}
                     onChange={(event) => updateTextField("taxpayerId", event.target.value)}
                     placeholder="Taxpayer identification number"
                   />
                 </label>
 
-                <SupplierOptionField
-                  label="Supplier Company Location"
-                  options={draftSupplier.locations}
-                  selectedIndex={draftSupplier.selectedLocationIndex}
+                <CustomerOptionField
+                  label="Customer Company Location"
+                  options={draftCustomer.locations}
+                  selectedIndex={draftCustomer.selectedLocationIndex}
                   placeholder="Add or edit a company location"
                   onSelect={(nextIndex) => updateOptionIndex("selectedLocationIndex", nextIndex)}
                   onChange={(nextValue) =>
@@ -511,10 +515,10 @@ function SupplierPage() {
                   onDelete={() => deleteOption("locations", "selectedLocationIndex")}
                 />
 
-                <SupplierOptionField
-                  label="Supplier Email"
-                  options={draftSupplier.emails}
-                  selectedIndex={draftSupplier.selectedEmailIndex}
+                <CustomerOptionField
+                  label="Customer Email"
+                  options={draftCustomer.emails}
+                  selectedIndex={draftCustomer.selectedEmailIndex}
                   placeholder="Add or edit an email"
                   type="email"
                   onSelect={(nextIndex) => updateOptionIndex("selectedEmailIndex", nextIndex)}
@@ -525,10 +529,10 @@ function SupplierPage() {
                   onDelete={() => deleteOption("emails", "selectedEmailIndex")}
                 />
 
-                <SupplierOptionField
-                  label="Supplier Tel"
-                  options={draftSupplier.tels}
-                  selectedIndex={draftSupplier.selectedTelIndex}
+                <CustomerOptionField
+                  label="Customer Tel"
+                  options={draftCustomer.tels}
+                  selectedIndex={draftCustomer.selectedTelIndex}
                   placeholder="Add or edit a telephone number"
                   onSelect={(nextIndex) => updateOptionIndex("selectedTelIndex", nextIndex)}
                   onChange={(nextValue) =>
@@ -538,10 +542,10 @@ function SupplierPage() {
                   onDelete={() => deleteOption("tels", "selectedTelIndex")}
                 />
 
-                <SupplierOptionField
-                  label="Supplier Branch"
-                  options={draftSupplier.branches}
-                  selectedIndex={draftSupplier.selectedBranchIndex}
+                <CustomerOptionField
+                  label="Customer Branch"
+                  options={draftCustomer.branches}
+                  selectedIndex={draftCustomer.selectedBranchIndex}
                   placeholder="Add or edit a branch"
                   onSelect={(nextIndex) => updateOptionIndex("selectedBranchIndex", nextIndex)}
                   onChange={(nextValue) =>
@@ -552,10 +556,10 @@ function SupplierPage() {
                 />
 
                 <div className="full-width">
-                  <SupplierOptionField
+                  <CustomerOptionField
                     label="Shipping Address"
-                    options={draftSupplier.shippingAddresses}
-                    selectedIndex={draftSupplier.selectedShippingAddressIndex}
+                    options={draftCustomer.shippingAddresses}
+                    selectedIndex={draftCustomer.selectedShippingAddressIndex}
                     placeholder="Add or edit a shipping address"
                     onSelect={(nextIndex) =>
                       updateOptionIndex("selectedShippingAddressIndex", nextIndex)
@@ -580,22 +584,32 @@ function SupplierPage() {
                   Remark
                   <textarea
                     rows="4"
-                    value={draftSupplier.remark}
+                    value={draftCustomer.remark}
                     onChange={(event) => updateTextField("remark", event.target.value)}
-                    placeholder="Internal note about this supplier"
+                    placeholder="Internal note about this customer"
+                  />
+                </label>
+
+                <label className="full-width">
+                  Billing Note Date
+                  <textarea
+                    rows="4"
+                    value={draftCustomer.billingNoteDate}
+                    onChange={(event) => updateTextField("billingNoteDate", event.target.value)}
+                    placeholder="Billing note date or billing instruction text"
                   />
                 </label>
               </div>
 
               <div className="supplier-modal-actions">
-                <button className="danger-button" type="button" onClick={handleDeleteSupplier}>
-                  Delete Supplier
+                <button className="danger-button" type="button" onClick={handleDeleteCustomer}>
+                  Delete Customer
                 </button>
-                <button className="secondary-button" type="button" onClick={closeSupplierEditor}>
+                <button className="secondary-button" type="button" onClick={closeCustomerEditor}>
                   Cancel
                 </button>
                 <button className="primary-button" type="submit">
-                  Save Supplier
+                  Save Customer
                 </button>
               </div>
             </form>
@@ -606,4 +620,4 @@ function SupplierPage() {
   );
 }
 
-export default SupplierPage;
+export default CustomerPage;

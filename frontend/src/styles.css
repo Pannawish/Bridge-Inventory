@@ -833,31 +833,6 @@ th {
   gap: 12px;
 }
 
-.supplier-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.supplier-preview-card {
-  display: grid;
-  gap: 8px;
-  padding: 18px;
-  border: 1px solid #edf1fb;
-  border-radius: 22px;
-  background: linear-gradient(180deg, #ffffff, #fbfcff);
-}
-
-.supplier-preview-card span {
-  color: var(--muted);
-  font-size: 0.84rem;
-  font-weight: 600;
-}
-
-.supplier-preview-card strong {
-  line-height: 1.45;
-}
-
 .supplier-option-field {
   display: grid;
   gap: 10px;
@@ -1256,9 +1231,6 @@ th {
     grid-template-columns: 1fr;
   }
 
-  .supplier-preview-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 1024px) {
@@ -1406,7 +1378,6 @@ th {
     grid-template-columns: 1fr;
   }
 
-  .supplier-preview-grid,
   .supplier-option-edit-row {
     grid-template-columns: 1fr;
   }

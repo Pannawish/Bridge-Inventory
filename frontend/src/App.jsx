@@ -3,6 +3,7 @@ import { api } from "./api";
 import ChatPanel from "./components/ChatPanel";
 import Dashboard from "./components/Dashboard";
 import InventoryPage from "./components/InventoryPage";
+import CustomerPage from "./components/CustomerPage";
 import { mockDashboard, mockPurchases, mockSales } from "./mockData";
 import PurchaseForm from "./components/PurchaseForm";
 import SalesForm from "./components/SalesForm";
@@ -33,6 +34,12 @@ const tabs = [
     label: "Supplier",
     shortLabel: "SP",
     description: "Supplier contact records, branches, and shipping details.",
+  },
+  {
+    id: "customers",
+    label: "Customer",
+    shortLabel: "CU",
+    description: "Customer contact records, branches, billing notes, and shipping details.",
   },
   {
     id: "inventory",
@@ -393,6 +400,8 @@ function App() {
             ) : null}
 
             {activeTab === "suppliers" ? <SupplierPage /> : null}
+
+            {activeTab === "customers" ? <CustomerPage /> : null}
 
             {activeTab === "chat" ? (
               <ChatPanel messages={messages} onAsk={handleAskChat} busy={chatBusy} />
