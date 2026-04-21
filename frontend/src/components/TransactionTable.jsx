@@ -306,7 +306,7 @@ function TransactionTable({
               <div className="transaction-detail-actions">
                 {onEditRow ? (
                   <button
-                    className="secondary-button table-action-button"
+                    className="edit-button table-action-button"
                     type="button"
                     onClick={() => {
                       onEditRow(selectedRow);

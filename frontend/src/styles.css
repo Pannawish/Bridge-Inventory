@@ -167,6 +167,7 @@ textarea {
 
 .primary-button:hover,
 .secondary-button:hover,
+.edit-button:hover,
 .danger-button:hover,
 .prompt-chip:hover,
 .icon-button:hover,
@@ -1515,6 +1516,7 @@ th {
 
 .primary-button,
 .secondary-button,
+.edit-button,
 .danger-button,
 .prompt-chip,
 .table-action-button {
@@ -1525,6 +1527,7 @@ th {
 
 .primary-button,
 .secondary-button,
+.edit-button,
 .danger-button {
   padding: 12px 16px;
 }
@@ -1540,6 +1543,12 @@ th {
 .table-action-button {
   color: var(--accent-deep);
   background: var(--accent-soft);
+}
+
+.edit-button {
+  color: #0f5a3d;
+  background: #e9fbf2;
+  border: 1px solid #cbefdc;
 }
 
 .table-action-button {
