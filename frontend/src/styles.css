@@ -1552,6 +1552,24 @@ th {
   .supplier-layout {
     grid-template-columns: 1fr;
   }
+
+  .sales-line-item-header {
+    display: none;
+  }
+
+  .sales-line-item-row {
+    grid-template-columns: minmax(0, 1.4fr) minmax(96px, 0.55fr) minmax(130px, 0.75fr);
+  }
+
+  .sales-line-item-row .danger-button {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+
+  .sales-summary-card {
+    max-width: 100%;
+    width: min(380px, 100%);
+  }
 }
 
 @media (max-width: 780px) {
