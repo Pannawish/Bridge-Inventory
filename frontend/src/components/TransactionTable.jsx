@@ -404,7 +404,6 @@ function TransactionTable({
                       <tr>
                         <th>Product</th>
                         <th>SKU</th>
-                        <th>Category</th>
                         <th>Unit</th>
                         <th>Qty</th>
                         <th>Unit Cost</th>
@@ -420,7 +419,6 @@ function TransactionTable({
                           <tr key={item.id}>
                             <td>{item.product_name}</td>
                             <td>{item.sku || "—"}</td>
-                            <td>{item.category || "—"}</td>
                             <td>{item.unit || "—"}</td>
                             <td>{item.quantity}</td>
                             <td>{item.unit_cost ? formatCurrency(item.unit_cost) : "—"}</td>

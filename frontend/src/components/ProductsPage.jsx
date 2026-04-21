@@ -9,6 +9,7 @@ function createProduct(overrides = {}) {
     productDisplayId: 1001,
     sku: "",
     productName: "",
+    category: "",
     detail: "",
     pictureUrl: "",
     ...overrides,
@@ -21,6 +22,7 @@ const defaultProducts = [
     productDisplayId: 1001,
     sku: "NB-A5-001",
     productName: "Notebook A5",
+    category: "Stationery",
     detail: "Standard A5 spiral notebook, 80 pages, ruled. Suitable for students and office use.",
     pictureUrl: "",
   }),
@@ -29,6 +31,7 @@ const defaultProducts = [
     productDisplayId: 1002,
     sku: "PEN-BL-014",
     productName: "Blue Ballpoint Pen",
+    category: "Writing Tools",
     detail: "Medium tip blue ballpoint pen. Smooth writing, long-lasting ink.",
     pictureUrl: "",
   }),
@@ -37,6 +40,7 @@ const defaultProducts = [
     productDisplayId: 1003,
     sku: "STP-MN-009",
     productName: "Mini Stapler",
+    category: "Desk Accessories",
     detail: "Compact desktop stapler. Accepts standard 26/6 staples. Capacity up to 20 sheets.",
     pictureUrl: "",
   }),
@@ -45,6 +49,7 @@ const defaultProducts = [
     productDisplayId: 1004,
     sku: "STK-NT-022",
     productName: "Sticky Notes Set",
+    category: "Paper Goods",
     detail: "Pack of 4 sticky note pads, 100 sheets each. Assorted colors.",
     pictureUrl: "",
   }),
@@ -56,6 +61,7 @@ function normalizeProduct(product) {
     productDisplayId: Math.max(1, Math.round(Number(product.productDisplayId) || 1001)),
     sku: `${product.sku ?? ""}`,
     productName: `${product.productName ?? ""}`,
+    category: `${product.category ?? ""}`,
     detail: `${product.detail ?? ""}`,
     pictureUrl: `${product.pictureUrl ?? ""}`,
   };
@@ -236,6 +242,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
 
         return (
           product.productName.toLowerCase().includes(normalizedSearch) ||
+          product.category.toLowerCase().includes(normalizedSearch) ||
           product.sku.toLowerCase().includes(normalizedSearch) ||
           `${product.productDisplayId}`.includes(normalizedSearch)
         );
@@ -422,7 +429,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search by name, SKU, or ID"
+                placeholder="Search by name, category, SKU, or ID"
               />
             </label>
             <div className="stock-report-summary supplier-search-meta">
@@ -449,6 +456,10 @@ function ProductsPage({ purchases = [], sales = [] }) {
                       <div className="product-card-stat">
                         <span>SKU</span>
                         <strong>{product.sku || "—"}</strong>
+                      </div>
+                      <div className="product-card-stat">
+                        <span>Category</span>
+                        <strong>{product.category || "—"}</strong>
                       </div>
                       <div className="product-card-stat">
                         <span>Total Units</span>
@@ -566,7 +577,6 @@ function ProductsPage({ purchases = [], sales = [] }) {
                                 <tr>
                                   <th>Product</th>
                                   <th>SKU</th>
-                                  <th>Category</th>
                                   <th>Unit</th>
                                   <th>Qty</th>
                                   <th>Unit Cost</th>
@@ -588,7 +598,6 @@ function ProductsPage({ purchases = [], sales = [] }) {
                                     >
                                       <td>{item.product_name}</td>
                                       <td>{item.sku || "—"}</td>
-                                      <td>{item.category || "—"}</td>
                                       <td>{item.unit || "—"}</td>
                                       <td>{item.quantity}</td>
                                       <td>
@@ -710,6 +719,10 @@ function ProductsPage({ purchases = [], sales = [] }) {
                   <strong>{viewingProduct.sku || "—"}</strong>
                 </div>
                 <div className="product-history-stat">
+                  <span>Category</span>
+                  <strong>{viewingProduct.category || "—"}</strong>
+                </div>
+                <div className="product-history-stat">
                   <span>Total Units</span>
                   <strong>{viewingProductMetrics?.totalUnits ?? 0}</strong>
                 </div>
@@ -739,6 +752,10 @@ function ProductsPage({ purchases = [], sales = [] }) {
                     <div>
                       <p className="detail-label">Product ID</p>
                       <strong>{viewingProduct.productDisplayId}</strong>
+                    </div>
+                    <div>
+                      <p className="detail-label">Category</p>
+                      <strong>{viewingProduct.category || "—"}</strong>
                     </div>
                     <div>
                       <p className="detail-label">Product Detail</p>
@@ -925,6 +942,15 @@ function ProductsPage({ purchases = [], sales = [] }) {
                     value={draftProduct.sku}
                     onChange={(event) => updateDraftField("sku", event.target.value)}
                     placeholder="e.g. NB-A5-001"
+                  />
+                </label>
+
+                <label>
+                  Category
+                  <input
+                    value={draftProduct.category}
+                    onChange={(event) => updateDraftField("category", event.target.value)}
+                    placeholder="e.g. Stationery"
                   />
                 </label>
 

@@ -17,7 +17,6 @@ function emptyItem() {
   return {
     product_name: "",
     sku: "",
-    category: "",
     unit: "pcs",
     quantity: 1,
     unit_cost: "",
@@ -420,15 +419,6 @@ function PurchaseForm({ onSubmit }) {
                     onChange={(event) => updateItem(index, "sku", event.target.value)}
                     placeholder="SKU"
                     required
-                  />
-                </label>
-
-                <label className="purchase-item-field purchase-item-category">
-                  <span>Category</span>
-                  <input
-                    value={item.category}
-                    onChange={(event) => updateItem(index, "category", event.target.value)}
-                    placeholder="Category"
                   />
                 </label>
 

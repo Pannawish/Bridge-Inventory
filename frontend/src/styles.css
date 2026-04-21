@@ -669,9 +669,9 @@ label textarea:focus,
 }
 
 .purchase-line-item-header {
-  grid-template-columns: minmax(160px, 1.4fr) minmax(120px, 1fr) minmax(130px, 1fr) minmax(90px, 0.7fr) minmax(110px, 0.8fr) auto;
+  grid-template-columns: minmax(160px, 1.4fr) minmax(120px, 1fr) minmax(90px, 0.7fr) minmax(110px, 0.8fr) auto;
   grid-template-areas:
-    "product product sku category unit action"
+    "product product sku unit unit action"
     "qty cost discounts discounts amount amount";
   row-gap: 8px;
   min-width: 760px;
@@ -691,9 +691,9 @@ label textarea:focus,
 }
 
 .purchase-line-item-row {
-  grid-template-columns: minmax(160px, 1.4fr) minmax(120px, 1fr) minmax(130px, 1fr) minmax(90px, 0.7fr) minmax(110px, 0.8fr) auto;
+  grid-template-columns: minmax(160px, 1.4fr) minmax(120px, 1fr) minmax(90px, 0.7fr) minmax(110px, 0.8fr) auto;
   grid-template-areas:
-    "product product sku category unit action"
+    "product product sku unit unit action"
     "qty cost discounts discounts amount amount";
   align-items: start;
   min-width: 760px;
@@ -729,10 +729,6 @@ label textarea:focus,
 
 .purchase-item-sku {
   grid-area: sku;
-}
-
-.purchase-item-category {
-  grid-area: category;
 }
 
 .purchase-item-unit {
@@ -1950,7 +1946,6 @@ th {
     grid-template-areas:
       "product"
       "sku"
-      "category"
       "unit"
       "qty"
       "cost"

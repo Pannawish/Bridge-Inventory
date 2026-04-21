@@ -32,7 +32,6 @@ function purchaseMatchesQuery(purchase, query) {
     ...(purchase.items || []).flatMap((item) => [
       item.product_name,
       item.sku,
-      item.category,
       item.quantity,
       item.unit_cost,
     ]),
@@ -127,7 +126,6 @@ function createEditItems(purchase) {
         id: `purchase-${purchase.id}-item-new`,
         product_name: "",
         sku: "",
-        category: "",
         unit: "pcs",
         quantity: 1,
         unit_cost: "",
@@ -140,7 +138,6 @@ function createEditItems(purchase) {
     id: item.id || `purchase-${purchase.id}-item-${index}`,
     product_name: item.product_name || "",
     sku: item.sku || "",
-    category: item.category || "",
     unit: item.unit || "pcs",
     quantity: item.quantity ?? 1,
     unit_cost: item.unit_cost ?? "",
@@ -252,7 +249,6 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
         id: `purchase-${purchase.id}-item-${Date.now()}`,
         product_name: "",
         sku: "",
-        category: "",
         unit: "pcs",
         quantity: 1,
         unit_cost: "",
@@ -313,7 +309,6 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
           id: item.id,
           product_name: item.product_name,
           sku: item.sku,
-          category: item.category,
           unit: item.unit || "pcs",
           quantity: Number(item.quantity) || 0,
           unit_cost: Number(item.unit_cost) || 0,
@@ -497,15 +492,6 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
                     value={item.sku}
                     onChange={(event) => updateItem(index, "sku", event.target.value)}
                     placeholder="SKU"
-                  />
-                </label>
-
-                <label className="purchase-item-field purchase-item-category">
-                  <span>Category</span>
-                  <input
-                    value={item.category}
-                    onChange={(event) => updateItem(index, "category", event.target.value)}
-                    placeholder="Category"
                   />
                 </label>
 
