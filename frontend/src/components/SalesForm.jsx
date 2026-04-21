@@ -1,5 +1,12 @@
 import { useState } from "react";
 
+const VAT_RATE = 0.07;
+const vatOptions = [
+  { value: "included", label: "VAT Included" },
+  { value: "not_included", label: "VAT Not Included" },
+  { value: "none", label: "No VAT" },
+];
+
 function getToday() {
   return new Date().toISOString().split("T")[0];
 }
@@ -40,9 +47,37 @@ function fmt(v) {
   return `฿${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function computeVatSummary(itemTotal, vatMode) {
+  if (vatMode === "included") {
+    const totalBeforeVat = itemTotal / (1 + VAT_RATE);
+    const vat = itemTotal - totalBeforeVat;
+    return {
+      total: totalBeforeVat,
+      vat,
+      grandTotal: itemTotal,
+    };
+  }
+
+  if (vatMode === "not_included") {
+    const vat = itemTotal * VAT_RATE;
+    return {
+      total: itemTotal,
+      vat,
+      grandTotal: itemTotal + vat,
+    };
+  }
+
+  return {
+    total: itemTotal,
+    vat: 0,
+    grandTotal: itemTotal,
+  };
+}
+
 function SalesForm({ products, onSubmit }) {
   const [form, setForm] = useState(createInitialForm());
   const [items, setItems] = useState([emptyItem()]);
+  const [vatMode, setVatMode] = useState("not_included");
 
   function updateForm(key, value) {
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
@@ -117,6 +152,10 @@ function SalesForm({ products, onSubmit }) {
     formData.append("transaction_date", form.transaction_date);
     formData.append("payment_received_date", form.payment_received_date);
     formData.append("note", form.note);
+    formData.append("vat_mode", vatMode);
+    formData.append("total_before_vat", vatSummary.total);
+    formData.append("vat_amount", vatSummary.vat);
+    formData.append("grand_total", vatSummary.grandTotal);
 
     if (form.document) {
       formData.append("document", form.document);
@@ -131,11 +170,11 @@ function SalesForm({ products, onSubmit }) {
 
     setForm(createInitialForm());
     setItems([emptyItem()]);
+    setVatMode("not_included");
   }
 
-  const total = items.reduce((sum, item) => sum + computeAmount(item), 0);
-  const vat = total * 0.07;
-  const grandTotal = total + vat;
+  const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
+  const vatSummary = computeVatSummary(itemTotal, vatMode);
 
   return (
     <section className="section-card">
@@ -342,18 +381,41 @@ function SalesForm({ products, onSubmit }) {
           })}
         </div>
 
+        <section className="purchase-vat-card">
+          <div>
+            <p className="purchase-vat-label">VAT Setting</p>
+            <div className="purchase-vat-options" role="radiogroup" aria-label="Sales VAT setting">
+              {vatOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className={vatMode === option.value ? "purchase-vat-option active" : "purchase-vat-option"}
+                >
+                  <input
+                    type="radio"
+                    name="sales-vat-mode"
+                    value={option.value}
+                    checked={vatMode === option.value}
+                    onChange={(event) => setVatMode(event.target.value)}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <div className="sales-summary-card">
           <div className="sales-summary-row">
             <span>Total</span>
-            <span>{fmt(total)}</span>
+            <span>{fmt(vatSummary.total)}</span>
           </div>
           <div className="sales-summary-row">
             <span>VAT (7%)</span>
-            <span>{fmt(vat)}</span>
+            <span>{fmt(vatSummary.vat)}</span>
           </div>
           <div className="sales-summary-row sales-summary-grand">
             <strong>Grand Total</strong>
-            <strong>{fmt(grandTotal)}</strong>
+            <strong>{fmt(vatSummary.grandTotal)}</strong>
           </div>
         </div>
 
