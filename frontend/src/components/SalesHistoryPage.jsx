@@ -1,7 +1,22 @@
 import { useMemo, useState } from "react";
 import TransactionTable from "./TransactionTable";
 
+const CUSTOMER_STORAGE_KEY = "inventory-management-customers";
+const VAT_RATE = 0.07;
 const statusOptions = ["draft", "packed", "shipped", "delivered", "cancelled"];
+const vatOptions = [
+  { value: "included", label: "VAT Included" },
+  { value: "not_included", label: "VAT Not Included" },
+  { value: "none", label: "No VAT" },
+];
+const defaultCustomerOptions = [
+  { id: "customer-1", companyName: "Faculty of Engineering" },
+  { id: "customer-2", companyName: "Student Council" },
+];
+
+function getToday() {
+  return new Date().toISOString().split("T")[0];
+}
 
 function normalize(value) {
   return `${value ?? ""}`.toLowerCase();
@@ -29,10 +44,717 @@ function saleMatchesQuery(sale, query) {
   return searchableText.includes(query);
 }
 
-function SalesHistoryPage({ sales, onSaleStatusChange }) {
+function computeAmount(item) {
+  const qty = Number(item.quantity) || 0;
+  const price = Number(item.unit_price) || 0;
+  const multiplier = (item.discounts || []).reduce((acc, discount) => {
+    const clamped = Math.min(100, Math.max(0, Number(discount) || 0));
+    return acc * (1 - clamped / 100);
+  }, 1);
+
+  return qty * price * multiplier;
+}
+
+function fmt(value) {
+  return `฿${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function computeVatSummary(itemTotal, vatMode) {
+  if (vatMode === "included") {
+    const totalBeforeVat = itemTotal / (1 + VAT_RATE);
+    const vat = itemTotal - totalBeforeVat;
+    return {
+      total: totalBeforeVat,
+      vat,
+      grandTotal: itemTotal,
+    };
+  }
+
+  if (vatMode === "not_included") {
+    const vat = itemTotal * VAT_RATE;
+    return {
+      total: itemTotal,
+      vat,
+      grandTotal: itemTotal + vat,
+    };
+  }
+
+  return {
+    total: itemTotal,
+    vat: 0,
+    grandTotal: itemTotal,
+  };
+}
+
+function loadCustomerOptions(currentCustomerName = "") {
+  let customers = defaultCustomerOptions;
+
+  if (typeof window !== "undefined") {
+    try {
+      const raw = window.localStorage.getItem(CUSTOMER_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        customers = parsed
+          .map((customer) => ({
+            id: customer.id || customer.companyName,
+            companyName: `${customer.companyName ?? ""}`.trim(),
+          }))
+          .filter((customer) => customer.companyName);
+      }
+    } catch {
+      customers = defaultCustomerOptions;
+    }
+  }
+
+  const currentName = currentCustomerName.trim();
+
+  if (
+    currentName &&
+    !customers.some((customer) => customer.companyName.toLowerCase() === currentName.toLowerCase())
+  ) {
+    return [{ id: `current-${currentName}`, companyName: currentName }, ...customers];
+  }
+
+  return customers;
+}
+
+function getProductName(product) {
+  return product.name || product.productName || product.sku || `Product ${product.id}`;
+}
+
+function createProductValueFromItem(item, products) {
+  if (item.product_id) {
+    const matchedProduct = products.find(
+      (product) => `${product.id}` === `${item.product_id}`
+    );
+
+    if (matchedProduct) {
+      return `id:${item.product_id}`;
+    }
+  }
+
+  const matchedProduct = products.find(
+    (product) => getProductName(product).toLowerCase() === `${item.product_name ?? ""}`.toLowerCase()
+  );
+
+  if (matchedProduct) {
+    return `id:${matchedProduct.id}`;
+  }
+
+  return item.product_name ? `name:${item.product_name}` : "";
+}
+
+function buildProductOptions(products, items) {
+  const options = products.map((product) => ({
+    value: `id:${product.id}`,
+    id: product.id,
+    name: getProductName(product),
+  }));
+
+  items.forEach((item) => {
+    const name = `${item.product_name ?? ""}`.trim();
+
+    if (
+      name &&
+      !options.some((option) => option.name.toLowerCase() === name.toLowerCase())
+    ) {
+      options.push({
+        value: `name:${name}`,
+        id: "",
+        name,
+      });
+    }
+  });
+
+  return options;
+}
+
+function createEditItems(sale, products) {
+  const sourceItems = sale.items?.length ? sale.items : [];
+
+  if (!sourceItems.length) {
+    return [
+      {
+        id: `sale-${sale.id}-item-new`,
+        product_value: "",
+        product_id: "",
+        product_name: "",
+        quantity: 1,
+        unit_price: "",
+        discounts: [0],
+      },
+    ];
+  }
+
+  return sourceItems.map((item, index) => ({
+    id: item.id || `sale-${sale.id}-item-${index}`,
+    product_value: createProductValueFromItem(item, products),
+    product_id: item.product_id || "",
+    product_name: item.product_name || "",
+    quantity: item.quantity ?? 1,
+    unit_price: item.unit_price ?? "",
+    discounts: Array.isArray(item.discounts)
+      ? item.discounts
+      : Number(item.discount) > 0
+        ? [item.discount]
+        : [0],
+  }));
+}
+
+function createEditForm(sale) {
+  const paymentTiming =
+    sale.payment_timing ||
+    (sale.payment_received_date && sale.payment_received_date !== sale.transaction_date
+      ? "later"
+      : "instant");
+  const paymentReceivedDate =
+    sale.payment_received_date || (paymentTiming === "instant" ? getToday() : "");
+
+  return {
+    reference_no: sale.reference_no || "",
+    customer_name: sale.customer_name || "",
+    status: sale.status || "draft",
+    payment_timing: paymentTiming,
+    payment_received_date: paymentReceivedDate,
+    transaction_date: sale.transaction_date || getToday(),
+    note: sale.note || "",
+    document: null,
+  };
+}
+
+function SalesEditForm({ sale, products, onCancel, onSave }) {
+  const [form, setForm] = useState(() => createEditForm(sale));
+  const [items, setItems] = useState(() => createEditItems(sale, products));
+  const [vatMode, setVatMode] = useState(sale.vat_mode || "not_included");
+  const [customers] = useState(() => loadCustomerOptions(sale.customer_name || ""));
+  const [customerQuery, setCustomerQuery] = useState(sale.customer_name || "");
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [customerError, setCustomerError] = useState("");
+  const [formError, setFormError] = useState("");
+
+  const filteredCustomers = useMemo(() => {
+    const normalizedQuery = customerQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return customers;
+    }
+
+    return customers.filter((customer) =>
+      customer.companyName.toLowerCase().includes(normalizedQuery)
+    );
+  }, [customerQuery, customers]);
+
+  const productOptions = useMemo(
+    () => buildProductOptions(products, items),
+    [items, products]
+  );
+
+  const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
+  const vatSummary = computeVatSummary(itemTotal, vatMode);
+
+  function updateForm(key, value) {
+    setForm((currentForm) => ({ ...currentForm, [key]: value }));
+  }
+
+  function handlePaymentTimingChange(event) {
+    const nextTiming = event.target.value;
+
+    setForm((currentForm) => ({
+      ...currentForm,
+      payment_timing: nextTiming,
+      payment_received_date:
+        nextTiming === "instant"
+          ? getToday()
+          : currentForm.payment_timing === "instant"
+            ? ""
+            : currentForm.payment_received_date,
+    }));
+  }
+
+  function selectCustomer(customer) {
+    setForm((currentForm) => ({
+      ...currentForm,
+      customer_name: customer.companyName,
+    }));
+    setCustomerQuery(customer.companyName);
+    setCustomerError("");
+    setCustomerOpen(false);
+  }
+
+  function resolveCustomerName() {
+    const selectedCustomer = customers.find(
+      (customer) => customer.companyName === form.customer_name
+    );
+
+    if (selectedCustomer) {
+      return selectedCustomer.companyName;
+    }
+
+    const exactMatch = customers.find(
+      (customer) =>
+        customer.companyName.toLowerCase() === customerQuery.trim().toLowerCase()
+    );
+
+    return exactMatch?.companyName || "";
+  }
+
+  function updateItem(itemIndex, key, value) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex ? { ...item, [key]: value } : item
+      )
+    );
+  }
+
+  function updateItemProduct(itemIndex, productValue) {
+    const selectedProduct = productOptions.find((option) => option.value === productValue);
+
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex
+          ? {
+              ...item,
+              product_value: productValue,
+              product_id: selectedProduct?.id || "",
+              product_name: selectedProduct?.name || "",
+            }
+          : item
+      )
+    );
+  }
+
+  function addDiscount(itemIndex) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex
+          ? { ...item, discounts: [...(item.discounts || [0]), 0] }
+          : item
+      )
+    );
+  }
+
+  function removeDiscount(itemIndex, discountIndex) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        const nextDiscounts = (item.discounts || [0]).filter(
+          (_, currentDiscountIndex) => currentDiscountIndex !== discountIndex
+        );
+
+        return {
+          ...item,
+          discounts: nextDiscounts.length ? nextDiscounts : [0],
+        };
+      })
+    );
+  }
+
+  function updateDiscount(itemIndex, discountIndex, value) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        const nextDiscounts = (item.discounts || [0]).map((discount, currentDiscountIndex) =>
+          currentDiscountIndex === discountIndex ? value : discount
+        );
+
+        return { ...item, discounts: nextDiscounts };
+      })
+    );
+  }
+
+  function addItem() {
+    setItems((currentItems) => [
+      ...currentItems,
+      {
+        id: `sale-${sale.id}-item-${Date.now()}`,
+        product_value: "",
+        product_id: "",
+        product_name: "",
+        quantity: 1,
+        unit_price: "",
+        discounts: [0],
+      },
+    ]);
+  }
+
+  function removeItem(itemIndex) {
+    setItems((currentItems) => currentItems.filter((_, index) => index !== itemIndex));
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    setFormError("");
+
+    const customerName = resolveCustomerName();
+
+    if (!customerName) {
+      setCustomerError("Select an existing customer from the list.");
+      setCustomerOpen(true);
+      return;
+    }
+
+    const normalizedItems = items
+      .filter((item) => item.product_name && item.quantity && item.unit_price)
+      .map((item) => {
+        const amount = computeAmount(item);
+
+        return {
+          id: item.id,
+          product_id: item.product_id || undefined,
+          product_name: item.product_name,
+          quantity: Number(item.quantity) || 0,
+          unit_price: Number(item.unit_price) || 0,
+          discounts: item.discounts || [0],
+          amount,
+          line_total: amount,
+        };
+      });
+
+    if (!normalizedItems.length) {
+      setFormError("Add at least one complete sales item.");
+      return;
+    }
+
+    onSave({
+      ...sale,
+      reference_no: form.reference_no,
+      customer_name: customerName,
+      status: form.status,
+      payment_timing: form.payment_timing,
+      payment_received_date: form.payment_received_date,
+      transaction_date: form.transaction_date,
+      note: form.note,
+      document_url: form.document ? URL.createObjectURL(form.document) : sale.document_url,
+      items: normalizedItems,
+      vat_mode: vatMode,
+      total_before_vat: vatSummary.total,
+      vat_amount: vatSummary.vat,
+      grand_total: vatSummary.grandTotal,
+      total_amount: vatSummary.grandTotal,
+    });
+  }
+
+  return (
+    <section className="section-card">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Sales Edit</p>
+          <h3>Edit Sales Transaction</h3>
+        </div>
+        <button className="secondary-button table-action-button" type="button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+
+      {formError ? <div className="error-banner">{formError}</div> : null}
+
+      <form className="form-layout" onSubmit={handleSubmit}>
+        <div className="form-grid">
+          <label>
+            Reference No.
+            <input
+              value={form.reference_no}
+              onChange={(event) => updateForm("reference_no", event.target.value)}
+              placeholder="SO-001"
+            />
+          </label>
+
+          <label className="supplier-combobox-field">
+            Customer Name
+            <div className="supplier-combobox">
+              <input
+                value={customerQuery}
+                onChange={(event) => {
+                  setCustomerQuery(event.target.value);
+                  updateForm("customer_name", "");
+                  setCustomerError("");
+                  setCustomerOpen(true);
+                }}
+                onFocus={() => setCustomerOpen(true)}
+                onBlur={() => {
+                  window.setTimeout(() => setCustomerOpen(false), 120);
+                }}
+                placeholder="Search existing customer"
+                autoComplete="off"
+                aria-expanded={customerOpen}
+                aria-controls="edit-sales-customer-list"
+                aria-invalid={customerError ? "true" : "false"}
+              />
+
+              {customerOpen ? (
+                <div className="supplier-combobox-menu" id="edit-sales-customer-list" role="listbox">
+                  {filteredCustomers.length ? (
+                    filteredCustomers.map((customer) => (
+                      <button
+                        key={customer.id}
+                        type="button"
+                        className={
+                          customer.companyName === form.customer_name
+                            ? "supplier-combobox-option active"
+                            : "supplier-combobox-option"
+                        }
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          selectCustomer(customer);
+                        }}
+                        role="option"
+                        aria-selected={customer.companyName === form.customer_name}
+                      >
+                        {customer.companyName}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="supplier-combobox-empty">
+                      No customer found. Add it in Customer page first.
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+            {customerError ? <span className="field-error-text">{customerError}</span> : null}
+          </label>
+
+          <label>
+            Status
+            <select
+              value={form.status}
+              onChange={(event) => updateForm("status", event.target.value)}
+            >
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Transaction Date
+            <input
+              type="date"
+              value={form.transaction_date}
+              onChange={(event) => updateForm("transaction_date", event.target.value)}
+            />
+          </label>
+
+          <label>
+            Money Receive
+            <select value={form.payment_timing} onChange={handlePaymentTimingChange}>
+              <option value="instant">Instantly</option>
+              <option value="later">Later</option>
+            </select>
+          </label>
+
+          <label>
+            Money Receive Date
+            <input
+              type="date"
+              value={form.payment_received_date}
+              min={getToday()}
+              onChange={(event) => updateForm("payment_received_date", event.target.value)}
+              disabled={form.payment_timing === "instant"}
+              required={form.payment_timing === "later"}
+            />
+          </label>
+
+          <label className="full-width">
+            Notes
+            <textarea
+              rows="3"
+              value={form.note}
+              onChange={(event) => updateForm("note", event.target.value)}
+            />
+          </label>
+
+          <label className="full-width">
+            Document
+            <input
+              type="file"
+              onChange={(event) => updateForm("document", event.target.files?.[0] || null)}
+            />
+          </label>
+        </div>
+
+        <div className="line-items-card">
+          <div className="line-items-header">
+            <h4>Sales Items</h4>
+            <button className="secondary-button" type="button" onClick={addItem}>
+              Add Item
+            </button>
+          </div>
+
+          {items.map((item, index) => {
+            const amount = computeAmount(item);
+
+            return (
+              <div className="line-item-row sales-line-item-row" key={item.id}>
+                <label className="purchase-item-field sales-item-product">
+                  <span>Product</span>
+                  <select
+                    value={item.product_value}
+                    onChange={(event) => updateItemProduct(index, event.target.value)}
+                    required
+                  >
+                    <option value="">Select product</option>
+                    {productOptions.map((product) => (
+                      <option key={product.value} value={product.value}>
+                        {product.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="purchase-item-field sales-item-qty">
+                  <span>Qty</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(event) => updateItem(index, "quantity", event.target.value)}
+                    placeholder="Qty"
+                    required
+                  />
+                </label>
+
+                <label className="purchase-item-field sales-item-price">
+                  <span>Unit Price</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.unit_price}
+                    onChange={(event) => updateItem(index, "unit_price", event.target.value)}
+                    placeholder="0.00"
+                    required
+                  />
+                </label>
+
+                <div className="purchase-item-field sales-item-discounts">
+                  <span>Discounts</span>
+                  <div className="sales-discount-cell">
+                    {(item.discounts || [0]).map((discount, discountIndex) => (
+                      <div key={discountIndex} className="sales-discount-entry">
+                        {discountIndex > 0 ? (
+                          <span className="sales-discount-chain-label">then</span>
+                        ) : null}
+                        <input
+                          className="sales-discount-input"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={discount}
+                          onChange={(event) =>
+                            updateDiscount(index, discountIndex, event.target.value)
+                          }
+                          placeholder="0"
+                        />
+                        <span className="sales-discount-pct">%</span>
+                        {(item.discounts || [0]).length > 1 ? (
+                          <button
+                            className="sales-discount-remove"
+                            type="button"
+                            aria-label="Remove discount"
+                            onClick={() => removeDiscount(index, discountIndex)}
+                          >
+                            X
+                          </button>
+                        ) : null}
+                      </div>
+                    ))}
+                    <button
+                      className="sales-discount-add"
+                      type="button"
+                      onClick={() => addDiscount(index)}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
+
+                <div className="purchase-item-field sales-item-amount">
+                  <span>Amount</span>
+                  <div className="sales-line-amount">
+                    {fmt(amount)}
+                  </div>
+                </div>
+
+                <button
+                  className="danger-button sales-item-remove"
+                  type="button"
+                  onClick={() => removeItem(index)}
+                  disabled={items.length === 1}
+                >
+                  Remove
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <section className="purchase-vat-card">
+          <div>
+            <p className="purchase-vat-label">VAT Setting</p>
+            <div className="purchase-vat-options" role="radiogroup" aria-label="Edit sales VAT setting">
+              {vatOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className={vatMode === option.value ? "purchase-vat-option active" : "purchase-vat-option"}
+                >
+                  <input
+                    type="radio"
+                    name={`edit-sales-vat-mode-${sale.id}`}
+                    value={option.value}
+                    checked={vatMode === option.value}
+                    onChange={(event) => setVatMode(event.target.value)}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <div className="sales-summary-card">
+          <div className="sales-summary-row">
+            <span>Total</span>
+            <span>{fmt(vatSummary.total)}</span>
+          </div>
+          <div className="sales-summary-row">
+            <span>VAT (7%)</span>
+            <span>{fmt(vatSummary.vat)}</span>
+          </div>
+          <div className="sales-summary-row sales-summary-grand">
+            <strong>Grand Total</strong>
+            <strong>{fmt(vatSummary.grandTotal)}</strong>
+          </div>
+        </div>
+
+        <div className="supplier-modal-actions">
+          <button className="secondary-button" type="button" onClick={onCancel}>
+            Cancel
+          </button>
+          <button className="primary-button" type="submit">
+            Save Sale
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function SalesHistoryPage({ sales, products = [], onSaleStatusChange, onSaleUpdate }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState(statusOptions);
+  const [editingSale, setEditingSale] = useState(null);
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
   const filteredSales = useMemo(() => {
@@ -58,6 +780,11 @@ function SalesHistoryPage({ sales, onSaleStatusChange }) {
     setSearchTerm("");
     setSelectedStatuses(statusOptions);
     setFilterOpen(false);
+  }
+
+  function handleSave(updatedSale) {
+    onSaleUpdate?.(updatedSale);
+    setEditingSale(null);
   }
 
   return (
@@ -119,10 +846,21 @@ function SalesHistoryPage({ sales, onSaleStatusChange }) {
         ) : null}
       </section>
 
+      {editingSale ? (
+        <SalesEditForm
+          key={editingSale.id}
+          sale={editingSale}
+          products={products}
+          onCancel={() => setEditingSale(null)}
+          onSave={handleSave}
+        />
+      ) : null}
+
       <TransactionTable
         rows={filteredSales}
         type="sale"
         onSaleStatusChange={onSaleStatusChange}
+        onEditRow={setEditingSale}
       />
     </div>
   );

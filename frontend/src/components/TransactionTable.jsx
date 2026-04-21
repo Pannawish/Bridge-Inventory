@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+const VAT_RATE = 0.07;
+
 function formatCurrency(value) {
   return `฿${Number(value || 0).toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -46,7 +48,13 @@ function renderDiscounts(item) {
 const purchaseStatuses = ["draft", "ordered", "received", "cancelled"];
 const saleStatuses = ["draft", "packed", "shipped", "delivered", "cancelled"];
 
-function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChange }) {
+function TransactionTable({
+  rows,
+  type,
+  onPurchaseStatusChange,
+  onSaleStatusChange,
+  onEditRow,
+}) {
   const [selectedRow, setSelectedRow] = useState(null);
   const title = type === "purchase" ? "Purchase History" : "Sales History";
   const personKey = type === "purchase" ? "supplier_name" : "customer_name";
@@ -55,10 +63,20 @@ function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChan
   const detailNameLabel = type === "purchase" ? "Supplier" : "Customer";
 
   function getSalesSummary(row) {
-    const subtotal = row.items.reduce((sum, item) => sum + computeItemAmount(item), 0);
-    const vat = subtotal * 0.07;
-    const grandTotal = subtotal + vat;
-    return { subtotal, vat, grandTotal };
+    const itemTotal = row.items.reduce((sum, item) => sum + computeItemAmount(item), 0);
+
+    if (row.vat_mode === "included") {
+      const subtotal = itemTotal / (1 + VAT_RATE);
+      const vat = itemTotal - subtotal;
+      return { subtotal, vat, grandTotal: itemTotal };
+    }
+
+    if (row.vat_mode === "none") {
+      return { subtotal: itemTotal, vat: 0, grandTotal: itemTotal };
+    }
+
+    const vat = itemTotal * VAT_RATE;
+    return { subtotal: itemTotal, vat, grandTotal: itemTotal + vat };
   }
 
   return (
@@ -271,13 +289,27 @@ function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChan
                 <p className="eyebrow">{detailTitle}</p>
                 <h3 id="transaction-detail-title">{selectedRow.reference_no}</h3>
               </div>
-              <button
-                className="secondary-button table-action-button"
-                type="button"
-                onClick={() => setSelectedRow(null)}
-              >
-                Close
-              </button>
+              <div className="transaction-detail-actions">
+                {onEditRow ? (
+                  <button
+                    className="secondary-button table-action-button"
+                    type="button"
+                    onClick={() => {
+                      onEditRow(selectedRow);
+                      setSelectedRow(null);
+                    }}
+                  >
+                    Edit
+                  </button>
+                ) : null}
+                <button
+                  className="secondary-button table-action-button"
+                  type="button"
+                  onClick={() => setSelectedRow(null)}
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             <div className="detail-grid">
@@ -388,12 +420,7 @@ function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChan
             </div>
 
             {type === "sale" ? (() => {
-              const subtotal = selectedRow.items.reduce(
-                (sum, item) => sum + computeItemAmount(item),
-                0
-              );
-              const vat = subtotal * 0.07;
-              const grandTotal = subtotal + vat;
+              const { subtotal, vat, grandTotal } = getSalesSummary(selectedRow);
 
               return (
                 <div className="tx-sales-summary">

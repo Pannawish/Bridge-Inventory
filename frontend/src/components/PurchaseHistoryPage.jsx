@@ -1,7 +1,22 @@
 import { useMemo, useState } from "react";
 import TransactionTable from "./TransactionTable";
 
+const SUPPLIER_STORAGE_KEY = "inventory-management-suppliers";
+const VAT_RATE = 0.07;
 const statusOptions = ["draft", "ordered", "received", "cancelled"];
+const vatOptions = [
+  { value: "included", label: "VAT Included" },
+  { value: "not_included", label: "VAT Not Included" },
+  { value: "none", label: "No VAT" },
+];
+const defaultSupplierOptions = [
+  { id: "supplier-1", companyName: "Bangkok Office Supply" },
+  { id: "supplier-2", companyName: "Learning Tools Co." },
+];
+
+function getToday() {
+  return new Date().toISOString().split("T")[0];
+}
 
 function normalize(value) {
   return `${value ?? ""}`.toLowerCase();
@@ -28,10 +43,625 @@ function purchaseMatchesQuery(purchase, query) {
   return searchableText.includes(query);
 }
 
-function PurchaseHistoryPage({ purchases, onPurchaseStatusChange }) {
+function computeAmount(item) {
+  const qty = Number(item.quantity) || 0;
+  const cost = Number(item.unit_cost) || 0;
+  const multiplier = (item.discounts || []).reduce((acc, discount) => {
+    const clamped = Math.min(100, Math.max(0, Number(discount) || 0));
+    return acc * (1 - clamped / 100);
+  }, 1);
+
+  return qty * cost * multiplier;
+}
+
+function fmt(value) {
+  return `฿${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function computeVatSummary(itemTotal, vatMode) {
+  if (vatMode === "included") {
+    const totalBeforeVat = itemTotal / (1 + VAT_RATE);
+    const vat = itemTotal - totalBeforeVat;
+    return {
+      total: totalBeforeVat,
+      vat,
+      grandTotal: itemTotal,
+    };
+  }
+
+  if (vatMode === "not_included") {
+    const vat = itemTotal * VAT_RATE;
+    return {
+      total: itemTotal,
+      vat,
+      grandTotal: itemTotal + vat,
+    };
+  }
+
+  return {
+    total: itemTotal,
+    vat: 0,
+    grandTotal: itemTotal,
+  };
+}
+
+function loadSupplierOptions(currentSupplierName = "") {
+  let suppliers = defaultSupplierOptions;
+
+  if (typeof window !== "undefined") {
+    try {
+      const raw = window.localStorage.getItem(SUPPLIER_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        suppliers = parsed
+          .map((supplier) => ({
+            id: supplier.id || supplier.companyName,
+            companyName: `${supplier.companyName ?? ""}`.trim(),
+          }))
+          .filter((supplier) => supplier.companyName);
+      }
+    } catch {
+      suppliers = defaultSupplierOptions;
+    }
+  }
+
+  const currentName = currentSupplierName.trim();
+
+  if (
+    currentName &&
+    !suppliers.some((supplier) => supplier.companyName.toLowerCase() === currentName.toLowerCase())
+  ) {
+    return [{ id: `current-${currentName}`, companyName: currentName }, ...suppliers];
+  }
+
+  return suppliers;
+}
+
+function createEditItems(purchase) {
+  const sourceItems = purchase.items?.length ? purchase.items : [];
+
+  if (!sourceItems.length) {
+    return [
+      {
+        id: `purchase-${purchase.id}-item-new`,
+        product_name: "",
+        sku: "",
+        category: "",
+        unit: "pcs",
+        quantity: 1,
+        unit_cost: "",
+        discounts: [0],
+      },
+    ];
+  }
+
+  return sourceItems.map((item, index) => ({
+    id: item.id || `purchase-${purchase.id}-item-${index}`,
+    product_name: item.product_name || "",
+    sku: item.sku || "",
+    category: item.category || "",
+    unit: item.unit || "pcs",
+    quantity: item.quantity ?? 1,
+    unit_cost: item.unit_cost ?? "",
+    discounts: Array.isArray(item.discounts)
+      ? item.discounts
+      : Number(item.discount) > 0
+        ? [item.discount]
+        : [0],
+  }));
+}
+
+function createEditForm(purchase) {
+  return {
+    reference_no: purchase.reference_no || "",
+    supplier_name: purchase.supplier_name || "",
+    status: purchase.status || "ordered",
+    transaction_date: purchase.transaction_date || getToday(),
+    note: purchase.note || "",
+    document: null,
+  };
+}
+
+function PurchaseEditForm({ purchase, onCancel, onSave }) {
+  const [form, setForm] = useState(() => createEditForm(purchase));
+  const [items, setItems] = useState(() => createEditItems(purchase));
+  const [vatMode, setVatMode] = useState(purchase.vat_mode || "not_included");
+  const [suppliers] = useState(() => loadSupplierOptions(purchase.supplier_name || ""));
+  const [supplierQuery, setSupplierQuery] = useState(purchase.supplier_name || "");
+  const [supplierOpen, setSupplierOpen] = useState(false);
+  const [supplierError, setSupplierError] = useState("");
+  const [formError, setFormError] = useState("");
+
+  const filteredSuppliers = useMemo(() => {
+    const normalizedQuery = supplierQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return suppliers;
+    }
+
+    return suppliers.filter((supplier) =>
+      supplier.companyName.toLowerCase().includes(normalizedQuery)
+    );
+  }, [supplierQuery, suppliers]);
+
+  const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
+  const vatSummary = computeVatSummary(itemTotal, vatMode);
+
+  function updateForm(key, value) {
+    setForm((currentForm) => ({ ...currentForm, [key]: value }));
+  }
+
+  function updateItem(itemIndex, key, value) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex ? { ...item, [key]: value } : item
+      )
+    );
+  }
+
+  function addDiscount(itemIndex) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex
+          ? { ...item, discounts: [...(item.discounts || [0]), 0] }
+          : item
+      )
+    );
+  }
+
+  function removeDiscount(itemIndex, discountIndex) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        const nextDiscounts = (item.discounts || [0]).filter(
+          (_, currentDiscountIndex) => currentDiscountIndex !== discountIndex
+        );
+
+        return {
+          ...item,
+          discounts: nextDiscounts.length ? nextDiscounts : [0],
+        };
+      })
+    );
+  }
+
+  function updateDiscount(itemIndex, discountIndex, value) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        const nextDiscounts = (item.discounts || [0]).map((discount, currentDiscountIndex) =>
+          currentDiscountIndex === discountIndex ? value : discount
+        );
+
+        return { ...item, discounts: nextDiscounts };
+      })
+    );
+  }
+
+  function addItem() {
+    setItems((currentItems) => [
+      ...currentItems,
+      {
+        id: `purchase-${purchase.id}-item-${Date.now()}`,
+        product_name: "",
+        sku: "",
+        category: "",
+        unit: "pcs",
+        quantity: 1,
+        unit_cost: "",
+        discounts: [0],
+      },
+    ]);
+  }
+
+  function removeItem(itemIndex) {
+    setItems((currentItems) => currentItems.filter((_, index) => index !== itemIndex));
+  }
+
+  function selectSupplier(supplier) {
+    setForm((currentForm) => ({
+      ...currentForm,
+      supplier_name: supplier.companyName,
+    }));
+    setSupplierQuery(supplier.companyName);
+    setSupplierError("");
+    setSupplierOpen(false);
+  }
+
+  function resolveSupplierName() {
+    const selectedSupplier = suppliers.find(
+      (supplier) => supplier.companyName === form.supplier_name
+    );
+
+    if (selectedSupplier) {
+      return selectedSupplier.companyName;
+    }
+
+    const exactMatch = suppliers.find(
+      (supplier) =>
+        supplier.companyName.toLowerCase() === supplierQuery.trim().toLowerCase()
+    );
+
+    return exactMatch?.companyName || "";
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    setFormError("");
+
+    const supplierName = resolveSupplierName();
+
+    if (!supplierName) {
+      setSupplierError("Select an existing supplier from the list.");
+      setSupplierOpen(true);
+      return;
+    }
+
+    const normalizedItems = items
+      .filter((item) => item.product_name && item.quantity && item.unit_cost)
+      .map((item) => {
+        const amount = computeAmount(item);
+
+        return {
+          id: item.id,
+          product_name: item.product_name,
+          sku: item.sku,
+          category: item.category,
+          unit: item.unit || "pcs",
+          quantity: Number(item.quantity) || 0,
+          unit_cost: Number(item.unit_cost) || 0,
+          discounts: item.discounts || [0],
+          amount,
+          line_total: amount,
+        };
+      });
+
+    if (!normalizedItems.length) {
+      setFormError("Add at least one complete purchase item.");
+      return;
+    }
+
+    onSave({
+      ...purchase,
+      reference_no: form.reference_no,
+      supplier_name: supplierName,
+      status: form.status,
+      transaction_date: form.transaction_date,
+      note: form.note,
+      document_url: form.document ? URL.createObjectURL(form.document) : purchase.document_url,
+      items: normalizedItems,
+      vat_mode: vatMode,
+      total_before_vat: vatSummary.total,
+      vat_amount: vatSummary.vat,
+      grand_total: vatSummary.grandTotal,
+      total_amount: vatSummary.grandTotal,
+    });
+  }
+
+  return (
+    <section className="section-card">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Purchase Edit</p>
+          <h3>Edit Purchase Transaction</h3>
+        </div>
+        <button className="secondary-button table-action-button" type="button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+
+      {formError ? <div className="error-banner">{formError}</div> : null}
+
+      <form className="form-layout" onSubmit={handleSubmit}>
+        <div className="form-grid">
+          <label>
+            Reference No.
+            <input
+              value={form.reference_no}
+              onChange={(event) => updateForm("reference_no", event.target.value)}
+              placeholder="PO-001"
+            />
+          </label>
+
+          <label className="supplier-combobox-field">
+            Supplier Name
+            <div className="supplier-combobox">
+              <input
+                value={supplierQuery}
+                onChange={(event) => {
+                  setSupplierQuery(event.target.value);
+                  updateForm("supplier_name", "");
+                  setSupplierError("");
+                  setSupplierOpen(true);
+                }}
+                onFocus={() => setSupplierOpen(true)}
+                onBlur={() => {
+                  window.setTimeout(() => setSupplierOpen(false), 120);
+                }}
+                placeholder="Search existing supplier"
+                autoComplete="off"
+                aria-expanded={supplierOpen}
+                aria-controls="edit-purchase-supplier-list"
+                aria-invalid={supplierError ? "true" : "false"}
+              />
+
+              {supplierOpen ? (
+                <div className="supplier-combobox-menu" id="edit-purchase-supplier-list" role="listbox">
+                  {filteredSuppliers.length ? (
+                    filteredSuppliers.map((supplier) => (
+                      <button
+                        key={supplier.id}
+                        type="button"
+                        className={
+                          supplier.companyName === form.supplier_name
+                            ? "supplier-combobox-option active"
+                            : "supplier-combobox-option"
+                        }
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          selectSupplier(supplier);
+                        }}
+                        role="option"
+                        aria-selected={supplier.companyName === form.supplier_name}
+                      >
+                        {supplier.companyName}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="supplier-combobox-empty">
+                      No supplier found. Add it in Supplier page first.
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+            {supplierError ? <span className="field-error-text">{supplierError}</span> : null}
+          </label>
+
+          <label>
+            Status
+            <select
+              value={form.status}
+              onChange={(event) => updateForm("status", event.target.value)}
+            >
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Transaction Date
+            <input
+              type="date"
+              value={form.transaction_date}
+              onChange={(event) => updateForm("transaction_date", event.target.value)}
+            />
+          </label>
+
+          <label className="full-width">
+            Notes
+            <textarea
+              rows="3"
+              value={form.note}
+              onChange={(event) => updateForm("note", event.target.value)}
+            />
+          </label>
+
+          <label className="full-width">
+            Document
+            <input
+              type="file"
+              onChange={(event) => updateForm("document", event.target.files?.[0] || null)}
+            />
+          </label>
+        </div>
+
+        <div className="line-items-card">
+          <div className="line-items-header">
+            <h4>Purchase Items</h4>
+            <button className="secondary-button" type="button" onClick={addItem}>
+              Add Item
+            </button>
+          </div>
+
+          {items.map((item, index) => {
+            const amount = computeAmount(item);
+
+            return (
+              <div className="line-item-row purchase-line-item-row" key={item.id}>
+                <label className="purchase-item-field purchase-item-product">
+                  <span>Product</span>
+                  <input
+                    value={item.product_name}
+                    onChange={(event) =>
+                      updateItem(index, "product_name", event.target.value)
+                    }
+                    placeholder="Product Name"
+                    required
+                  />
+                </label>
+
+                <label className="purchase-item-field purchase-item-sku">
+                  <span>SKU</span>
+                  <input
+                    value={item.sku}
+                    onChange={(event) => updateItem(index, "sku", event.target.value)}
+                    placeholder="SKU"
+                  />
+                </label>
+
+                <label className="purchase-item-field purchase-item-category">
+                  <span>Category</span>
+                  <input
+                    value={item.category}
+                    onChange={(event) => updateItem(index, "category", event.target.value)}
+                    placeholder="Category"
+                  />
+                </label>
+
+                <label className="purchase-item-field purchase-item-unit">
+                  <span>Unit</span>
+                  <input
+                    value={item.unit}
+                    onChange={(event) => updateItem(index, "unit", event.target.value)}
+                    placeholder="Unit"
+                  />
+                </label>
+
+                <label className="purchase-item-field purchase-item-qty">
+                  <span>Qty</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(event) => updateItem(index, "quantity", event.target.value)}
+                    placeholder="Qty"
+                    required
+                  />
+                </label>
+
+                <label className="purchase-item-field purchase-item-cost">
+                  <span>Unit Cost</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.unit_cost}
+                    onChange={(event) => updateItem(index, "unit_cost", event.target.value)}
+                    placeholder="0.00"
+                    required
+                  />
+                </label>
+
+                <div className="purchase-item-field purchase-item-discounts">
+                  <span>Discounts</span>
+                  <div className="sales-discount-cell">
+                    {(item.discounts || [0]).map((discount, discountIndex) => (
+                      <div key={discountIndex} className="sales-discount-entry">
+                        {discountIndex > 0 ? (
+                          <span className="sales-discount-chain-label">then</span>
+                        ) : null}
+                        <input
+                          className="sales-discount-input"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={discount}
+                          onChange={(event) =>
+                            updateDiscount(index, discountIndex, event.target.value)
+                          }
+                          placeholder="0"
+                        />
+                        <span className="sales-discount-pct">%</span>
+                        {(item.discounts || [0]).length > 1 ? (
+                          <button
+                            className="sales-discount-remove"
+                            type="button"
+                            aria-label="Remove discount"
+                            onClick={() => removeDiscount(index, discountIndex)}
+                          >
+                            X
+                          </button>
+                        ) : null}
+                      </div>
+                    ))}
+                    <button
+                      className="sales-discount-add"
+                      type="button"
+                      onClick={() => addDiscount(index)}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
+
+                <div className="purchase-item-field purchase-item-amount">
+                  <span>Amount</span>
+                  <div className="sales-line-amount">
+                    {fmt(amount)}
+                  </div>
+                </div>
+
+                <button
+                  className="danger-button purchase-item-remove"
+                  type="button"
+                  onClick={() => removeItem(index)}
+                  disabled={items.length === 1}
+                >
+                  Remove
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <section className="purchase-vat-card">
+          <div>
+            <p className="purchase-vat-label">VAT Setting</p>
+            <div className="purchase-vat-options" role="radiogroup" aria-label="Edit purchase VAT setting">
+              {vatOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className={vatMode === option.value ? "purchase-vat-option active" : "purchase-vat-option"}
+                >
+                  <input
+                    type="radio"
+                    name={`edit-purchase-vat-mode-${purchase.id}`}
+                    value={option.value}
+                    checked={vatMode === option.value}
+                    onChange={(event) => setVatMode(event.target.value)}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <div className="sales-summary-card">
+          <div className="sales-summary-row">
+            <span>Total</span>
+            <span>{fmt(vatSummary.total)}</span>
+          </div>
+          <div className="sales-summary-row">
+            <span>VAT (7%)</span>
+            <span>{fmt(vatSummary.vat)}</span>
+          </div>
+          <div className="sales-summary-row sales-summary-grand">
+            <strong>Grand Total</strong>
+            <strong>{fmt(vatSummary.grandTotal)}</strong>
+          </div>
+        </div>
+
+        <div className="supplier-modal-actions">
+          <button className="secondary-button" type="button" onClick={onCancel}>
+            Cancel
+          </button>
+          <button className="primary-button" type="submit">
+            Save Purchase
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function PurchaseHistoryPage({ purchases, onPurchaseStatusChange, onPurchaseUpdate }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState(statusOptions);
+  const [editingPurchase, setEditingPurchase] = useState(null);
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
   const filteredPurchases = useMemo(() => {
@@ -57,6 +687,11 @@ function PurchaseHistoryPage({ purchases, onPurchaseStatusChange }) {
     setSearchTerm("");
     setSelectedStatuses(statusOptions);
     setFilterOpen(false);
+  }
+
+  function handleSave(updatedPurchase) {
+    onPurchaseUpdate?.(updatedPurchase);
+    setEditingPurchase(null);
   }
 
   return (
@@ -118,10 +753,20 @@ function PurchaseHistoryPage({ purchases, onPurchaseStatusChange }) {
         ) : null}
       </section>
 
+      {editingPurchase ? (
+        <PurchaseEditForm
+          key={editingPurchase.id}
+          purchase={editingPurchase}
+          onCancel={() => setEditingPurchase(null)}
+          onSave={handleSave}
+        />
+      ) : null}
+
       <TransactionTable
         rows={filteredPurchases}
         type="purchase"
         onPurchaseStatusChange={onPurchaseStatusChange}
+        onEditRow={setEditingPurchase}
       />
     </div>
   );

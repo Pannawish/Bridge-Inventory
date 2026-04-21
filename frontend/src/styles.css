@@ -1782,6 +1782,13 @@ th {
   margin-bottom: 24px;
 }
 
+.transaction-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .detail-label {
   margin: 0 0 6px;
   color: var(--muted);
