@@ -1,11 +1,16 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 const today = new Date().toISOString().split("T")[0];
+const SUPPLIER_STORAGE_KEY = "inventory-management-suppliers";
 const VAT_RATE = 0.07;
 const vatOptions = [
   { value: "included", label: "VAT Included" },
   { value: "not_included", label: "VAT Not Included" },
   { value: "none", label: "No VAT" },
+];
+const defaultSupplierOptions = [
+  { id: "supplier-1", companyName: "Bangkok Office Supply" },
+  { id: "supplier-2", companyName: "Learning Tools Co." },
 ];
 
 function emptyItem() {
@@ -62,6 +67,35 @@ function computeVatSummary(itemTotal, vatMode) {
   };
 }
 
+function loadSupplierOptions() {
+  if (typeof window === "undefined") {
+    return defaultSupplierOptions;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(SUPPLIER_STORAGE_KEY);
+
+    if (!raw) {
+      return defaultSupplierOptions;
+    }
+
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return defaultSupplierOptions;
+    }
+
+    return parsed
+      .map((supplier) => ({
+        id: supplier.id || supplier.companyName,
+        companyName: `${supplier.companyName ?? ""}`.trim(),
+      }))
+      .filter((supplier) => supplier.companyName);
+  } catch {
+    return defaultSupplierOptions;
+  }
+}
+
 function PurchaseForm({ onSubmit }) {
   const [form, setForm] = useState({
     reference_no: "",
@@ -73,6 +107,21 @@ function PurchaseForm({ onSubmit }) {
   });
   const [items, setItems] = useState([emptyItem()]);
   const [vatMode, setVatMode] = useState("not_included");
+  const [suppliers] = useState(() => loadSupplierOptions());
+  const [supplierQuery, setSupplierQuery] = useState("");
+  const [supplierOpen, setSupplierOpen] = useState(false);
+  const [supplierError, setSupplierError] = useState("");
+  const filteredSuppliers = useMemo(() => {
+    const normalizedQuery = supplierQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return suppliers;
+    }
+
+    return suppliers.filter((supplier) =>
+      supplier.companyName.toLowerCase().includes(normalizedQuery)
+    );
+  }, [supplierQuery, suppliers]);
 
   function updateItem(index, key, value) {
     setItems((currentItems) =>
@@ -135,12 +184,47 @@ function PurchaseForm({ onSubmit }) {
     setItems((currentItems) => currentItems.filter((_, itemIndex) => itemIndex !== index));
   }
 
+  function selectSupplier(supplier) {
+    setForm((currentForm) => ({
+      ...currentForm,
+      supplier_name: supplier.companyName,
+    }));
+    setSupplierQuery(supplier.companyName);
+    setSupplierError("");
+    setSupplierOpen(false);
+  }
+
+  function resolveSupplierName() {
+    const selectedSupplier = suppliers.find(
+      (supplier) => supplier.companyName === form.supplier_name
+    );
+
+    if (selectedSupplier) {
+      return selectedSupplier.companyName;
+    }
+
+    const exactMatch = suppliers.find(
+      (supplier) =>
+        supplier.companyName.toLowerCase() === supplierQuery.trim().toLowerCase()
+    );
+
+    return exactMatch?.companyName || "";
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
 
+    const supplierName = resolveSupplierName();
+
+    if (!supplierName) {
+      setSupplierError("Select an existing supplier from the list.");
+      setSupplierOpen(true);
+      return;
+    }
+
     const formData = new FormData();
     formData.append("reference_no", form.reference_no);
-    formData.append("supplier_name", form.supplier_name);
+    formData.append("supplier_name", supplierName);
     formData.append("status", form.status);
     formData.append("transaction_date", form.transaction_date);
     formData.append("note", form.note);
@@ -176,6 +260,8 @@ function PurchaseForm({ onSubmit }) {
     });
     setItems([emptyItem()]);
     setVatMode("not_included");
+    setSupplierQuery("");
+    setSupplierError("");
   }
 
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
@@ -203,15 +289,59 @@ function PurchaseForm({ onSubmit }) {
             />
           </label>
 
-          <label>
+          <label className="supplier-combobox-field">
             Supplier Name
-            <input
-              value={form.supplier_name}
-              onChange={(event) =>
-                setForm({ ...form, supplier_name: event.target.value })
-              }
-              required
-            />
+            <div className="supplier-combobox">
+              <input
+                value={supplierQuery}
+                onChange={(event) => {
+                  setSupplierQuery(event.target.value);
+                  setForm({ ...form, supplier_name: "" });
+                  setSupplierError("");
+                  setSupplierOpen(true);
+                }}
+                onFocus={() => setSupplierOpen(true)}
+                onBlur={() => {
+                  window.setTimeout(() => setSupplierOpen(false), 120);
+                }}
+                placeholder="Search existing supplier"
+                autoComplete="off"
+                aria-expanded={supplierOpen}
+                aria-controls="purchase-supplier-list"
+                aria-invalid={supplierError ? "true" : "false"}
+              />
+
+              {supplierOpen ? (
+                <div className="supplier-combobox-menu" id="purchase-supplier-list" role="listbox">
+                  {filteredSuppliers.length ? (
+                    filteredSuppliers.map((supplier) => (
+                      <button
+                        key={supplier.id}
+                        type="button"
+                        className={
+                          supplier.companyName === form.supplier_name
+                            ? "supplier-combobox-option active"
+                            : "supplier-combobox-option"
+                        }
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          selectSupplier(supplier);
+                        }}
+                        role="option"
+                        aria-selected={supplier.companyName === form.supplier_name}
+                      >
+                        {supplier.companyName}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="supplier-combobox-empty">
+                      No supplier found. Add it in Supplier page first.
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+            {supplierError ? <span className="field-error-text">{supplierError}</span> : null}
           </label>
 
           <label>

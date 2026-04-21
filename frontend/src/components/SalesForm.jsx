@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
+const CUSTOMER_STORAGE_KEY = "inventory-management-customers";
 const VAT_RATE = 0.07;
 const vatOptions = [
   { value: "included", label: "VAT Included" },
   { value: "not_included", label: "VAT Not Included" },
   { value: "none", label: "No VAT" },
+];
+const defaultCustomerOptions = [
+  { id: "customer-1", companyName: "Faculty of Engineering" },
+  { id: "customer-2", companyName: "Student Council" },
 ];
 
 function getToday() {
@@ -74,10 +79,54 @@ function computeVatSummary(itemTotal, vatMode) {
   };
 }
 
+function loadCustomerOptions() {
+  if (typeof window === "undefined") {
+    return defaultCustomerOptions;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(CUSTOMER_STORAGE_KEY);
+
+    if (!raw) {
+      return defaultCustomerOptions;
+    }
+
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return defaultCustomerOptions;
+    }
+
+    return parsed
+      .map((customer) => ({
+        id: customer.id || customer.companyName,
+        companyName: `${customer.companyName ?? ""}`.trim(),
+      }))
+      .filter((customer) => customer.companyName);
+  } catch {
+    return defaultCustomerOptions;
+  }
+}
+
 function SalesForm({ products, onSubmit }) {
   const [form, setForm] = useState(createInitialForm());
   const [items, setItems] = useState([emptyItem()]);
   const [vatMode, setVatMode] = useState("not_included");
+  const [customers] = useState(() => loadCustomerOptions());
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [customerError, setCustomerError] = useState("");
+  const filteredCustomers = useMemo(() => {
+    const normalizedQuery = customerQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return customers;
+    }
+
+    return customers.filter((customer) =>
+      customer.companyName.toLowerCase().includes(normalizedQuery)
+    );
+  }, [customerQuery, customers]);
 
   function updateForm(key, value) {
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
@@ -142,12 +191,47 @@ function SalesForm({ products, onSubmit }) {
     setItems((current) => current.filter((_, i) => i !== index));
   }
 
+  function selectCustomer(customer) {
+    setForm((currentForm) => ({
+      ...currentForm,
+      customer_name: customer.companyName,
+    }));
+    setCustomerQuery(customer.companyName);
+    setCustomerError("");
+    setCustomerOpen(false);
+  }
+
+  function resolveCustomerName() {
+    const selectedCustomer = customers.find(
+      (customer) => customer.companyName === form.customer_name
+    );
+
+    if (selectedCustomer) {
+      return selectedCustomer.companyName;
+    }
+
+    const exactMatch = customers.find(
+      (customer) =>
+        customer.companyName.toLowerCase() === customerQuery.trim().toLowerCase()
+    );
+
+    return exactMatch?.companyName || "";
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
 
+    const customerName = resolveCustomerName();
+
+    if (!customerName) {
+      setCustomerError("Select an existing customer from the list.");
+      setCustomerOpen(true);
+      return;
+    }
+
     const formData = new FormData();
     formData.append("reference_no", form.reference_no);
-    formData.append("customer_name", form.customer_name);
+    formData.append("customer_name", customerName);
     formData.append("status", form.status);
     formData.append("transaction_date", form.transaction_date);
     formData.append("payment_received_date", form.payment_received_date);
@@ -171,6 +255,8 @@ function SalesForm({ products, onSubmit }) {
     setForm(createInitialForm());
     setItems([emptyItem()]);
     setVatMode("not_included");
+    setCustomerQuery("");
+    setCustomerError("");
   }
 
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
@@ -196,13 +282,59 @@ function SalesForm({ products, onSubmit }) {
             />
           </label>
 
-          <label>
+          <label className="supplier-combobox-field">
             Customer Name
-            <input
-              value={form.customer_name}
-              onChange={(event) => updateForm("customer_name", event.target.value)}
-              required
-            />
+            <div className="supplier-combobox">
+              <input
+                value={customerQuery}
+                onChange={(event) => {
+                  setCustomerQuery(event.target.value);
+                  updateForm("customer_name", "");
+                  setCustomerError("");
+                  setCustomerOpen(true);
+                }}
+                onFocus={() => setCustomerOpen(true)}
+                onBlur={() => {
+                  window.setTimeout(() => setCustomerOpen(false), 120);
+                }}
+                placeholder="Search existing customer"
+                autoComplete="off"
+                aria-expanded={customerOpen}
+                aria-controls="sales-customer-list"
+                aria-invalid={customerError ? "true" : "false"}
+              />
+
+              {customerOpen ? (
+                <div className="supplier-combobox-menu" id="sales-customer-list" role="listbox">
+                  {filteredCustomers.length ? (
+                    filteredCustomers.map((customer) => (
+                      <button
+                        key={customer.id}
+                        type="button"
+                        className={
+                          customer.companyName === form.customer_name
+                            ? "supplier-combobox-option active"
+                            : "supplier-combobox-option"
+                        }
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          selectCustomer(customer);
+                        }}
+                        role="option"
+                        aria-selected={customer.companyName === form.customer_name}
+                      >
+                        {customer.companyName}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="supplier-combobox-empty">
+                      No customer found. Add it in Customer page first.
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+            {customerError ? <span className="field-error-text">{customerError}</span> : null}
           </label>
 
           <label>
