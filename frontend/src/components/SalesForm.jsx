@@ -108,6 +108,14 @@ function loadCustomerOptions() {
   }
 }
 
+function getProductName(product) {
+  return product.name || product.productName || product.product_name || product.sku || `Product ${product.id}`;
+}
+
+function getProductSku(product) {
+  return product.sku || product.SKU || "";
+}
+
 function SalesForm({ products, onSubmit }) {
   const [form, setForm] = useState(createInitialForm());
   const [items, setItems] = useState([emptyItem()]);
@@ -247,7 +255,18 @@ function SalesForm({ products, onSubmit }) {
 
     const filteredItems = items
       .filter((item) => item.product_id && item.quantity && item.unit_price)
-      .map((item) => ({ ...item, amount: computeAmount(item) }));
+      .map((item) => {
+        const selectedProduct = products.find(
+          (product) => `${product.id}` === `${item.product_id}`
+        );
+
+        return {
+          ...item,
+          product_name: selectedProduct ? getProductName(selectedProduct) : item.product_name,
+          sku: selectedProduct ? getProductSku(selectedProduct) : item.sku,
+          amount: computeAmount(item),
+        };
+      });
     formData.append("items", JSON.stringify(filteredItems));
 
     await onSubmit(formData);
@@ -421,7 +440,9 @@ function SalesForm({ products, onSubmit }) {
                     <option value="">Select product</option>
                     {products.map((product) => (
                       <option key={product.id} value={product.id}>
-                        {product.name}
+                        {getProductSku(product)
+                          ? `${getProductName(product)} (${getProductSku(product)})`
+                          : getProductName(product)}
                       </option>
                     ))}
                   </select>

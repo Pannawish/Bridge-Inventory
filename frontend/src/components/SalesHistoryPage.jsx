@@ -120,7 +120,11 @@ function loadCustomerOptions(currentCustomerName = "") {
 }
 
 function getProductName(product) {
-  return product.name || product.productName || product.sku || `Product ${product.id}`;
+  return product.name || product.productName || product.product_name || product.sku || `Product ${product.id}`;
+}
+
+function getProductSku(product) {
+  return product.sku || product.SKU || "";
 }
 
 function createProductValueFromItem(item, products) {
@@ -150,6 +154,7 @@ function buildProductOptions(products, items) {
     value: `id:${product.id}`,
     id: product.id,
     name: getProductName(product),
+    sku: getProductSku(product),
   }));
 
   items.forEach((item) => {
@@ -163,6 +168,7 @@ function buildProductOptions(products, items) {
         value: `name:${name}`,
         id: "",
         name,
+        sku: item.sku || "",
       });
     }
   });
@@ -180,6 +186,7 @@ function createEditItems(sale, products) {
         product_value: "",
         product_id: "",
         product_name: "",
+        sku: "",
         quantity: 1,
         unit_price: "",
         discounts: [0],
@@ -192,6 +199,7 @@ function createEditItems(sale, products) {
     product_value: createProductValueFromItem(item, products),
     product_id: item.product_id || "",
     product_name: item.product_name || "",
+    sku: item.sku || "",
     quantity: item.quantity ?? 1,
     unit_price: item.unit_price ?? "",
     discounts: Array.isArray(item.discounts)
@@ -318,6 +326,7 @@ function SalesEditForm({ sale, products, onCancel, onSave }) {
               product_value: productValue,
               product_id: selectedProduct?.id || "",
               product_name: selectedProduct?.name || "",
+              sku: selectedProduct?.sku || "",
             }
           : item
       )
@@ -377,6 +386,7 @@ function SalesEditForm({ sale, products, onCancel, onSave }) {
         product_value: "",
         product_id: "",
         product_name: "",
+        sku: "",
         quantity: 1,
         unit_price: "",
         discounts: [0],
@@ -409,6 +419,7 @@ function SalesEditForm({ sale, products, onCancel, onSave }) {
           id: item.id,
           product_id: item.product_id || undefined,
           product_name: item.product_name,
+          sku: item.sku,
           quantity: Number(item.quantity) || 0,
           unit_price: Number(item.unit_price) || 0,
           discounts: item.discounts || [0],
@@ -605,7 +616,7 @@ function SalesEditForm({ sale, products, onCancel, onSave }) {
                     <option value="">Select product</option>
                     {productOptions.map((product) => (
                       <option key={product.value} value={product.value}>
-                        {product.name}
+                        {product.sku ? `${product.name} (${product.sku})` : product.name}
                       </option>
                     ))}
                   </select>

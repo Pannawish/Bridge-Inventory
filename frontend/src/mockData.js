@@ -86,8 +86,8 @@ export const mockPurchases = [
     document_url: "",
     note: "First batch for semester opening stock.",
     items: [
-      { id: 101, product_name: "Notebook A5", quantity: 50, unit_cost: 18 },
-      { id: 102, product_name: "Blue Ballpoint Pen", quantity: 100, unit_cost: 5.5 },
+      { id: 101, product_name: "Notebook A5", sku: "NB-A5-001", quantity: 50, unit_cost: 18 },
+      { id: 102, product_name: "Blue Ballpoint Pen", sku: "PEN-BL-014", quantity: 100, unit_cost: 5.5 },
     ],
   },
   {
@@ -100,8 +100,8 @@ export const mockPurchases = [
     document_url: "",
     note: "Delivered complete with no damaged items.",
     items: [
-      { id: 201, product_name: "Sticky Notes Set", quantity: 40, unit_cost: 22 },
-      { id: 202, product_name: "Mini Stapler", quantity: 20, unit_cost: 48 },
+      { id: 201, product_name: "Sticky Notes Set", sku: "STK-NT-022", quantity: 40, unit_cost: 22 },
+      { id: 202, product_name: "Mini Stapler", sku: "STP-MN-009", quantity: 20, unit_cost: 48 },
       { id: 203, product_name: "Staples Pack", quantity: 60, unit_cost: 9 },
     ],
   },
@@ -115,7 +115,7 @@ export const mockPurchases = [
     document_url: "",
     note: "Awaiting final supplier confirmation.",
     items: [
-      { id: 301, product_name: "Whiteboard Marker", quantity: 25, unit_cost: 14 },
+      { id: 301, product_name: "Whiteboard Marker", sku: "WBM-001", quantity: 25, unit_cost: 14 },
       { id: 302, product_name: "File Folder", quantity: 30, unit_cost: 9 },
     ],
   },
@@ -133,8 +133,8 @@ export const mockSales = [
     note: "Delivered to the faculty storeroom and signed on receipt.",
     payment_received_date: "2026-03-20",
     items: [
-      { id: 401, product_name: "Notebook A5", quantity: 30, unit_price: 28 },
-      { id: 402, product_name: "Blue Ballpoint Pen", quantity: 80, unit_price: 9 },
+      { id: 401, product_name: "Notebook A5", sku: "NB-A5-001", quantity: 30, unit_price: 28 },
+      { id: 402, product_name: "Blue Ballpoint Pen", sku: "PEN-BL-014", quantity: 80, unit_price: 9 },
     ],
   },
   {
@@ -148,8 +148,8 @@ export const mockSales = [
     note: "Partial payment pending after event distribution.",
     payment_received_date: "2026-03-29",
     items: [
-      { id: 501, product_name: "Sticky Notes Set", quantity: 20, unit_price: 35 },
-      { id: 502, product_name: "Mini Stapler", quantity: 12, unit_price: 70 },
+      { id: 501, product_name: "Sticky Notes Set", sku: "STK-NT-022", quantity: 20, unit_price: 35 },
+      { id: 502, product_name: "Mini Stapler", sku: "STP-MN-009", quantity: 12, unit_price: 70 },
     ],
   },
   {
@@ -163,7 +163,7 @@ export const mockSales = [
     note: "Awaiting pickup confirmation from the office assistant.",
     payment_received_date: "2026-03-27",
     items: [
-      { id: 601, product_name: "Whiteboard Marker", quantity: 15, unit_price: 24 },
+      { id: 601, product_name: "Whiteboard Marker", sku: "WBM-001", quantity: 15, unit_price: 24 },
       { id: 602, product_name: "File Folder", quantity: 30, unit_price: 16 },
     ],
   },

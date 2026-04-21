@@ -11,11 +11,6 @@ function createProduct(overrides = {}) {
     productName: "",
     detail: "",
     pictureUrl: "",
-    cost: 0,
-    unit: "",
-    tax: 1.07,
-    amount: 0,
-    discount: 0,
     ...overrides,
   };
 }
@@ -28,11 +23,6 @@ const defaultProducts = [
     productName: "Notebook A5",
     detail: "Standard A5 spiral notebook, 80 pages, ruled. Suitable for students and office use.",
     pictureUrl: "",
-    cost: 18,
-    unit: "piece",
-    tax: 1.07,
-    amount: 4,
-    discount: 0.1,
   }),
   createProduct({
     id: "product-2",
@@ -41,11 +31,6 @@ const defaultProducts = [
     productName: "Blue Ballpoint Pen",
     detail: "Medium tip blue ballpoint pen. Smooth writing, long-lasting ink.",
     pictureUrl: "",
-    cost: 5.5,
-    unit: "piece",
-    tax: 1.07,
-    amount: 8,
-    discount: 0.05,
   }),
   createProduct({
     id: "product-3",
@@ -54,11 +39,6 @@ const defaultProducts = [
     productName: "Mini Stapler",
     detail: "Compact desktop stapler. Accepts standard 26/6 staples. Capacity up to 20 sheets.",
     pictureUrl: "",
-    cost: 48,
-    unit: "piece",
-    tax: 1.07,
-    amount: 2,
-    discount: 0.15,
   }),
   createProduct({
     id: "product-4",
@@ -67,11 +47,6 @@ const defaultProducts = [
     productName: "Sticky Notes Set",
     detail: "Pack of 4 sticky note pads, 100 sheets each. Assorted colors.",
     pictureUrl: "",
-    cost: 22,
-    unit: "pack",
-    tax: 1.07,
-    amount: 36,
-    discount: 0,
   }),
 ];
 
@@ -83,11 +58,6 @@ function normalizeProduct(product) {
     productName: `${product.productName ?? ""}`,
     detail: `${product.detail ?? ""}`,
     pictureUrl: `${product.pictureUrl ?? ""}`,
-    cost: Math.max(0, Number(product.cost) || 0),
-    unit: `${product.unit ?? ""}`,
-    tax: Math.max(1, Number(product.tax) || 1.07),
-    amount: Math.max(0, Math.round(Number(product.amount) || 0)),
-    discount: Math.min(1, Math.max(0, Number(product.discount) || 0)),
   };
 }
 
@@ -175,8 +145,56 @@ function computeVatSummary(items, vatMode) {
   return { subtotal: itemTotal, vat, grandTotal: itemTotal + vat };
 }
 
-function getAveragePrice(product) {
-  return Number(product.cost) || 0;
+function normalizeSku(value) {
+  return `${value ?? ""}`.trim().toLowerCase();
+}
+
+function matchesSku(item, sku) {
+  const normalizedSku = normalizeSku(sku);
+
+  if (!normalizedSku) {
+    return false;
+  }
+
+  return normalizeSku(item.sku) === normalizedSku;
+}
+
+function getProductMetrics(product, purchases, sales) {
+  const purchaseItems = purchases.flatMap((purchase) =>
+    (purchase.items || [])
+      .filter((item) => matchesSku(item, product.sku))
+      .map((item) => ({ transaction: purchase, item }))
+  );
+  const salesItems = sales.flatMap((sale) =>
+    (sale.items || [])
+      .filter((item) => matchesSku(item, product.sku))
+      .map((item) => ({ transaction: sale, item }))
+  );
+
+  const purchasedUnits = purchaseItems.reduce(
+    (sum, { item }) => sum + (Number(item.quantity) || 0),
+    0
+  );
+  const soldUnits = salesItems.reduce(
+    (sum, { item }) => sum + (Number(item.quantity) || 0),
+    0
+  );
+  const priceRows = [...purchaseItems, ...salesItems];
+  const totalPricedUnits = priceRows.reduce(
+    (sum, { item }) => sum + (Number(item.quantity) || 0),
+    0
+  );
+  const totalPriceAmount = priceRows.reduce(
+    (sum, { item }) => sum + computeItemAmount(item),
+    0
+  );
+
+  return {
+    totalUnits: purchasedUnits - soldUnits,
+    avgPrice: totalPricedUnits > 0 ? totalPriceAmount / totalPricedUnits : 0,
+    purchaseItems,
+    salesItems,
+  };
 }
 
 function ProductsPage({ purchases = [], sales = [] }) {
@@ -219,11 +237,19 @@ function ProductsPage({ purchases = [], sales = [] }) {
         return (
           product.productName.toLowerCase().includes(normalizedSearch) ||
           product.sku.toLowerCase().includes(normalizedSearch) ||
-          `${product.productDisplayId}`.includes(normalizedSearch) ||
-          product.unit.toLowerCase().includes(normalizedSearch)
+          `${product.productDisplayId}`.includes(normalizedSearch)
         );
       }),
     [normalizedSearch, products]
+  );
+
+  const productsWithMetrics = useMemo(
+    () =>
+      filteredProducts.map((product) => ({
+        product,
+        metrics: getProductMetrics(product, purchases, sales),
+      })),
+    [filteredProducts, purchases, sales]
   );
 
   function openProductDetail(product) {
@@ -250,9 +276,6 @@ function ProductsPage({ purchases = [], sales = [] }) {
     setViewingTransaction(null);
     setDraftProduct({
       ...product,
-      cost: product.cost.toString(),
-      tax: product.tax.toString(),
-      amount: product.amount.toString(),
     });
   }
 
@@ -272,12 +295,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
 
     setViewingProduct(null);
     setViewingTransaction(null);
-    setDraftProduct({
-      ...createProduct({ productDisplayId: nextDisplayId }),
-      cost: "0",
-      tax: "1.07",
-      amount: "0",
-    });
+    setDraftProduct(createProduct({ productDisplayId: nextDisplayId }));
   }
 
   function handleSaveProduct() {
@@ -320,40 +338,45 @@ function ProductsPage({ purchases = [], sales = [] }) {
     setDraftProduct(null);
   }
 
-  function getPurchaseHistory(productName) {
+  function getPurchaseHistory(productSku) {
     return purchases.flatMap((purchase) =>
-      purchase.items
-        .filter((item) => item.product_name.toLowerCase() === productName.toLowerCase())
+      (purchase.items || [])
+        .filter((item) => matchesSku(item, productSku))
         .map((item) => ({ purchase, item }))
     );
   }
 
-  function getSalesHistory(productName) {
+  function getSalesHistory(productSku) {
     return sales.flatMap((sale) =>
-      sale.items
-        .filter((item) => item.product_name.toLowerCase() === productName.toLowerCase())
+      (sale.items || [])
+        .filter((item) => matchesSku(item, productSku))
         .map((item) => ({ sale, item }))
     );
   }
 
+  const allProductMetrics = products.map((product) =>
+    getProductMetrics(product, purchases, sales)
+  );
   const summary = {
     totalProducts: products.length,
-    totalUnits: products.reduce((sum, p) => sum + p.amount, 0),
+    totalUnits: allProductMetrics.reduce((sum, metrics) => sum + metrics.totalUnits, 0),
     totalValue: products.reduce(
-      (sum, p) => sum + p.cost * p.amount,
+      (sum, product, index) =>
+        sum + allProductMetrics[index].avgPrice * allProductMetrics[index].totalUnits,
       0
     ),
-    outOfStock: products.filter((p) => p.amount === 0).length,
+    outOfStock: allProductMetrics.filter((metrics) => metrics.totalUnits <= 0).length,
   };
 
-  const draftCost = Number(draftProduct?.cost) || 0;
-
   const viewPurchaseHistory = viewingProduct
-    ? getPurchaseHistory(viewingProduct.productName)
+    ? getPurchaseHistory(viewingProduct.sku)
     : [];
   const viewSalesHistory = viewingProduct
-    ? getSalesHistory(viewingProduct.productName)
+    ? getSalesHistory(viewingProduct.sku)
     : [];
+  const viewingProductMetrics = viewingProduct
+    ? getProductMetrics(viewingProduct, purchases, sales)
+    : null;
 
   return (
     <div className="stack-layout">
@@ -399,21 +422,19 @@ function ProductsPage({ purchases = [], sales = [] }) {
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search by name, SKU, ID, or unit"
+                placeholder="Search by name, SKU, or ID"
               />
             </label>
             <div className="stock-report-summary supplier-search-meta">
-              <span>{filteredProducts.length} products shown</span>
+              <span>{productsWithMetrics.length} products shown</span>
             </div>
           </div>
 
           <div className="supplier-list">
-            {filteredProducts.length === 0 ? (
+            {productsWithMetrics.length === 0 ? (
               <p className="empty-copy">No products match the current search.</p>
             ) : (
-              filteredProducts.map((product) => {
-                const avgPrice = getAveragePrice(product);
-
+              productsWithMetrics.map(({ product, metrics }) => {
                 return (
                   <button
                     key={product.id}
@@ -422,7 +443,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                     onClick={() => openProductDetail(product)}
                   >
                     <strong className="product-card-name">
-                      {product.productName || "Unnamed Product"}
+                      {product.productName || product.sku || "Unnamed Product"}
                     </strong>
                     <div className="product-card-stats">
                       <div className="product-card-stat">
@@ -431,14 +452,11 @@ function ProductsPage({ purchases = [], sales = [] }) {
                       </div>
                       <div className="product-card-stat">
                         <span>Total Units</span>
-                        <strong>
-                          {product.amount}
-                          {product.unit ? ` ${product.unit}` : ""}
-                        </strong>
+                        <strong>{metrics.totalUnits}</strong>
                       </div>
                       <div className="product-card-stat">
                         <span>Avg Price</span>
-                        <strong>{formatCurrency(avgPrice)}</strong>
+                        <strong>{formatCurrency(metrics.avgPrice)}</strong>
                       </div>
                     </div>
                   </button>
@@ -560,8 +578,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                                 {(transaction.items || []).map((item) => {
                                   const isHighlighted =
                                     viewingProduct &&
-                                    item.product_name.toLowerCase() ===
-                                      viewingProduct.productName.toLowerCase();
+                                    matchesSku(item, viewingProduct.sku);
                                   const amount = computeItemAmount(item);
 
                                   return (
@@ -605,8 +622,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                                 {(transaction.items || []).map((item) => {
                                   const isHighlighted =
                                     viewingProduct &&
-                                    item.product_name.toLowerCase() ===
-                                      viewingProduct.productName.toLowerCase();
+                                    matchesSku(item, viewingProduct.sku);
                                   const amount = computeItemAmount(item);
 
                                   return (
@@ -665,7 +681,9 @@ function ProductsPage({ purchases = [], sales = [] }) {
               <div className="section-heading supplier-modal-header">
                 <div>
                   <p className="eyebrow">Product History</p>
-                  <h3 id="product-history-title">{viewingProduct.productName || "Product"}</h3>
+                  <h3 id="product-history-title">
+                    {viewingProduct.productName || viewingProduct.sku || "Product"}
+                  </h3>
                 </div>
                 <div className="product-detail-header-actions">
                   <button
@@ -693,20 +711,44 @@ function ProductsPage({ purchases = [], sales = [] }) {
                 </div>
                 <div className="product-history-stat">
                   <span>Total Units</span>
-                  <strong>
-                    {viewingProduct.amount}
-                    {viewingProduct.unit ? ` ${viewingProduct.unit}` : ""}
-                  </strong>
+                  <strong>{viewingProductMetrics?.totalUnits ?? 0}</strong>
                 </div>
                 <div className="product-history-stat">
                   <span>Avg Price</span>
                   <strong>
-                    {formatCurrency(getAveragePrice(viewingProduct))}
+                    {formatCurrency(viewingProductMetrics?.avgPrice ?? 0)}
                   </strong>
                 </div>
               </div>
 
               <div className="product-detail-body">
+                <div className="product-profile-panel">
+                  {viewingProduct.pictureUrl ? (
+                    <img
+                      src={viewingProduct.pictureUrl}
+                      alt={viewingProduct.productName || "Product"}
+                      className="product-profile-image"
+                      onError={(event) => {
+                        event.target.style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="product-profile-placeholder">No Image</div>
+                  )}
+                  <div className="product-profile-copy">
+                    <div>
+                      <p className="detail-label">Product ID</p>
+                      <strong>{viewingProduct.productDisplayId}</strong>
+                    </div>
+                    <div>
+                      <p className="detail-label">Product Detail</p>
+                      <p className="product-detail-text">
+                        {viewingProduct.detail || "—"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="product-detail-section">
                   <p className="detail-label">Purchase History</p>
                   {viewPurchaseHistory.length === 0 ? (
@@ -846,7 +888,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                   {products.some((p) => p.id === draftProduct.id) ? "Edit Product" : "New Product"}
                 </p>
                 <h3 id="product-modal-title">
-                  {draftProduct.productName || "New Product"}
+                  {draftProduct.productName || draftProduct.sku || "New Product"}
                 </h3>
               </div>
               <button
@@ -898,59 +940,6 @@ function ProductsPage({ purchases = [], sales = [] }) {
                     min="1"
                   />
                 </label>
-
-                <label>
-                  Cost (฿)
-                  <input
-                    type="number"
-                    value={draftProduct.cost}
-                    onChange={(event) => updateDraftField("cost", event.target.value)}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                  />
-                </label>
-
-                <label>
-                  Unit
-                  <input
-                    value={draftProduct.unit}
-                    onChange={(event) => updateDraftField("unit", event.target.value)}
-                    placeholder="e.g. piece, kg, meter"
-                  />
-                </label>
-
-                <label>
-                  Tax Multiplier
-                  <input
-                    type="number"
-                    value={draftProduct.tax}
-                    onChange={(event) => updateDraftField("tax", event.target.value)}
-                    placeholder="e.g. 1.07 for 7% VAT"
-                    min="1"
-                    step="0.01"
-                  />
-                </label>
-
-                <label>
-                  Amount in Stock
-                  <input
-                    type="number"
-                    value={draftProduct.amount}
-                    onChange={(event) => updateDraftField("amount", event.target.value)}
-                    placeholder="0"
-                    min="0"
-                    step="1"
-                  />
-                </label>
-
-                <div className="full-width product-price-preview">
-                  <p className="detail-label">Price Preview</p>
-                  <div className="product-price-row">
-                    <span>Average price</span>
-                    <strong>{formatCurrency(draftCost)}</strong>
-                  </div>
-                </div>
 
                 <label className="full-width">
                   Picture URL

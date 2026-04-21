@@ -1607,7 +1607,7 @@ th {
 
 .product-history-info-strip {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   padding: 16px 20px;
   margin-bottom: 8px;
@@ -1641,6 +1641,44 @@ th {
 .product-detail-section {
   display: grid;
   gap: 12px;
+}
+
+.product-profile-panel {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel-muted);
+}
+
+.product-profile-image,
+.product-profile-placeholder {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 16px;
+}
+
+.product-profile-image {
+  object-fit: cover;
+}
+
+.product-profile-placeholder {
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #fff;
+}
+
+.product-profile-copy {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
 }
 
 .product-detail-text {
@@ -1953,6 +1991,11 @@ th {
   }
 
   .supplier-list {
+    grid-template-columns: 1fr;
+  }
+
+  .product-history-info-strip,
+  .product-profile-panel {
     grid-template-columns: 1fr;
   }
 
