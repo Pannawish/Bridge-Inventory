@@ -29,7 +29,7 @@ body,
 
 body {
   margin: 0;
-  overflow-x: hidden;
+  overflow-x: auto;
   font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
   color: var(--text);
   background: #eceef5;
@@ -55,6 +55,8 @@ textarea {
 .app-shell {
   display: grid;
   grid-template-columns: 268px minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
   min-height: 100vh;
 }
 
@@ -235,7 +237,9 @@ textarea {
 .main-panel {
   position: relative;
   min-width: 0;
+  max-width: 100%;
   min-height: 100vh;
+  overflow-x: auto;
   padding: 24px 28px;
   background: #f0f2f8;
 }
@@ -404,6 +408,8 @@ textarea {
 .stack-layout {
   display: grid;
   gap: 24px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .double-grid {
@@ -490,6 +496,8 @@ textarea {
 
 .section-card,
 .trend-card {
+  min-width: 0;
+  max-width: 100%;
   padding: 26px;
 }
 
@@ -529,12 +537,15 @@ textarea {
 .form-layout {
   display: grid;
   gap: 20px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
+  min-width: 0;
 }
 
 label {
@@ -577,10 +588,32 @@ label textarea:focus,
 }
 
 .line-items-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
   padding: 20px;
   border: 1px solid var(--line);
   border-radius: 24px;
   background: linear-gradient(180deg, #fbfcff, #f6f8fe);
+}
+
+.line-items-card::-webkit-scrollbar,
+.table-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.line-items-card::-webkit-scrollbar-track,
+.table-scroll::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #eef2ff;
+}
+
+.line-items-card::-webkit-scrollbar-thumb,
+.table-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #c9d5f6;
 }
 
 .line-items-header {
@@ -600,13 +633,19 @@ label textarea:focus,
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+  min-width: 920px;
   margin-bottom: 12px;
+}
+
+.line-item-row > * {
+  min-width: 0;
 }
 
 .sales-line-item-header {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr minmax(150px, 2fr) 1fr auto;
   gap: 12px;
+  min-width: 920px;
   margin-bottom: 6px;
   padding: 0 2px;
   color: var(--muted);
@@ -619,6 +658,7 @@ label textarea:focus,
 .sales-line-item-row {
   grid-template-columns: 2fr 1fr 1fr minmax(150px, 2fr) 1fr auto;
   align-items: start;
+  min-width: 920px;
 }
 
 .sales-discount-cell {
@@ -753,7 +793,10 @@ label textarea:focus,
 }
 
 .table-scroll {
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 
 .mobile-record-list,
@@ -1559,6 +1602,7 @@ th {
 
   .sales-line-item-row {
     grid-template-columns: minmax(0, 1.4fr) minmax(96px, 0.55fr) minmax(130px, 0.75fr);
+    min-width: 720px;
   }
 
   .sales-line-item-row .danger-button {
@@ -1624,6 +1668,7 @@ th {
   .line-item-row,
   .sales-line-item-row {
     grid-template-columns: 1fr;
+    min-width: 0;
   }
 
   .sales-line-item-header {
