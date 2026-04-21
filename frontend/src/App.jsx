@@ -10,7 +10,6 @@ import PurchaseForm from "./components/PurchaseForm";
 import SalesHistoryPage from "./components/SalesHistoryPage";
 import SalesForm from "./components/SalesForm";
 import SupplierPage from "./components/SupplierPage";
-import TransactionTable from "./components/TransactionTable";
 import ProductsPage from "./components/ProductsPage";
 
 const tabs = [
@@ -339,11 +338,6 @@ function App() {
             {activeTab === "purchases" ? (
               <div className="stack-layout">
                 <PurchaseForm onSubmit={handlePurchaseCreate} />
-                <TransactionTable
-                  rows={purchases}
-                  type="purchase"
-                  onPurchaseStatusChange={handlePurchaseStatusChange}
-                />
               </div>
             ) : null}
 
@@ -358,11 +352,6 @@ function App() {
             {activeTab === "sales" ? (
               <div className="stack-layout">
                 <SalesForm products={products} onSubmit={handleSalesCreate} />
-                <TransactionTable
-                  rows={sales}
-                  type="sale"
-                  onSaleStatusChange={handleSaleStatusChange}
-                />
               </div>
             ) : null}
 
