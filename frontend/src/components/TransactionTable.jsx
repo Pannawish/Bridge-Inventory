@@ -1,10 +1,46 @@
 import { useState } from "react";
 
 function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(Number(value || 0));
+  return `฿${Number(value || 0).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function computeItemAmount(item) {
+  const qty = Number(item.quantity) || 0;
+  const price = Number(item.unit_price ?? item.unit_cost) || 0;
+
+  if (item.amount !== undefined && item.amount !== null) {
+    return Number(item.amount) || 0;
+  }
+
+  if (Array.isArray(item.discounts)) {
+    const multiplier = item.discounts.reduce((acc, d) => {
+      const clamped = Math.min(100, Math.max(0, Number(d) || 0));
+      return acc * (1 - clamped / 100);
+    }, 1);
+    return qty * price * multiplier;
+  }
+
+  const disc = Math.min(100, Math.max(0, Number(item.discount) || 0));
+  return qty * price * (1 - disc / 100);
+}
+
+function renderDiscounts(item) {
+  if (Array.isArray(item.discounts)) {
+    const active = item.discounts.filter((d) => Number(d) > 0);
+    if (active.length > 0) {
+      return active.map((d) => `${Number(d)}%`).join(" → ");
+    }
+    return "—";
+  }
+
+  if (Number(item.discount) > 0) {
+    return `${Number(item.discount)}%`;
+  }
+
+  return "—";
 }
 
 const purchaseStatuses = ["draft", "ordered", "received", "cancelled"];
@@ -17,6 +53,13 @@ function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChan
   const statuses = type === "purchase" ? purchaseStatuses : saleStatuses;
   const detailTitle = type === "purchase" ? "Purchase Detail" : "Sales Detail";
   const detailNameLabel = type === "purchase" ? "Supplier" : "Customer";
+
+  function getSalesSummary(row) {
+    const subtotal = row.items.reduce((sum, item) => sum + computeItemAmount(item), 0);
+    const vat = subtotal * 0.07;
+    const grandTotal = subtotal + vat;
+    return { subtotal, vat, grandTotal };
+  }
 
   return (
     <section className="section-card">
@@ -36,22 +79,32 @@ function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChan
               <thead>
                 <tr>
                   <th>Reference</th>
-                  <th>{type === "purchase" ? "Supplier Name" : "Name"}</th>
+                  <th>{type === "purchase" ? "Supplier" : "Customer"}</th>
                   <th>Status</th>
                   <th>Date</th>
                   <th>Items</th>
-                  <th>Total</th>
+                  {type === "sale" ? (
+                    <>
+                      <th>Subtotal</th>
+                      <th>VAT (7%)</th>
+                      <th>Grand Total</th>
+                    </>
+                  ) : (
+                    <th>Total</th>
+                  )}
                   <th>Document</th>
-                  <th>More Information</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
-                  <tr key={`${type}-${row.id}`}>
-                    <td>{row.reference_no}</td>
-                    <td>{row[personKey]}</td>
-                    <td>
-                      {type === "purchase" || type === "sale" ? (
+                {rows.map((row) => {
+                  const salesSummary = type === "sale" ? getSalesSummary(row) : null;
+
+                  return (
+                    <tr key={`${type}-${row.id}`}>
+                      <td>{row.reference_no}</td>
+                      <td>{row[personKey]}</td>
+                      <td>
                         <select
                           className={`status-select status-${row.status}`}
                           value={row.status}
@@ -70,54 +123,64 @@ function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChan
                             </option>
                           ))}
                         </select>
+                      </td>
+                      <td>{row.transaction_date}</td>
+                      <td>
+                        <div className="item-pill-list">
+                          {row.items.map((item) => (
+                            <span key={item.id} className="item-pill">
+                              {item.product_name} ×{item.quantity}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      {type === "sale" ? (
+                        <>
+                          <td>{formatCurrency(salesSummary.subtotal)}</td>
+                          <td>{formatCurrency(salesSummary.vat)}</td>
+                          <td>
+                            <strong>{formatCurrency(salesSummary.grandTotal)}</strong>
+                          </td>
+                        </>
                       ) : (
-                        <span className={`status-badge status-${row.status}`}>{row.status}</span>
+                        <td>{formatCurrency(row.total_amount)}</td>
                       )}
-                    </td>
-                    <td>{row.transaction_date}</td>
-                    <td>
-                      <div className="item-pill-list">
-                        {row.items.map((item) => (
-                          <span key={item.id} className="item-pill">
-                            {item.product_name} x {item.quantity}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td>{formatCurrency(row.total_amount)}</td>
-                    <td>
-                      {row.document_url ? (
-                        <a href={row.document_url} target="_blank" rel="noreferrer">
-                          Open
-                        </a>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        className="secondary-button table-action-button"
-                        type="button"
-                        onClick={() => setSelectedRow(row)}
-                      >
-                        More Information
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      <td>
+                        {row.document_url ? (
+                          <a href={row.document_url} target="_blank" rel="noreferrer">
+                            Open
+                          </a>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td>
+                        <button
+                          className="table-action-button"
+                          type="button"
+                          onClick={() => setSelectedRow(row)}
+                        >
+                          Details
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           <div className="mobile-record-list">
-            {rows.map((row) => (
-              <article className="mobile-record-card" key={`mobile-${type}-${row.id}`}>
-                <div className="mobile-record-header">
-                  <div className="cell-stack">
-                    <strong>{row.reference_no}</strong>
-                    <span>{row[personKey]}</span>
-                  </div>
-                  {type === "purchase" || type === "sale" ? (
+            {rows.map((row) => {
+              const salesSummary = type === "sale" ? getSalesSummary(row) : null;
+
+              return (
+                <article className="mobile-record-card" key={`mobile-${type}-${row.id}`}>
+                  <div className="mobile-record-header">
+                    <div className="cell-stack">
+                      <strong>{row.reference_no}</strong>
+                      <span>{row[personKey]}</span>
+                    </div>
                     <select
                       className={`status-select status-${row.status}`}
                       value={row.status}
@@ -136,51 +199,56 @@ function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChan
                         </option>
                       ))}
                     </select>
-                  ) : (
-                    <span className={`status-badge status-${row.status}`}>{row.status}</span>
-                  )}
-                </div>
+                  </div>
 
-                <div className="mobile-record-grid">
-                  <div>
-                    <span>Date</span>
-                    <strong>{row.transaction_date}</strong>
-                  </div>
-                  <div>
-                    <span>Total</span>
-                    <strong>{formatCurrency(row.total_amount)}</strong>
-                  </div>
-                  <div className="full-width-mobile">
-                    <span>Items</span>
-                    <div className="item-pill-list">
-                      {row.items.map((item) => (
-                        <span key={item.id} className="item-pill">
-                          {item.product_name} x {item.quantity}
-                        </span>
-                      ))}
+                  <div className="mobile-record-grid">
+                    <div>
+                      <span>Date</span>
+                      <strong>{row.transaction_date}</strong>
+                    </div>
+                    {type === "sale" ? (
+                      <>
+                        <div>
+                          <span>Subtotal</span>
+                          <strong>{formatCurrency(salesSummary.subtotal)}</strong>
+                        </div>
+                        <div>
+                          <span>VAT (7%)</span>
+                          <strong>{formatCurrency(salesSummary.vat)}</strong>
+                        </div>
+                        <div>
+                          <span>Grand Total</span>
+                          <strong>{formatCurrency(salesSummary.grandTotal)}</strong>
+                        </div>
+                      </>
+                    ) : (
+                      <div>
+                        <span>Total</span>
+                        <strong>{formatCurrency(row.total_amount)}</strong>
+                      </div>
+                    )}
+                    <div className="full-width-mobile">
+                      <span>Items</span>
+                      <div className="item-pill-list">
+                        {row.items.map((item) => (
+                          <span key={item.id} className="item-pill">
+                            {item.product_name} ×{item.quantity}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <span>Document</span>
-                    {row.document_url ? (
-                      <a href={row.document_url} target="_blank" rel="noreferrer">
-                        Open
-                      </a>
-                    ) : (
-                      <strong>-</strong>
-                    )}
-                  </div>
-                </div>
 
-                <button
-                  className="secondary-button table-action-button mobile-record-button"
-                  type="button"
-                  onClick={() => setSelectedRow(row)}
-                >
-                  More Information
-                </button>
-              </article>
-            ))}
+                  <button
+                    className="secondary-button table-action-button mobile-record-button"
+                    type="button"
+                    onClick={() => setSelectedRow(row)}
+                  >
+                    Details
+                  </button>
+                </article>
+              );
+            })}
           </div>
         </>
       )}
@@ -215,24 +283,24 @@ function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChan
             <div className="detail-grid">
               <div>
                 <p className="detail-label">{detailNameLabel}</p>
-                <strong>{selectedRow[personKey] || "-"}</strong>
+                <strong>{selectedRow[personKey] || "—"}</strong>
               </div>
               <div>
                 <p className="detail-label">Status</p>
-                <strong>{selectedRow.status || "-"}</strong>
+                <strong>
+                  <span className={`status-badge status-${selectedRow.status}`}>
+                    {selectedRow.status}
+                  </span>
+                </strong>
               </div>
               <div>
                 <p className="detail-label">Transaction Date</p>
-                <strong>{selectedRow.transaction_date || "-"}</strong>
-              </div>
-              <div>
-                <p className="detail-label">Total Amount</p>
-                <strong>{formatCurrency(selectedRow.total_amount)}</strong>
+                <strong>{selectedRow.transaction_date || "—"}</strong>
               </div>
               {type === "sale" ? (
                 <div>
                   <p className="detail-label">Payment Receive Date</p>
-                  <strong>{selectedRow.payment_received_date || "-"}</strong>
+                  <strong>{selectedRow.payment_received_date || "—"}</strong>
                 </div>
               ) : null}
               <div>
@@ -242,46 +310,102 @@ function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChan
                     Open document
                   </a>
                 ) : (
-                  <strong>-</strong>
+                  <strong>—</strong>
                 )}
               </div>
-              <div>
+              <div className="full-width">
                 <p className="detail-label">Notes</p>
-                <strong>{selectedRow.note || "-"}</strong>
+                <strong>{selectedRow.note || "—"}</strong>
               </div>
             </div>
 
             <div className="detail-items">
               <p className="detail-label">Items</p>
               <div className="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Product</th>
-                      <th>Quantity</th>
-                      <th>{type === "purchase" ? "Unit Cost" : "Unit Price"}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedRow.items.map((item) => (
-                      <tr key={item.id}>
-                        <td>{item.product_name}</td>
-                        <td>{item.quantity}</td>
-                        <td>
-                          {type === "purchase"
-                            ? item.unit_cost
-                              ? formatCurrency(item.unit_cost)
-                              : "-"
-                            : item.unit_price
-                              ? formatCurrency(item.unit_price)
-                              : "-"}
-                        </td>
+                {type === "sale" ? (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Unit Price</th>
+                        <th>Discounts</th>
+                        <th>Amount</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {selectedRow.items.map((item) => {
+                        const amount = computeItemAmount(item);
+                        return (
+                          <tr key={item.id}>
+                            <td>{item.product_name}</td>
+                            <td>{item.quantity}</td>
+                            <td>{item.unit_price ? formatCurrency(item.unit_price) : "—"}</td>
+                            <td>
+                              <span className="tx-discount-label">
+                                {renderDiscounts(item)}
+                              </span>
+                            </td>
+                            <td>{formatCurrency(amount)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                ) : (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Unit Cost</th>
+                        <th>Line Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedRow.items.map((item) => (
+                        <tr key={item.id}>
+                          <td>{item.product_name}</td>
+                          <td>{item.quantity}</td>
+                          <td>{item.unit_cost ? formatCurrency(item.unit_cost) : "—"}</td>
+                          <td>
+                            {item.unit_cost
+                              ? formatCurrency(item.quantity * item.unit_cost)
+                              : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
+
+            {type === "sale" ? (() => {
+              const subtotal = selectedRow.items.reduce(
+                (sum, item) => sum + computeItemAmount(item),
+                0
+              );
+              const vat = subtotal * 0.07;
+              const grandTotal = subtotal + vat;
+
+              return (
+                <div className="tx-sales-summary">
+                  <div className="tx-summary-row">
+                    <span>Subtotal</span>
+                    <span>{formatCurrency(subtotal)}</span>
+                  </div>
+                  <div className="tx-summary-row">
+                    <span>VAT (7%)</span>
+                    <span>{formatCurrency(vat)}</span>
+                  </div>
+                  <div className="tx-summary-row tx-summary-grand">
+                    <strong>Grand Total</strong>
+                    <strong>{formatCurrency(grandTotal)}</strong>
+                  </div>
+                </div>
+              );
+            })() : null}
           </div>
         </div>
       ) : null}

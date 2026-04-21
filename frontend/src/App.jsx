@@ -9,6 +9,7 @@ import PurchaseForm from "./components/PurchaseForm";
 import SalesForm from "./components/SalesForm";
 import SupplierPage from "./components/SupplierPage";
 import TransactionTable from "./components/TransactionTable";
+import ProductsPage from "./components/ProductsPage";
 
 const tabs = [
   {
@@ -42,6 +43,12 @@ const tabs = [
     description: "Customer contact records, branches, billing notes, and shipping details.",
   },
   {
+    id: "products",
+    label: "Products",
+    shortLabel: "PR",
+    description: "Product catalog with pricing, stock levels, and supplier discounts.",
+  },
+  {
     id: "inventory",
     label: "Inventory",
     shortLabel: "I",
@@ -57,7 +64,6 @@ const tabs = [
 
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [isSidebarHidden, setIsSidebarHidden] = useState(false);
   const [dashboard, setDashboard] = useState(null);
   const [products, setProducts] = useState([]);
   const [purchases, setPurchases] = useState([]);
@@ -138,30 +144,8 @@ function App() {
     loadData();
   }, []);
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 1024px)");
-
-    function syncSidebarState(event) {
-      setIsSidebarHidden(event.matches);
-    }
-
-    syncSidebarState(mediaQuery);
-
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener("change", syncSidebarState);
-      return () => mediaQuery.removeEventListener("change", syncSidebarState);
-    }
-
-    mediaQuery.addListener(syncSidebarState);
-    return () => mediaQuery.removeListener(syncSidebarState);
-  }, []);
-
   function handleTabSelect(tabId) {
     setActiveTab(tabId);
-
-    if (window.matchMedia("(max-width: 1024px)").matches) {
-      setIsSidebarHidden(true);
-    }
   }
 
   async function handlePurchaseCreate(formData) {
@@ -272,23 +256,16 @@ function App() {
   }
 
   return (
-    <div className={isSidebarHidden ? "app-shell sidebar-hidden" : "app-shell"}>
-      <aside className={isSidebarHidden ? "sidebar hidden" : "sidebar"}>
+    <div className="app-shell">
+      <aside className="sidebar">
         <div className="sidebar-content">
           <div className="sidebar-top">
             <div className="brand-lockup">
+              <div className="brand-mark">IM</div>
               <div>
-                <h1>Inventory Management</h1>
+                <h1>Inventory</h1>
               </div>
             </div>
-            <button
-              className="sidebar-back-button"
-              type="button"
-              aria-label="Hide sidebar"
-              onClick={() => setIsSidebarHidden(true)}
-            >
-              &lt;
-            </button>
           </div>
 
           <nav className="sidebar-nav">
@@ -314,17 +291,6 @@ function App() {
       </aside>
 
       <main className="main-panel">
-        {isSidebarHidden ? (
-          <button
-            className="sidebar-reveal-button"
-            type="button"
-            aria-label="Show sidebar"
-            onClick={() => setIsSidebarHidden(false)}
-          >
-            &gt;
-          </button>
-        ) : null}
-
         <header className="topbar">
           <div className="topbar-copy-group">
             <div className="topbar-title-row">
@@ -337,25 +303,8 @@ function App() {
             </div>
           </div>
           <div className="topbar-actions">
-            <label className="search-shell">
-              <span className="search-shell-icon">S</span>
-              <input type="search" placeholder="Search anything..." />
-            </label>
-            <div className="topbar-action-cluster">
-              <button className="icon-button" type="button" aria-label="Notifications">
-                N
-              </button>
-              <button
-                className="icon-button subtle"
-                type="button"
-                aria-label="Refresh data"
-                onClick={loadData}
-              >
-                R
-              </button>
-              <div className="avatar-chip" aria-hidden="true">
-                PW
-              </div>
+            <div className="avatar-chip" aria-hidden="true">
+              PW
             </div>
           </div>
         </header>
@@ -402,6 +351,10 @@ function App() {
             {activeTab === "suppliers" ? <SupplierPage /> : null}
 
             {activeTab === "customers" ? <CustomerPage /> : null}
+
+            {activeTab === "products" ? (
+              <ProductsPage purchases={purchases} sales={sales} />
+            ) : null}
 
             {activeTab === "chat" ? (
               <ChatPanel messages={messages} onAsk={handleAskChat} busy={chatBusy} />
