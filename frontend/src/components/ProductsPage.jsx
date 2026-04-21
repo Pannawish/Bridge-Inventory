@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEY = "inventory-management-products";
+const VAT_RATE = 0.07;
 
 function createProduct(overrides = {}) {
   return {
@@ -121,6 +122,63 @@ function formatCurrency(value) {
   })}`;
 }
 
+function computeItemAmount(item) {
+  const qty = Number(item.quantity) || 0;
+  const price = Number(item.unit_price ?? item.unit_cost) || 0;
+
+  if (item.amount !== undefined && item.amount !== null) {
+    return Number(item.amount) || 0;
+  }
+
+  if (Array.isArray(item.discounts)) {
+    const multiplier = item.discounts.reduce((acc, discount) => {
+      const clamped = Math.min(100, Math.max(0, Number(discount) || 0));
+      return acc * (1 - clamped / 100);
+    }, 1);
+    return qty * price * multiplier;
+  }
+
+  const discount = Math.min(100, Math.max(0, Number(item.discount) || 0));
+  return qty * price * (1 - discount / 100);
+}
+
+function renderDiscounts(item) {
+  if (Array.isArray(item.discounts)) {
+    const activeDiscounts = item.discounts.filter((discount) => Number(discount) > 0);
+
+    if (activeDiscounts.length) {
+      return activeDiscounts.map((discount) => `${Number(discount)}%`).join(" → ");
+    }
+  }
+
+  if (Number(item.discount) > 0) {
+    return `${Number(item.discount)}%`;
+  }
+
+  return "—";
+}
+
+function computeVatSummary(items, vatMode) {
+  const itemTotal = items.reduce((sum, item) => sum + computeItemAmount(item), 0);
+
+  if (vatMode === "included") {
+    const subtotal = itemTotal / (1 + VAT_RATE);
+    const vat = itemTotal - subtotal;
+    return { subtotal, vat, grandTotal: itemTotal };
+  }
+
+  if (vatMode === "none") {
+    return { subtotal: itemTotal, vat: 0, grandTotal: itemTotal };
+  }
+
+  const vat = itemTotal * VAT_RATE;
+  return { subtotal: itemTotal, vat, grandTotal: itemTotal + vat };
+}
+
+function getAveragePrice(product) {
+  return Number(product.cost) || 0;
+}
+
 function ProductsPage({ purchases = [], sales = [] }) {
   const [products, setProducts] = useState(() => loadProducts());
   const [viewingProduct, setViewingProduct] = useState(null);
@@ -195,7 +253,6 @@ function ProductsPage({ purchases = [], sales = [] }) {
       cost: product.cost.toString(),
       tax: product.tax.toString(),
       amount: product.amount.toString(),
-      discount: product.discount.toString(),
     });
   }
 
@@ -220,7 +277,6 @@ function ProductsPage({ purchases = [], sales = [] }) {
       cost: "0",
       tax: "1.07",
       amount: "0",
-      discount: "0",
     });
   }
 
@@ -284,15 +340,13 @@ function ProductsPage({ purchases = [], sales = [] }) {
     totalProducts: products.length,
     totalUnits: products.reduce((sum, p) => sum + p.amount, 0),
     totalValue: products.reduce(
-      (sum, p) => sum + p.cost * (1 - p.discount) * p.amount,
+      (sum, p) => sum + p.cost * p.amount,
       0
     ),
     outOfStock: products.filter((p) => p.amount === 0).length,
   };
 
   const draftCost = Number(draftProduct?.cost) || 0;
-  const draftDiscount = Math.min(1, Math.max(0, Number(draftProduct?.discount) || 0));
-  const draftDiscountedCost = draftCost * (1 - draftDiscount);
 
   const viewPurchaseHistory = viewingProduct
     ? getPurchaseHistory(viewingProduct.productName)
@@ -358,7 +412,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
               <p className="empty-copy">No products match the current search.</p>
             ) : (
               filteredProducts.map((product) => {
-                const avgPrice = product.cost * (1 - product.discount);
+                const avgPrice = getAveragePrice(product);
 
                 return (
                   <button
@@ -435,153 +489,170 @@ function ProductsPage({ purchases = [], sales = [] }) {
               </div>
 
               <div className="product-detail-body">
-                {viewingTransaction.type === "purchase" ? (
-                  <>
-                    <div className="detail-grid">
-                      <div>
-                        <p className="detail-label">Reference</p>
-                        <p>{viewingTransaction.data.reference_no}</p>
-                      </div>
-                      <div>
-                        <p className="detail-label">Supplier</p>
-                        <p>{viewingTransaction.data.supplier_name}</p>
-                      </div>
-                      <div>
-                        <p className="detail-label">Date</p>
-                        <p>{viewingTransaction.data.transaction_date}</p>
-                      </div>
-                      <div>
-                        <p className="detail-label">Status</p>
-                        <p>
-                          <span className={`status-badge status-${viewingTransaction.data.status}`}>
-                            {viewingTransaction.data.status}
-                          </span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="detail-label">Total Amount</p>
-                        <p>{formatCurrency(viewingTransaction.data.total_amount)}</p>
-                      </div>
-                      {viewingTransaction.data.note ? (
-                        <div className="full-width">
-                          <p className="detail-label">Note</p>
-                          <p>{viewingTransaction.data.note}</p>
-                        </div>
-                      ) : null}
-                    </div>
+                {(() => {
+                  const isPurchase = viewingTransaction.type === "purchase";
+                  const transaction = viewingTransaction.data;
+                  const summary = computeVatSummary(transaction.items || [], transaction.vat_mode);
 
-                    <div className="product-detail-section">
-                      <p className="detail-label">Items in this Purchase</p>
-                      <div className="table-scroll">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Product</th>
-                              <th>Qty</th>
-                              <th>Unit Cost</th>
-                              <th>Line Total</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {viewingTransaction.data.items.map((item) => {
-                              const isHighlighted =
-                                viewingProduct &&
-                                item.product_name.toLowerCase() ===
-                                  viewingProduct.productName.toLowerCase();
-                              return (
-                                <tr
-                                  key={item.id}
-                                  className={isHighlighted ? "transaction-row-highlight" : ""}
-                                >
-                                  <td>{item.product_name}</td>
-                                  <td>{item.quantity}</td>
-                                  <td>{formatCurrency(item.unit_cost)}</td>
-                                  <td>{formatCurrency(item.quantity * item.unit_cost)}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="detail-grid">
-                      <div>
-                        <p className="detail-label">Reference</p>
-                        <p>{viewingTransaction.data.reference_no}</p>
-                      </div>
-                      <div>
-                        <p className="detail-label">Customer</p>
-                        <p>{viewingTransaction.data.customer_name}</p>
-                      </div>
-                      <div>
-                        <p className="detail-label">Date</p>
-                        <p>{viewingTransaction.data.transaction_date}</p>
-                      </div>
-                      <div>
-                        <p className="detail-label">Status</p>
-                        <p>
-                          <span className={`status-badge status-${viewingTransaction.data.status}`}>
-                            {viewingTransaction.data.status}
-                          </span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="detail-label">Total Amount</p>
-                        <p>{formatCurrency(viewingTransaction.data.total_amount)}</p>
-                      </div>
-                      {viewingTransaction.data.payment_received_date ? (
+                  return (
+                    <>
+                      <div className="detail-grid">
                         <div>
-                          <p className="detail-label">Payment Received</p>
-                          <p>{viewingTransaction.data.payment_received_date}</p>
+                          <p className="detail-label">{isPurchase ? "Supplier" : "Customer"}</p>
+                          <strong>
+                            {isPurchase
+                              ? transaction.supplier_name || "—"
+                              : transaction.customer_name || "—"}
+                          </strong>
                         </div>
-                      ) : null}
-                      {viewingTransaction.data.note ? (
+                        <div>
+                          <p className="detail-label">Status</p>
+                          <strong>
+                            <span className={`status-badge status-${transaction.status}`}>
+                              {transaction.status}
+                            </span>
+                          </strong>
+                        </div>
+                        <div>
+                          <p className="detail-label">Transaction Date</p>
+                          <strong>{transaction.transaction_date || "—"}</strong>
+                        </div>
+                        {!isPurchase ? (
+                          <div>
+                            <p className="detail-label">Payment Receive Date</p>
+                            <strong>{transaction.payment_received_date || "—"}</strong>
+                          </div>
+                        ) : null}
+                        <div>
+                          <p className="detail-label">Document</p>
+                          {transaction.document_url ? (
+                            <a href={transaction.document_url} target="_blank" rel="noreferrer">
+                              Open document
+                            </a>
+                          ) : (
+                            <strong>—</strong>
+                          )}
+                        </div>
                         <div className="full-width">
-                          <p className="detail-label">Note</p>
-                          <p>{viewingTransaction.data.note}</p>
+                          <p className="detail-label">Notes</p>
+                          <strong>{transaction.note || "—"}</strong>
                         </div>
-                      ) : null}
-                    </div>
-
-                    <div className="product-detail-section">
-                      <p className="detail-label">Items in this Sale</p>
-                      <div className="table-scroll">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Product</th>
-                              <th>Qty</th>
-                              <th>Unit Price</th>
-                              <th>Line Total</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {viewingTransaction.data.items.map((item) => {
-                              const isHighlighted =
-                                viewingProduct &&
-                                item.product_name.toLowerCase() ===
-                                  viewingProduct.productName.toLowerCase();
-                              return (
-                                <tr
-                                  key={item.id}
-                                  className={isHighlighted ? "transaction-row-highlight" : ""}
-                                >
-                                  <td>{item.product_name}</td>
-                                  <td>{item.quantity}</td>
-                                  <td>{formatCurrency(item.unit_price)}</td>
-                                  <td>{formatCurrency(item.quantity * item.unit_price)}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
                       </div>
-                    </div>
-                  </>
-                )}
+
+                      <div className="product-detail-section detail-items">
+                        <p className="detail-label">Items</p>
+                        <div className="table-scroll">
+                          {isPurchase ? (
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th>Product</th>
+                                  <th>SKU</th>
+                                  <th>Category</th>
+                                  <th>Unit</th>
+                                  <th>Qty</th>
+                                  <th>Unit Cost</th>
+                                  <th>Discounts</th>
+                                  <th>Amount</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(transaction.items || []).map((item) => {
+                                  const isHighlighted =
+                                    viewingProduct &&
+                                    item.product_name.toLowerCase() ===
+                                      viewingProduct.productName.toLowerCase();
+                                  const amount = computeItemAmount(item);
+
+                                  return (
+                                    <tr
+                                      key={item.id}
+                                      className={isHighlighted ? "transaction-row-highlight" : ""}
+                                    >
+                                      <td>{item.product_name}</td>
+                                      <td>{item.sku || "—"}</td>
+                                      <td>{item.category || "—"}</td>
+                                      <td>{item.unit || "—"}</td>
+                                      <td>{item.quantity}</td>
+                                      <td>
+                                        {item.unit_cost !== undefined && item.unit_cost !== null
+                                          ? formatCurrency(item.unit_cost)
+                                          : "—"}
+                                      </td>
+                                      <td>
+                                        <span className="tx-discount-label">
+                                          {renderDiscounts(item)}
+                                        </span>
+                                      </td>
+                                      <td>{formatCurrency(amount)}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th>Product</th>
+                                  <th>Qty</th>
+                                  <th>Unit Price</th>
+                                  <th>Discounts</th>
+                                  <th>Amount</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(transaction.items || []).map((item) => {
+                                  const isHighlighted =
+                                    viewingProduct &&
+                                    item.product_name.toLowerCase() ===
+                                      viewingProduct.productName.toLowerCase();
+                                  const amount = computeItemAmount(item);
+
+                                  return (
+                                    <tr
+                                      key={item.id}
+                                      className={isHighlighted ? "transaction-row-highlight" : ""}
+                                    >
+                                      <td>{item.product_name}</td>
+                                      <td>{item.quantity}</td>
+                                      <td>
+                                        {item.unit_price !== undefined && item.unit_price !== null
+                                          ? formatCurrency(item.unit_price)
+                                          : "—"}
+                                      </td>
+                                      <td>
+                                        <span className="tx-discount-label">
+                                          {renderDiscounts(item)}
+                                        </span>
+                                      </td>
+                                      <td>{formatCurrency(amount)}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="tx-sales-summary">
+                        <div className="tx-summary-row">
+                          <span>{isPurchase ? "Total" : "Subtotal"}</span>
+                          <span>{formatCurrency(summary.subtotal)}</span>
+                        </div>
+                        <div className="tx-summary-row">
+                          <span>VAT (7%)</span>
+                          <span>{formatCurrency(summary.vat)}</span>
+                        </div>
+                        <div className="tx-summary-row tx-summary-grand">
+                          <strong>Grand Total</strong>
+                          <strong>{formatCurrency(summary.grandTotal)}</strong>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           ) : (
@@ -630,12 +701,8 @@ function ProductsPage({ purchases = [], sales = [] }) {
                 <div className="product-history-stat">
                   <span>Avg Price</span>
                   <strong>
-                    {formatCurrency(viewingProduct.cost * (1 - viewingProduct.discount))}
+                    {formatCurrency(getAveragePrice(viewingProduct))}
                   </strong>
-                </div>
-                <div className="product-history-stat">
-                  <span>Discount</span>
-                  <strong>{Math.round(viewingProduct.discount * 100)}%</strong>
                 </div>
               </div>
 
@@ -654,7 +721,8 @@ function ProductsPage({ purchases = [], sales = [] }) {
                             <th>Date</th>
                             <th>Qty</th>
                             <th>Unit Cost</th>
-                            <th>Line Total</th>
+                            <th>Discounts</th>
+                            <th>Amount</th>
                             <th>Status</th>
                             <th />
                           </tr>
@@ -666,8 +734,17 @@ function ProductsPage({ purchases = [], sales = [] }) {
                               <td>{purchase.supplier_name}</td>
                               <td>{purchase.transaction_date}</td>
                               <td>{item.quantity}</td>
-                              <td>{formatCurrency(item.unit_cost)}</td>
-                              <td>{formatCurrency(item.quantity * item.unit_cost)}</td>
+                              <td>
+                                {item.unit_cost !== undefined && item.unit_cost !== null
+                                  ? formatCurrency(item.unit_cost)
+                                  : "—"}
+                              </td>
+                              <td>
+                                <span className="tx-discount-label">
+                                  {renderDiscounts(item)}
+                                </span>
+                              </td>
+                              <td>{formatCurrency(computeItemAmount(item))}</td>
                               <td>
                                 <span className={`status-badge status-${purchase.status}`}>
                                   {purchase.status}
@@ -679,7 +756,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                                   type="button"
                                   onClick={() => openTransactionDetail("purchase", purchase)}
                                 >
-                                  View
+                                  Details
                                 </button>
                               </td>
                             </tr>
@@ -704,7 +781,8 @@ function ProductsPage({ purchases = [], sales = [] }) {
                             <th>Date</th>
                             <th>Qty</th>
                             <th>Unit Price</th>
-                            <th>Line Total</th>
+                            <th>Discounts</th>
+                            <th>Amount</th>
                             <th>Status</th>
                             <th />
                           </tr>
@@ -716,8 +794,17 @@ function ProductsPage({ purchases = [], sales = [] }) {
                               <td>{sale.customer_name}</td>
                               <td>{sale.transaction_date}</td>
                               <td>{item.quantity}</td>
-                              <td>{formatCurrency(item.unit_price)}</td>
-                              <td>{formatCurrency(item.quantity * item.unit_price)}</td>
+                              <td>
+                                {item.unit_price !== undefined && item.unit_price !== null
+                                  ? formatCurrency(item.unit_price)
+                                  : "—"}
+                              </td>
+                              <td>
+                                <span className="tx-discount-label">
+                                  {renderDiscounts(item)}
+                                </span>
+                              </td>
+                              <td>{formatCurrency(computeItemAmount(item))}</td>
                               <td>
                                 <span className={`status-badge status-${sale.status}`}>
                                   {sale.status}
@@ -729,7 +816,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                                   type="button"
                                   onClick={() => openTransactionDetail("sale", sale)}
                                 >
-                                  View
+                                  Details
                                 </button>
                               </td>
                             </tr>
@@ -857,33 +944,12 @@ function ProductsPage({ purchases = [], sales = [] }) {
                   />
                 </label>
 
-                <label>
-                  Supplier Discount (0.00 – 1.00)
-                  <input
-                    type="number"
-                    value={draftProduct.discount}
-                    onChange={(event) => updateDraftField("discount", event.target.value)}
-                    placeholder="e.g. 0.10 for 10% off"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                  />
-                </label>
-
                 <div className="full-width product-price-preview">
                   <p className="detail-label">Price Preview</p>
                   <div className="product-price-row">
-                    <span>Original cost</span>
+                    <span>Average price</span>
                     <strong>{formatCurrency(draftCost)}</strong>
                   </div>
-                  {draftDiscount > 0 ? (
-                    <div className="product-price-row">
-                      <span>After {Math.round(draftDiscount * 100)}% supplier discount</span>
-                      <strong className="product-price-discounted">
-                        {formatCurrency(draftDiscountedCost)}
-                      </strong>
-                    </div>
-                  ) : null}
                 </div>
 
                 <label className="full-width">
