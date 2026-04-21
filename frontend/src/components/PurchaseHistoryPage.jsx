@@ -657,7 +657,12 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
   );
 }
 
-function PurchaseHistoryPage({ purchases, onPurchaseStatusChange, onPurchaseUpdate }) {
+function PurchaseHistoryPage({
+  purchases,
+  onPurchaseStatusChange,
+  onPurchaseUpdate,
+  onPurchaseDelete,
+}) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState(statusOptions);
@@ -692,6 +697,13 @@ function PurchaseHistoryPage({ purchases, onPurchaseStatusChange, onPurchaseUpda
   function handleSave(updatedPurchase) {
     onPurchaseUpdate?.(updatedPurchase);
     setEditingPurchase(null);
+  }
+
+  function handleDelete(deletedPurchase) {
+    onPurchaseDelete?.(deletedPurchase);
+    setEditingPurchase((currentPurchase) =>
+      currentPurchase?.id === deletedPurchase.id ? null : currentPurchase
+    );
   }
 
   return (
@@ -767,6 +779,7 @@ function PurchaseHistoryPage({ purchases, onPurchaseStatusChange, onPurchaseUpda
         type="purchase"
         onPurchaseStatusChange={onPurchaseStatusChange}
         onEditRow={setEditingPurchase}
+        onDeleteRow={handleDelete}
       />
     </div>
   );

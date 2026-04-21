@@ -259,6 +259,18 @@ function App() {
     setNotice(`Purchase ${updatedPurchase.reference_no || updatedPurchase.id} updated.`);
   }
 
+  function handleSaleDelete(deletedSale) {
+    setSales((currentRows) => currentRows.filter((row) => row.id !== deletedSale.id));
+    setNotice(`Sale ${deletedSale.reference_no || deletedSale.id} deleted.`);
+  }
+
+  function handlePurchaseDelete(deletedPurchase) {
+    setPurchases((currentRows) =>
+      currentRows.filter((row) => row.id !== deletedPurchase.id)
+    );
+    setNotice(`Purchase ${deletedPurchase.reference_no || deletedPurchase.id} deleted.`);
+  }
+
   async function handleAskChat(question) {
     const nextMessages = [...messages, { role: "user", content: question }];
     setMessages(nextMessages);
@@ -355,6 +367,7 @@ function App() {
                 purchases={purchases}
                 onPurchaseStatusChange={handlePurchaseStatusChange}
                 onPurchaseUpdate={handlePurchaseUpdate}
+                onPurchaseDelete={handlePurchaseDelete}
               />
             ) : null}
 
@@ -379,6 +392,7 @@ function App() {
                 products={products}
                 onSaleStatusChange={handleSaleStatusChange}
                 onSaleUpdate={handleSaleUpdate}
+                onSaleDelete={handleSaleDelete}
               />
             ) : null}
 

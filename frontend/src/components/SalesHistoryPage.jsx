@@ -750,7 +750,13 @@ function SalesEditForm({ sale, products, onCancel, onSave }) {
   );
 }
 
-function SalesHistoryPage({ sales, products = [], onSaleStatusChange, onSaleUpdate }) {
+function SalesHistoryPage({
+  sales,
+  products = [],
+  onSaleStatusChange,
+  onSaleUpdate,
+  onSaleDelete,
+}) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState(statusOptions);
@@ -785,6 +791,13 @@ function SalesHistoryPage({ sales, products = [], onSaleStatusChange, onSaleUpda
   function handleSave(updatedSale) {
     onSaleUpdate?.(updatedSale);
     setEditingSale(null);
+  }
+
+  function handleDelete(deletedSale) {
+    onSaleDelete?.(deletedSale);
+    setEditingSale((currentSale) =>
+      currentSale?.id === deletedSale.id ? null : currentSale
+    );
   }
 
   return (
@@ -861,6 +874,7 @@ function SalesHistoryPage({ sales, products = [], onSaleStatusChange, onSaleUpda
         type="sale"
         onSaleStatusChange={onSaleStatusChange}
         onEditRow={setEditingSale}
+        onDeleteRow={handleDelete}
       />
     </div>
   );

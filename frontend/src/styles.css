@@ -1794,6 +1794,14 @@ th {
   gap: 10px;
 }
 
+.transaction-detail-footer {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
 .detail-label {
   margin: 0 0 6px;
   color: var(--muted);

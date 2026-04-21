@@ -54,6 +54,7 @@ function TransactionTable({
   onPurchaseStatusChange,
   onSaleStatusChange,
   onEditRow,
+  onDeleteRow,
 }) {
   const [selectedRow, setSelectedRow] = useState(null);
   const title = type === "purchase" ? "Purchase History" : "Sales History";
@@ -62,7 +63,7 @@ function TransactionTable({
   const detailTitle = type === "purchase" ? "Purchase Detail" : "Sales Detail";
   const detailNameLabel = type === "purchase" ? "Supplier" : "Customer";
 
-  function getSalesSummary(row) {
+  function getVatSummary(row) {
     const itemTotal = row.items.reduce((sum, item) => sum + computeItemAmount(item), 0);
 
     if (row.vat_mode === "included") {
@@ -77,6 +78,19 @@ function TransactionTable({
 
     const vat = itemTotal * VAT_RATE;
     return { subtotal: itemTotal, vat, grandTotal: itemTotal + vat };
+  }
+
+  function handleDeleteSelectedRow() {
+    const confirmed = window.confirm(
+      `Delete ${selectedRow.reference_no || "this transaction"}? This action cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    onDeleteRow?.(selectedRow);
+    setSelectedRow(null);
   }
 
   return (
@@ -116,7 +130,7 @@ function TransactionTable({
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const salesSummary = type === "sale" ? getSalesSummary(row) : null;
+                  const salesSummary = type === "sale" ? getVatSummary(row) : null;
 
                   return (
                     <tr key={`${type}-${row.id}`}>
@@ -190,7 +204,7 @@ function TransactionTable({
 
           <div className="mobile-record-list">
             {rows.map((row) => {
-              const salesSummary = type === "sale" ? getSalesSummary(row) : null;
+              const salesSummary = type === "sale" ? getVatSummary(row) : null;
 
               return (
                 <article className="mobile-record-card" key={`mobile-${type}-${row.id}`}>
@@ -389,6 +403,9 @@ function TransactionTable({
                     <thead>
                       <tr>
                         <th>Product</th>
+                        <th>SKU</th>
+                        <th>Category</th>
+                        <th>Unit</th>
                         <th>Qty</th>
                         <th>Unit Cost</th>
                         <th>Discounts</th>
@@ -402,6 +419,9 @@ function TransactionTable({
                         return (
                           <tr key={item.id}>
                             <td>{item.product_name}</td>
+                            <td>{item.sku || "—"}</td>
+                            <td>{item.category || "—"}</td>
+                            <td>{item.unit || "—"}</td>
                             <td>{item.quantity}</td>
                             <td>{item.unit_cost ? formatCurrency(item.unit_cost) : "—"}</td>
                             <td>
@@ -419,13 +439,13 @@ function TransactionTable({
               </div>
             </div>
 
-            {type === "sale" ? (() => {
-              const { subtotal, vat, grandTotal } = getSalesSummary(selectedRow);
+            {(() => {
+              const { subtotal, vat, grandTotal } = getVatSummary(selectedRow);
 
               return (
                 <div className="tx-sales-summary">
                   <div className="tx-summary-row">
-                    <span>Subtotal</span>
+                    <span>{type === "purchase" ? "Total" : "Subtotal"}</span>
                     <span>{formatCurrency(subtotal)}</span>
                   </div>
                   <div className="tx-summary-row">
@@ -438,7 +458,19 @@ function TransactionTable({
                   </div>
                 </div>
               );
-            })() : null}
+            })()}
+
+            {onDeleteRow ? (
+              <div className="transaction-detail-footer">
+                <button
+                  className="danger-button"
+                  type="button"
+                  onClick={handleDeleteSelectedRow}
+                >
+                  Delete
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
