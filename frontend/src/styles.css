@@ -641,9 +641,9 @@ label textarea:focus,
   min-width: 0;
 }
 
-.sales-line-item-header {
+.sales-line-item-header,
+.purchase-line-item-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr minmax(150px, 2fr) 1fr auto;
   gap: 12px;
   min-width: 920px;
   margin-bottom: 6px;
@@ -655,16 +655,141 @@ label textarea:focus,
   text-transform: uppercase;
 }
 
-.sales-line-item-row {
+.sales-line-item-header {
   grid-template-columns: 2fr 1fr 1fr minmax(150px, 2fr) 1fr auto;
+}
+
+.purchase-line-item-header {
+  grid-template-columns: minmax(160px, 1.4fr) minmax(120px, 1fr) minmax(130px, 1fr) minmax(90px, 0.7fr) minmax(110px, 0.8fr) auto;
+  grid-template-areas:
+    "product product sku category unit action"
+    "qty cost discounts discounts amount amount";
+  row-gap: 8px;
+  min-width: 760px;
+}
+
+.sales-line-item-row {
+  grid-template-columns: minmax(220px, 1.7fr) minmax(90px, 0.7fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) auto;
+  grid-template-areas:
+    "product qty price amount action"
+    "discounts discounts discounts discounts discounts";
   align-items: start;
-  min-width: 920px;
+  min-width: 760px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.purchase-line-item-row {
+  grid-template-columns: minmax(160px, 1.4fr) minmax(120px, 1fr) minmax(130px, 1fr) minmax(90px, 0.7fr) minmax(110px, 0.8fr) auto;
+  grid-template-areas:
+    "product product sku category unit action"
+    "qty cost discounts discounts amount amount";
+  align-items: start;
+  min-width: 760px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.purchase-item-field {
+  display: grid;
+  gap: 7px;
+  align-content: start;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.purchase-item-field > span:first-child {
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.purchase-item-field .sales-line-amount {
+  min-height: 47px;
+}
+
+.purchase-item-product {
+  grid-area: product;
+}
+
+.purchase-item-sku {
+  grid-area: sku;
+}
+
+.purchase-item-category {
+  grid-area: category;
+}
+
+.purchase-item-unit {
+  grid-area: unit;
+}
+
+.purchase-item-qty {
+  grid-area: qty;
+}
+
+.purchase-item-cost {
+  grid-area: cost;
+}
+
+.purchase-item-discounts {
+  grid-area: discounts;
+  justify-self: start;
+  width: max-content;
+  max-width: 100%;
+}
+
+.purchase-item-amount {
+  grid-area: amount;
+}
+
+.purchase-item-remove {
+  grid-area: action;
+  justify-self: end;
+  align-self: end;
+}
+
+.sales-item-product {
+  grid-area: product;
+}
+
+.sales-item-qty {
+  grid-area: qty;
+}
+
+.sales-item-price {
+  grid-area: price;
+}
+
+.sales-item-discounts {
+  grid-area: discounts;
+  justify-self: start;
+  width: max-content;
+  max-width: 100%;
+}
+
+.sales-item-amount {
+  grid-area: amount;
+}
+
+.sales-item-remove {
+  grid-area: action;
+  justify-self: end;
+  align-self: end;
 }
 
 .sales-discount-cell {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  width: max-content;
+  max-width: 100%;
 }
 
 .sales-discount-entry {
@@ -1596,20 +1721,6 @@ th {
     grid-template-columns: 1fr;
   }
 
-  .sales-line-item-header {
-    display: none;
-  }
-
-  .sales-line-item-row {
-    grid-template-columns: minmax(0, 1.4fr) minmax(96px, 0.55fr) minmax(130px, 0.75fr);
-    min-width: 720px;
-  }
-
-  .sales-line-item-row .danger-button {
-    grid-column: 1 / -1;
-    justify-self: end;
-  }
-
   .sales-summary-card {
     max-width: 100%;
     width: min(380px, 100%);
@@ -1669,6 +1780,43 @@ th {
   .sales-line-item-row {
     grid-template-columns: 1fr;
     min-width: 0;
+  }
+
+  .purchase-line-item-row {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "product"
+      "sku"
+      "category"
+      "unit"
+      "qty"
+      "cost"
+      "discounts"
+      "amount"
+      "action";
+    min-width: 0;
+  }
+
+  .purchase-item-remove {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .sales-line-item-row {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "product"
+      "qty"
+      "price"
+      "discounts"
+      "amount"
+      "action";
+    min-width: 0;
+  }
+
+  .sales-item-remove {
+    width: 100%;
+    justify-self: stretch;
   }
 
   .sales-line-item-header {

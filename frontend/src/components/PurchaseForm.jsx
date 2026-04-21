@@ -10,7 +10,23 @@ function emptyItem() {
     unit: "pcs",
     quantity: 1,
     unit_cost: "",
+    discounts: [0],
   };
+}
+
+function computeAmount(item) {
+  const qty = Number(item.quantity) || 0;
+  const cost = Number(item.unit_cost) || 0;
+  const multiplier = (item.discounts || []).reduce((acc, discount) => {
+    const clamped = Math.min(100, Math.max(0, Number(discount) || 0));
+    return acc * (1 - clamped / 100);
+  }, 1);
+
+  return qty * cost * multiplier;
+}
+
+function fmt(value) {
+  return `฿${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function PurchaseForm({ onSubmit }) {
@@ -29,6 +45,51 @@ function PurchaseForm({ onSubmit }) {
       currentItems.map((item, itemIndex) =>
         itemIndex === index ? { ...item, [key]: value } : item
       )
+    );
+  }
+
+  function addDiscount(itemIndex) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex
+          ? { ...item, discounts: [...(item.discounts || [0]), 0] }
+          : item
+      )
+    );
+  }
+
+  function removeDiscount(itemIndex, discountIndex) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        const nextDiscounts = (item.discounts || [0]).filter(
+          (_, currentDiscountIndex) => currentDiscountIndex !== discountIndex
+        );
+
+        return {
+          ...item,
+          discounts: nextDiscounts.length ? nextDiscounts : [0],
+        };
+      })
+    );
+  }
+
+  function updateDiscount(itemIndex, discountIndex, value) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        const nextDiscounts = (item.discounts || [0]).map((discount, currentDiscountIndex) =>
+          currentDiscountIndex === discountIndex ? value : discount
+        );
+
+        return { ...item, discounts: nextDiscounts };
+      })
     );
   }
 
@@ -54,13 +115,15 @@ function PurchaseForm({ onSubmit }) {
       formData.append("document", form.document);
     }
 
-    const filteredItems = items.filter(
-      (item) =>
-        item.product_name &&
-        item.sku &&
-        item.quantity &&
-        item.unit_cost
-    );
+    const filteredItems = items
+      .filter(
+        (item) =>
+          item.product_name &&
+          item.sku &&
+          item.quantity &&
+          item.unit_cost
+      )
+      .map((item) => ({ ...item, amount: computeAmount(item) }));
     formData.append("items", JSON.stringify(filteredItems));
 
     await onSubmit(formData);
@@ -75,6 +138,8 @@ function PurchaseForm({ onSubmit }) {
     });
     setItems([emptyItem()]);
   }
+
+  const total = items.reduce((sum, item) => sum + computeAmount(item), 0);
 
   return (
     <section className="section-card">
@@ -161,65 +226,144 @@ function PurchaseForm({ onSubmit }) {
             </button>
           </div>
 
-          {items.map((item, index) => (
-            <div className="line-item-row" key={`${item.sku || "new-item"}-${index}`}>
-              <input
-                value={item.product_name}
-                onChange={(event) =>
-                  updateItem(index, "product_name", event.target.value)
-                }
-                placeholder="Product Name"
-                required
-              />
+          {items.map((item, index) => {
+            const amount = computeAmount(item);
 
-              <input
-                value={item.sku}
-                onChange={(event) => updateItem(index, "sku", event.target.value)}
-                placeholder="SKU"
-                required
-              />
+            return (
+              <div className="line-item-row purchase-line-item-row" key={`${item.sku || "new-item"}-${index}`}>
+                <label className="purchase-item-field purchase-item-product">
+                  <span>Product</span>
+                  <input
+                    value={item.product_name}
+                    onChange={(event) =>
+                      updateItem(index, "product_name", event.target.value)
+                    }
+                    placeholder="Product Name"
+                    required
+                  />
+                </label>
 
-              <input
-                value={item.category}
-                onChange={(event) => updateItem(index, "category", event.target.value)}
-                placeholder="Category"
-              />
+                <label className="purchase-item-field purchase-item-sku">
+                  <span>SKU</span>
+                  <input
+                    value={item.sku}
+                    onChange={(event) => updateItem(index, "sku", event.target.value)}
+                    placeholder="SKU"
+                    required
+                  />
+                </label>
 
-              <input
-                value={item.unit}
-                onChange={(event) => updateItem(index, "unit", event.target.value)}
-                placeholder="Unit"
-              />
+                <label className="purchase-item-field purchase-item-category">
+                  <span>Category</span>
+                  <input
+                    value={item.category}
+                    onChange={(event) => updateItem(index, "category", event.target.value)}
+                    placeholder="Category"
+                  />
+                </label>
 
-              <input
-                type="number"
-                min="1"
-                value={item.quantity}
-                onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                placeholder="Quantity"
-                required
-              />
+                <label className="purchase-item-field purchase-item-unit">
+                  <span>Unit</span>
+                  <input
+                    value={item.unit}
+                    onChange={(event) => updateItem(index, "unit", event.target.value)}
+                    placeholder="Unit"
+                  />
+                </label>
 
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={item.unit_cost}
-                onChange={(event) => updateItem(index, "unit_cost", event.target.value)}
-                placeholder="Unit Cost"
-                required
-              />
+                <label className="purchase-item-field purchase-item-qty">
+                  <span>Qty</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(event) => updateItem(index, "quantity", event.target.value)}
+                    placeholder="Qty"
+                    required
+                  />
+                </label>
 
-              <button
-                className="danger-button"
-                type="button"
-                onClick={() => removeItem(index)}
-                disabled={items.length === 1}
-              >
-                Remove
-              </button>
-            </div>
-          ))}
+                <label className="purchase-item-field purchase-item-cost">
+                  <span>Unit Cost</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.unit_cost}
+                    onChange={(event) => updateItem(index, "unit_cost", event.target.value)}
+                    placeholder="0.00"
+                    required
+                  />
+                </label>
+
+                <div className="purchase-item-field purchase-item-discounts">
+                  <span>Discounts</span>
+                  <div className="sales-discount-cell">
+                    {(item.discounts || [0]).map((discount, discountIndex) => (
+                      <div key={discountIndex} className="sales-discount-entry">
+                        {discountIndex > 0 ? (
+                          <span className="sales-discount-chain-label">then</span>
+                        ) : null}
+                        <input
+                          className="sales-discount-input"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={discount}
+                          onChange={(event) =>
+                            updateDiscount(index, discountIndex, event.target.value)
+                          }
+                          placeholder="0"
+                        />
+                        <span className="sales-discount-pct">%</span>
+                        {(item.discounts || [0]).length > 1 ? (
+                          <button
+                            className="sales-discount-remove"
+                            type="button"
+                            aria-label="Remove discount"
+                            onClick={() => removeDiscount(index, discountIndex)}
+                          >
+                            X
+                          </button>
+                        ) : null}
+                      </div>
+                    ))}
+                    <button
+                      className="sales-discount-add"
+                      type="button"
+                      onClick={() => addDiscount(index)}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
+
+                <div className="purchase-item-field purchase-item-amount">
+                  <span>Amount</span>
+                  <div className="sales-line-amount">
+                    {fmt(amount)}
+                  </div>
+                </div>
+
+                <button
+                  className="danger-button purchase-item-remove"
+                  type="button"
+                  onClick={() => removeItem(index)}
+                  disabled={items.length === 1}
+                >
+                  Remove
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="sales-summary-card">
+          <div className="sales-summary-row sales-summary-grand">
+            <strong>Purchase Total</strong>
+            <strong>{fmt(total)}</strong>
+          </div>
         </div>
 
         <button className="primary-button" type="submit">

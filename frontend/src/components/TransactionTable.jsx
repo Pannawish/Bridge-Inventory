@@ -359,22 +359,28 @@ function TransactionTable({ rows, type, onPurchaseStatusChange, onSaleStatusChan
                         <th>Product</th>
                         <th>Qty</th>
                         <th>Unit Cost</th>
-                        <th>Line Total</th>
+                        <th>Discounts</th>
+                        <th>Amount</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedRow.items.map((item) => (
-                        <tr key={item.id}>
-                          <td>{item.product_name}</td>
-                          <td>{item.quantity}</td>
-                          <td>{item.unit_cost ? formatCurrency(item.unit_cost) : "—"}</td>
-                          <td>
-                            {item.unit_cost
-                              ? formatCurrency(item.quantity * item.unit_cost)
-                              : "—"}
-                          </td>
-                        </tr>
-                      ))}
+                      {selectedRow.items.map((item) => {
+                        const amount = computeItemAmount(item);
+
+                        return (
+                          <tr key={item.id}>
+                            <td>{item.product_name}</td>
+                            <td>{item.quantity}</td>
+                            <td>{item.unit_cost ? formatCurrency(item.unit_cost) : "—"}</td>
+                            <td>
+                              <span className="tx-discount-label">
+                                {renderDiscounts(item)}
+                              </span>
+                            </td>
+                            <td>{formatCurrency(amount)}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 )}

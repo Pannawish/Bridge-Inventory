@@ -235,96 +235,102 @@ function SalesForm({ products, onSubmit }) {
             </button>
           </div>
 
-          <div className="sales-line-item-header">
-            <span>Product</span>
-            <span>Qty</span>
-            <span>Unit Price</span>
-            <span>Discounts</span>
-            <span>Amount</span>
-            <span />
-          </div>
-
           {items.map((item, index) => {
             const amount = computeAmount(item);
 
             return (
               <div className="line-item-row sales-line-item-row" key={index}>
-                <select
-                  value={item.product_id}
-                  onChange={(event) => updateItem(index, "product_id", event.target.value)}
-                  required
-                >
-                  <option value="">Select product</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name}
-                    </option>
-                  ))}
-                </select>
-
-                <input
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                  placeholder="Qty"
-                  required
-                />
-
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={item.unit_price}
-                  onChange={(event) => updateItem(index, "unit_price", event.target.value)}
-                  placeholder="0.00"
-                  required
-                />
-
-                <div className="sales-discount-cell">
-                  {item.discounts.map((d, di) => (
-                    <div key={di} className="sales-discount-entry">
-                      {di > 0 && (
-                        <span className="sales-discount-chain-label">then</span>
-                      )}
-                      <input
-                        className="sales-discount-input"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={d}
-                        onChange={(event) => updateDiscount(index, di, event.target.value)}
-                        placeholder="0"
-                      />
-                      <span className="sales-discount-pct">%</span>
-                      {item.discounts.length > 1 && (
-                        <button
-                          className="sales-discount-remove"
-                          type="button"
-                          aria-label="Remove discount"
-                          onClick={() => removeDiscount(index, di)}
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    className="sales-discount-add"
-                    type="button"
-                    onClick={() => addDiscount(index)}
+                <label className="purchase-item-field sales-item-product">
+                  <span>Product</span>
+                  <select
+                    value={item.product_id}
+                    onChange={(event) => updateItem(index, "product_id", event.target.value)}
+                    required
                   >
-                    + Add
-                  </button>
+                    <option value="">Select product</option>
+                    {products.map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {product.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="purchase-item-field sales-item-qty">
+                  <span>Qty</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(event) => updateItem(index, "quantity", event.target.value)}
+                    placeholder="Qty"
+                    required
+                  />
+                </label>
+
+                <label className="purchase-item-field sales-item-price">
+                  <span>Unit Price</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.unit_price}
+                    onChange={(event) => updateItem(index, "unit_price", event.target.value)}
+                    placeholder="0.00"
+                    required
+                  />
+                </label>
+
+                <div className="purchase-item-field sales-item-discounts">
+                  <span>Discounts</span>
+                  <div className="sales-discount-cell">
+                    {item.discounts.map((d, di) => (
+                      <div key={di} className="sales-discount-entry">
+                        {di > 0 && (
+                          <span className="sales-discount-chain-label">then</span>
+                        )}
+                        <input
+                          className="sales-discount-input"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={d}
+                          onChange={(event) => updateDiscount(index, di, event.target.value)}
+                          placeholder="0"
+                        />
+                        <span className="sales-discount-pct">%</span>
+                        {item.discounts.length > 1 && (
+                          <button
+                            className="sales-discount-remove"
+                            type="button"
+                            aria-label="Remove discount"
+                            onClick={() => removeDiscount(index, di)}
+                          >
+                            X
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      className="sales-discount-add"
+                      type="button"
+                      onClick={() => addDiscount(index)}
+                    >
+                      + Add
+                    </button>
+                  </div>
                 </div>
 
-                <div className="sales-line-amount">
-                  {fmt(amount)}
+                <div className="purchase-item-field sales-item-amount">
+                  <span>Amount</span>
+                  <div className="sales-line-amount">
+                    {fmt(amount)}
+                  </div>
                 </div>
 
                 <button
-                  className="danger-button"
+                  className="danger-button sales-item-remove"
                   type="button"
                   onClick={() => removeItem(index)}
                   disabled={items.length === 1}
