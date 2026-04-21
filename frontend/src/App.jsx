@@ -5,7 +5,9 @@ import Dashboard from "./components/Dashboard";
 import InventoryPage from "./components/InventoryPage";
 import CustomerPage from "./components/CustomerPage";
 import { mockDashboard, mockPurchases, mockSales } from "./mockData";
+import PurchaseHistoryPage from "./components/PurchaseHistoryPage";
 import PurchaseForm from "./components/PurchaseForm";
+import SalesHistoryPage from "./components/SalesHistoryPage";
 import SalesForm from "./components/SalesForm";
 import SupplierPage from "./components/SupplierPage";
 import TransactionTable from "./components/TransactionTable";
@@ -25,10 +27,22 @@ const tabs = [
     description: "Supplier entries, receiving flow, and purchase records.",
   },
   {
+    id: "purchase-history",
+    label: "Purchase History",
+    shortLabel: "PH",
+    description: "Search and review purchase records.",
+  },
+  {
     id: "sales",
     label: "Sales",
     shortLabel: "S",
     description: "Customer orders, payment timing, and sales history.",
+  },
+  {
+    id: "sales-history",
+    label: "Sales History",
+    shortLabel: "SH",
+    description: "Search and review sales records.",
   },
   {
     id: "suppliers",
@@ -319,6 +333,13 @@ function App() {
               </div>
             ) : null}
 
+            {activeTab === "purchase-history" ? (
+              <PurchaseHistoryPage
+                purchases={purchases}
+                onPurchaseStatusChange={handlePurchaseStatusChange}
+              />
+            ) : null}
+
             {activeTab === "sales" ? (
               <div className="stack-layout">
                 <SalesForm products={products} onSubmit={handleSalesCreate} />
@@ -328,6 +349,13 @@ function App() {
                   onSaleStatusChange={handleSaleStatusChange}
                 />
               </div>
+            ) : null}
+
+            {activeTab === "sales-history" ? (
+              <SalesHistoryPage
+                sales={sales}
+                onSaleStatusChange={handleSaleStatusChange}
+              />
             ) : null}
 
             {activeTab === "inventory" && dashboard ? (
