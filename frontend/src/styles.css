@@ -363,6 +363,11 @@ textarea {
   max-width: 100%;
 }
 
+.history-shortcut-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .double-grid {
   display: grid;
   grid-template-columns: 1.05fr 1.35fr;

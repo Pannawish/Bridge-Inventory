@@ -338,6 +338,15 @@ function App() {
             {activeTab === "purchases" ? (
               <div className="stack-layout">
                 <PurchaseForm onSubmit={handlePurchaseCreate} />
+                <div className="history-shortcut-actions">
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => setActiveTab("purchase-history")}
+                  >
+                    View Purchase History
+                  </button>
+                </div>
               </div>
             ) : null}
 
@@ -352,6 +361,15 @@ function App() {
             {activeTab === "sales" ? (
               <div className="stack-layout">
                 <SalesForm products={products} onSubmit={handleSalesCreate} />
+                <div className="history-shortcut-actions">
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => setActiveTab("sales-history")}
+                  >
+                    View Sales History
+                  </button>
+                </div>
               </div>
             ) : null}
 
