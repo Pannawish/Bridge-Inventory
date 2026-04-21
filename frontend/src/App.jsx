@@ -11,6 +11,7 @@ import SalesHistoryPage from "./components/SalesHistoryPage";
 import SalesForm from "./components/SalesForm";
 import SupplierPage from "./components/SupplierPage";
 import ProductsPage from "./components/ProductsPage";
+import CategoryPage from "./components/CategoryPage";
 
 const tabs = [
   {
@@ -60,6 +61,12 @@ const tabs = [
     label: "Products",
     shortLabel: "PR",
     description: "Product catalog with pricing, stock levels, and supplier discounts.",
+  },
+  {
+    id: "categories",
+    label: "Categories",
+    shortLabel: "CA",
+    description: "Manage product categories and prevent duplicate names.",
   },
   {
     id: "inventory",
@@ -407,6 +414,8 @@ function App() {
             {activeTab === "products" ? (
               <ProductsPage purchases={purchases} sales={sales} />
             ) : null}
+
+            {activeTab === "categories" ? <CategoryPage /> : null}
 
             {activeTab === "chat" ? (
               <ChatPanel messages={messages} onAsk={handleAskChat} busy={chatBusy} />

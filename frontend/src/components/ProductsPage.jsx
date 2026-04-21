@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { loadCategories } from "./CategoryPage";
 
 const STORAGE_KEY = "inventory-management-products";
 const VAT_RATE = 0.07;
@@ -205,6 +206,7 @@ function getProductMetrics(product, purchases, sales) {
 
 function ProductsPage({ purchases = [], sales = [] }) {
   const [products, setProducts] = useState(() => loadProducts());
+  const [categories, setCategories] = useState(() => loadCategories());
   const [viewingProduct, setViewingProduct] = useState(null);
   const [viewingTransaction, setViewingTransaction] = useState(null);
   const [draftProduct, setDraftProduct] = useState(null);
@@ -216,6 +218,20 @@ function ProductsPage({ purchases = [], sales = [] }) {
       JSON.stringify(products.map(normalizeProduct))
     );
   }, [products]);
+
+  useEffect(() => {
+    function refreshCategories() {
+      setCategories(loadCategories());
+    }
+
+    window.addEventListener("storage", refreshCategories);
+    window.addEventListener("inventory-categories-updated", refreshCategories);
+
+    return () => {
+      window.removeEventListener("storage", refreshCategories);
+      window.removeEventListener("inventory-categories-updated", refreshCategories);
+    };
+  }, []);
 
   useEffect(() => {
     const isOpen = !!(viewingProduct || viewingTransaction || draftProduct);
@@ -947,11 +963,17 @@ function ProductsPage({ purchases = [], sales = [] }) {
 
                 <label>
                   Category
-                  <input
+                  <select
                     value={draftProduct.category}
                     onChange={(event) => updateDraftField("category", event.target.value)}
-                    placeholder="e.g. Stationery"
-                  />
+                  >
+                    <option value="">Select category</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 <label>
