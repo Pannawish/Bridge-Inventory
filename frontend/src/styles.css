@@ -878,6 +878,58 @@ label textarea:focus,
   white-space: nowrap;
 }
 
+.purchase-vat-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #fff;
+}
+
+.purchase-vat-label {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.purchase-vat-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.purchase-vat-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: var(--panel-muted);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.purchase-vat-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.purchase-vat-option.active {
+  border-color: #b6c7ff;
+  color: var(--accent-deep);
+  background: var(--accent-soft);
+}
+
 .sales-summary-card {
   display: grid;
   gap: 0;
