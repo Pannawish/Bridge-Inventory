@@ -292,21 +292,7 @@ function App() {
 
       <main className="main-panel">
         <header className="topbar">
-          <div className="topbar-copy-group">
-            <div className="topbar-title-row">
-              <span className="topbar-tab-badge">{activeTabDetails.shortLabel}</span>
-              <h2>{activeTabDetails.label}</h2>
-            </div>
-            <div className="topbar-meta-strip">
-              <span className="topbar-meta-pill">Live Workspace</span>
-              <span className="topbar-meta-text">Ready for inventory updates</span>
-            </div>
-          </div>
-          <div className="topbar-actions">
-            <div className="avatar-chip" aria-hidden="true">
-              PW
-            </div>
-          </div>
+          <h2>{activeTabDetails.label}</h2>
         </header>
 
         {notice ? <div className="notice-banner">{notice}</div> : null}

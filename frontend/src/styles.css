@@ -263,55 +263,6 @@ textarea {
   line-height: 1;
 }
 
-.topbar-copy-group {
-  display: grid;
-  gap: 10px;
-}
-
-.topbar-title-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.topbar-tab-badge {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 16px;
-  color: var(--accent-deep);
-  font-size: 0.9rem;
-  font-weight: 700;
-  background: var(--accent-soft);
-}
-
-.topbar-meta-strip {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.topbar-meta-pill {
-  padding: 7px 12px;
-  border-radius: 999px;
-  color: var(--accent-deep);
-  font-size: 0.82rem;
-  font-weight: 600;
-  background: var(--accent-soft);
-}
-
-.topbar-meta-text {
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .topbar-action-cluster {
   display: flex;
   align-items: center;
@@ -1840,10 +1791,6 @@ th {
     font-size: 1.65rem;
   }
 
-  .topbar-title-row {
-    align-items: flex-start;
-  }
-
   .stock-report-toolbar,
   .stock-report-summary,
   .stock-report-actions,
@@ -1855,10 +1802,6 @@ th {
   .stock-search,
   .stock-control {
     min-width: 0;
-  }
-
-  .topbar-meta-strip {
-    flex-wrap: wrap;
   }
 
   .topbar-action-cluster {
