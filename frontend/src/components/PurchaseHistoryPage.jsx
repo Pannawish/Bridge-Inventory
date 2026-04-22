@@ -42,6 +42,59 @@ function purchaseMatchesQuery(purchase, query) {
   return searchableText.includes(query);
 }
 
+function buildSupplierFilterOptions(purchases) {
+  const optionMap = new Map();
+
+  loadSupplierOptions().forEach((supplier) => {
+    optionMap.set(supplier.companyName.toLowerCase(), supplier);
+  });
+
+  purchases.forEach((purchase) => {
+    const companyName = `${purchase.supplier_name ?? ""}`.trim();
+
+    if (companyName) {
+      optionMap.set(companyName.toLowerCase(), {
+        id: `purchase-supplier-${companyName}`,
+        companyName,
+      });
+    }
+  });
+
+  return [...optionMap.values()].sort((a, b) =>
+    a.companyName.localeCompare(b.companyName)
+  );
+}
+
+function transactionMatchesDateRange(transactionDate, dateFrom, dateTo) {
+  if (!dateFrom && !dateTo) {
+    return true;
+  }
+
+  if (!transactionDate) {
+    return false;
+  }
+
+  if (dateFrom && transactionDate < dateFrom) {
+    return false;
+  }
+
+  if (dateTo && transactionDate > dateTo) {
+    return false;
+  }
+
+  return true;
+}
+
+function sortRecentTransactions(a, b) {
+  const dateCompare = `${b.transaction_date || ""}`.localeCompare(`${a.transaction_date || ""}`);
+
+  if (dateCompare !== 0) {
+    return dateCompare;
+  }
+
+  return (Number(b.id) || 0) - (Number(a.id) || 0);
+}
+
 function computeAmount(item) {
   const qty = Number(item.quantity) || 0;
   const cost = Number(item.unit_cost) || 0;
@@ -652,8 +705,28 @@ function PurchaseHistoryPage({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState(statusOptions);
+  const [selectedSupplier, setSelectedSupplier] = useState("");
+  const [supplierFilterQuery, setSupplierFilterQuery] = useState("");
+  const [supplierFilterOpen, setSupplierFilterOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [editingPurchase, setEditingPurchase] = useState(null);
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const supplierOptions = useMemo(
+    () => buildSupplierFilterOptions(purchases),
+    [purchases]
+  );
+  const filteredSupplierOptions = useMemo(() => {
+    const normalizedQuery = supplierFilterQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return supplierOptions;
+    }
+
+    return supplierOptions.filter((supplier) =>
+      supplier.companyName.toLowerCase().includes(normalizedQuery)
+    );
+  }, [supplierFilterQuery, supplierOptions]);
 
   const filteredPurchases = useMemo(() => {
     return purchases.filter((purchase) => {
@@ -661,10 +734,24 @@ function PurchaseHistoryPage({
         ? purchaseMatchesQuery(purchase, normalizedSearch)
         : true;
       const matchesStatus = selectedStatuses.includes(purchase.status);
+      const matchesSupplier = selectedSupplier
+        ? purchase.supplier_name === selectedSupplier
+        : true;
+      const matchesDateRange = transactionMatchesDateRange(
+        purchase.transaction_date,
+        dateFrom,
+        dateTo
+      );
 
-      return matchesSearch && matchesStatus;
-    });
-  }, [normalizedSearch, purchases, selectedStatuses]);
+      return matchesSearch && matchesStatus && matchesSupplier && matchesDateRange;
+    }).sort(sortRecentTransactions);
+  }, [dateFrom, dateTo, normalizedSearch, purchases, selectedStatuses, selectedSupplier]);
+
+  function selectSupplierFilter(supplier) {
+    setSelectedSupplier(supplier.companyName);
+    setSupplierFilterQuery(supplier.companyName);
+    setSupplierFilterOpen(false);
+  }
 
   function toggleStatus(status) {
     setSelectedStatuses((currentStatuses) =>
@@ -677,7 +764,12 @@ function PurchaseHistoryPage({
   function resetFilters() {
     setSearchTerm("");
     setSelectedStatuses(statusOptions);
+    setSelectedSupplier("");
+    setSupplierFilterQuery("");
+    setDateFrom("");
+    setDateTo("");
     setFilterOpen(false);
+    setSupplierFilterOpen(false);
   }
 
   function handleSave(updatedPurchase) {
@@ -734,6 +826,81 @@ function PurchaseHistoryPage({
 
         {filterOpen ? (
           <div className="history-filter-panel">
+            <div className="history-filter-grid">
+              <label className="history-filter-field supplier-combobox-field">
+                <span className="history-filter-title">Supplier</span>
+                <div className="supplier-combobox">
+                  <input
+                    type="search"
+                    value={supplierFilterQuery}
+                    onChange={(event) => {
+                      setSupplierFilterQuery(event.target.value);
+                      setSelectedSupplier("");
+                      setSupplierFilterOpen(true);
+                    }}
+                    onFocus={() => setSupplierFilterOpen(true)}
+                    onBlur={() => {
+                      window.setTimeout(() => setSupplierFilterOpen(false), 120);
+                    }}
+                    placeholder="Search supplier"
+                    autoComplete="off"
+                    aria-expanded={supplierFilterOpen}
+                    aria-controls="purchase-history-supplier-filter"
+                  />
+
+                  {supplierFilterOpen ? (
+                    <div
+                      className="supplier-combobox-menu"
+                      id="purchase-history-supplier-filter"
+                      role="listbox"
+                    >
+                      {filteredSupplierOptions.length ? (
+                        filteredSupplierOptions.map((supplier) => (
+                          <button
+                            key={supplier.id}
+                            type="button"
+                            className={
+                              supplier.companyName === selectedSupplier
+                                ? "supplier-combobox-option active"
+                                : "supplier-combobox-option"
+                            }
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              selectSupplierFilter(supplier);
+                            }}
+                            role="option"
+                            aria-selected={supplier.companyName === selectedSupplier}
+                          >
+                            {supplier.companyName}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="supplier-combobox-empty">No supplier found.</div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              </label>
+
+              <label className="history-filter-field">
+                <span className="history-filter-title">Date From</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(event) => setDateFrom(event.target.value)}
+                />
+              </label>
+
+              <label className="history-filter-field">
+                <span className="history-filter-title">Date To</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(event) => setDateTo(event.target.value)}
+                />
+              </label>
+            </div>
+
             <p className="history-filter-title">Purchase Status</p>
             <div className="history-filter-options">
               {statusOptions.map((status) => (
@@ -766,6 +933,8 @@ function PurchaseHistoryPage({
         onPurchaseStatusChange={onPurchaseStatusChange}
         onEditRow={setEditingPurchase}
         onDeleteRow={handleDelete}
+        compactRows={5}
+        enableViewAll
       />
     </div>
   );

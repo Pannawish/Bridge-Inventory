@@ -44,6 +44,59 @@ function saleMatchesQuery(sale, query) {
   return searchableText.includes(query);
 }
 
+function buildCustomerFilterOptions(sales) {
+  const optionMap = new Map();
+
+  loadCustomerOptions().forEach((customer) => {
+    optionMap.set(customer.companyName.toLowerCase(), customer);
+  });
+
+  sales.forEach((sale) => {
+    const companyName = `${sale.customer_name ?? ""}`.trim();
+
+    if (companyName) {
+      optionMap.set(companyName.toLowerCase(), {
+        id: `sale-customer-${companyName}`,
+        companyName,
+      });
+    }
+  });
+
+  return [...optionMap.values()].sort((a, b) =>
+    a.companyName.localeCompare(b.companyName)
+  );
+}
+
+function transactionMatchesDateRange(transactionDate, dateFrom, dateTo) {
+  if (!dateFrom && !dateTo) {
+    return true;
+  }
+
+  if (!transactionDate) {
+    return false;
+  }
+
+  if (dateFrom && transactionDate < dateFrom) {
+    return false;
+  }
+
+  if (dateTo && transactionDate > dateTo) {
+    return false;
+  }
+
+  return true;
+}
+
+function sortRecentTransactions(a, b) {
+  const dateCompare = `${b.transaction_date || ""}`.localeCompare(`${a.transaction_date || ""}`);
+
+  if (dateCompare !== 0) {
+    return dateCompare;
+  }
+
+  return (Number(b.id) || 0) - (Number(a.id) || 0);
+}
+
 function computeAmount(item) {
   const qty = Number(item.quantity) || 0;
   const price = Number(item.unit_price) || 0;
@@ -771,8 +824,28 @@ function SalesHistoryPage({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState(statusOptions);
+  const [selectedCustomer, setSelectedCustomer] = useState("");
+  const [customerFilterQuery, setCustomerFilterQuery] = useState("");
+  const [customerFilterOpen, setCustomerFilterOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [editingSale, setEditingSale] = useState(null);
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const customerOptions = useMemo(
+    () => buildCustomerFilterOptions(sales),
+    [sales]
+  );
+  const filteredCustomerOptions = useMemo(() => {
+    const normalizedQuery = customerFilterQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return customerOptions;
+    }
+
+    return customerOptions.filter((customer) =>
+      customer.companyName.toLowerCase().includes(normalizedQuery)
+    );
+  }, [customerFilterQuery, customerOptions]);
 
   const filteredSales = useMemo(() => {
     return sales.filter((sale) => {
@@ -780,10 +853,24 @@ function SalesHistoryPage({
         ? saleMatchesQuery(sale, normalizedSearch)
         : true;
       const matchesStatus = selectedStatuses.includes(sale.status);
+      const matchesCustomer = selectedCustomer
+        ? sale.customer_name === selectedCustomer
+        : true;
+      const matchesDateRange = transactionMatchesDateRange(
+        sale.transaction_date,
+        dateFrom,
+        dateTo
+      );
 
-      return matchesSearch && matchesStatus;
-    });
-  }, [normalizedSearch, sales, selectedStatuses]);
+      return matchesSearch && matchesStatus && matchesCustomer && matchesDateRange;
+    }).sort(sortRecentTransactions);
+  }, [dateFrom, dateTo, normalizedSearch, sales, selectedCustomer, selectedStatuses]);
+
+  function selectCustomerFilter(customer) {
+    setSelectedCustomer(customer.companyName);
+    setCustomerFilterQuery(customer.companyName);
+    setCustomerFilterOpen(false);
+  }
 
   function toggleStatus(status) {
     setSelectedStatuses((currentStatuses) =>
@@ -796,7 +883,12 @@ function SalesHistoryPage({
   function resetFilters() {
     setSearchTerm("");
     setSelectedStatuses(statusOptions);
+    setSelectedCustomer("");
+    setCustomerFilterQuery("");
+    setDateFrom("");
+    setDateTo("");
     setFilterOpen(false);
+    setCustomerFilterOpen(false);
   }
 
   function handleSave(updatedSale) {
@@ -853,6 +945,81 @@ function SalesHistoryPage({
 
         {filterOpen ? (
           <div className="history-filter-panel">
+            <div className="history-filter-grid">
+              <label className="history-filter-field supplier-combobox-field">
+                <span className="history-filter-title">Customer</span>
+                <div className="supplier-combobox">
+                  <input
+                    type="search"
+                    value={customerFilterQuery}
+                    onChange={(event) => {
+                      setCustomerFilterQuery(event.target.value);
+                      setSelectedCustomer("");
+                      setCustomerFilterOpen(true);
+                    }}
+                    onFocus={() => setCustomerFilterOpen(true)}
+                    onBlur={() => {
+                      window.setTimeout(() => setCustomerFilterOpen(false), 120);
+                    }}
+                    placeholder="Search customer"
+                    autoComplete="off"
+                    aria-expanded={customerFilterOpen}
+                    aria-controls="sales-history-customer-filter"
+                  />
+
+                  {customerFilterOpen ? (
+                    <div
+                      className="supplier-combobox-menu"
+                      id="sales-history-customer-filter"
+                      role="listbox"
+                    >
+                      {filteredCustomerOptions.length ? (
+                        filteredCustomerOptions.map((customer) => (
+                          <button
+                            key={customer.id}
+                            type="button"
+                            className={
+                              customer.companyName === selectedCustomer
+                                ? "supplier-combobox-option active"
+                                : "supplier-combobox-option"
+                            }
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              selectCustomerFilter(customer);
+                            }}
+                            role="option"
+                            aria-selected={customer.companyName === selectedCustomer}
+                          >
+                            {customer.companyName}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="supplier-combobox-empty">No customer found.</div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              </label>
+
+              <label className="history-filter-field">
+                <span className="history-filter-title">Date From</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(event) => setDateFrom(event.target.value)}
+                />
+              </label>
+
+              <label className="history-filter-field">
+                <span className="history-filter-title">Date To</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(event) => setDateTo(event.target.value)}
+                />
+              </label>
+            </div>
+
             <p className="history-filter-title">Sales Status</p>
             <div className="history-filter-options">
               {statusOptions.map((status) => (

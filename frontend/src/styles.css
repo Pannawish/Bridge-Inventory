@@ -1154,6 +1154,19 @@ th {
   background: var(--panel-muted);
 }
 
+.history-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.history-filter-field {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
 .history-filter-title {
   margin: 0;
   color: var(--muted);
@@ -1184,6 +1197,28 @@ th {
 .history-filter-option input {
   width: auto;
   accent-color: var(--accent);
+}
+
+.transaction-table-window {
+  width: 100%;
+}
+
+.transaction-table-window.compact-history {
+  max-height: 430px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding-right: 4px;
+}
+
+.transaction-table-window.compact-history th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff;
+}
+
+.transaction-grand-total {
+  margin-top: 16px;
 }
 
 .supplier-list {

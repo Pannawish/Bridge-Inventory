@@ -55,16 +55,21 @@ function TransactionTable({
   onSaleStatusChange,
   onEditRow,
   onDeleteRow,
+  compactRows = 0,
+  enableViewAll = false,
 }) {
   const [selectedRow, setSelectedRow] = useState(null);
+  const [showAllRows, setShowAllRows] = useState(false);
   const title = type === "purchase" ? "Purchase History" : "Sales History";
   const personKey = type === "purchase" ? "supplier_name" : "customer_name";
   const statuses = type === "purchase" ? purchaseStatuses : saleStatuses;
   const detailTitle = type === "purchase" ? "Purchase Detail" : "Sales Detail";
   const detailNameLabel = type === "purchase" ? "Supplier" : "Customer";
+  const shouldShowViewAll = enableViewAll && compactRows > 0 && rows.length > compactRows;
+  const isCompact = shouldShowViewAll && !showAllRows;
 
   function getVatSummary(row) {
-    const itemTotal = row.items.reduce((sum, item) => sum + computeItemAmount(item), 0);
+    const itemTotal = (row.items || []).reduce((sum, item) => sum + computeItemAmount(item), 0);
 
     if (row.vat_mode === "included") {
       const subtotal = itemTotal / (1 + VAT_RATE);
@@ -79,6 +84,29 @@ function TransactionTable({
     const vat = itemTotal * VAT_RATE;
     return { subtotal: itemTotal, vat, grandTotal: itemTotal + vat };
   }
+
+  function getRowGrandTotal(row) {
+    const storedGrandTotal = Number(row.grand_total);
+
+    if (Number.isFinite(storedGrandTotal) && storedGrandTotal > 0) {
+      return storedGrandTotal;
+    }
+
+    if (type === "purchase") {
+      const totalAmount = Number(row.total_amount);
+
+      if (Number.isFinite(totalAmount) && totalAmount > 0) {
+        return totalAmount;
+      }
+    }
+
+    return getVatSummary(row).grandTotal;
+  }
+
+  const rowsGrandTotal = rows.reduce(
+    (sum, row) => sum + getRowGrandTotal(row),
+    0
+  );
 
   function handleDeleteSelectedRow() {
     const confirmed = window.confirm(
@@ -100,12 +128,21 @@ function TransactionTable({
           <p className="eyebrow">History</p>
           <h3>{title}</h3>
         </div>
+        {shouldShowViewAll ? (
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => setShowAllRows((currentValue) => !currentValue)}
+          >
+            {showAllRows ? "Show Recent" : "View All"}
+          </button>
+        ) : null}
       </div>
 
       {rows.length === 0 ? (
         <p className="empty-copy">No transactions saved yet.</p>
       ) : (
-        <>
+        <div className={isCompact ? "transaction-table-window compact-history" : "transaction-table-window"}>
           <div className="table-scroll desktop-table">
             <table>
               <thead>
@@ -159,7 +196,7 @@ function TransactionTable({
                       <td>{row.transaction_date}</td>
                       <td>
                         <div className="item-pill-list">
-                          {row.items.map((item) => (
+                          {(row.items || []).map((item) => (
                             <span key={item.id} className="item-pill">
                               {item.product_name} ×{item.quantity}
                             </span>
@@ -262,7 +299,7 @@ function TransactionTable({
                     <div className="full-width-mobile">
                       <span>Items</span>
                       <div className="item-pill-list">
-                        {row.items.map((item) => (
+                        {(row.items || []).map((item) => (
                           <span key={item.id} className="item-pill">
                             {item.product_name} ×{item.quantity}
                           </span>
@@ -282,8 +319,17 @@ function TransactionTable({
               );
             })}
           </div>
-        </>
+        </div>
       )}
+
+      {rows.length ? (
+        <div className="tx-sales-summary transaction-grand-total">
+          <div className="tx-summary-row tx-summary-grand">
+            <strong>Grand Total</strong>
+            <strong>{formatCurrency(rowsGrandTotal)}</strong>
+          </div>
+        </div>
+      ) : null}
 
       {selectedRow ? (
         <div
@@ -380,7 +426,7 @@ function TransactionTable({
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedRow.items.map((item) => {
+                      {(selectedRow.items || []).map((item) => {
                         const amount = computeItemAmount(item);
                         return (
                           <tr key={item.id}>
@@ -412,7 +458,7 @@ function TransactionTable({
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedRow.items.map((item) => {
+                      {(selectedRow.items || []).map((item) => {
                         const amount = computeItemAmount(item);
 
                         return (
