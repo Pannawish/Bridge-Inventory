@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { loadProducts } from "./ProductsPage";
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-US", {
@@ -95,16 +96,105 @@ function getStockHealth(item) {
   return { label: "Healthy", tone: "positive" };
 }
 
+function getProductName(product) {
+  return product.name || product.productName || product.product_name || product.sku || `Product ${product.id}`;
+}
+
+function getProductSku(product) {
+  return product.sku || product.SKU || "";
+}
+
+function getProductCategory(product) {
+  return product.category || product.product_category || "";
+}
+
+function matchesProduct(stockItem, product) {
+  const productIds = [product.id, product.productDisplayId]
+    .filter((value) => value !== undefined && value !== null)
+    .map((value) => `${value}`);
+  const productSku = getProductSku(product).toLowerCase();
+  const productName = getProductName(product).toLowerCase();
+
+  return (
+    productIds.includes(`${stockItem.product_id}`) ||
+    (productSku && `${stockItem.sku || ""}`.toLowerCase() === productSku) ||
+    (productName && `${stockItem.product_name || ""}`.toLowerCase() === productName)
+  );
+}
+
+function createProductStockRows(products, stockReport, lowStockItems) {
+  const usedStockIndexes = new Set();
+  const rowsFromProducts = products.map((product) => {
+    const stockIndex = stockReport.findIndex((stockItem) =>
+      matchesProduct(stockItem, product)
+    );
+    const stockItem = stockIndex >= 0 ? stockReport[stockIndex] : {};
+
+    if (stockIndex >= 0) {
+      usedStockIndexes.add(stockIndex);
+    }
+
+    const lowStockItem =
+      lowStockItems.find((item) => matchesProduct(item, product)) || {};
+    const currentStock = Number(stockItem.current_stock ?? 0);
+    const unitCost = Number(stockItem.unit_cost ?? product.unit_cost ?? 0);
+
+    return {
+      product_id: product.id,
+      product_name: getProductName(product),
+      sku: getProductSku(product),
+      category: getProductCategory(product) || stockItem.category || "-",
+      unit_cost: unitCost,
+      current_stock: currentStock,
+      reorder_level: lowStockItem.reorder_level || stockItem.reorder_level || 0,
+      predicted_7_day_demand: stockItem.predicted_7_day_demand ?? 0,
+      days_until_stockout: stockItem.days_until_stockout ?? 0,
+      recommended_restock: stockItem.recommended_restock ?? 0,
+      total_cost: currentStock * unitCost,
+    };
+  });
+  const unmatchedStockRows = stockReport
+    .filter((_, index) => !usedStockIndexes.has(index))
+    .map((stockItem) => {
+      const lowStockItem =
+        lowStockItems.find(
+          (item) =>
+            `${item.product_id}` === `${stockItem.product_id}` ||
+            `${item.product_name || ""}`.toLowerCase() ===
+              `${stockItem.product_name || ""}`.toLowerCase()
+        ) || {};
+      const currentStock = Number(stockItem.current_stock ?? 0);
+      const unitCost = Number(stockItem.unit_cost ?? 0);
+
+      return {
+        ...stockItem,
+        category: stockItem.category || "-",
+        reorder_level: lowStockItem.reorder_level || stockItem.reorder_level || 0,
+        total_cost: currentStock * unitCost,
+      };
+    });
+
+  return [...rowsFromProducts, ...unmatchedStockRows].map((item) => ({
+    ...item,
+    health: getStockHealth(item),
+  }));
+}
+
 function Dashboard({ dashboard }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState("all");
-  const [sortOrder, setSortOrder] = useState("high-to-low");
+  const [sortOrder, setSortOrder] = useState("low-to-high");
+  const [catalogProducts, setCatalogProducts] = useState(() => loadProducts());
   const metrics = dashboard.metrics || {};
   const lowStockItems = dashboard.low_stock_items || [];
   const stockReport = dashboard.stock_report || [];
   const strongestStock = Math.max(...lowStockItems.map((item) => item.reorder_level || 0), 1);
+  const stockRows = useMemo(
+    () => createProductStockRows(catalogProducts, stockReport, lowStockItems),
+    [catalogProducts, lowStockItems, stockReport]
+  );
   const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filteredStockReport = [...stockReport]
+  const filteredRows = [...stockRows]
     .filter((item) => {
       if (!normalizedSearch) {
         return true;
@@ -112,7 +202,8 @@ function Dashboard({ dashboard }) {
 
       return (
         item.product_name?.toLowerCase().includes(normalizedSearch) ||
-        item.sku?.toLowerCase().includes(normalizedSearch)
+        item.sku?.toLowerCase().includes(normalizedSearch) ||
+        item.category?.toLowerCase().includes(normalizedSearch)
       );
     })
     .filter((item) => {
@@ -120,23 +211,28 @@ function Dashboard({ dashboard }) {
         return true;
       }
 
-      if (stockFilter === "urgent") {
-        return item.days_until_stockout <= 7;
-      }
-
-      if (stockFilter === "watch") {
-        return item.days_until_stockout > 7 && item.days_until_stockout <= 21;
-      }
-
-      return item.days_until_stockout > 21;
+      return item.health.label.toLowerCase() === stockFilter;
     })
     .sort((leftItem, rightItem) => {
-      if (sortOrder === "low-to-high") {
-        return leftItem.current_stock - rightItem.current_stock;
+      if (sortOrder === "high-to-low") {
+        return rightItem.current_stock - leftItem.current_stock;
       }
 
-      return rightItem.current_stock - leftItem.current_stock;
+      return leftItem.current_stock - rightItem.current_stock;
     });
+  useEffect(() => {
+    function refreshProducts() {
+      setCatalogProducts(loadProducts());
+    }
+
+    window.addEventListener("storage", refreshProducts);
+    window.addEventListener("inventory-products-updated", refreshProducts);
+
+    return () => {
+      window.removeEventListener("storage", refreshProducts);
+      window.removeEventListener("inventory-products-updated", refreshProducts);
+    };
+  }, []);
 
   return (
     <div className="stack-layout">
@@ -211,20 +307,15 @@ function Dashboard({ dashboard }) {
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Stock Report</p>
-            <h3>Stock Overview and Prediction</h3>
-          </div>
-          <div className="mini-stat-list compact">
-            <div>
-              <span>Purchase Total</span>
-              <strong>{formatCurrency(metrics.purchase_total)}</strong>
-            </div>
-            <div>
-              <span>Sales Total</span>
-              <strong>{formatCurrency(metrics.sales_total)}</strong>
-            </div>
+            <p className="eyebrow">Inventory</p>
+            <h3>Current Stock Details</h3>
           </div>
         </div>
+
+        <p className="inventory-note">
+          Review current stock, reorder points, demand outlook, and which items need
+          immediate attention.
+        </p>
 
         <div className="stock-report-toolbar">
           <label className="stock-search">
@@ -251,16 +342,16 @@ function Dashboard({ dashboard }) {
             <label className="stock-control">
               <span>Sort</span>
               <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)}>
-                <option value="high-to-low">High to Low</option>
                 <option value="low-to-high">Low to High</option>
+                <option value="high-to-low">High to Low</option>
               </select>
             </label>
           </div>
         </div>
 
         <div className="stock-report-summary">
-          <span>{filteredStockReport.length} items shown</span>
-          <span>Sorted by current stock</span>
+          <span>{filteredRows.length} products shown</span>
+          <span>Current stock sorted {sortOrder === "low-to-high" ? "ascending" : "descending"}</span>
         </div>
 
         <div className="table-scroll desktop-table">
@@ -268,89 +359,99 @@ function Dashboard({ dashboard }) {
             <thead>
               <tr>
                 <th>Product</th>
+                <th>Category</th>
                 <th>Health</th>
+                <th>Total Cost</th>
                 <th>Current Stock</th>
+                <th>Reorder Point</th>
                 <th>7-Day Demand</th>
                 <th>Days Left</th>
                 <th>Recommended Restock</th>
               </tr>
             </thead>
             <tbody>
-              {filteredStockReport.length === 0 ? (
+              {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan="6">
-                    <p className="empty-copy">No products match the current search or filter.</p>
+                  <td colSpan="9">
+                    <p className="empty-copy">No inventory items match the current search or filter.</p>
                   </td>
                 </tr>
               ) : (
-                filteredStockReport.map((item) => {
-                  const stockHealth = getStockHealth(item);
-
-                  return (
-                    <tr key={item.product_id}>
-                      <td>
-                        <div className="cell-stack">
-                          <strong>{item.product_name}</strong>
-                          <span>{item.sku}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`status-badge health-badge ${stockHealth.tone}`}>
-                          {stockHealth.label}
-                        </span>
-                      </td>
-                      <td>{formatNumber(item.current_stock)}</td>
-                      <td>{formatNumber(item.predicted_7_day_demand)}</td>
-                      <td>{formatNumber(item.days_until_stockout)}</td>
-                      <td>{formatNumber(item.recommended_restock)}</td>
-                    </tr>
-                  );
-                })
+                filteredRows.map((item) => (
+                  <tr key={item.product_id}>
+                    <td>
+                      <div className="cell-stack">
+                        <strong>{item.product_name}</strong>
+                        <span>{item.sku}</span>
+                      </div>
+                    </td>
+                    <td>{item.category || "-"}</td>
+                    <td>
+                      <span className={`status-badge health-badge ${item.health.tone}`}>
+                        {item.health.label}
+                      </span>
+                    </td>
+                    <td>{formatCurrency(item.total_cost)}</td>
+                    <td>{formatNumber(item.current_stock)}</td>
+                    <td>{formatNumber(item.reorder_level)}</td>
+                    <td>{formatNumber(item.predicted_7_day_demand)}</td>
+                    <td>{formatNumber(item.days_until_stockout)}</td>
+                    <td>{formatNumber(item.recommended_restock)}</td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
 
         <div className="mobile-stock-list">
-          {filteredStockReport.length === 0 ? (
-            <p className="empty-copy">No products match the current search or filter.</p>
+          {filteredRows.length === 0 ? (
+            <p className="empty-copy">No inventory items match the current search or filter.</p>
           ) : (
-            filteredStockReport.map((item) => {
-              const stockHealth = getStockHealth(item);
-
-              return (
-                <article className="mobile-stock-card" key={`mobile-${item.product_id}`}>
-                  <div className="mobile-stock-header">
-                    <div className="cell-stack">
-                      <strong>{item.product_name}</strong>
-                      <span>{item.sku}</span>
-                    </div>
-                    <span className={`status-badge health-badge ${stockHealth.tone}`}>
-                      {stockHealth.label}
-                    </span>
+            filteredRows.map((item) => (
+              <article className="mobile-stock-card" key={`dashboard-mobile-${item.product_id}`}>
+                <div className="mobile-stock-header">
+                  <div className="cell-stack">
+                    <strong>{item.product_name}</strong>
+                    <span>{item.sku}</span>
                   </div>
+                  <span className={`status-badge health-badge ${item.health.tone}`}>
+                    {item.health.label}
+                  </span>
+                </div>
 
-                  <div className="mobile-stock-grid">
-                    <div>
-                      <span>Current Stock</span>
-                      <strong>{formatNumber(item.current_stock)}</strong>
-                    </div>
-                    <div>
-                      <span>7-Day Demand</span>
-                      <strong>{formatNumber(item.predicted_7_day_demand)}</strong>
-                    </div>
-                    <div>
-                      <span>Days Left</span>
-                      <strong>{formatNumber(item.days_until_stockout)}</strong>
-                    </div>
-                    <div>
-                      <span>Restock</span>
-                      <strong>{formatNumber(item.recommended_restock)}</strong>
-                    </div>
+                <div className="mobile-stock-grid">
+                  <div>
+                    <span>Category</span>
+                    <strong>{item.category || "-"}</strong>
                   </div>
-                </article>
-              );
-            })
+                  <div>
+                    <span>Total Cost</span>
+                    <strong>{formatCurrency(item.total_cost)}</strong>
+                  </div>
+                  <div>
+                    <span>Current Stock</span>
+                    <strong>{formatNumber(item.current_stock)}</strong>
+                  </div>
+                  <div>
+                    <span>Reorder Point</span>
+                    <strong>{formatNumber(item.reorder_level)}</strong>
+                  </div>
+                  <div>
+                    <span>7-Day Demand</span>
+                    <strong>{formatNumber(item.predicted_7_day_demand)}</strong>
+                  </div>
+                  <div>
+                    <span>Days Left</span>
+                    <strong>{formatNumber(item.days_until_stockout)}</strong>
+                  </div>
+                  <div>
+                    <span>Suggested Restock</span>
+                    <strong>{formatNumber(item.recommended_restock)}</strong>
+                  </div>
+                </div>
+              </article>
+            ))
           )}
         </div>
       </section>
