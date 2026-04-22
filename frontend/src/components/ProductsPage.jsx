@@ -68,7 +68,7 @@ function normalizeProduct(product) {
   };
 }
 
-function loadProducts() {
+export function loadProducts() {
   if (typeof window === "undefined") {
     return defaultProducts;
   }
@@ -217,6 +217,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
       STORAGE_KEY,
       JSON.stringify(products.map(normalizeProduct))
     );
+    window.dispatchEvent(new Event("inventory-products-updated"));
   }, [products]);
 
   useEffect(() => {

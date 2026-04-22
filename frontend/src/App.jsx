@@ -356,7 +356,7 @@ function App() {
 
             {activeTab === "purchases" ? (
               <div className="stack-layout">
-                <PurchaseForm purchases={purchases} onSubmit={handlePurchaseCreate} />
+                <PurchaseForm products={products} purchases={purchases} onSubmit={handlePurchaseCreate} />
                 <div className="history-shortcut-actions">
                   <button
                     className="secondary-button"

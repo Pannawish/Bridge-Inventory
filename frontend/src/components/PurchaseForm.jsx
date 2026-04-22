@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { loadProducts } from "./ProductsPage";
 
 const today = new Date().toISOString().split("T")[0];
 const SUPPLIER_STORAGE_KEY = "inventory-management-suppliers";
@@ -40,6 +41,9 @@ function getNextPurchaseReference(purchases = [], date = new Date()) {
 
 function emptyItem() {
   return {
+    line_id: `purchase-item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    product_id: "",
+    product_query: "",
     product_name: "",
     sku: "",
     unit: "pcs",
@@ -47,6 +51,18 @@ function emptyItem() {
     unit_cost: "",
     discounts: [0],
   };
+}
+
+function getProductName(product) {
+  return product.name || product.productName || product.product_name || product.sku || `Product ${product.id}`;
+}
+
+function getProductSku(product) {
+  return product.sku || product.SKU || "";
+}
+
+function getProductUnit(product) {
+  return product.unit || product.uom || product.unit_name || "pcs";
 }
 
 function computeAmount(item) {
@@ -131,7 +147,7 @@ function createInitialForm(referenceNo) {
   };
 }
 
-function PurchaseForm({ onSubmit, purchases = [] }) {
+function PurchaseForm({ products = [], onSubmit, purchases = [] }) {
   const nextReferenceNo = useMemo(
     () => getNextPurchaseReference(purchases),
     [purchases]
@@ -140,10 +156,14 @@ function PurchaseForm({ onSubmit, purchases = [] }) {
   const [form, setForm] = useState(() => createInitialForm(nextReferenceNo));
   const [items, setItems] = useState([emptyItem()]);
   const [vatMode, setVatMode] = useState("not_included");
+  const [catalogProducts, setCatalogProducts] = useState(() => loadProducts());
   const [suppliers] = useState(() => loadSupplierOptions());
   const [supplierQuery, setSupplierQuery] = useState("");
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [supplierError, setSupplierError] = useState("");
+  const [openProductIndex, setOpenProductIndex] = useState(null);
+  const [itemErrors, setItemErrors] = useState({});
+  const productOptions = catalogProducts.length ? catalogProducts : products;
   const filteredSuppliers = useMemo(() => {
     const normalizedQuery = supplierQuery.trim().toLowerCase();
 
@@ -172,12 +192,86 @@ function PurchaseForm({ onSubmit, purchases = [] }) {
     });
   }, [nextReferenceNo]);
 
+  useEffect(() => {
+    function refreshProducts() {
+      setCatalogProducts(loadProducts());
+    }
+
+    window.addEventListener("storage", refreshProducts);
+    window.addEventListener("inventory-products-updated", refreshProducts);
+
+    return () => {
+      window.removeEventListener("storage", refreshProducts);
+      window.removeEventListener("inventory-products-updated", refreshProducts);
+    };
+  }, []);
+
   function updateItem(index, key, value) {
     setItems((currentItems) =>
       currentItems.map((item, itemIndex) =>
         itemIndex === index ? { ...item, [key]: value } : item
       )
     );
+  }
+
+  function getFilteredProducts(query) {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return productOptions;
+    }
+
+    return productOptions.filter((product) => {
+      const productName = getProductName(product).toLowerCase();
+      const sku = getProductSku(product).toLowerCase();
+      const displayId = `${product.productDisplayId || product.id || ""}`.toLowerCase();
+
+      return (
+        productName.includes(normalizedQuery) ||
+        sku.includes(normalizedQuery) ||
+        displayId.includes(normalizedQuery)
+      );
+    });
+  }
+
+  function updateProductQuery(index, value) {
+    setItems((currentItems) =>
+      currentItems.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              product_id: "",
+              product_query: value,
+              product_name: "",
+              sku: "",
+            }
+          : item
+      )
+    );
+    setItemErrors((currentErrors) => ({ ...currentErrors, [index]: "" }));
+    setOpenProductIndex(index);
+  }
+
+  function selectProduct(index, product) {
+    const productName = getProductName(product);
+    const sku = getProductSku(product);
+
+    setItems((currentItems) =>
+      currentItems.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              product_id: product.id,
+              product_query: sku ? `${productName} (${sku})` : productName,
+              product_name: productName,
+              sku,
+              unit: getProductUnit(product),
+            }
+          : item
+      )
+    );
+    setItemErrors((currentErrors) => ({ ...currentErrors, [index]: "" }));
+    setOpenProductIndex(null);
   }
 
   function addDiscount(itemIndex) {
@@ -271,6 +365,42 @@ function PurchaseForm({ onSubmit, purchases = [] }) {
       return;
     }
 
+    const nextItemErrors = {};
+    const filteredItems = items.reduce((nextItems, item, index) => {
+      const selectedProduct = productOptions.find(
+        (product) => `${product.id}` === `${item.product_id}`
+      );
+
+      if (!selectedProduct) {
+        nextItemErrors[index] = "Select an existing product from the list.";
+        return nextItems;
+      }
+
+      if (!item.quantity || !item.unit_cost) {
+        return nextItems;
+      }
+
+      return [
+        ...nextItems,
+        {
+          product_id: selectedProduct.id,
+          product_name: getProductName(selectedProduct),
+          sku: getProductSku(selectedProduct),
+          unit: item.unit,
+          quantity: item.quantity,
+          unit_cost: item.unit_cost,
+          discounts: item.discounts,
+          amount: computeAmount(item),
+        },
+      ];
+    }, []);
+
+    if (Object.keys(nextItemErrors).length) {
+      setItemErrors(nextItemErrors);
+      setOpenProductIndex(Number(Object.keys(nextItemErrors)[0]));
+      return;
+    }
+
     const formData = new FormData();
     formData.append("reference_no", form.reference_no);
     formData.append("supplier_name", supplierName);
@@ -286,15 +416,6 @@ function PurchaseForm({ onSubmit, purchases = [] }) {
       formData.append("document", form.document);
     }
 
-    const filteredItems = items
-      .filter(
-        (item) =>
-          item.product_name &&
-          item.sku &&
-          item.quantity &&
-          item.unit_cost
-      )
-      .map((item) => ({ ...item, amount: computeAmount(item) }));
     formData.append("items", JSON.stringify(filteredItems));
 
     await onSubmit(formData);
@@ -304,6 +425,8 @@ function PurchaseForm({ onSubmit, purchases = [] }) {
     setVatMode("not_included");
     setSupplierQuery("");
     setSupplierError("");
+    setOpenProductIndex(null);
+    setItemErrors({});
   }
 
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
@@ -438,26 +561,77 @@ function PurchaseForm({ onSubmit, purchases = [] }) {
 
           {items.map((item, index) => {
             const amount = computeAmount(item);
+            const filteredProducts = getFilteredProducts(item.product_query);
 
             return (
-              <div className="line-item-row purchase-line-item-row" key={`${item.sku || "new-item"}-${index}`}>
-                <label className="purchase-item-field purchase-item-product">
+              <div className="line-item-row purchase-line-item-row" key={item.line_id}>
+                <label className="purchase-item-field purchase-item-product purchase-product-field">
                   <span>Product</span>
-                  <input
-                    value={item.product_name}
-                    onChange={(event) =>
-                      updateItem(index, "product_name", event.target.value)
-                    }
-                    placeholder="Product Name"
-                    required
-                  />
+                  <div className="supplier-combobox">
+                    <input
+                      value={item.product_query}
+                      onChange={(event) => updateProductQuery(index, event.target.value)}
+                      onFocus={() => setOpenProductIndex(index)}
+                      onBlur={() => {
+                        window.setTimeout(() => setOpenProductIndex(null), 120);
+                      }}
+                      placeholder="Search existing product"
+                      autoComplete="off"
+                      aria-expanded={openProductIndex === index}
+                      aria-controls={`purchase-product-list-${item.line_id}`}
+                      aria-invalid={itemErrors[index] ? "true" : "false"}
+                      required
+                    />
+
+                    {openProductIndex === index ? (
+                      <div
+                        className="supplier-combobox-menu"
+                        id={`purchase-product-list-${item.line_id}`}
+                        role="listbox"
+                      >
+                        {filteredProducts.length ? (
+                          filteredProducts.map((product) => {
+                            const productName = getProductName(product);
+                            const sku = getProductSku(product);
+
+                            return (
+                              <button
+                                key={product.id}
+                                type="button"
+                                className={
+                                  `${product.id}` === `${item.product_id}`
+                                    ? "supplier-combobox-option active"
+                                    : "supplier-combobox-option"
+                                }
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                  selectProduct(index, product);
+                                }}
+                                role="option"
+                                aria-selected={`${product.id}` === `${item.product_id}`}
+                              >
+                                {sku ? `${productName} (${sku})` : productName}
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div className="supplier-combobox-empty">
+                            No product found. Add it in Product page first.
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                  {itemErrors[index] ? (
+                    <span className="field-error-text">{itemErrors[index]}</span>
+                  ) : null}
                 </label>
 
                 <label className="purchase-item-field purchase-item-sku">
                   <span>SKU</span>
                   <input
                     value={item.sku}
-                    onChange={(event) => updateItem(index, "sku", event.target.value)}
+                    readOnly
                     placeholder="SKU"
                     required
                   />
