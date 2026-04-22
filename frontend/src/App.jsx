@@ -361,7 +361,7 @@ function App() {
         ) : (
           <>
             {activeTab === "dashboard" && dashboard ? (
-              <Dashboard dashboard={dashboard} />
+              <Dashboard dashboard={dashboard} purchases={purchases} sales={sales} />
             ) : null}
 
             {activeTab === "purchases" ? (

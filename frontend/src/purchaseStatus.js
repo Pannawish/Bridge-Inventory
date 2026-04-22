@@ -176,3 +176,25 @@ export function updatePurchaseItemStatus(
     status: getPurchaseStatusFromItems(nextPurchase),
   };
 }
+
+export function updatePurchaseItemReceivedDate(purchase, itemIndex, receivedDate) {
+  const nextItems = (purchase.items || []).map((item, index) => {
+    if (index !== itemIndex) {
+      return item;
+    }
+
+    if (getStoredPurchaseItemStatus(item, purchase.status) !== "received") {
+      return item;
+    }
+
+    return {
+      ...item,
+      received_date: receivedDate || getTodayString(),
+    };
+  });
+
+  return {
+    ...purchase,
+    items: nextItems,
+  };
+}

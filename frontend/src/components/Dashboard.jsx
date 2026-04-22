@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadProducts } from "./ProductsPage";
+import {
+  getPurchaseItemDisplayStatus,
+  getStoredPurchaseItemStatus,
+} from "../purchaseStatus";
 
 function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(Number(value || 0));
+  return `฿${Number(value || 0).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 function formatNumber(value) {
@@ -85,11 +89,14 @@ function DashboardChart() {
 }
 
 function getStockHealth(item) {
-  if ((item.days_until_stockout || 0) <= 7) {
+  if (item.available_stock <= 0 || item.available_stock <= item.reorder_level) {
     return { label: "Urgent", tone: "danger" };
   }
 
-  if ((item.days_until_stockout || 0) <= 21) {
+  if (
+    item.available_stock <= item.reorder_level + item.predicted_7_day_demand ||
+    item.delayed_purchase_units > 0
+  ) {
     return { label: "Watch", tone: "warning" };
   }
 
@@ -108,6 +115,26 @@ function getProductCategory(product) {
   return product.category || product.product_category || "";
 }
 
+function normalizeSku(value) {
+  return `${value ?? ""}`.trim().toLowerCase();
+}
+
+function normalizeName(value) {
+  return `${value ?? ""}`.trim().toLowerCase();
+}
+
+function getMovementKey(item) {
+  return normalizeSku(item.sku) || normalizeName(item.product_name);
+}
+
+function getProductKey(product) {
+  return normalizeSku(getProductSku(product)) || normalizeName(getProductName(product));
+}
+
+function getStockItemKey(stockItem) {
+  return normalizeSku(stockItem.sku) || normalizeName(stockItem.product_name);
+}
+
 function matchesProduct(stockItem, product) {
   const productIds = [product.id, product.productDisplayId]
     .filter((value) => value !== undefined && value !== null)
@@ -122,65 +149,188 @@ function matchesProduct(stockItem, product) {
   );
 }
 
-function createProductStockRows(products, stockReport, lowStockItems) {
-  const usedStockIndexes = new Set();
-  const rowsFromProducts = products.map((product) => {
-    const stockIndex = stockReport.findIndex((stockItem) =>
-      matchesProduct(stockItem, product)
-    );
-    const stockItem = stockIndex >= 0 ? stockReport[stockIndex] : {};
+function computeAmount(item) {
+  const qty = Number(item.quantity) || 0;
+  const price = Number(item.unit_price ?? item.unit_cost) || 0;
 
-    if (stockIndex >= 0) {
-      usedStockIndexes.add(stockIndex);
-    }
+  if (item.amount !== undefined && item.amount !== null) {
+    return Number(item.amount) || 0;
+  }
 
-    const lowStockItem =
-      lowStockItems.find((item) => matchesProduct(item, product)) || {};
-    const currentStock = Number(stockItem.current_stock ?? 0);
-    const unitCost = Number(stockItem.unit_cost ?? product.unit_cost ?? 0);
+  if (Array.isArray(item.discounts)) {
+    const multiplier = item.discounts.reduce((acc, discount) => {
+      const clamped = Math.min(100, Math.max(0, Number(discount) || 0));
+      return acc * (1 - clamped / 100);
+    }, 1);
+    return qty * price * multiplier;
+  }
 
-    return {
+  const discount = Math.min(100, Math.max(0, Number(item.discount) || 0));
+  return qty * price * (1 - discount / 100);
+}
+
+function createEmptyStockRow(key, overrides = {}) {
+  return {
+    product_id: overrides.product_id || key,
+    product_name: overrides.product_name || "Unnamed Product",
+    sku: overrides.sku || "",
+    category: overrides.category || "-",
+    reorder_level: Number(overrides.reorder_level) || 0,
+    predicted_7_day_demand: Number(overrides.predicted_7_day_demand) || 0,
+    received_purchase_units: 0,
+    received_purchase_value: 0,
+    allocated_sales_units: 0,
+    pending_purchase_units: 0,
+    delayed_purchase_units: 0,
+  };
+}
+
+function getOrCreateStockRow(rowMap, key, overrides = {}) {
+  const safeKey = key || normalizeName(overrides.product_name) || `${rowMap.size + 1}`;
+
+  if (!rowMap.has(safeKey)) {
+    rowMap.set(safeKey, createEmptyStockRow(safeKey, overrides));
+  }
+
+  const row = rowMap.get(safeKey);
+
+  row.product_name = row.product_name || overrides.product_name || "Unnamed Product";
+  row.sku = row.sku || overrides.sku || "";
+  row.category = row.category === "-" ? overrides.category || "-" : row.category;
+  row.reorder_level = Math.max(row.reorder_level, Number(overrides.reorder_level) || 0);
+  row.predicted_7_day_demand =
+    row.predicted_7_day_demand || Number(overrides.predicted_7_day_demand) || 0;
+
+  return row;
+}
+
+function buildStockSeedRows(products, stockReport, lowStockItems) {
+  const rowMap = new Map();
+
+  products.forEach((product) => {
+    const stockItem = stockReport.find((item) => matchesProduct(item, product)) || {};
+    const lowStockItem = lowStockItems.find((item) => matchesProduct(item, product)) || {};
+    const key = getProductKey(product);
+
+    getOrCreateStockRow(rowMap, key, {
       product_id: product.id,
       product_name: getProductName(product),
       sku: getProductSku(product),
       category: getProductCategory(product) || stockItem.category || "-",
-      unit_cost: unitCost,
-      current_stock: currentStock,
       reorder_level: lowStockItem.reorder_level || stockItem.reorder_level || 0,
-      predicted_7_day_demand: stockItem.predicted_7_day_demand ?? 0,
-      days_until_stockout: stockItem.days_until_stockout ?? 0,
-      recommended_restock: stockItem.recommended_restock ?? 0,
-      total_cost: currentStock * unitCost,
-    };
-  });
-  const unmatchedStockRows = stockReport
-    .filter((_, index) => !usedStockIndexes.has(index))
-    .map((stockItem) => {
-      const lowStockItem =
-        lowStockItems.find(
-          (item) =>
-            `${item.product_id}` === `${stockItem.product_id}` ||
-            `${item.product_name || ""}`.toLowerCase() ===
-              `${stockItem.product_name || ""}`.toLowerCase()
-        ) || {};
-      const currentStock = Number(stockItem.current_stock ?? 0);
-      const unitCost = Number(stockItem.unit_cost ?? 0);
-
-      return {
-        ...stockItem,
-        category: stockItem.category || "-",
-        reorder_level: lowStockItem.reorder_level || stockItem.reorder_level || 0,
-        total_cost: currentStock * unitCost,
-      };
+      predicted_7_day_demand: stockItem.predicted_7_day_demand || 0,
     });
+  });
 
-  return [...rowsFromProducts, ...unmatchedStockRows].map((item) => ({
-    ...item,
-    health: getStockHealth(item),
-  }));
+  stockReport.forEach((stockItem) => {
+    const lowStockItem =
+      lowStockItems.find(
+        (item) =>
+          `${item.product_id}` === `${stockItem.product_id}` ||
+          normalizeName(item.product_name) === normalizeName(stockItem.product_name)
+      ) || {};
+
+    getOrCreateStockRow(rowMap, getStockItemKey(stockItem), {
+      product_id: stockItem.product_id,
+      product_name: stockItem.product_name,
+      sku: stockItem.sku,
+      category: stockItem.category || "-",
+      reorder_level: lowStockItem.reorder_level || stockItem.reorder_level || 0,
+      predicted_7_day_demand: stockItem.predicted_7_day_demand || 0,
+    });
+  });
+
+  return rowMap;
 }
 
-function Dashboard({ dashboard }) {
+function createProductStockRows(products, stockReport, lowStockItems, purchases, sales) {
+  const rowMap = buildStockSeedRows(products, stockReport, lowStockItems);
+
+  purchases.forEach((purchase) => {
+    (purchase.items || []).forEach((item) => {
+      const key = getMovementKey(item);
+
+      if (!key) {
+        return;
+      }
+
+      const row = getOrCreateStockRow(rowMap, key, {
+        product_name: item.product_name,
+        sku: item.sku,
+        category: "-",
+      });
+      const quantity = Number(item.quantity) || 0;
+      const storedStatus = getStoredPurchaseItemStatus(item, purchase.status);
+      const displayStatus = getPurchaseItemDisplayStatus(item, purchase.status);
+
+      if (storedStatus === "received") {
+        row.received_purchase_units += quantity;
+        row.received_purchase_value += computeAmount(item);
+      } else if (displayStatus === "delayed") {
+        row.delayed_purchase_units += quantity;
+      } else if (storedStatus === "pending") {
+        row.pending_purchase_units += quantity;
+      }
+    });
+  });
+
+  sales.forEach((sale) => {
+    if (sale.status === "cancelled" || sale.status === "draft") {
+      return;
+    }
+
+    (sale.items || []).forEach((item) => {
+      const key = getMovementKey(item);
+
+      if (!key) {
+        return;
+      }
+
+      const row = getOrCreateStockRow(rowMap, key, {
+        product_name: item.product_name,
+        sku: item.sku,
+        category: "-",
+      });
+
+      row.allocated_sales_units += Number(item.quantity) || 0;
+    });
+  });
+
+  return [...rowMap.values()].map((item) => {
+    const availableStock = item.received_purchase_units - item.allocated_sales_units;
+    const avgUnitCost =
+      item.received_purchase_units > 0
+        ? item.received_purchase_value / item.received_purchase_units
+        : 0;
+    const stockValue = availableStock * avgUnitCost;
+    const recommendedPurchase = Math.max(
+      0,
+      item.reorder_level - availableStock - item.pending_purchase_units
+    );
+    const daysUntilStockout =
+      item.predicted_7_day_demand > 0
+        ? Math.floor(availableStock / (item.predicted_7_day_demand / 7))
+        : null;
+    const row = {
+      ...item,
+      available_stock: availableStock,
+      current_stock: availableStock,
+      average_unit_cost: avgUnitCost,
+      stock_value: stockValue,
+      total_cost: stockValue,
+      incoming_purchase_units: item.pending_purchase_units + item.delayed_purchase_units,
+      days_until_stockout: daysUntilStockout,
+      recommended_restock: recommendedPurchase,
+    };
+
+    return {
+      ...row,
+      health: getStockHealth(row),
+    };
+  });
+}
+
+function Dashboard({ dashboard, purchases = [], sales = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("low-to-high");
@@ -188,11 +338,23 @@ function Dashboard({ dashboard }) {
   const metrics = dashboard.metrics || {};
   const lowStockItems = dashboard.low_stock_items || [];
   const stockReport = dashboard.stock_report || [];
-  const strongestStock = Math.max(...lowStockItems.map((item) => item.reorder_level || 0), 1);
   const stockRows = useMemo(
-    () => createProductStockRows(catalogProducts, stockReport, lowStockItems),
-    [catalogProducts, lowStockItems, stockReport]
+    () => createProductStockRows(catalogProducts, stockReport, lowStockItems, purchases, sales),
+    [catalogProducts, lowStockItems, purchases, sales, stockReport]
   );
+  const stockMetrics = useMemo(
+    () => ({
+      totalProducts: stockRows.length || metrics.total_products,
+      totalStockUnits: stockRows.reduce((sum, item) => sum + item.available_stock, 0),
+      totalStockValue: stockRows.reduce((sum, item) => sum + item.stock_value, 0),
+      lowStockCount: stockRows.filter((item) => item.health.label === "Urgent").length,
+    }),
+    [metrics.total_products, stockRows]
+  );
+  const attentionRows = stockRows
+    .filter((item) => item.health.label === "Urgent")
+    .sort((leftItem, rightItem) => leftItem.available_stock - rightItem.available_stock);
+  const strongestStock = Math.max(...attentionRows.map((item) => item.reorder_level || 0), 1);
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredRows = [...stockRows]
     .filter((item) => {
@@ -215,10 +377,10 @@ function Dashboard({ dashboard }) {
     })
     .sort((leftItem, rightItem) => {
       if (sortOrder === "high-to-low") {
-        return rightItem.current_stock - leftItem.current_stock;
+        return rightItem.available_stock - leftItem.available_stock;
       }
 
-      return leftItem.current_stock - rightItem.current_stock;
+      return leftItem.available_stock - rightItem.available_stock;
     });
   useEffect(() => {
     function refreshProducts() {
@@ -239,25 +401,25 @@ function Dashboard({ dashboard }) {
       <section className="metrics-grid">
         <StatCard
           label="Products"
-          value={formatNumber(metrics.total_products)}
+          value={formatNumber(stockMetrics.totalProducts)}
           helper="Total items in the system"
           trend={12}
         />
         <StatCard
           label="Stock Units"
-          value={formatNumber(metrics.total_stock_units)}
-          helper="Available units based on transaction status"
+          value={formatNumber(stockMetrics.totalStockUnits)}
+          helper="Received purchases minus active sales"
           trend={8}
         />
         <StatCard
           label="Stock Value"
-          value={formatCurrency(metrics.total_stock_value)}
-          helper="Current stock x unit price"
+          value={formatCurrency(stockMetrics.totalStockValue)}
+          helper="Available stock x average received cost"
           trend={16}
         />
         <StatCard
           label="Low Stock"
-          value={formatNumber(metrics.low_stock_count)}
+          value={formatNumber(stockMetrics.lowStockCount)}
           helper="Products at or below reorder level"
           trend={-6}
         />
@@ -272,16 +434,16 @@ function Dashboard({ dashboard }) {
             </div>
           </div>
 
-          {lowStockItems.length === 0 ? (
+          {attentionRows.length === 0 ? (
             <p className="empty-copy">No low-stock products yet.</p>
           ) : (
             <div className="attention-list">
-              {lowStockItems.map((item) => (
+              {attentionRows.map((item) => (
                 <div className="attention-row" key={item.product_id}>
                   <div className="attention-meta">
                     <strong>{item.product_name}</strong>
                     <span>
-                      Current {item.current_stock} / Reorder {item.reorder_level}
+                      Available {item.available_stock} / Reorder {item.reorder_level}
                     </span>
                   </div>
                   <div className="attention-bar-track">
@@ -313,8 +475,8 @@ function Dashboard({ dashboard }) {
         </div>
 
         <p className="inventory-note">
-          Review current stock, reorder points, demand outlook, and which items need
-          immediate attention.
+          Available stock is calculated from received purchase items minus active sales.
+          Pending and delayed purchase items are tracked separately as incoming stock.
         </p>
 
         <div className="stock-report-toolbar">
@@ -351,7 +513,7 @@ function Dashboard({ dashboard }) {
 
         <div className="stock-report-summary">
           <span>{filteredRows.length} products shown</span>
-          <span>Current stock sorted {sortOrder === "low-to-high" ? "ascending" : "descending"}</span>
+          <span>Available stock sorted {sortOrder === "low-to-high" ? "ascending" : "descending"}</span>
         </div>
 
         <div className="table-scroll desktop-table">
@@ -361,18 +523,21 @@ function Dashboard({ dashboard }) {
                 <th>Product</th>
                 <th>Category</th>
                 <th>Health</th>
-                <th>Total Cost</th>
-                <th>Current Stock</th>
+                <th>Available</th>
+                <th>Received</th>
+                <th>Active Sales</th>
+                <th>Pending PO</th>
+                <th>Delayed PO</th>
                 <th>Reorder Point</th>
-                <th>7-Day Demand</th>
                 <th>Days Left</th>
-                <th>Recommended Restock</th>
+                <th>Suggested Purchase</th>
+                <th>Stock Value</th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan="9">
+                  <td colSpan="12">
                     <p className="empty-copy">No inventory items match the current search or filter.</p>
                   </td>
                 </tr>
@@ -391,12 +556,15 @@ function Dashboard({ dashboard }) {
                         {item.health.label}
                       </span>
                     </td>
-                    <td>{formatCurrency(item.total_cost)}</td>
-                    <td>{formatNumber(item.current_stock)}</td>
+                    <td>{formatNumber(item.available_stock)}</td>
+                    <td>{formatNumber(item.received_purchase_units)}</td>
+                    <td>{formatNumber(item.allocated_sales_units)}</td>
+                    <td>{formatNumber(item.pending_purchase_units)}</td>
+                    <td>{formatNumber(item.delayed_purchase_units)}</td>
                     <td>{formatNumber(item.reorder_level)}</td>
-                    <td>{formatNumber(item.predicted_7_day_demand)}</td>
                     <td>{formatNumber(item.days_until_stockout)}</td>
                     <td>{formatNumber(item.recommended_restock)}</td>
+                    <td>{formatCurrency(item.stock_value)}</td>
                   </tr>
                 ))
               )}
@@ -426,28 +594,40 @@ function Dashboard({ dashboard }) {
                     <strong>{item.category || "-"}</strong>
                   </div>
                   <div>
-                    <span>Total Cost</span>
-                    <strong>{formatCurrency(item.total_cost)}</strong>
+                    <span>Available</span>
+                    <strong>{formatNumber(item.available_stock)}</strong>
                   </div>
                   <div>
-                    <span>Current Stock</span>
-                    <strong>{formatNumber(item.current_stock)}</strong>
+                    <span>Received</span>
+                    <strong>{formatNumber(item.received_purchase_units)}</strong>
+                  </div>
+                  <div>
+                    <span>Active Sales</span>
+                    <strong>{formatNumber(item.allocated_sales_units)}</strong>
+                  </div>
+                  <div>
+                    <span>Pending PO</span>
+                    <strong>{formatNumber(item.pending_purchase_units)}</strong>
+                  </div>
+                  <div>
+                    <span>Delayed PO</span>
+                    <strong>{formatNumber(item.delayed_purchase_units)}</strong>
                   </div>
                   <div>
                     <span>Reorder Point</span>
                     <strong>{formatNumber(item.reorder_level)}</strong>
                   </div>
                   <div>
-                    <span>7-Day Demand</span>
-                    <strong>{formatNumber(item.predicted_7_day_demand)}</strong>
-                  </div>
-                  <div>
                     <span>Days Left</span>
                     <strong>{formatNumber(item.days_until_stockout)}</strong>
                   </div>
                   <div>
-                    <span>Suggested Restock</span>
+                    <span>Suggested Purchase</span>
                     <strong>{formatNumber(item.recommended_restock)}</strong>
+                  </div>
+                  <div>
+                    <span>Stock Value</span>
+                    <strong>{formatCurrency(item.stock_value)}</strong>
                   </div>
                 </div>
               </article>

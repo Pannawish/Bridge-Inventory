@@ -1622,6 +1622,20 @@ th {
   padding: 9px 12px;
 }
 
+.received-date-input {
+  min-width: 150px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--text);
+  background: #fff;
+}
+
+.received-date-input:disabled {
+  color: #8d96ad;
+  background: #edf1f7;
+}
+
 .primary-button:disabled,
 .secondary-button:disabled,
 .edit-button:disabled,

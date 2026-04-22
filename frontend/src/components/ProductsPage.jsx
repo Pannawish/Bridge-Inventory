@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadCategories } from "./CategoryPage";
-import { formatStatusLabel, getPurchaseItemDisplayStatus } from "../purchaseStatus";
+import {
+  formatStatusLabel,
+  getPurchaseItemDisplayStatus,
+  getStoredPurchaseItemStatus,
+} from "../purchaseStatus";
 
 const STORAGE_KEY = "inventory-management-products";
 const VAT_RATE = 0.07;
@@ -178,16 +182,23 @@ function getProductMetrics(product, purchases, sales) {
       .filter((item) => matchesSku(item, product.sku))
       .map((item) => ({ transaction: sale, item }))
   );
+  const receivedPurchaseItems = purchaseItems.filter(
+    ({ transaction, item }) =>
+      getStoredPurchaseItemStatus(item, transaction.status) === "received"
+  );
+  const activeSalesItems = salesItems.filter(
+    ({ transaction }) => !["draft", "cancelled"].includes(transaction.status)
+  );
 
-  const purchasedUnits = purchaseItems.reduce(
+  const purchasedUnits = receivedPurchaseItems.reduce(
     (sum, { item }) => sum + (Number(item.quantity) || 0),
     0
   );
-  const soldUnits = salesItems.reduce(
+  const soldUnits = activeSalesItems.reduce(
     (sum, { item }) => sum + (Number(item.quantity) || 0),
     0
   );
-  const priceRows = [...purchaseItems, ...salesItems];
+  const priceRows = [...receivedPurchaseItems, ...activeSalesItems];
   const totalPricedUnits = priceRows.reduce(
     (sum, { item }) => sum + (Number(item.quantity) || 0),
     0

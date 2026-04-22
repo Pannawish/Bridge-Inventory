@@ -7,6 +7,7 @@ import {
   markPurchaseItemReceived,
   purchaseItemStatuses,
   purchaseStatuses,
+  updatePurchaseItemReceivedDate,
   updatePurchaseItemStatus,
 } from "../purchaseStatus";
 
@@ -69,6 +70,7 @@ function TransactionTable({
   enableViewAll = false,
 }) {
   const [selectedRow, setSelectedRow] = useState(null);
+  const [hasUnsavedItemChanges, setHasUnsavedItemChanges] = useState(false);
   const [showAllRows, setShowAllRows] = useState(false);
   const title = type === "purchase" ? "Purchase History" : "Sales History";
   const personKey = type === "purchase" ? "supplier_name" : "customer_name";
@@ -128,21 +130,43 @@ function TransactionTable({
     }
 
     onDeleteRow?.(selectedRow);
+    closeSelectedRow();
+  }
+
+  function openSelectedRow(row) {
+    setSelectedRow(row);
+    setHasUnsavedItemChanges(false);
+  }
+
+  function closeSelectedRow() {
     setSelectedRow(null);
+    setHasUnsavedItemChanges(false);
   }
 
   function handleMarkPurchaseItemReceived(itemIndex) {
     const updatedRow = markPurchaseItemReceived(selectedRow, itemIndex);
 
     setSelectedRow(updatedRow);
-    onPurchaseItemStatusChange?.(updatedRow);
+    setHasUnsavedItemChanges(true);
   }
 
   function handlePurchaseItemStatusChange(itemIndex, nextStatus) {
     const updatedRow = updatePurchaseItemStatus(selectedRow, itemIndex, nextStatus);
 
     setSelectedRow(updatedRow);
-    onPurchaseItemStatusChange?.(updatedRow);
+    setHasUnsavedItemChanges(true);
+  }
+
+  function handlePurchaseItemReceivedDateChange(itemIndex, receivedDate) {
+    const updatedRow = updatePurchaseItemReceivedDate(selectedRow, itemIndex, receivedDate);
+
+    setSelectedRow(updatedRow);
+    setHasUnsavedItemChanges(true);
+  }
+
+  function handleSavePurchaseItemUpdates() {
+    onPurchaseItemStatusChange?.(selectedRow);
+    setHasUnsavedItemChanges(false);
   }
 
   return (
@@ -255,7 +279,7 @@ function TransactionTable({
                         <button
                           className="table-action-button"
                           type="button"
-                          onClick={() => setSelectedRow(row)}
+                          onClick={() => openSelectedRow(row)}
                         >
                           Details
                         </button>
@@ -343,7 +367,7 @@ function TransactionTable({
                   <button
                     className="secondary-button table-action-button mobile-record-button"
                     type="button"
-                    onClick={() => setSelectedRow(row)}
+                    onClick={() => openSelectedRow(row)}
                   >
                     Details
                   </button>
@@ -367,7 +391,7 @@ function TransactionTable({
         <div
           className="modal-backdrop"
           role="presentation"
-          onClick={() => setSelectedRow(null)}
+          onClick={closeSelectedRow}
         >
           <div
             className="detail-modal section-card"
@@ -388,16 +412,26 @@ function TransactionTable({
                     type="button"
                     onClick={() => {
                       onEditRow(selectedRow);
-                      setSelectedRow(null);
+                      closeSelectedRow();
                     }}
                   >
                     Edit
                   </button>
                 ) : null}
+                {type === "purchase" && onPurchaseItemStatusChange ? (
+                  <button
+                    className="primary-button table-action-button"
+                    type="button"
+                    onClick={handleSavePurchaseItemUpdates}
+                    disabled={!hasUnsavedItemChanges}
+                  >
+                    Save Item Updates
+                  </button>
+                ) : null}
                 <button
                   className="secondary-button table-action-button"
                   type="button"
-                  onClick={() => setSelectedRow(null)}
+                  onClick={closeSelectedRow}
                 >
                   Close
                 </button>
@@ -564,7 +598,21 @@ function TransactionTable({
                                 ) : null}
                               </div>
                             </td>
-                            <td>{item.received_date || "—"}</td>
+                            <td>
+                              <input
+                                className="received-date-input"
+                                type="date"
+                                value={item.received_date || ""}
+                                onChange={(event) =>
+                                  handlePurchaseItemReceivedDateChange(
+                                    itemIndex,
+                                    event.target.value
+                                  )
+                                }
+                                disabled={storedStatus !== "received"}
+                                aria-label={`Edit ${item.product_name} received date`}
+                              />
+                            </td>
                             <td>{item.quantity}</td>
                             <td>{item.unit_cost ? formatCurrency(item.unit_cost) : "—"}</td>
                             <td>
