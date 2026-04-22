@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadProducts } from "./ProductsPage";
+import {
+  formatStatusLabel,
+  getInitialPurchaseItemStatus,
+  getTodayString,
+  purchaseStatuses,
+} from "../purchaseStatus";
 
-const today = new Date().toISOString().split("T")[0];
+const today = getTodayString();
 const SUPPLIER_STORAGE_KEY = "inventory-management-suppliers";
 const VAT_RATE = 0.07;
 const vatOptions = [
@@ -48,6 +54,8 @@ function emptyItem() {
     sku: "",
     unit: "pcs",
     expected_delivery_date: "",
+    item_status: "pending",
+    received_date: "",
     quantity: 1,
     unit_cost: "",
     discounts: [0],
@@ -410,6 +418,11 @@ function PurchaseForm({ products = [], onSubmit, purchases = [] }) {
           sku: getProductSku(selectedProduct),
           unit: item.unit,
           expected_delivery_date: item.expected_delivery_date,
+          item_status: getInitialPurchaseItemStatus(form.status),
+          received_date:
+            getInitialPurchaseItemStatus(form.status) === "received"
+              ? getTodayString()
+              : "",
           lead_time_days: computeLeadTimeDays(
             form.transaction_date,
             item.expected_delivery_date
@@ -540,10 +553,15 @@ function PurchaseForm({ products = [], onSubmit, purchases = [] }) {
               value={form.status}
               onChange={(event) => setForm({ ...form, status: event.target.value })}
             >
-              <option value="draft">Draft</option>
-              <option value="ordered">Ordered</option>
-              <option value="received">Received</option>
-              <option value="cancelled">Cancelled</option>
+              {purchaseStatuses.map((status) => (
+                <option
+                  key={status}
+                  value={status}
+                  disabled={status === "partially_received"}
+                >
+                  {formatStatusLabel(status)}
+                </option>
+              ))}
             </select>
           </label>
 

@@ -11,6 +11,7 @@ import SalesForm from "./components/SalesForm";
 import SupplierPage from "./components/SupplierPage";
 import ProductsPage from "./components/ProductsPage";
 import CategoryPage from "./components/CategoryPage";
+import { applyPurchaseStatusToItems } from "./purchaseStatus";
 
 const tabs = [
   {
@@ -182,6 +183,11 @@ function App() {
       return;
     }
 
+    if (nextStatus === "partially_received") {
+      setNotice("Partially Received is set automatically after some items are marked received.");
+      return;
+    }
+
     const confirmed = window.confirm(
       `Change purchase ${purchase.reference_no} status from ${purchase.status} to ${nextStatus}?`
     );
@@ -193,12 +199,14 @@ function App() {
     setError("");
 
     if (usingMockPurchases) {
+      const updatedPurchase = applyPurchaseStatusToItems(purchase, nextStatus);
+
       setPurchases((currentRows) =>
         currentRows.map((row) =>
-          row.id === purchaseId ? { ...row, status: nextStatus } : row
+          row.id === purchaseId ? updatedPurchase : row
         )
       );
-      setNotice(`Purchase ${purchase.reference_no} status updated to ${nextStatus}.`);
+      setNotice(`Purchase ${purchase.reference_no} status updated to ${updatedPurchase.status}.`);
       return;
     }
 
@@ -209,6 +217,15 @@ function App() {
     } catch (requestError) {
       setError(requestError.message);
     }
+  }
+
+  function handlePurchaseItemStatusChange(updatedPurchase) {
+    setPurchases((currentRows) =>
+      currentRows.map((row) => (row.id === updatedPurchase.id ? updatedPurchase : row))
+    );
+    setNotice(
+      `Purchase ${updatedPurchase.reference_no || updatedPurchase.id} item status updated.`
+    );
   }
 
   async function handleSaleStatusChange(saleId, nextStatus) {
@@ -366,6 +383,7 @@ function App() {
               <PurchaseHistoryPage
                 purchases={purchases}
                 onPurchaseStatusChange={handlePurchaseStatusChange}
+                onPurchaseItemStatusChange={handlePurchaseItemStatusChange}
                 onPurchaseUpdate={handlePurchaseUpdate}
                 onPurchaseDelete={handlePurchaseDelete}
               />

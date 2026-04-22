@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadCategories } from "./CategoryPage";
+import { formatStatusLabel, getPurchaseItemDisplayStatus } from "../purchaseStatus";
 
 const STORAGE_KEY = "inventory-management-products";
 const VAT_RATE = 0.07;
@@ -555,7 +556,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                           <p className="detail-label">Status</p>
                           <strong>
                             <span className={`status-badge status-${transaction.status}`}>
-                              {transaction.status}
+                              {formatStatusLabel(transaction.status)}
                             </span>
                           </strong>
                         </div>
@@ -595,6 +596,10 @@ function ProductsPage({ purchases = [], sales = [] }) {
                                   <th>Product</th>
                                   <th>SKU</th>
                                   <th>Unit</th>
+                                  <th>Expected Delivery</th>
+                                  <th>Lead Time</th>
+                                  <th>Item Status</th>
+                                  <th>Received Date</th>
                                   <th>Qty</th>
                                   <th>Unit Cost</th>
                                   <th>Discounts</th>
@@ -616,6 +621,25 @@ function ProductsPage({ purchases = [], sales = [] }) {
                                       <td>{item.product_name}</td>
                                       <td>{item.sku || "—"}</td>
                                       <td>{item.unit || "—"}</td>
+                                      <td>{item.expected_delivery_date || "—"}</td>
+                                      <td>
+                                        {item.lead_time_days !== undefined && item.lead_time_days !== ""
+                                          ? `${item.lead_time_days} days`
+                                          : "—"}
+                                      </td>
+                                      <td>
+                                        <span
+                                          className={`status-badge item-status-badge status-${getPurchaseItemDisplayStatus(
+                                            item,
+                                            transaction.status
+                                          )}`}
+                                        >
+                                          {formatStatusLabel(
+                                            getPurchaseItemDisplayStatus(item, transaction.status)
+                                          )}
+                                        </span>
+                                      </td>
+                                      <td>{item.received_date || "—"}</td>
                                       <td>{item.quantity}</td>
                                       <td>
                                         {item.unit_cost !== undefined && item.unit_cost !== null
@@ -822,8 +846,15 @@ function ProductsPage({ purchases = [], sales = [] }) {
                               </td>
                               <td>{formatCurrency(computeItemAmount(item))}</td>
                               <td>
-                                <span className={`status-badge status-${purchase.status}`}>
-                                  {purchase.status}
+                                <span
+                                  className={`status-badge status-${getPurchaseItemDisplayStatus(
+                                    item,
+                                    purchase.status
+                                  )}`}
+                                >
+                                  {formatStatusLabel(
+                                    getPurchaseItemDisplayStatus(item, purchase.status)
+                                  )}
                                 </span>
                               </td>
                               <td>
@@ -883,7 +914,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                               <td>{formatCurrency(computeItemAmount(item))}</td>
                               <td>
                                 <span className={`status-badge status-${sale.status}`}>
-                                  {sale.status}
+                                  {formatStatusLabel(sale.status)}
                                 </span>
                               </td>
                               <td>

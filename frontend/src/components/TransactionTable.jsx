@@ -1,4 +1,14 @@
 import { useState } from "react";
+import {
+  formatStatusLabel,
+  getPurchaseItemDisplayStatus,
+  getPurchaseItemStatusCounts,
+  getStoredPurchaseItemStatus,
+  markPurchaseItemReceived,
+  purchaseItemStatuses,
+  purchaseStatuses,
+  updatePurchaseItemStatus,
+} from "../purchaseStatus";
 
 const VAT_RATE = 0.07;
 
@@ -45,13 +55,13 @@ function renderDiscounts(item) {
   return "—";
 }
 
-const purchaseStatuses = ["draft", "ordered", "received", "cancelled"];
 const saleStatuses = ["draft", "packed", "shipped", "delivered", "cancelled"];
 
 function TransactionTable({
   rows,
   type,
   onPurchaseStatusChange,
+  onPurchaseItemStatusChange,
   onSaleStatusChange,
   onEditRow,
   onDeleteRow,
@@ -121,6 +131,20 @@ function TransactionTable({
     setSelectedRow(null);
   }
 
+  function handleMarkPurchaseItemReceived(itemIndex) {
+    const updatedRow = markPurchaseItemReceived(selectedRow, itemIndex);
+
+    setSelectedRow(updatedRow);
+    onPurchaseItemStatusChange?.(updatedRow);
+  }
+
+  function handlePurchaseItemStatusChange(itemIndex, nextStatus) {
+    const updatedRow = updatePurchaseItemStatus(selectedRow, itemIndex, nextStatus);
+
+    setSelectedRow(updatedRow);
+    onPurchaseItemStatusChange?.(updatedRow);
+  }
+
   return (
     <section className="section-card">
       <div className="section-heading">
@@ -187,8 +211,12 @@ function TransactionTable({
                           }}
                         >
                           {statuses.map((status) => (
-                            <option key={status} value={status}>
-                              {status}
+                            <option
+                              key={status}
+                              value={status}
+                              disabled={type === "purchase" && status === "partially_received"}
+                            >
+                              {formatStatusLabel(status)}
                             </option>
                           ))}
                         </select>
@@ -263,8 +291,12 @@ function TransactionTable({
                       }}
                     >
                       {statuses.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
+                        <option
+                          key={status}
+                          value={status}
+                          disabled={type === "purchase" && status === "partially_received"}
+                        >
+                          {formatStatusLabel(status)}
                         </option>
                       ))}
                     </select>
@@ -381,7 +413,7 @@ function TransactionTable({
                 <p className="detail-label">Status</p>
                 <strong>
                   <span className={`status-badge status-${selectedRow.status}`}>
-                    {selectedRow.status}
+                    {formatStatusLabel(selectedRow.status)}
                   </span>
                 </strong>
               </div>
@@ -413,6 +445,26 @@ function TransactionTable({
 
             <div className="detail-items">
               <p className="detail-label">Items</p>
+              {type === "purchase" ? (
+                <div className="item-receiving-summary" aria-label="Item receiving status">
+                  <span className="item-receiving-title">Item Receiving Status</span>
+                  {(() => {
+                    const counts = getPurchaseItemStatusCounts(
+                      selectedRow.items || [],
+                      selectedRow.status
+                    );
+
+                    return ["pending", "delayed", "received", "cancelled"].map((status) => (
+                      <span
+                        key={status}
+                        className={`status-badge item-status-badge status-${status}`}
+                      >
+                        {counts[status]} {formatStatusLabel(status)}
+                      </span>
+                    ));
+                  })()}
+                </div>
+              ) : null}
               <div className="table-scroll">
                 {type === "sale" ? (
                   <table>
@@ -453,18 +505,32 @@ function TransactionTable({
                         <th>Unit</th>
                         <th>Expected Delivery</th>
                         <th>Lead Time</th>
+                        <th>Item Status</th>
+                        <th>Received Date</th>
                         <th>Qty</th>
                         <th>Unit Cost</th>
                         <th>Discounts</th>
                         <th>Amount</th>
+                        <th />
                       </tr>
                     </thead>
                     <tbody>
-                      {(selectedRow.items || []).map((item) => {
+                      {(selectedRow.items || []).map((item, itemIndex) => {
                         const amount = computeItemAmount(item);
+                        const displayStatus = getPurchaseItemDisplayStatus(
+                          item,
+                          selectedRow.status
+                        );
+                        const storedStatus = getStoredPurchaseItemStatus(
+                          item,
+                          selectedRow.status
+                        );
+                        const canMarkReceived =
+                          !["draft", "cancelled"].includes(selectedRow.status) &&
+                          !["cancelled", "received"].includes(storedStatus);
 
                         return (
-                          <tr key={item.id}>
+                          <tr key={item.id || `${item.sku}-${itemIndex}`}>
                             <td>{item.product_name}</td>
                             <td>{item.sku || "—"}</td>
                             <td>{item.unit || "—"}</td>
@@ -474,6 +540,31 @@ function TransactionTable({
                                 ? `${item.lead_time_days} days`
                                 : "—"}
                             </td>
+                            <td>
+                              <div className="purchase-item-status-control">
+                                <select
+                                  className={`status-select item-status-select status-${displayStatus}`}
+                                  value={storedStatus}
+                                  onChange={(event) =>
+                                    handlePurchaseItemStatusChange(itemIndex, event.target.value)
+                                  }
+                                  disabled={["draft", "cancelled"].includes(selectedRow.status)}
+                                  aria-label={`Change ${item.product_name} receiving status`}
+                                >
+                                  {purchaseItemStatuses.map((status) => (
+                                    <option key={status} value={status}>
+                                      {formatStatusLabel(status)}
+                                    </option>
+                                  ))}
+                                </select>
+                                {displayStatus === "delayed" ? (
+                                  <span className="status-badge item-status-badge status-delayed">
+                                    Delayed
+                                  </span>
+                                ) : null}
+                              </div>
+                            </td>
+                            <td>{item.received_date || "—"}</td>
                             <td>{item.quantity}</td>
                             <td>{item.unit_cost ? formatCurrency(item.unit_cost) : "—"}</td>
                             <td>
@@ -482,6 +573,16 @@ function TransactionTable({
                               </span>
                             </td>
                             <td>{formatCurrency(amount)}</td>
+                            <td>
+                              <button
+                                className="secondary-button table-action-button mark-received-button"
+                                type="button"
+                                onClick={() => handleMarkPurchaseItemReceived(itemIndex)}
+                                disabled={!canMarkReceived}
+                              >
+                                Mark Received
+                              </button>
+                            </td>
                           </tr>
                         );
                       })}

@@ -1,9 +1,18 @@
 import { useMemo, useState } from "react";
 import TransactionTable from "./TransactionTable";
+import {
+  formatStatusLabel,
+  getInitialPurchaseItemStatus,
+  getPurchaseItemDisplayStatus,
+  getPurchaseStatusFromItems,
+  getStoredPurchaseItemStatus,
+  getTodayString,
+  purchaseStatuses,
+} from "../purchaseStatus";
 
 const SUPPLIER_STORAGE_KEY = "inventory-management-suppliers";
 const VAT_RATE = 0.07;
-const statusOptions = ["draft", "ordered", "received", "cancelled"];
+const statusOptions = purchaseStatuses;
 const vatOptions = [
   { value: "included", label: "VAT Included" },
   { value: "not_included", label: "VAT Not Included" },
@@ -15,7 +24,7 @@ const defaultSupplierOptions = [
 ];
 
 function getToday() {
-  return new Date().toISOString().split("T")[0];
+  return getTodayString();
 }
 
 function normalize(value) {
@@ -33,6 +42,8 @@ function purchaseMatchesQuery(purchase, query) {
       item.product_name,
       item.sku,
       item.expected_delivery_date,
+      item.received_date,
+      getPurchaseItemDisplayStatus(item, purchase.status),
       item.lead_time_days,
       item.quantity,
       item.unit_cost,
@@ -199,6 +210,8 @@ function createEditItems(purchase) {
         sku: "",
         unit: "pcs",
         expected_delivery_date: "",
+        item_status: getInitialPurchaseItemStatus(purchase.status),
+        received_date: "",
         quantity: 1,
         unit_cost: "",
         discounts: [0],
@@ -212,6 +225,8 @@ function createEditItems(purchase) {
     sku: item.sku || "",
     unit: item.unit || "pcs",
     expected_delivery_date: item.expected_delivery_date || "",
+    item_status: getStoredPurchaseItemStatus(item, purchase.status),
+    received_date: item.received_date || "",
     quantity: item.quantity ?? 1,
     unit_cost: item.unit_cost ?? "",
     discounts: Array.isArray(item.discounts)
@@ -324,6 +339,8 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
         sku: "",
         unit: "pcs",
         expected_delivery_date: "",
+        item_status: "pending",
+        received_date: "",
         quantity: 1,
         unit_cost: "",
         discounts: [0],
@@ -378,6 +395,13 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
       .filter((item) => item.product_name && item.quantity && item.unit_cost)
       .map((item) => {
         const amount = computeAmount(item);
+        const itemStatus =
+          form.status === "received" ||
+          form.status === "cancelled" ||
+          form.status === "ordered" ||
+          form.status === "draft"
+            ? getInitialPurchaseItemStatus(form.status)
+            : item.item_status || getInitialPurchaseItemStatus(form.status);
 
         return {
           id: item.id,
@@ -385,6 +409,8 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
           sku: item.sku,
           unit: item.unit || "pcs",
           expected_delivery_date: item.expected_delivery_date || "",
+          item_status: itemStatus,
+          received_date: itemStatus === "received" ? item.received_date || getToday() : "",
           lead_time_days: computeLeadTimeDays(
             form.transaction_date,
             item.expected_delivery_date
@@ -402,7 +428,7 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
       return;
     }
 
-    onSave({
+    const nextPurchase = {
       ...purchase,
       reference_no: form.reference_no,
       supplier_name: supplierName,
@@ -416,6 +442,11 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
       vat_amount: vatSummary.vat,
       grand_total: vatSummary.grandTotal,
       total_amount: vatSummary.grandTotal,
+    };
+
+    onSave({
+      ...nextPurchase,
+      status: getPurchaseStatusFromItems(nextPurchase),
     });
   }
 
@@ -506,8 +537,12 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
               onChange={(event) => updateForm("status", event.target.value)}
             >
               {statusOptions.map((status) => (
-                <option key={status} value={status}>
-                  {status}
+                <option
+                  key={status}
+                  value={status}
+                  disabled={status === "partially_received"}
+                >
+                  {formatStatusLabel(status)}
                 </option>
               ))}
             </select>
@@ -737,6 +772,7 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
 function PurchaseHistoryPage({
   purchases,
   onPurchaseStatusChange,
+  onPurchaseItemStatusChange,
   onPurchaseUpdate,
   onPurchaseDelete,
 }) {
@@ -948,7 +984,7 @@ function PurchaseHistoryPage({
                     checked={selectedStatuses.includes(status)}
                     onChange={() => toggleStatus(status)}
                   />
-                  <span>{status}</span>
+                  <span>{formatStatusLabel(status)}</span>
                 </label>
               ))}
             </div>
@@ -969,6 +1005,7 @@ function PurchaseHistoryPage({
         rows={filteredPurchases}
         type="purchase"
         onPurchaseStatusChange={onPurchaseStatusChange}
+        onPurchaseItemStatusChange={onPurchaseItemStatusChange}
         onEditRow={setEditingPurchase}
         onDeleteRow={handleDelete}
         compactRows={5}

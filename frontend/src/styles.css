@@ -1389,6 +1389,11 @@ th {
   text-transform: capitalize;
 }
 
+.item-status-badge {
+  min-width: 104px;
+  justify-content: center;
+}
+
 .status-select {
   min-width: 132px;
   text-transform: capitalize;
@@ -1410,22 +1415,33 @@ th {
 }
 
 .status-draft,
-.status-packed {
+.status-packed,
+.status-partially_received {
   color: #8f6900;
   background: #fff7dc;
 }
 
 .status-ordered,
 .status-shipped,
-.status-received,
-.status-delivered {
+.status-pending {
   color: var(--accent-deep);
   background: #eef3ff;
 }
 
-.status-cancelled {
+.status-received,
+.status-delivered {
+  color: #0f5a3d;
+  background: #e9fbf2;
+}
+
+.status-delayed {
   color: var(--danger);
   background: #fff2f4;
+}
+
+.status-cancelled {
+  color: #667085;
+  background: #eef1f5;
 }
 
 .item-pill-list {
@@ -1589,6 +1605,33 @@ th {
 .table-action-button {
   padding: 8px 14px;
   white-space: nowrap;
+}
+
+.mark-received-button {
+  min-width: 126px;
+}
+
+.purchase-item-status-control {
+  display: grid;
+  gap: 6px;
+  min-width: 142px;
+}
+
+.item-status-select {
+  min-width: 142px;
+  padding: 9px 12px;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled,
+.edit-button:disabled,
+.danger-button:disabled,
+.table-action-button:disabled {
+  cursor: not-allowed;
+  color: #8d96ad;
+  background: #edf1f7;
+  box-shadow: none;
+  transform: none;
 }
 
 .danger-button {
@@ -1896,6 +1939,25 @@ th {
 .detail-items {
   display: grid;
   gap: 12px;
+}
+
+.item-receiving-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.item-receiving-title {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 @keyframes rise-in {
