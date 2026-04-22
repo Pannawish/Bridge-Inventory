@@ -32,6 +32,8 @@ function purchaseMatchesQuery(purchase, query) {
     ...(purchase.items || []).flatMap((item) => [
       item.product_name,
       item.sku,
+      item.expected_delivery_date,
+      item.lead_time_days,
       item.quantity,
       item.unit_cost,
     ]),
@@ -104,6 +106,22 @@ function computeAmount(item) {
   }, 1);
 
   return qty * cost * multiplier;
+}
+
+function computeLeadTimeDays(transactionDate, expectedDeliveryDate) {
+  if (!transactionDate || !expectedDeliveryDate) {
+    return "";
+  }
+
+  const start = new Date(`${transactionDate}T00:00:00`);
+  const end = new Date(`${expectedDeliveryDate}T00:00:00`);
+  const diffMs = end.getTime() - start.getTime();
+
+  if (!Number.isFinite(diffMs)) {
+    return "";
+  }
+
+  return Math.max(0, Math.round(diffMs / 86400000));
 }
 
 function fmt(value) {
@@ -180,6 +198,7 @@ function createEditItems(purchase) {
         product_name: "",
         sku: "",
         unit: "pcs",
+        expected_delivery_date: "",
         quantity: 1,
         unit_cost: "",
         discounts: [0],
@@ -192,6 +211,7 @@ function createEditItems(purchase) {
     product_name: item.product_name || "",
     sku: item.sku || "",
     unit: item.unit || "pcs",
+    expected_delivery_date: item.expected_delivery_date || "",
     quantity: item.quantity ?? 1,
     unit_cost: item.unit_cost ?? "",
     discounts: Array.isArray(item.discounts)
@@ -303,6 +323,7 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
         product_name: "",
         sku: "",
         unit: "pcs",
+        expected_delivery_date: "",
         quantity: 1,
         unit_cost: "",
         discounts: [0],
@@ -363,6 +384,11 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
           product_name: item.product_name,
           sku: item.sku,
           unit: item.unit || "pcs",
+          expected_delivery_date: item.expected_delivery_date || "",
+          lead_time_days: computeLeadTimeDays(
+            form.transaction_date,
+            item.expected_delivery_date
+          ),
           quantity: Number(item.quantity) || 0,
           unit_cost: Number(item.unit_cost) || 0,
           discounts: item.discounts || [0],
@@ -554,6 +580,18 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
                     value={item.unit}
                     onChange={(event) => updateItem(index, "unit", event.target.value)}
                     placeholder="Unit"
+                  />
+                </label>
+
+                <label className="purchase-item-field purchase-item-delivery">
+                  <span>Expected Delivery</span>
+                  <input
+                    type="date"
+                    value={item.expected_delivery_date}
+                    onChange={(event) =>
+                      updateItem(index, "expected_delivery_date", event.target.value)
+                    }
+                    min={form.transaction_date}
                   />
                 </label>
 

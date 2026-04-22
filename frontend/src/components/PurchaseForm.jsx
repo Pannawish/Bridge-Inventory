@@ -47,6 +47,7 @@ function emptyItem() {
     product_name: "",
     sku: "",
     unit: "pcs",
+    expected_delivery_date: "",
     quantity: 1,
     unit_cost: "",
     discounts: [0],
@@ -74,6 +75,22 @@ function computeAmount(item) {
   }, 1);
 
   return qty * cost * multiplier;
+}
+
+function computeLeadTimeDays(transactionDate, expectedDeliveryDate) {
+  if (!transactionDate || !expectedDeliveryDate) {
+    return "";
+  }
+
+  const start = new Date(`${transactionDate}T00:00:00`);
+  const end = new Date(`${expectedDeliveryDate}T00:00:00`);
+  const diffMs = end.getTime() - start.getTime();
+
+  if (!Number.isFinite(diffMs)) {
+    return "";
+  }
+
+  return Math.max(0, Math.round(diffMs / 86400000));
 }
 
 function fmt(value) {
@@ -376,6 +393,11 @@ function PurchaseForm({ products = [], onSubmit, purchases = [] }) {
         return nextItems;
       }
 
+      if (!item.expected_delivery_date) {
+        nextItemErrors[index] = "Select expected delivery date.";
+        return nextItems;
+      }
+
       if (!item.quantity || !item.unit_cost) {
         return nextItems;
       }
@@ -387,6 +409,11 @@ function PurchaseForm({ products = [], onSubmit, purchases = [] }) {
           product_name: getProductName(selectedProduct),
           sku: getProductSku(selectedProduct),
           unit: item.unit,
+          expected_delivery_date: item.expected_delivery_date,
+          lead_time_days: computeLeadTimeDays(
+            form.transaction_date,
+            item.expected_delivery_date
+          ),
           quantity: item.quantity,
           unit_cost: item.unit_cost,
           discounts: item.discounts,
@@ -643,6 +670,19 @@ function PurchaseForm({ products = [], onSubmit, purchases = [] }) {
                     value={item.unit}
                     onChange={(event) => updateItem(index, "unit", event.target.value)}
                     placeholder="Unit"
+                  />
+                </label>
+
+                <label className="purchase-item-field purchase-item-delivery">
+                  <span>Expected Delivery</span>
+                  <input
+                    type="date"
+                    value={item.expected_delivery_date}
+                    onChange={(event) =>
+                      updateItem(index, "expected_delivery_date", event.target.value)
+                    }
+                    min={form.transaction_date}
+                    required
                   />
                 </label>
 

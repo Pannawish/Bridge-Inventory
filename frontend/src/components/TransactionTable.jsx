@@ -451,6 +451,8 @@ function TransactionTable({
                         <th>Product</th>
                         <th>SKU</th>
                         <th>Unit</th>
+                        <th>Expected Delivery</th>
+                        <th>Lead Time</th>
                         <th>Qty</th>
                         <th>Unit Cost</th>
                         <th>Discounts</th>
@@ -466,6 +468,12 @@ function TransactionTable({
                             <td>{item.product_name}</td>
                             <td>{item.sku || "—"}</td>
                             <td>{item.unit || "—"}</td>
+                            <td>{item.expected_delivery_date || "—"}</td>
+                            <td>
+                              {item.lead_time_days !== undefined && item.lead_time_days !== ""
+                                ? `${item.lead_time_days} days`
+                                : "—"}
+                            </td>
                             <td>{item.quantity}</td>
                             <td>{item.unit_cost ? formatCurrency(item.unit_cost) : "—"}</td>
                             <td>
