@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { api } from "./api";
 import ChatPanel from "./components/ChatPanel";
 import Dashboard from "./components/Dashboard";
-import InventoryPage from "./components/InventoryPage";
 import CustomerPage from "./components/CustomerPage";
 import { mockDashboard, mockPurchases, mockSales } from "./mockData";
 import PurchaseHistoryPage from "./components/PurchaseHistoryPage";
@@ -67,12 +66,6 @@ const tabs = [
     label: "Categories",
     shortLabel: "CA",
     description: "Manage product categories and prevent duplicate names.",
-  },
-  {
-    id: "inventory",
-    label: "Inventory",
-    shortLabel: "I",
-    description: "Full stock visibility, reorder points, and stock health.",
   },
   {
     id: "chat",
@@ -401,10 +394,6 @@ function App() {
                 onSaleUpdate={handleSaleUpdate}
                 onSaleDelete={handleSaleDelete}
               />
-            ) : null}
-
-            {activeTab === "inventory" && dashboard ? (
-              <InventoryPage dashboard={dashboard} />
             ) : null}
 
             {activeTab === "suppliers" ? <SupplierPage /> : null}
