@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const CUSTOMER_STORAGE_KEY = "inventory-management-customers";
 const VAT_RATE = 0.07;
@@ -16,9 +16,34 @@ function getToday() {
   return new Date().toISOString().split("T")[0];
 }
 
-function createInitialForm() {
+function getSalesReferencePrefix(date = new Date()) {
+  const buddhistYear = date.getFullYear() + 543;
+  const yearSuffix = `${buddhistYear}`.slice(-2);
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+
+  return `TI-${yearSuffix}${month}`;
+}
+
+function getNextSalesReference(sales = [], date = new Date()) {
+  const prefix = getSalesReferencePrefix(date);
+  const referencePattern = new RegExp(`^${prefix}-(\\d{3})$`);
+  const maxSerial = sales.reduce((max, sale) => {
+    const match = `${sale.reference_no || ""}`.match(referencePattern);
+
+    if (!match) {
+      return max;
+    }
+
+    return Math.max(max, Number(match[1]));
+  }, 0);
+  const nextSerial = maxSerial >= 999 ? 1 : maxSerial + 1;
+
+  return `${prefix}-${`${nextSerial}`.padStart(3, "0")}`;
+}
+
+function createInitialForm(referenceNo) {
   return {
-    reference_no: "",
+    reference_no: referenceNo,
     customer_name: "",
     status: "delivered",
     payment_timing: "instant",
@@ -116,8 +141,13 @@ function getProductSku(product) {
   return product.sku || product.SKU || "";
 }
 
-function SalesForm({ products, onSubmit }) {
-  const [form, setForm] = useState(createInitialForm());
+function SalesForm({ products, sales = [], onSubmit }) {
+  const nextReferenceNo = useMemo(
+    () => getNextSalesReference(sales),
+    [sales]
+  );
+  const lastGeneratedReference = useRef(nextReferenceNo);
+  const [form, setForm] = useState(() => createInitialForm(nextReferenceNo));
   const [items, setItems] = useState([emptyItem()]);
   const [vatMode, setVatMode] = useState("not_included");
   const [customers] = useState(() => loadCustomerOptions());
@@ -135,6 +165,22 @@ function SalesForm({ products, onSubmit }) {
       customer.companyName.toLowerCase().includes(normalizedQuery)
     );
   }, [customerQuery, customers]);
+
+  useEffect(() => {
+    setForm((currentForm) => {
+      const shouldRefreshReference =
+        !currentForm.reference_no ||
+        currentForm.reference_no === lastGeneratedReference.current;
+
+      lastGeneratedReference.current = nextReferenceNo;
+
+      if (!shouldRefreshReference) {
+        return currentForm;
+      }
+
+      return { ...currentForm, reference_no: nextReferenceNo };
+    });
+  }, [nextReferenceNo]);
 
   function updateForm(key, value) {
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
@@ -271,7 +317,7 @@ function SalesForm({ products, onSubmit }) {
 
     await onSubmit(formData);
 
-    setForm(createInitialForm());
+    setForm(createInitialForm(lastGeneratedReference.current));
     setItems([emptyItem()]);
     setVatMode("not_included");
     setCustomerQuery("");
@@ -296,8 +342,8 @@ function SalesForm({ products, onSubmit }) {
             Reference No.
             <input
               value={form.reference_no}
-              onChange={(event) => updateForm("reference_no", event.target.value)}
-              placeholder="SO-001"
+              readOnly
+              placeholder={nextReferenceNo}
             />
           </label>
 

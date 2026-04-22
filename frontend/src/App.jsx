@@ -356,7 +356,7 @@ function App() {
 
             {activeTab === "purchases" ? (
               <div className="stack-layout">
-                <PurchaseForm onSubmit={handlePurchaseCreate} />
+                <PurchaseForm purchases={purchases} onSubmit={handlePurchaseCreate} />
                 <div className="history-shortcut-actions">
                   <button
                     className="secondary-button"
@@ -380,7 +380,7 @@ function App() {
 
             {activeTab === "sales" ? (
               <div className="stack-layout">
-                <SalesForm products={products} onSubmit={handleSalesCreate} />
+                <SalesForm products={products} sales={sales} onSubmit={handleSalesCreate} />
                 <div className="history-shortcut-actions">
                   <button
                     className="secondary-button"

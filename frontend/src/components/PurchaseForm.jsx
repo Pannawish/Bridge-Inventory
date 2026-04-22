@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const today = new Date().toISOString().split("T")[0];
 const SUPPLIER_STORAGE_KEY = "inventory-management-suppliers";
@@ -12,6 +12,31 @@ const defaultSupplierOptions = [
   { id: "supplier-1", companyName: "Bangkok Office Supply" },
   { id: "supplier-2", companyName: "Learning Tools Co." },
 ];
+
+function getPurchaseReferencePrefix(date = new Date()) {
+  const buddhistYear = date.getFullYear() + 543;
+  const yearSuffix = `${buddhistYear}`.slice(-2);
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+
+  return `PO-${yearSuffix}${month}`;
+}
+
+function getNextPurchaseReference(purchases = [], date = new Date()) {
+  const prefix = getPurchaseReferencePrefix(date);
+  const referencePattern = new RegExp(`^${prefix}-(\\d{3})$`);
+  const maxSerial = purchases.reduce((max, purchase) => {
+    const match = `${purchase.reference_no || ""}`.match(referencePattern);
+
+    if (!match) {
+      return max;
+    }
+
+    return Math.max(max, Number(match[1]));
+  }, 0);
+  const nextSerial = maxSerial >= 999 ? 1 : maxSerial + 1;
+
+  return `${prefix}-${`${nextSerial}`.padStart(3, "0")}`;
+}
 
 function emptyItem() {
   return {
@@ -95,15 +120,24 @@ function loadSupplierOptions() {
   }
 }
 
-function PurchaseForm({ onSubmit }) {
-  const [form, setForm] = useState({
-    reference_no: "",
+function createInitialForm(referenceNo) {
+  return {
+    reference_no: referenceNo,
     supplier_name: "",
     status: "ordered",
     transaction_date: today,
     note: "",
     document: null,
-  });
+  };
+}
+
+function PurchaseForm({ onSubmit, purchases = [] }) {
+  const nextReferenceNo = useMemo(
+    () => getNextPurchaseReference(purchases),
+    [purchases]
+  );
+  const lastGeneratedReference = useRef(nextReferenceNo);
+  const [form, setForm] = useState(() => createInitialForm(nextReferenceNo));
   const [items, setItems] = useState([emptyItem()]);
   const [vatMode, setVatMode] = useState("not_included");
   const [suppliers] = useState(() => loadSupplierOptions());
@@ -121,6 +155,22 @@ function PurchaseForm({ onSubmit }) {
       supplier.companyName.toLowerCase().includes(normalizedQuery)
     );
   }, [supplierQuery, suppliers]);
+
+  useEffect(() => {
+    setForm((currentForm) => {
+      const shouldRefreshReference =
+        !currentForm.reference_no ||
+        currentForm.reference_no === lastGeneratedReference.current;
+
+      lastGeneratedReference.current = nextReferenceNo;
+
+      if (!shouldRefreshReference) {
+        return currentForm;
+      }
+
+      return { ...currentForm, reference_no: nextReferenceNo };
+    });
+  }, [nextReferenceNo]);
 
   function updateItem(index, key, value) {
     setItems((currentItems) =>
@@ -249,14 +299,7 @@ function PurchaseForm({ onSubmit }) {
 
     await onSubmit(formData);
 
-    setForm({
-      reference_no: "",
-      supplier_name: "",
-      status: "ordered",
-      transaction_date: today,
-      note: "",
-      document: null,
-    });
+    setForm(createInitialForm(lastGeneratedReference.current));
     setItems([emptyItem()]);
     setVatMode("not_included");
     setSupplierQuery("");
@@ -281,10 +324,8 @@ function PurchaseForm({ onSubmit }) {
             Reference No.
             <input
               value={form.reference_no}
-              onChange={(event) =>
-                setForm({ ...form, reference_no: event.target.value })
-              }
-              placeholder="PO-001"
+              readOnly
+              placeholder={nextReferenceNo}
             />
           </label>
 
