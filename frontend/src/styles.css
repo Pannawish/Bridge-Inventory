@@ -678,12 +678,12 @@ label textarea:focus,
 }
 
 .sales-line-item-row {
-  grid-template-columns: minmax(220px, 1.7fr) minmax(90px, 0.7fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) auto;
+  grid-template-columns: 38px minmax(220px, 1.7fr) minmax(90px, 0.7fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) auto;
   grid-template-areas:
-    "product qty price amount action"
-    "discounts discounts discounts discounts discounts";
+    "index product qty price amount action"
+    ". discounts discounts discounts discounts discounts";
   align-items: start;
-  min-width: 760px;
+  min-width: 820px;
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -691,16 +691,32 @@ label textarea:focus,
 }
 
 .purchase-line-item-row {
-  grid-template-columns: minmax(180px, 1.4fr) minmax(120px, 1fr) minmax(90px, 0.7fr) minmax(130px, 0.8fr) minmax(150px, 1fr) auto;
+  grid-template-columns: 38px minmax(180px, 1.4fr) minmax(120px, 1fr) minmax(90px, 0.7fr) minmax(130px, 0.8fr) minmax(150px, 1fr) auto;
   grid-template-areas:
-    "product product sku unit delivery action"
-    "qty cost discounts discounts amount amount";
+    "index product product sku unit delivery action"
+    ". qty cost discounts discounts amount amount";
   align-items: start;
-  min-width: 940px;
+  min-width: 990px;
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.72);
+}
+
+.line-item-index {
+  grid-area: index;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  align-self: start;
+  margin-top: 22px;
+  border: 1px solid #ccd6ef;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 800;
 }
 
 .purchase-item-field {
@@ -2059,6 +2075,7 @@ th {
   .purchase-line-item-row {
     grid-template-columns: 1fr;
     grid-template-areas:
+      "index"
       "product"
       "sku"
       "unit"
@@ -2071,6 +2088,11 @@ th {
     min-width: 0;
   }
 
+  .line-item-index {
+    margin-top: 0;
+    justify-self: start;
+  }
+
   .purchase-item-remove {
     width: 100%;
     justify-self: stretch;
@@ -2079,6 +2101,7 @@ th {
   .sales-line-item-row {
     grid-template-columns: 1fr;
     grid-template-areas:
+      "index"
       "product"
       "qty"
       "price"

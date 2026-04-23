@@ -588,6 +588,10 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
 
             return (
               <div className="line-item-row purchase-line-item-row" key={item.id}>
+                <div className="line-item-index" aria-label={`Item ${index + 1}`}>
+                  {index + 1}
+                </div>
+
                 <label className="purchase-item-field purchase-item-product">
                   <span>Product</span>
                   <input

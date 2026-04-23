@@ -610,6 +610,10 @@ function PurchaseForm({ products = [], onSubmit, purchases = [] }) {
 
             return (
               <div className="line-item-row purchase-line-item-row" key={item.line_id}>
+                <div className="line-item-index" aria-label={`Item ${index + 1}`}>
+                  {index + 1}
+                </div>
+
                 <label className="purchase-item-field purchase-item-product purchase-product-field">
                   <span>Product</span>
                   <div className="supplier-combobox">

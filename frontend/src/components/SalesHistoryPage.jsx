@@ -659,6 +659,10 @@ function SalesEditForm({ sale, products, onCancel, onSave }) {
 
             return (
               <div className="line-item-row sales-line-item-row" key={item.id}>
+                <div className="line-item-index" aria-label={`Item ${index + 1}`}>
+                  {index + 1}
+                </div>
+
                 <label className="purchase-item-field sales-item-product">
                   <span>Product</span>
                   <select
