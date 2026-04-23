@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import PurchaseForm from "./PurchaseForm";
 import TransactionTable from "./TransactionTable";
 import {
   formatStatusLabel,
@@ -775,7 +776,9 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
 }
 
 function PurchaseHistoryPage({
+  products,
   purchases,
+  onCreatePurchase,
   onPurchaseStatusChange,
   onPurchaseItemStatusChange,
   onPurchaseUpdate,
@@ -790,6 +793,7 @@ function PurchaseHistoryPage({
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [editingPurchase, setEditingPurchase] = useState(null);
+  const [showNewPurchaseForm, setShowNewPurchaseForm] = useState(false);
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const supplierOptions = useMemo(
     () => buildSupplierFilterOptions(purchases),
@@ -856,10 +860,28 @@ function PurchaseHistoryPage({
     setEditingPurchase(null);
   }
 
+  async function handleCreatePurchase(formData) {
+    await onCreatePurchase?.(formData);
+    setShowNewPurchaseForm(false);
+  }
+
   function handleDelete(deletedPurchase) {
     onPurchaseDelete?.(deletedPurchase);
     setEditingPurchase((currentPurchase) =>
       currentPurchase?.id === deletedPurchase.id ? null : currentPurchase
+    );
+  }
+
+  if (showNewPurchaseForm) {
+    return (
+      <div className="stack-layout">
+        <PurchaseForm
+          products={products}
+          purchases={purchases}
+          onSubmit={handleCreatePurchase}
+          onCancel={() => setShowNewPurchaseForm(false)}
+        />
+      </div>
     );
   }
 
@@ -1015,6 +1037,18 @@ function PurchaseHistoryPage({
         onDeleteRow={handleDelete}
         compactRows={5}
         enableViewAll
+        headerActions={
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => {
+              setEditingPurchase(null);
+              setShowNewPurchaseForm(true);
+            }}
+          >
+            New Purchase
+          </button>
+        }
       />
     </div>
   );

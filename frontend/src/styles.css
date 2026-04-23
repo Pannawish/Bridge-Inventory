@@ -2022,6 +2022,13 @@ th {
   gap: 10px;
 }
 
+.transaction-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .transaction-detail-footer {
   display: flex;
   justify-content: flex-start;

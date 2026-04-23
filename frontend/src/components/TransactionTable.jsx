@@ -68,11 +68,12 @@ function TransactionTable({
   onDeleteRow,
   compactRows = 0,
   enableViewAll = false,
+  headerActions = null,
 }) {
   const [selectedRow, setSelectedRow] = useState(null);
   const [hasUnsavedItemChanges, setHasUnsavedItemChanges] = useState(false);
   const [showAllRows, setShowAllRows] = useState(false);
-  const title = type === "purchase" ? "Purchase History" : "Sales History";
+  const title = type === "purchase" ? "Purchases" : "Sales";
   const personKey = type === "purchase" ? "supplier_name" : "customer_name";
   const statuses = type === "purchase" ? purchaseStatuses : saleStatuses;
   const detailTitle = type === "purchase" ? "Purchase Detail" : "Sales Detail";
@@ -188,15 +189,18 @@ function TransactionTable({
           <p className="eyebrow">History</p>
           <h3>{title}</h3>
         </div>
-        {shouldShowViewAll ? (
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => setShowAllRows((currentValue) => !currentValue)}
-          >
-            {showAllRows ? "Show Recent" : "View All"}
-          </button>
-        ) : null}
+        <div className="transaction-table-actions">
+          {headerActions}
+          {shouldShowViewAll ? (
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => setShowAllRows((currentValue) => !currentValue)}
+            >
+              {showAllRows ? "Show Recent" : "View All"}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {rows.length === 0 ? (

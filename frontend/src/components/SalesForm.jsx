@@ -142,7 +142,7 @@ function getProductSku(product) {
   return product.sku || product.SKU || "";
 }
 
-function SalesForm({ products, sales = [], onSubmit }) {
+function SalesForm({ products, sales = [], onSubmit, onCancel = null }) {
   const nextReferenceNo = useMemo(
     () => getNextSalesReference(sales),
     [sales]
@@ -389,6 +389,11 @@ function SalesForm({ products, sales = [], onSubmit }) {
           <p className="eyebrow">Sales Entry</p>
           <h3>Add Sales Transaction</h3>
         </div>
+        {onCancel ? (
+          <button className="secondary-button" type="button" onClick={onCancel}>
+            Close
+          </button>
+        ) : null}
       </div>
 
       <form className="form-layout" onSubmit={handleSubmit}>
@@ -697,7 +702,7 @@ function SalesForm({ products, sales = [], onSubmit }) {
           </div>
         </div>
 
-        <button className="primary-button" type="submit" disabled={!products.length}>
+        <button className="primary-button" type="submit">
           Save Sale
         </button>
       </form>

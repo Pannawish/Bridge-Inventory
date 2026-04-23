@@ -172,7 +172,7 @@ function createInitialForm(referenceNo) {
   };
 }
 
-function PurchaseForm({ products = [], onSubmit, purchases = [] }) {
+function PurchaseForm({ products = [], onSubmit, purchases = [], onCancel = null }) {
   const nextReferenceNo = useMemo(
     () => getNextPurchaseReference(purchases),
     [purchases]
@@ -534,6 +534,11 @@ function PurchaseForm({ products = [], onSubmit, purchases = [] }) {
           <p className="eyebrow">Purchase Entry</p>
           <h3>Add Purchase Transaction</h3>
         </div>
+        {onCancel ? (
+          <button className="secondary-button" type="button" onClick={onCancel}>
+            Close
+          </button>
+        ) : null}
       </div>
 
       <form className="form-layout" onSubmit={handleSubmit}>

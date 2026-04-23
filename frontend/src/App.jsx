@@ -5,9 +5,7 @@ import Dashboard from "./components/Dashboard";
 import CustomerPage from "./components/CustomerPage";
 import { mockDashboard, mockPurchases, mockSales } from "./mockData";
 import PurchaseHistoryPage from "./components/PurchaseHistoryPage";
-import PurchaseForm from "./components/PurchaseForm";
 import SalesHistoryPage from "./components/SalesHistoryPage";
-import SalesForm from "./components/SalesForm";
 import SupplierPage from "./components/SupplierPage";
 import ProductsPage from "./components/ProductsPage";
 import CategoryPage from "./components/CategoryPage";
@@ -21,26 +19,14 @@ const tabs = [
     description: "Overview, stock health, and daily movement.",
   },
   {
-    id: "purchases",
-    label: "Purchases",
-    shortLabel: "P",
-    description: "Supplier entries, receiving flow, and purchase records.",
-  },
-  {
     id: "purchase-history",
-    label: "Purchase History",
+    label: "Purchases",
     shortLabel: "PH",
     description: "Search and review purchase records.",
   },
   {
-    id: "sales",
-    label: "Sales",
-    shortLabel: "S",
-    description: "Customer orders, payment timing, and sales history.",
-  },
-  {
     id: "sales-history",
-    label: "Sales History",
+    label: "Sales",
     shortLabel: "SH",
     description: "Search and review sales records.",
   },
@@ -162,17 +148,17 @@ function App() {
     setActiveTab(tabId);
   }
 
-  async function handlePurchaseCreate(formData) {
+  async function handlePurchaseCreateFromHistory(formData) {
     await api.createPurchase(formData);
     setNotice("Purchase transaction saved.");
-    setActiveTab("purchases");
+    setActiveTab("purchase-history");
     await loadData();
   }
 
-  async function handleSalesCreate(formData) {
+  async function handleSalesCreateFromHistory(formData) {
     await api.createSale(formData);
     setNotice("Sales transaction saved.");
-    setActiveTab("sales");
+    setActiveTab("sales-history");
     await loadData();
   }
 
@@ -374,24 +360,11 @@ function App() {
               <Dashboard dashboard={dashboard} purchases={purchases} sales={sales} />
             ) : null}
 
-            {activeTab === "purchases" ? (
-              <div className="stack-layout">
-                <PurchaseForm products={products} purchases={purchases} onSubmit={handlePurchaseCreate} />
-                <div className="history-shortcut-actions">
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => setActiveTab("purchase-history")}
-                  >
-                    View Purchase History
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
             {activeTab === "purchase-history" ? (
               <PurchaseHistoryPage
+                products={products}
                 purchases={purchases}
+                onCreatePurchase={handlePurchaseCreateFromHistory}
                 onPurchaseStatusChange={handlePurchaseStatusChange}
                 onPurchaseItemStatusChange={handlePurchaseItemStatusChange}
                 onPurchaseUpdate={handlePurchaseUpdate}
@@ -399,25 +372,11 @@ function App() {
               />
             ) : null}
 
-            {activeTab === "sales" ? (
-              <div className="stack-layout">
-                <SalesForm products={products} sales={sales} onSubmit={handleSalesCreate} />
-                <div className="history-shortcut-actions">
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => setActiveTab("sales-history")}
-                  >
-                    View Sales History
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
             {activeTab === "sales-history" ? (
               <SalesHistoryPage
                 sales={sales}
                 products={products}
+                onCreateSale={handleSalesCreateFromHistory}
                 onSaleStatusChange={handleSaleStatusChange}
                 onSaleUpdate={handleSaleUpdate}
                 onSaleDelete={handleSaleDelete}

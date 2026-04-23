@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import SalesForm from "./SalesForm";
 import TransactionTable from "./TransactionTable";
 
 const CUSTOMER_STORAGE_KEY = "inventory-management-customers";
@@ -821,6 +822,7 @@ function SalesEditForm({ sale, products, onCancel, onSave }) {
 function SalesHistoryPage({
   sales,
   products = [],
+  onCreateSale,
   onSaleStatusChange,
   onSaleUpdate,
   onSaleDelete,
@@ -834,6 +836,7 @@ function SalesHistoryPage({
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [editingSale, setEditingSale] = useState(null);
+  const [showNewSaleForm, setShowNewSaleForm] = useState(false);
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const customerOptions = useMemo(
     () => buildCustomerFilterOptions(sales),
@@ -900,10 +903,28 @@ function SalesHistoryPage({
     setEditingSale(null);
   }
 
+  async function handleCreateSale(formData) {
+    await onCreateSale?.(formData);
+    setShowNewSaleForm(false);
+  }
+
   function handleDelete(deletedSale) {
     onSaleDelete?.(deletedSale);
     setEditingSale((currentSale) =>
       currentSale?.id === deletedSale.id ? null : currentSale
+    );
+  }
+
+  if (showNewSaleForm) {
+    return (
+      <div className="stack-layout">
+        <SalesForm
+          products={products}
+          sales={sales}
+          onSubmit={handleCreateSale}
+          onCancel={() => setShowNewSaleForm(false)}
+        />
+      </div>
     );
   }
 
@@ -1057,6 +1078,18 @@ function SalesHistoryPage({
         onSaleStatusChange={onSaleStatusChange}
         onEditRow={setEditingSale}
         onDeleteRow={handleDelete}
+        headerActions={
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => {
+              setEditingSale(null);
+              setShowNewSaleForm(true);
+            }}
+          >
+            New Sale
+          </button>
+        }
       />
     </div>
   );
