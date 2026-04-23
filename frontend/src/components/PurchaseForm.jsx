@@ -188,6 +188,7 @@ function PurchaseForm({ products = [], onSubmit, purchases = [] }) {
   const [supplierError, setSupplierError] = useState("");
   const [openProductIndex, setOpenProductIndex] = useState(null);
   const [itemErrors, setItemErrors] = useState({});
+  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
   const productOptions = catalogProducts.length ? catalogProducts : products;
   const filteredSuppliers = useMemo(() => {
     const normalizedQuery = supplierQuery.trim().toLowerCase();
@@ -352,6 +353,59 @@ function PurchaseForm({ products = [], onSubmit, purchases = [] }) {
     setItems((currentItems) => currentItems.filter((_, itemIndex) => itemIndex !== index));
   }
 
+  function reorderItems(fromIndex, toIndex) {
+    if (fromIndex === toIndex) {
+      return;
+    }
+
+    setItems((currentItems) => {
+      if (
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= currentItems.length ||
+        toIndex >= currentItems.length
+      ) {
+        return currentItems;
+      }
+
+      const nextItems = [...currentItems];
+      const [movedItem] = nextItems.splice(fromIndex, 1);
+      nextItems.splice(toIndex, 0, movedItem);
+      return nextItems;
+    });
+    setItemErrors({});
+    setOpenProductIndex(null);
+  }
+
+  function handleItemDragStart(event, index) {
+    setDraggedItemIndex(index);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", `${index}`);
+  }
+
+  function handleItemDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }
+
+  function handleItemDrop(event, index) {
+    event.preventDefault();
+    event.stopPropagation();
+    const transferredIndex = Number(event.dataTransfer.getData("text/plain"));
+    const fromIndex =
+      draggedItemIndex !== null ? draggedItemIndex : transferredIndex;
+
+    if (Number.isInteger(fromIndex)) {
+      reorderItems(fromIndex, index);
+    }
+
+    setDraggedItemIndex(null);
+  }
+
+  function handleItemDragEnd() {
+    setDraggedItemIndex(null);
+  }
+
   function selectSupplier(supplier) {
     setForm((currentForm) => ({
       ...currentForm,
@@ -467,6 +521,7 @@ function PurchaseForm({ products = [], onSubmit, purchases = [] }) {
     setSupplierError("");
     setOpenProductIndex(null);
     setItemErrors({});
+    setDraggedItemIndex(null);
   }
 
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
@@ -609,8 +664,28 @@ function PurchaseForm({ products = [], onSubmit, purchases = [] }) {
             const filteredProducts = getFilteredProducts(item.product_query);
 
             return (
-              <div className="line-item-row purchase-line-item-row" key={item.line_id}>
-                <div className="line-item-index" aria-label={`Item ${index + 1}`}>
+              <div
+                className={
+                  draggedItemIndex !== null && draggedItemIndex !== index
+                    ? "line-item-row purchase-line-item-row is-drop-target"
+                    : "line-item-row purchase-line-item-row"
+                }
+                key={item.line_id}
+                onDragOverCapture={handleItemDragOver}
+                onDropCapture={(event) => handleItemDrop(event, index)}
+              >
+                <div
+                  className={
+                    draggedItemIndex === index
+                      ? "line-item-index is-dragging"
+                      : "line-item-index"
+                  }
+                  draggable={items.length > 1}
+                  title={items.length > 1 ? "Drag to reorder" : "Item order"}
+                  aria-label={`Item ${index + 1}. Drag to reorder`}
+                  onDragStart={(event) => handleItemDragStart(event, index)}
+                  onDragEnd={handleItemDragEnd}
+                >
                   {index + 1}
                 </div>
 

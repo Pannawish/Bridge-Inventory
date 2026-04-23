@@ -248,8 +248,9 @@ function TransactionTable({
                       <td>{row.transaction_date}</td>
                       <td>
                         <div className="item-pill-list">
-                          {(row.items || []).map((item) => (
+                          {(row.items || []).map((item, itemIndex) => (
                             <span key={item.id} className="item-pill">
+                              <span className="item-pill-index">{itemIndex + 1}.</span>
                               {item.product_name} ×{item.quantity}
                             </span>
                           ))}
@@ -355,8 +356,9 @@ function TransactionTable({
                     <div className="full-width-mobile">
                       <span>Items</span>
                       <div className="item-pill-list">
-                        {(row.items || []).map((item) => (
+                        {(row.items || []).map((item, itemIndex) => (
                           <span key={item.id} className="item-pill">
+                            <span className="item-pill-index">{itemIndex + 1}.</span>
                             {item.product_name} ×{item.quantity}
                           </span>
                         ))}
@@ -504,6 +506,7 @@ function TransactionTable({
                   <table>
                     <thead>
                       <tr>
+                        <th className="table-index-cell">#</th>
                         <th>Product</th>
                         <th>Qty</th>
                         <th>Unit Price</th>
@@ -512,10 +515,11 @@ function TransactionTable({
                       </tr>
                     </thead>
                     <tbody>
-                      {(selectedRow.items || []).map((item) => {
+                      {(selectedRow.items || []).map((item, itemIndex) => {
                         const amount = computeItemAmount(item);
                         return (
                           <tr key={item.id}>
+                            <td className="table-index-cell">{itemIndex + 1}</td>
                             <td>{item.product_name}</td>
                             <td>{item.quantity}</td>
                             <td>{item.unit_price ? formatCurrency(item.unit_price) : "—"}</td>
@@ -534,6 +538,7 @@ function TransactionTable({
                   <table>
                     <thead>
                       <tr>
+                        <th className="table-index-cell">#</th>
                         <th>Product</th>
                         <th>SKU</th>
                         <th>Unit</th>
@@ -565,6 +570,7 @@ function TransactionTable({
 
                         return (
                           <tr key={item.id || `${item.sku}-${itemIndex}`}>
+                            <td className="table-index-cell">{itemIndex + 1}</td>
                             <td>{item.product_name}</td>
                             <td>{item.sku || "—"}</td>
                             <td>{item.unit || "—"}</td>

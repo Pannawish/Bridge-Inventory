@@ -604,6 +604,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                             <table>
                               <thead>
                                 <tr>
+                                  <th className="table-index-cell">#</th>
                                   <th>Product</th>
                                   <th>SKU</th>
                                   <th>Unit</th>
@@ -618,7 +619,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                                 </tr>
                               </thead>
                               <tbody>
-                                {(transaction.items || []).map((item) => {
+                                {(transaction.items || []).map((item, itemIndex) => {
                                   const isHighlighted =
                                     viewingProduct &&
                                     matchesSku(item, viewingProduct.sku);
@@ -629,6 +630,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                                       key={item.id}
                                       className={isHighlighted ? "transaction-row-highlight" : ""}
                                     >
+                                      <td className="table-index-cell">{itemIndex + 1}</td>
                                       <td>{item.product_name}</td>
                                       <td>{item.sku || "—"}</td>
                                       <td>{item.unit || "—"}</td>
@@ -672,6 +674,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                             <table>
                               <thead>
                                 <tr>
+                                  <th className="table-index-cell">#</th>
                                   <th>Product</th>
                                   <th>Qty</th>
                                   <th>Unit Price</th>
@@ -680,7 +683,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                                 </tr>
                               </thead>
                               <tbody>
-                                {(transaction.items || []).map((item) => {
+                                {(transaction.items || []).map((item, itemIndex) => {
                                   const isHighlighted =
                                     viewingProduct &&
                                     matchesSku(item, viewingProduct.sku);
@@ -691,6 +694,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                                       key={item.id}
                                       className={isHighlighted ? "transaction-row-highlight" : ""}
                                     >
+                                      <td className="table-index-cell">{itemIndex + 1}</td>
                                       <td>{item.product_name}</td>
                                       <td>{item.quantity}</td>
                                       <td>
@@ -827,6 +831,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                       <table>
                         <thead>
                           <tr>
+                            <th className="table-index-cell">#</th>
                             <th>Reference</th>
                             <th>Supplier</th>
                             <th>Date</th>
@@ -839,8 +844,9 @@ function ProductsPage({ purchases = [], sales = [] }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {viewPurchaseHistory.map(({ purchase, item }) => (
+                          {viewPurchaseHistory.map(({ purchase, item }, itemIndex) => (
                             <tr key={`${purchase.id}-${item.id}`}>
+                              <td className="table-index-cell">{itemIndex + 1}</td>
                               <td>{purchase.reference_no}</td>
                               <td>{purchase.supplier_name}</td>
                               <td>{purchase.transaction_date}</td>
@@ -894,6 +900,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                       <table>
                         <thead>
                           <tr>
+                            <th className="table-index-cell">#</th>
                             <th>Reference</th>
                             <th>Customer</th>
                             <th>Date</th>
@@ -906,8 +913,9 @@ function ProductsPage({ purchases = [], sales = [] }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {viewSalesHistory.map(({ sale, item }) => (
+                          {viewSalesHistory.map(({ sale, item }, itemIndex) => (
                             <tr key={`${sale.id}-${item.id}`}>
+                              <td className="table-index-cell">{itemIndex + 1}</td>
                               <td>{sale.reference_no}</td>
                               <td>{sale.customer_name}</td>
                               <td>{sale.transaction_date}</td>

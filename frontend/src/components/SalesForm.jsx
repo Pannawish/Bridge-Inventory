@@ -56,6 +56,7 @@ function createInitialForm(referenceNo) {
 
 function emptyItem() {
   return {
+    line_id: `sales-item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     product_id: "",
     quantity: 1,
     unit_price: "",
@@ -154,6 +155,7 @@ function SalesForm({ products, sales = [], onSubmit }) {
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerOpen, setCustomerOpen] = useState(false);
   const [customerError, setCustomerError] = useState("");
+  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
   const filteredCustomers = useMemo(() => {
     const normalizedQuery = customerQuery.trim().toLowerCase();
 
@@ -245,6 +247,57 @@ function SalesForm({ products, sales = [], onSubmit }) {
     setItems((current) => current.filter((_, i) => i !== index));
   }
 
+  function reorderItems(fromIndex, toIndex) {
+    if (fromIndex === toIndex) {
+      return;
+    }
+
+    setItems((currentItems) => {
+      if (
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= currentItems.length ||
+        toIndex >= currentItems.length
+      ) {
+        return currentItems;
+      }
+
+      const nextItems = [...currentItems];
+      const [movedItem] = nextItems.splice(fromIndex, 1);
+      nextItems.splice(toIndex, 0, movedItem);
+      return nextItems;
+    });
+  }
+
+  function handleItemDragStart(event, index) {
+    setDraggedItemIndex(index);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", `${index}`);
+  }
+
+  function handleItemDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }
+
+  function handleItemDrop(event, index) {
+    event.preventDefault();
+    event.stopPropagation();
+    const transferredIndex = Number(event.dataTransfer.getData("text/plain"));
+    const fromIndex =
+      draggedItemIndex !== null ? draggedItemIndex : transferredIndex;
+
+    if (Number.isInteger(fromIndex)) {
+      reorderItems(fromIndex, index);
+    }
+
+    setDraggedItemIndex(null);
+  }
+
+  function handleItemDragEnd() {
+    setDraggedItemIndex(null);
+  }
+
   function selectCustomer(customer) {
     setForm((currentForm) => ({
       ...currentForm,
@@ -302,12 +355,13 @@ function SalesForm({ products, sales = [], onSubmit }) {
     const filteredItems = items
       .filter((item) => item.product_id && item.quantity && item.unit_price)
       .map((item) => {
+        const { line_id, ...itemPayload } = item;
         const selectedProduct = products.find(
           (product) => `${product.id}` === `${item.product_id}`
         );
 
         return {
-          ...item,
+          ...itemPayload,
           product_name: selectedProduct ? getProductName(selectedProduct) : item.product_name,
           sku: selectedProduct ? getProductSku(selectedProduct) : item.sku,
           amount: computeAmount(item),
@@ -322,6 +376,7 @@ function SalesForm({ products, sales = [], onSubmit }) {
     setVatMode("not_included");
     setCustomerQuery("");
     setCustomerError("");
+    setDraggedItemIndex(null);
   }
 
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
@@ -475,8 +530,28 @@ function SalesForm({ products, sales = [], onSubmit }) {
             const amount = computeAmount(item);
 
             return (
-              <div className="line-item-row sales-line-item-row" key={index}>
-                <div className="line-item-index" aria-label={`Item ${index + 1}`}>
+              <div
+                className={
+                  draggedItemIndex !== null && draggedItemIndex !== index
+                    ? "line-item-row sales-line-item-row is-drop-target"
+                    : "line-item-row sales-line-item-row"
+                }
+                key={item.line_id}
+                onDragOverCapture={handleItemDragOver}
+                onDropCapture={(event) => handleItemDrop(event, index)}
+              >
+                <div
+                  className={
+                    draggedItemIndex === index
+                      ? "line-item-index is-dragging"
+                      : "line-item-index"
+                  }
+                  draggable={items.length > 1}
+                  title={items.length > 1 ? "Drag to reorder" : "Item order"}
+                  aria-label={`Item ${index + 1}. Drag to reorder`}
+                  onDragStart={(event) => handleItemDragStart(event, index)}
+                  onDragEnd={handleItemDragEnd}
+                >
                   {index + 1}
                 </div>
 
