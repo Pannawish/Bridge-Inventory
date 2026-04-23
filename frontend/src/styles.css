@@ -346,9 +346,34 @@ textarea {
 }
 
 .notice-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   color: #0f5a3d;
   background: #e9fbf2;
   border: 1px solid #cbefdc;
+}
+
+.banner-close-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid #b9e2ca;
+  border-radius: 999px;
+  color: #0f5a3d;
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.banner-close-button:hover {
+  background: #fff;
 }
 
 .error-banner {

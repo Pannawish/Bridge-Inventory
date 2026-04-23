@@ -349,7 +349,19 @@ function App() {
           <h2>{activeTabDetails.label}</h2>
         </header>
 
-        {notice ? <div className="notice-banner">{notice}</div> : null}
+        {notice ? (
+          <div className="notice-banner">
+            <span>{notice}</span>
+            <button
+              className="banner-close-button"
+              type="button"
+              aria-label="Close notice"
+              onClick={() => setNotice("")}
+            >
+              X
+            </button>
+          </div>
+        ) : null}
         {error ? <div className="error-banner">{error}</div> : null}
 
         {loading ? (
