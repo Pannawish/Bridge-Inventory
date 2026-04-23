@@ -393,7 +393,7 @@ function SupplierPage() {
           <div className="section-heading supplier-directory-heading">
             <div>
               <p className="eyebrow">Suppliers</p>
-              <h3>Supplier Directory</h3>
+              <h3>Supplier List</h3>
             </div>
             <button className="primary-button" type="button" onClick={handleCreateSupplier}>
               New Supplier
@@ -420,7 +420,7 @@ function SupplierPage() {
             </div>
           </div>
 
-          <div className="supplier-directory-table" role="table" aria-label="Supplier directory">
+          <div className="supplier-directory-table" role="table" aria-label="Supplier list">
             {filteredSuppliers.length === 0 ? (
               <p className="empty-copy">No suppliers match the current search.</p>
             ) : (

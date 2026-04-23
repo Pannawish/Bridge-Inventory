@@ -393,7 +393,7 @@ function CustomerPage() {
           <div className="section-heading supplier-directory-heading">
             <div>
               <p className="eyebrow">Customers</p>
-              <h3>Customer Directory</h3>
+              <h3>Customer List</h3>
             </div>
             <button className="primary-button" type="button" onClick={handleCreateCustomer}>
               New Customer
@@ -420,7 +420,7 @@ function CustomerPage() {
             </div>
           </div>
 
-          <div className="supplier-directory-table" role="table" aria-label="Customer directory">
+          <div className="supplier-directory-table" role="table" aria-label="Customer list">
             {filteredCustomers.length === 0 ? (
               <p className="empty-copy">No customers match the current search.</p>
             ) : (
