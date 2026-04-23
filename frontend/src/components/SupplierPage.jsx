@@ -18,6 +18,7 @@ function createSupplier(overrides = {}) {
     shippingAddresses: [""],
     selectedShippingAddressIndex: 0,
     remark: "",
+    billingNoteDate: "",
     ...overrides,
   };
 }
@@ -41,6 +42,7 @@ const defaultSuppliers = [
     ],
     selectedShippingAddressIndex: 0,
     remark: "Primary supplier for stationery and semester opening stock.",
+    billingNoteDate: "Billing note received every Friday after supplier delivery confirmation.",
   }),
   createSupplier({
     id: "supplier-2",
@@ -57,6 +59,7 @@ const defaultSuppliers = [
     shippingAddresses: ["144 Rangsit-Nakhon Nayok Road, Thanyaburi, Pathum Thani 12110"],
     selectedShippingAddressIndex: 0,
     remark: "Handles whiteboard tools and teaching accessories.",
+    billingNoteDate: "Billing note should include PO reference and expected delivery date.",
   }),
 ];
 
@@ -101,6 +104,7 @@ function normalizeSupplier(supplier) {
       supplier.selectedShippingAddressIndex
     ),
     remark: `${supplier.remark ?? ""}`,
+    billingNoteDate: `${supplier.billingNoteDate ?? ""}`,
   };
 }
 
@@ -583,6 +587,16 @@ function SupplierPage() {
                     value={draftSupplier.remark}
                     onChange={(event) => updateTextField("remark", event.target.value)}
                     placeholder="Internal note about this supplier"
+                  />
+                </label>
+
+                <label className="full-width">
+                  Billing Note Date
+                  <textarea
+                    rows="4"
+                    value={draftSupplier.billingNoteDate}
+                    onChange={(event) => updateTextField("billingNoteDate", event.target.value)}
+                    placeholder="Billing note date or billing instruction text"
                   />
                 </label>
               </div>
