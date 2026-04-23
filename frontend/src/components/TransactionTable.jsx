@@ -164,7 +164,19 @@ function TransactionTable({
     setHasUnsavedItemChanges(true);
   }
 
-  function handleSavePurchaseItemUpdates() {
+  function handlePurchaseTaxInvoiceChange(nextValue) {
+    setSelectedRow((currentRow) =>
+      currentRow
+        ? {
+            ...currentRow,
+            supplier_tax_invoice: nextValue,
+          }
+        : currentRow
+    );
+    setHasUnsavedItemChanges(true);
+  }
+
+  function handleSavePurchaseUpdates() {
     onPurchaseItemStatusChange?.(selectedRow);
     setHasUnsavedItemChanges(false);
   }
@@ -429,10 +441,10 @@ function TransactionTable({
                   <button
                     className="primary-button table-action-button"
                     type="button"
-                    onClick={handleSavePurchaseItemUpdates}
+                    onClick={handleSavePurchaseUpdates}
                     disabled={!hasUnsavedItemChanges}
                   >
-                    Save Item Updates
+                    Save Purchase Updates
                   </button>
                 ) : null}
                 <button
@@ -478,6 +490,18 @@ function TransactionTable({
                   <strong>—</strong>
                 )}
               </div>
+              {type === "purchase" ? (
+                <div className="purchase-tax-invoice-field">
+                  <p className="detail-label">Supplier's Tax Invoice</p>
+                  <input
+                    className="purchase-tax-invoice-input"
+                    type="text"
+                    value={selectedRow.supplier_tax_invoice || ""}
+                    onChange={(event) => handlePurchaseTaxInvoiceChange(event.target.value)}
+                    placeholder="Enter supplier tax invoice"
+                  />
+                </div>
+              ) : null}
               <div className="full-width">
                 <p className="detail-label">Notes</p>
                 <strong>{selectedRow.note || "—"}</strong>

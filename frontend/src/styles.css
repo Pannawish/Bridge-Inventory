@@ -2014,6 +2014,33 @@ th {
   text-transform: uppercase;
 }
 
+.purchase-tax-invoice-field {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.purchase-tax-invoice-input {
+  width: min(280px, 100%);
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--text);
+  font-weight: 700;
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.purchase-tax-invoice-input::placeholder {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.purchase-tax-invoice-input:focus {
+  border-color: #b6c7ff;
+  box-shadow: 0 0 0 4px rgba(65, 104, 255, 0.10);
+}
+
 .detail-items {
   display: grid;
   gap: 12px;

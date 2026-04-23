@@ -223,9 +223,7 @@ function App() {
     setPurchases((currentRows) =>
       currentRows.map((row) => (row.id === updatedPurchase.id ? updatedPurchase : row))
     );
-    setNotice(
-      `Purchase ${updatedPurchase.reference_no || updatedPurchase.id} item status updated.`
-    );
+    setNotice(`Purchase ${updatedPurchase.reference_no || updatedPurchase.id} updated.`);
   }
 
   async function handleSaleStatusChange(saleId, nextStatus) {

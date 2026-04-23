@@ -38,6 +38,7 @@ function purchaseMatchesQuery(purchase, query) {
     purchase.status,
     purchase.transaction_date,
     purchase.note,
+    purchase.supplier_tax_invoice,
     ...(purchase.items || []).flatMap((item) => [
       item.product_name,
       item.sku,
