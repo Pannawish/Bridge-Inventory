@@ -123,6 +123,31 @@ function normalizeName(value) {
   return `${value ?? ""}`.trim().toLowerCase();
 }
 
+function parseUtcDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  const [year, month, day] = `${value}`.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return Date.UTC(year, month - 1, day);
+}
+
+function computeDateDiffInDays(startDate, endDate) {
+  const startTime = parseUtcDate(startDate);
+  const endTime = parseUtcDate(endDate);
+
+  if (startTime === null || endTime === null) {
+    return null;
+  }
+
+  return Math.max(0, Math.round((endTime - startTime) / 86400000));
+}
+
 function getMovementKey(item) {
   return normalizeSku(item.sku) || normalizeName(item.product_name);
 }
@@ -182,6 +207,8 @@ function createEmptyStockRow(key, overrides = {}) {
     allocated_sales_units: 0,
     pending_purchase_units: 0,
     delayed_purchase_units: 0,
+    lead_time_sample_days: 0,
+    lead_time_sample_count: 0,
   };
 }
 
@@ -266,6 +293,16 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
       if (storedStatus === "received") {
         row.received_purchase_units += quantity;
         row.received_purchase_value += computeAmount(item);
+
+        const leadTimeDays = computeDateDiffInDays(
+          purchase.transaction_date,
+          item.received_date
+        );
+
+        if (leadTimeDays !== null) {
+          row.lead_time_sample_days += leadTimeDays;
+          row.lead_time_sample_count += 1;
+        }
       } else if (displayStatus === "delayed") {
         row.delayed_purchase_units += quantity;
       } else if (storedStatus === "pending") {
@@ -302,20 +339,36 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
       item.received_purchase_units > 0
         ? item.received_purchase_value / item.received_purchase_units
         : 0;
+    const averageLeadTimeDays =
+      item.lead_time_sample_count > 0
+        ? item.lead_time_sample_days / item.lead_time_sample_count
+        : null;
+    const averageDailyDemand = (Number(item.predicted_7_day_demand) || 0) / 7;
+    const reorderLevelFromActualLeadTime =
+      averageLeadTimeDays !== null && averageDailyDemand > 0
+        ? Math.ceil(averageDailyDemand * averageLeadTimeDays)
+        : null;
     const stockValue = availableStock * avgUnitCost;
+    const reorderLevel =
+      reorderLevelFromActualLeadTime !== null
+        ? reorderLevelFromActualLeadTime
+        : item.reorder_level;
     const recommendedPurchase = Math.max(
       0,
-      item.reorder_level - availableStock - item.pending_purchase_units
+      reorderLevel - availableStock - item.pending_purchase_units
     );
     const daysUntilStockout =
-      item.predicted_7_day_demand > 0
-        ? Math.floor(availableStock / (item.predicted_7_day_demand / 7))
+      averageDailyDemand > 0
+        ? Math.floor(availableStock / averageDailyDemand)
         : null;
     const row = {
       ...item,
       available_stock: availableStock,
       current_stock: availableStock,
+      reorder_level: reorderLevel,
       average_unit_cost: avgUnitCost,
+      average_lead_time_days:
+        averageLeadTimeDays !== null ? Number(averageLeadTimeDays.toFixed(1)) : null,
       stock_value: stockValue,
       total_cost: stockValue,
       incoming_purchase_units: item.pending_purchase_units + item.delayed_purchase_units,
@@ -476,7 +529,9 @@ function Dashboard({ dashboard, purchases = [], sales = [] }) {
 
         <p className="inventory-note">
           Available stock is calculated from received purchase items minus active sales.
-          Pending and delayed purchase items are tracked separately as incoming stock.
+          Reorder point now uses each product's actual received lead time from purchase date to
+          item received date. Pending and delayed purchase items are tracked separately as incoming
+          stock.
         </p>
 
         <div className="stock-report-toolbar">
