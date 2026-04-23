@@ -220,7 +220,10 @@ function TransactionTable({
                       <th>Grand Total</th>
                     </>
                   ) : (
-                    <th>Total</th>
+                    <>
+                      <th>Supplier's Tax Invoice</th>
+                      <th>Total</th>
+                    </>
                   )}
                   <th>Document</th>
                   <th />
@@ -279,7 +282,10 @@ function TransactionTable({
                           </td>
                         </>
                       ) : (
-                        <td>{formatCurrency(row.total_amount)}</td>
+                        <>
+                          <td>{row.supplier_tax_invoice || "—"}</td>
+                          <td>{formatCurrency(row.total_amount)}</td>
+                        </>
                       )}
                       <td>
                         {row.document_url ? (
@@ -366,10 +372,16 @@ function TransactionTable({
                       </>
                     ) : (
                       <div>
+                        <span>Supplier's Tax Invoice</span>
+                        <strong>{row.supplier_tax_invoice || "—"}</strong>
+                      </div>
+                    )}
+                    {type === "purchase" ? (
+                      <div>
                         <span>Total</span>
                         <strong>{formatCurrency(row.total_amount)}</strong>
                       </div>
-                    )}
+                    ) : null}
                     <div className="full-width-mobile">
                       <span>Items</span>
                       <div className="item-pill-list">
