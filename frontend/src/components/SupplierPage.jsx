@@ -222,6 +222,7 @@ function SupplierPage() {
 
         return (
           supplier.companyName.toLowerCase().includes(normalizedSearch) ||
+          supplier.taxpayerId.toLowerCase().includes(normalizedSearch) ||
           supplier.locations.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
           supplier.emails.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
           supplier.tels.some((item) => item.toLowerCase().includes(normalizedSearch))
@@ -411,7 +412,7 @@ function SupplierPage() {
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search supplier, location, email, or tel"
+                placeholder="Search supplier, taxpayer ID, location, email, or tel"
               />
             </label>
             <div className="stock-report-summary supplier-search-meta">
@@ -419,32 +420,86 @@ function SupplierPage() {
             </div>
           </div>
 
-          <div className="supplier-list">
+          <div className="supplier-directory-table" role="table" aria-label="Supplier directory">
             {filteredSuppliers.length === 0 ? (
               <p className="empty-copy">No suppliers match the current search.</p>
             ) : (
-              filteredSuppliers.map((supplier) => {
-                const isActive = supplier.id === selectedSupplierId;
+              <>
+                <div className="supplier-directory-head" role="row">
+                  <span className="supplier-directory-column supplier-directory-index" role="columnheader">
+                    #
+                  </span>
+                  <span className="supplier-directory-column" role="columnheader">
+                    Supplier Company Name
+                  </span>
+                  <span className="supplier-directory-column" role="columnheader">
+                    Supplier Taxpayer Identification Number
+                  </span>
+                  <span className="supplier-directory-column" role="columnheader">
+                    Supplier Email
+                  </span>
+                  <span className="supplier-directory-column" role="columnheader">
+                    Supplier Tel
+                  </span>
+                </div>
 
-                return (
-                  <button
-                    key={supplier.id}
-                    type="button"
-                    className={isActive ? "supplier-list-item active" : "supplier-list-item"}
-                    onClick={() => openSupplierEditor(supplier)}
-                  >
-                    <div className="supplier-list-top">
-                      <strong>{supplier.companyName || "Unnamed Supplier"}</strong>
-                      <span className="status-badge status-ordered">Saved</span>
-                    </div>
-                    <span>
-                      {getSelectedValue(supplier.locations, supplier.selectedLocationIndex)}
-                    </span>
-                    <span>{getSelectedValue(supplier.emails, supplier.selectedEmailIndex)}</span>
-                    <span>{getSelectedValue(supplier.tels, supplier.selectedTelIndex)}</span>
-                  </button>
-                );
-              })
+                <div className="supplier-directory-body" role="rowgroup">
+                  {filteredSuppliers.map((supplier, index) => {
+                    const isActive = supplier.id === selectedSupplierId;
+
+                    return (
+                      <button
+                        key={supplier.id}
+                        type="button"
+                        className={
+                          isActive
+                            ? "supplier-directory-row active"
+                            : "supplier-directory-row"
+                        }
+                        onClick={() => openSupplierEditor(supplier)}
+                        role="row"
+                      >
+                        <span className="supplier-directory-cell supplier-directory-index" role="cell">
+                          <span className="supplier-directory-cell-label">#</span>
+                          <strong className="supplier-directory-cell-value">{index + 1}</strong>
+                        </span>
+
+                        <span className="supplier-directory-cell" role="cell">
+                          <span className="supplier-directory-cell-label">
+                            Supplier Company Name
+                          </span>
+                          <strong className="supplier-directory-cell-value">
+                            {supplier.companyName || "Unnamed Supplier"}
+                          </strong>
+                        </span>
+
+                        <span className="supplier-directory-cell" role="cell">
+                          <span className="supplier-directory-cell-label">
+                            Supplier Taxpayer Identification Number
+                          </span>
+                          <span className="supplier-directory-cell-value">
+                            {supplier.taxpayerId || "—"}
+                          </span>
+                        </span>
+
+                        <span className="supplier-directory-cell" role="cell">
+                          <span className="supplier-directory-cell-label">Supplier Email</span>
+                          <span className="supplier-directory-cell-value">
+                            {getSelectedValue(supplier.emails, supplier.selectedEmailIndex)}
+                          </span>
+                        </span>
+
+                        <span className="supplier-directory-cell" role="cell">
+                          <span className="supplier-directory-cell-label">Supplier Tel</span>
+                          <span className="supplier-directory-cell-value">
+                            {getSelectedValue(supplier.tels, supplier.selectedTelIndex)}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
         </section>
