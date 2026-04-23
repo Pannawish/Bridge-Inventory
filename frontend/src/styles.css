@@ -1521,6 +1521,27 @@ th {
   gap: 12px;
 }
 
+.mobile-record-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mobile-record-index {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #ccd6ef;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
 .mobile-record-grid,
 .mobile-stock-grid {
   display: grid;

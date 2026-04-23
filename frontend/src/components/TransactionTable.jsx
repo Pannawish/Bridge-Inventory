@@ -195,6 +195,7 @@ function TransactionTable({
             <table>
               <thead>
                 <tr>
+                  <th className="table-index-cell">#</th>
                   <th>Reference</th>
                   <th>{type === "purchase" ? "Supplier" : "Customer"}</th>
                   <th>Status</th>
@@ -214,11 +215,12 @@ function TransactionTable({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => {
+                {rows.map((row, rowIndex) => {
                   const salesSummary = type === "sale" ? getVatSummary(row) : null;
 
                   return (
                     <tr key={`${type}-${row.id}`}>
+                      <td className="table-index-cell">{rowIndex + 1}</td>
                       <td>{row.reference_no}</td>
                       <td>{row[personKey]}</td>
                       <td>
@@ -293,15 +295,18 @@ function TransactionTable({
           </div>
 
           <div className="mobile-record-list">
-            {rows.map((row) => {
+            {rows.map((row, rowIndex) => {
               const salesSummary = type === "sale" ? getVatSummary(row) : null;
 
               return (
                 <article className="mobile-record-card" key={`mobile-${type}-${row.id}`}>
                   <div className="mobile-record-header">
-                    <div className="cell-stack">
-                      <strong>{row.reference_no}</strong>
-                      <span>{row[personKey]}</span>
+                    <div className="mobile-record-title">
+                      <span className="mobile-record-index">{rowIndex + 1}</span>
+                      <div className="cell-stack">
+                        <strong>{row.reference_no}</strong>
+                        <span>{row[personKey]}</span>
+                      </div>
                     </div>
                     <select
                       className={`status-select status-${row.status}`}
