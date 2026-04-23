@@ -81,7 +81,6 @@ function App() {
         "Ask about low stock, recent sales, or which products need restocking.",
     },
   ]);
-  const activeTabDetails = tabs.find((tab) => tab.id === activeTab) || tabs[0];
 
   async function loadData() {
     setLoading(true);
@@ -331,10 +330,6 @@ function App() {
       </aside>
 
       <main className="main-panel">
-        <header className="topbar">
-          <h2>{activeTabDetails.label}</h2>
-        </header>
-
         {notice ? (
           <div className="notice-banner">
             <span>{notice}</span>
