@@ -1283,6 +1283,7 @@ th {
 .supplier-directory-table {
   display: grid;
   gap: 10px;
+  overflow-x: auto;
 }
 
 .supplier-directory-head,
@@ -1363,6 +1364,21 @@ th {
 
 .supplier-directory-cell strong.supplier-directory-cell-value {
   color: var(--text);
+}
+
+.product-directory-grid {
+  grid-template-columns:
+    56px
+    minmax(100px, 0.75fr)
+    minmax(220px, 1.6fr)
+    minmax(140px, 1fr)
+    minmax(150px, 1fr)
+    minmax(110px, 0.75fr)
+    minmax(120px, 0.8fr);
+}
+
+.category-directory-grid {
+  grid-template-columns: 56px minmax(220px, 1fr) minmax(320px, 2fr);
 }
 
 .supplier-option-field {

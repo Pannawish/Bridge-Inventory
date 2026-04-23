@@ -440,7 +440,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
           <div className="section-heading supplier-directory-heading">
             <div>
               <p className="eyebrow">Products</p>
-              <h3>Product Catalog</h3>
+              <h3>Product List</h3>
             </div>
             <button className="primary-button" type="button" onClick={handleCreateProduct}>
               New Product
@@ -466,42 +466,90 @@ function ProductsPage({ purchases = [], sales = [] }) {
             </div>
           </div>
 
-          <div className="supplier-list">
+          <div className="supplier-directory-table" role="table" aria-label="Product list">
             {productsWithMetrics.length === 0 ? (
               <p className="empty-copy">No products match the current search.</p>
             ) : (
-              productsWithMetrics.map(({ product, metrics }) => {
-                return (
-                  <button
-                    key={product.id}
-                    type="button"
-                    className="supplier-list-item product-list-card"
-                    onClick={() => openProductDetail(product)}
-                  >
-                    <strong className="product-card-name">
-                      {product.productName || product.sku || "Unnamed Product"}
-                    </strong>
-                    <div className="product-card-stats">
-                      <div className="product-card-stat">
-                        <span>SKU</span>
-                        <strong>{product.sku || "—"}</strong>
-                      </div>
-                      <div className="product-card-stat">
-                        <span>Category</span>
-                        <strong>{product.category || "—"}</strong>
-                      </div>
-                      <div className="product-card-stat">
-                        <span>Total Units</span>
-                        <strong>{metrics.totalUnits}</strong>
-                      </div>
-                      <div className="product-card-stat">
-                        <span>Avg Price</span>
-                        <strong>{formatCurrency(metrics.avgPrice)}</strong>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })
+              <>
+                <div className="supplier-directory-head product-directory-grid" role="row">
+                  <span className="supplier-directory-column supplier-directory-index" role="columnheader">
+                    #
+                  </span>
+                  <span className="supplier-directory-column" role="columnheader">
+                    Product ID
+                  </span>
+                  <span className="supplier-directory-column" role="columnheader">
+                    Product Name
+                  </span>
+                  <span className="supplier-directory-column" role="columnheader">
+                    SKU
+                  </span>
+                  <span className="supplier-directory-column" role="columnheader">
+                    Category
+                  </span>
+                  <span className="supplier-directory-column" role="columnheader">
+                    Total Units
+                  </span>
+                  <span className="supplier-directory-column" role="columnheader">
+                    Avg Price
+                  </span>
+                </div>
+
+                <div className="supplier-directory-body" role="rowgroup">
+                  {productsWithMetrics.map(({ product, metrics }, index) => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      className="supplier-directory-row product-directory-grid"
+                      onClick={() => openProductDetail(product)}
+                      role="row"
+                    >
+                      <span className="supplier-directory-cell supplier-directory-index" role="cell">
+                        <span className="supplier-directory-cell-label">#</span>
+                        <strong className="supplier-directory-cell-value">{index + 1}</strong>
+                      </span>
+
+                      <span className="supplier-directory-cell" role="cell">
+                        <span className="supplier-directory-cell-label">Product ID</span>
+                        <span className="supplier-directory-cell-value">
+                          {product.productDisplayId || "—"}
+                        </span>
+                      </span>
+
+                      <span className="supplier-directory-cell" role="cell">
+                        <span className="supplier-directory-cell-label">Product Name</span>
+                        <strong className="supplier-directory-cell-value">
+                          {product.productName || product.sku || "Unnamed Product"}
+                        </strong>
+                      </span>
+
+                      <span className="supplier-directory-cell" role="cell">
+                        <span className="supplier-directory-cell-label">SKU</span>
+                        <span className="supplier-directory-cell-value">{product.sku || "—"}</span>
+                      </span>
+
+                      <span className="supplier-directory-cell" role="cell">
+                        <span className="supplier-directory-cell-label">Category</span>
+                        <span className="supplier-directory-cell-value">
+                          {product.category || "—"}
+                        </span>
+                      </span>
+
+                      <span className="supplier-directory-cell" role="cell">
+                        <span className="supplier-directory-cell-label">Total Units</span>
+                        <span className="supplier-directory-cell-value">{metrics.totalUnits}</span>
+                      </span>
+
+                      <span className="supplier-directory-cell" role="cell">
+                        <span className="supplier-directory-cell-label">Avg Price</span>
+                        <span className="supplier-directory-cell-value">
+                          {formatCurrency(metrics.avgPrice)}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </section>

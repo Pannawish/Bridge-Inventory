@@ -204,7 +204,7 @@ function CategoryPage() {
         <div className="section-heading supplier-directory-heading">
           <div>
             <p className="eyebrow">Category</p>
-            <h3>Category Directory</h3>
+            <h3>Category List</h3>
           </div>
           <button className="primary-button" type="button" onClick={() => openCategoryEditor()}>
             New Category
@@ -226,21 +226,54 @@ function CategoryPage() {
           </div>
         </div>
 
-        <div className="supplier-list">
+        <div className="supplier-directory-table" role="table" aria-label="Category list">
           {filteredCategories.length === 0 ? (
             <p className="empty-copy">No categories match the current search.</p>
           ) : (
-            filteredCategories.map((category) => (
-              <button
-                key={category.id}
-                type="button"
-                className="supplier-list-item product-list-card"
-                onClick={() => openCategoryEditor(category)}
-              >
-                <strong className="product-card-name">{category.name}</strong>
-                <span>{category.description || "No description."}</span>
-              </button>
-            ))
+            <>
+              <div className="supplier-directory-head category-directory-grid" role="row">
+                <span className="supplier-directory-column supplier-directory-index" role="columnheader">
+                  #
+                </span>
+                <span className="supplier-directory-column" role="columnheader">
+                  Category Name
+                </span>
+                <span className="supplier-directory-column" role="columnheader">
+                  Description
+                </span>
+              </div>
+
+              <div className="supplier-directory-body" role="rowgroup">
+                {filteredCategories.map((category, index) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    className="supplier-directory-row category-directory-grid"
+                    onClick={() => openCategoryEditor(category)}
+                    role="row"
+                  >
+                    <span className="supplier-directory-cell supplier-directory-index" role="cell">
+                      <span className="supplier-directory-cell-label">#</span>
+                      <strong className="supplier-directory-cell-value">{index + 1}</strong>
+                    </span>
+
+                    <span className="supplier-directory-cell" role="cell">
+                      <span className="supplier-directory-cell-label">Category Name</span>
+                      <strong className="supplier-directory-cell-value">
+                        {category.name || "Unnamed Category"}
+                      </strong>
+                    </span>
+
+                    <span className="supplier-directory-cell" role="cell">
+                      <span className="supplier-directory-cell-label">Description</span>
+                      <span className="supplier-directory-cell-value">
+                        {category.description || "No description."}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </section>
