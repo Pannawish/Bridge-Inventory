@@ -1,12 +1,57 @@
 import { useEffect, useMemo, useState } from "react";
 
 export const CATEGORY_STORAGE_KEY = "inventory-management-categories";
+const PRODUCT_STORAGE_KEY = "inventory-management-products";
 
 const defaultCategories = [
-  { id: "category-1", name: "Stationery", description: "Paper, notebooks, and general office supplies." },
-  { id: "category-2", name: "Writing Tools", description: "Pens, markers, pencils, and related writing items." },
-  { id: "category-3", name: "Desk Accessories", description: "Staplers, clips, folders, and desktop tools." },
-  { id: "category-4", name: "Paper Goods", description: "Sticky notes, file paper, and paper-based products." },
+  {
+    id: "category-stationery",
+    name: "Stationery",
+    description: "Paper, notebooks, and general office supplies.",
+    parentId: null,
+  },
+  {
+    id: "category-notebooks",
+    name: "Notebooks",
+    description: "Exercise books, notebooks, and writing pads.",
+    parentId: "category-stationery",
+  },
+  {
+    id: "category-writing-tools",
+    name: "Writing Tools",
+    description: "Pens, markers, pencils, and related writing items.",
+    parentId: null,
+  },
+  {
+    id: "category-pens",
+    name: "Pens",
+    description: "Ballpoint pens, gel pens, and office writing pens.",
+    parentId: "category-writing-tools",
+  },
+  {
+    id: "category-desk-accessories",
+    name: "Desk Accessories",
+    description: "Staplers, clips, folders, and desktop tools.",
+    parentId: null,
+  },
+  {
+    id: "category-staplers",
+    name: "Staplers",
+    description: "Desktop staplers and fastening tools.",
+    parentId: "category-desk-accessories",
+  },
+  {
+    id: "category-paper-goods",
+    name: "Paper Goods",
+    description: "Sticky notes, file paper, and paper-based products.",
+    parentId: null,
+  },
+  {
+    id: "category-sticky-notes",
+    name: "Sticky Notes",
+    description: "Sticky note pads and adhesive memo paper.",
+    parentId: "category-paper-goods",
+  },
 ];
 
 function createCategory(overrides = {}) {
@@ -14,6 +59,7 @@ function createCategory(overrides = {}) {
     id: `category-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     name: "",
     description: "",
+    parentId: null,
     ...overrides,
   };
 }
@@ -27,6 +73,7 @@ function normalizeCategory(category) {
     id: category.id || createCategory().id,
     name: `${category.name ?? ""}`.trim(),
     description: `${category.description ?? ""}`,
+    parentId: category.parentId || null,
   };
 }
 
@@ -36,6 +83,81 @@ export function normalizeCategoryName(name) {
 
 export function getDefaultCategories() {
   return defaultCategories;
+}
+
+export function buildCategoryLookup(categories) {
+  return new Map(categories.map((category) => [category.id, category]));
+}
+
+function getCategoryChildrenMap(categories) {
+  const childMap = new Map();
+
+  categories.forEach((category) => {
+    const parentKey = category.parentId || null;
+
+    if (!childMap.has(parentKey)) {
+      childMap.set(parentKey, []);
+    }
+
+    childMap.get(parentKey).push(category);
+  });
+
+  return childMap;
+}
+
+export function getCategoryPathById(categories, categoryId) {
+  if (!categoryId) {
+    return "";
+  }
+
+  const categoryLookup = buildCategoryLookup(categories);
+  const pathParts = [];
+  let currentCategory = categoryLookup.get(categoryId);
+  const visited = new Set();
+
+  while (currentCategory && !visited.has(currentCategory.id)) {
+    visited.add(currentCategory.id);
+    pathParts.unshift(currentCategory.name);
+    currentCategory = currentCategory.parentId
+      ? categoryLookup.get(currentCategory.parentId)
+      : null;
+  }
+
+  return pathParts.join(" / ");
+}
+
+export function getLeafCategoryOptions(categories) {
+  const childMap = getCategoryChildrenMap(categories);
+
+  return categories
+    .filter((category) => !(childMap.get(category.id) || []).length)
+    .map((category) => ({
+      id: category.id,
+      name: category.name,
+      label: getCategoryPathById(categories, category.id) || category.name,
+    }));
+}
+
+export function resolveLegacyCategoryId(categories, categoryName = "") {
+  const normalizedName = getCategoryKey(categoryName);
+
+  if (!normalizedName) {
+    return "";
+  }
+
+  const exactLeafMatch = getLeafCategoryOptions(categories).find(
+    (category) => getCategoryKey(category.name) === normalizedName
+  );
+
+  if (exactLeafMatch) {
+    return exactLeafMatch.id;
+  }
+
+  const exactMatch = categories.find(
+    (category) => getCategoryKey(category.name) === normalizedName
+  );
+
+  return exactMatch?.id || "";
 }
 
 export function loadCategories() {
@@ -61,7 +183,7 @@ export function loadCategories() {
     return parsed
       .map(normalizeCategory)
       .filter((category) => {
-        const key = getCategoryKey(category.name);
+        const key = `${category.parentId || "root"}::${getCategoryKey(category.name)}`;
 
         if (!key || seen.has(key)) {
           return false;
@@ -75,11 +197,54 @@ export function loadCategories() {
   }
 }
 
+function loadStoredProducts() {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(PRODUCT_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function getAssignedCategoryId(product, categories) {
+  if (product.categoryId && categories.some((category) => category.id === product.categoryId)) {
+    return product.categoryId;
+  }
+
+  return resolveLegacyCategoryId(categories, product.category);
+}
+
+function hasCategoryChildren(categories, categoryId) {
+  return categories.some((category) => category.parentId === categoryId);
+}
+
+function isDescendantCategory(categories, categoryId, potentialParentId) {
+  let currentParentId = potentialParentId;
+
+  while (currentParentId) {
+    if (currentParentId === categoryId) {
+      return true;
+    }
+
+    currentParentId =
+      categories.find((category) => category.id === currentParentId)?.parentId || null;
+  }
+
+  return false;
+}
+
 function CategoryPage() {
   const [categories, setCategories] = useState(() => loadCategories());
   const [draftCategory, setDraftCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [formError, setFormError] = useState("");
+  const [collapsedCategoryIds, setCollapsedCategoryIds] = useState(() => new Set());
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -103,20 +268,103 @@ function CategoryPage() {
   }, [draftCategory]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filteredCategories = useMemo(
-    () =>
-      categories.filter((category) => {
-        if (!normalizedSearch) {
-          return true;
-        }
+  const filteredCategories = useMemo(() => {
+    if (!normalizedSearch) {
+      return categories;
+    }
 
-        return (
-          category.name.toLowerCase().includes(normalizedSearch) ||
-          category.description.toLowerCase().includes(normalizedSearch)
-        );
-      }),
-    [categories, normalizedSearch]
+    const matchingIds = new Set(
+      categories
+        .filter((category) => {
+          const path = getCategoryPathById(categories, category.id).toLowerCase();
+
+          return (
+            category.name.toLowerCase().includes(normalizedSearch) ||
+            category.description.toLowerCase().includes(normalizedSearch) ||
+            path.includes(normalizedSearch)
+          );
+        })
+        .map((category) => category.id)
+    );
+    const visibleIds = new Set(matchingIds);
+
+    matchingIds.forEach((categoryId) => {
+      let currentParentId =
+        categories.find((category) => category.id === categoryId)?.parentId || null;
+
+      while (currentParentId) {
+        visibleIds.add(currentParentId);
+        currentParentId =
+          categories.find((category) => category.id === currentParentId)?.parentId || null;
+      }
+    });
+
+    return categories.filter((category) => visibleIds.has(category.id));
+  }, [categories, normalizedSearch]);
+  const visibleCategoryIds = useMemo(
+    () => new Set(filteredCategories.map((category) => category.id)),
+    [filteredCategories]
   );
+  const categoryRows = useMemo(() => {
+    const childMap = getCategoryChildrenMap(categories);
+    const rows = [];
+
+    function visit(parentId, depth) {
+      const children = (childMap.get(parentId) || []).filter((category) =>
+        visibleCategoryIds.has(category.id)
+      );
+
+      children.forEach((category) => {
+        const visibleChildren = (childMap.get(category.id) || []).filter((child) =>
+          visibleCategoryIds.has(child.id)
+        );
+
+        rows.push({
+          category,
+          depth,
+          hasChildren: visibleChildren.length > 0,
+        });
+
+        if (!collapsedCategoryIds.has(category.id)) {
+          visit(category.id, depth + 1);
+        }
+      });
+    }
+
+    visit(null, 0);
+    return rows;
+  }, [categories, collapsedCategoryIds, visibleCategoryIds]);
+  const productAssignments = useMemo(() => {
+    const assignmentCount = new Map();
+
+    loadStoredProducts().forEach((product) => {
+      const categoryId = getAssignedCategoryId(product, categories);
+
+      if (!categoryId) {
+        return;
+      }
+
+      assignmentCount.set(categoryId, (assignmentCount.get(categoryId) || 0) + 1);
+    });
+
+    return assignmentCount;
+  }, [categories]);
+  const parentCategoryOptions = useMemo(() => {
+    if (!draftCategory) {
+      return [];
+    }
+
+    return categories
+      .filter((category) => category.id !== draftCategory.id)
+      .filter((category) => !isDescendantCategory(categories, draftCategory.id, category.id))
+      .map((category) => ({
+        id: category.id,
+        label: getCategoryPathById(categories, category.id) || category.name,
+        disabled:
+          (productAssignments.get(category.id) || 0) > 0 &&
+          draftCategory.parentId !== category.id,
+      }));
+  }, [categories, draftCategory, productAssignments]);
 
   function openCategoryEditor(category = createCategory()) {
     setDraftCategory(category);
@@ -134,6 +382,20 @@ function CategoryPage() {
     );
   }
 
+  function toggleCategoryFolder(categoryId) {
+    setCollapsedCategoryIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+
+      if (nextIds.has(categoryId)) {
+        nextIds.delete(categoryId);
+      } else {
+        nextIds.add(categoryId);
+      }
+
+      return nextIds;
+    });
+  }
+
   function handleSaveCategory(event) {
     event.preventDefault();
 
@@ -149,14 +411,39 @@ function CategoryPage() {
       return;
     }
 
+    if (
+      nextCategory.parentId &&
+      isDescendantCategory(categories, nextCategory.id, nextCategory.parentId)
+    ) {
+      setFormError("Parent category cannot be the current category or its child.");
+      return;
+    }
+
+    if (
+      nextCategory.parentId &&
+      (productAssignments.get(nextCategory.parentId) || 0) > 0
+    ) {
+      setFormError("A category with assigned products cannot become a parent folder.");
+      return;
+    }
+
     const duplicate = categories.some(
       (category) =>
         category.id !== nextCategory.id &&
+        category.parentId === nextCategory.parentId &&
         getCategoryKey(category.name) === nextKey
     );
 
     if (duplicate) {
-      setFormError("This category already exists.");
+      setFormError("This category already exists in the selected parent folder.");
+      return;
+    }
+
+    if (
+      hasCategoryChildren(categories, nextCategory.id) &&
+      (productAssignments.get(nextCategory.id) || 0) > 0
+    ) {
+      setFormError("A folder category cannot keep products assigned to it directly.");
       return;
     }
 
@@ -181,6 +468,16 @@ function CategoryPage() {
 
     if (!exists) {
       closeCategoryEditor();
+      return;
+    }
+
+    if (hasCategoryChildren(categories, draftCategory.id)) {
+      setFormError("Delete or move subcategories before deleting this folder.");
+      return;
+    }
+
+    if ((productAssignments.get(draftCategory.id) || 0) > 0) {
+      setFormError("This category is assigned to products and cannot be deleted.");
       return;
     }
 
@@ -227,16 +524,16 @@ function CategoryPage() {
         </div>
 
         <div className="supplier-directory-table" role="table" aria-label="Category list">
-          {filteredCategories.length === 0 ? (
+          {categoryRows.length === 0 ? (
             <p className="empty-copy">No categories match the current search.</p>
           ) : (
             <>
               <div className="supplier-directory-head category-directory-grid" role="row">
-                <span className="supplier-directory-column supplier-directory-index" role="columnheader">
-                  #
-                </span>
                 <span className="supplier-directory-column" role="columnheader">
                   Category Name
+                </span>
+                <span className="supplier-directory-column" role="columnheader">
+                  Parent Category
                 </span>
                 <span className="supplier-directory-column" role="columnheader">
                   Description
@@ -244,24 +541,60 @@ function CategoryPage() {
               </div>
 
               <div className="supplier-directory-body" role="rowgroup">
-                {filteredCategories.map((category, index) => (
-                  <button
+                {categoryRows.map(({ category, depth, hasChildren }) => (
+                  <div
                     key={category.id}
-                    type="button"
                     className="supplier-directory-row category-directory-grid"
                     onClick={() => openCategoryEditor(category)}
-                    role="row"
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openCategoryEditor(category);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
-                    <span className="supplier-directory-cell supplier-directory-index" role="cell">
-                      <span className="supplier-directory-cell-label">#</span>
-                      <strong className="supplier-directory-cell-value">{index + 1}</strong>
+                    <span className="supplier-directory-cell" role="cell">
+                      <span className="supplier-directory-cell-label">Category Name</span>
+                      <span
+                        className="category-tree-cell"
+                        style={{ paddingInlineStart: `${depth * 20}px` }}
+                      >
+                        {hasChildren ? (
+                          <button
+                            className="category-tree-toggle"
+                            type="button"
+                            aria-label={
+                              collapsedCategoryIds.has(category.id)
+                                ? `Expand ${category.name}`
+                                : `Collapse ${category.name}`
+                            }
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleCategoryFolder(category.id);
+                            }}
+                          >
+                            {collapsedCategoryIds.has(category.id) ? ">" : "v"}
+                          </button>
+                        ) : (
+                          <span className="category-tree-toggle placeholder" aria-hidden="true">
+                            .
+                          </span>
+                        )}
+                        <strong className="supplier-directory-cell-value category-tree-name">
+                          {category.name || "Unnamed Category"}
+                        </strong>
+                      </span>
                     </span>
 
                     <span className="supplier-directory-cell" role="cell">
-                      <span className="supplier-directory-cell-label">Category Name</span>
-                      <strong className="supplier-directory-cell-value">
-                        {category.name || "Unnamed Category"}
-                      </strong>
+                      <span className="supplier-directory-cell-label">Parent Category</span>
+                      <span className="supplier-directory-cell-value">
+                        {category.parentId
+                          ? getCategoryPathById(categories, category.parentId) || "—"
+                          : "Root"}
+                      </span>
                     </span>
 
                     <span className="supplier-directory-cell" role="cell">
@@ -270,7 +603,7 @@ function CategoryPage() {
                         {category.description || "No description."}
                       </span>
                     </span>
-                  </button>
+                  </div>
                 ))}
               </div>
             </>
@@ -321,6 +654,25 @@ function CategoryPage() {
                     placeholder="e.g. Stationery"
                     required
                   />
+                </label>
+
+                <label className="full-width">
+                  Parent Category
+                  <select
+                    value={draftCategory.parentId || ""}
+                    onChange={(event) => {
+                      updateDraftField("parentId", event.target.value || null);
+                      setFormError("");
+                    }}
+                  >
+                    <option value="">Root Category</option>
+                    {parentCategoryOptions.map((category) => (
+                      <option key={category.id} value={category.id} disabled={category.disabled}>
+                        {category.label}
+                        {category.disabled ? " (Has assigned products)" : ""}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 <label className="full-width">

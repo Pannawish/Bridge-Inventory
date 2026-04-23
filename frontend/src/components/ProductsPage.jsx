@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadCategories } from "./CategoryPage";
+import {
+  getCategoryPathById,
+  getLeafCategoryOptions,
+  loadCategories,
+  resolveLegacyCategoryId,
+} from "./CategoryPage";
 import {
   formatStatusLabel,
   getPurchaseItemDisplayStatus,
@@ -15,6 +20,7 @@ function createProduct(overrides = {}) {
     productDisplayId: 1001,
     sku: "",
     productName: "",
+    categoryId: "",
     category: "",
     detail: "",
     pictureUrl: "",
@@ -28,7 +34,8 @@ const defaultProducts = [
     productDisplayId: 1001,
     sku: "NB-A5-001",
     productName: "Notebook A5",
-    category: "Stationery",
+    categoryId: "category-notebooks",
+    category: "Stationery / Notebooks",
     detail: "Standard A5 spiral notebook, 80 pages, ruled. Suitable for students and office use.",
     pictureUrl: "",
   }),
@@ -37,7 +44,8 @@ const defaultProducts = [
     productDisplayId: 1002,
     sku: "PEN-BL-014",
     productName: "Blue Ballpoint Pen",
-    category: "Writing Tools",
+    categoryId: "category-pens",
+    category: "Writing Tools / Pens",
     detail: "Medium tip blue ballpoint pen. Smooth writing, long-lasting ink.",
     pictureUrl: "",
   }),
@@ -46,7 +54,8 @@ const defaultProducts = [
     productDisplayId: 1003,
     sku: "STP-MN-009",
     productName: "Mini Stapler",
-    category: "Desk Accessories",
+    categoryId: "category-staplers",
+    category: "Desk Accessories / Staplers",
     detail: "Compact desktop stapler. Accepts standard 26/6 staples. Capacity up to 20 sheets.",
     pictureUrl: "",
   }),
@@ -55,7 +64,8 @@ const defaultProducts = [
     productDisplayId: 1004,
     sku: "STK-NT-022",
     productName: "Sticky Notes Set",
-    category: "Paper Goods",
+    categoryId: "category-sticky-notes",
+    category: "Paper Goods / Sticky Notes",
     detail: "Pack of 4 sticky note pads, 100 sheets each. Assorted colors.",
     pictureUrl: "",
   }),
@@ -67,6 +77,7 @@ function normalizeProduct(product) {
     productDisplayId: Math.max(1, Math.round(Number(product.productDisplayId) || 1001)),
     sku: `${product.sku ?? ""}`,
     productName: `${product.productName ?? ""}`,
+    categoryId: `${product.categoryId ?? ""}`,
     category: `${product.category ?? ""}`,
     detail: `${product.detail ?? ""}`,
     pictureUrl: `${product.pictureUrl ?? ""}`,
@@ -171,6 +182,24 @@ function matchesSku(item, sku) {
   return normalizeSku(item.sku) === normalizedSku;
 }
 
+function resolveProductCategoryId(product, categories) {
+  if (product.categoryId && categories.some((category) => category.id === product.categoryId)) {
+    return product.categoryId;
+  }
+
+  return resolveLegacyCategoryId(categories, product.category);
+}
+
+function getProductCategoryLabel(product, categories) {
+  const categoryId = resolveProductCategoryId(product, categories);
+
+  if (categoryId) {
+    return getCategoryPathById(categories, categoryId) || product.category || "";
+  }
+
+  return product.category || "";
+}
+
 function getProductMetrics(product, purchases, sales) {
   const purchaseItems = purchases.flatMap((purchase) =>
     (purchase.items || [])
@@ -223,6 +252,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
   const [viewingTransaction, setViewingTransaction] = useState(null);
   const [draftProduct, setDraftProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [productFormError, setProductFormError] = useState("");
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -265,18 +295,24 @@ function ProductsPage({ purchases = [], sales = [] }) {
   const filteredProducts = useMemo(
     () =>
       products.filter((product) => {
+        const categoryLabel = getProductCategoryLabel(product, categories).toLowerCase();
+
         if (!normalizedSearch) {
           return true;
         }
 
         return (
           product.productName.toLowerCase().includes(normalizedSearch) ||
-          product.category.toLowerCase().includes(normalizedSearch) ||
+          categoryLabel.includes(normalizedSearch) ||
           product.sku.toLowerCase().includes(normalizedSearch) ||
           `${product.productDisplayId}`.includes(normalizedSearch)
         );
       }),
-    [normalizedSearch, products]
+    [categories, normalizedSearch, products]
+  );
+  const leafCategoryOptions = useMemo(
+    () => getLeafCategoryOptions(categories),
+    [categories]
   );
 
   const productsWithMetrics = useMemo(
@@ -284,8 +320,9 @@ function ProductsPage({ purchases = [], sales = [] }) {
       filteredProducts.map((product) => ({
         product,
         metrics: getProductMetrics(product, purchases, sales),
+        categoryLabel: getProductCategoryLabel(product, categories),
       })),
-    [filteredProducts, purchases, sales]
+    [categories, filteredProducts, purchases, sales]
   );
 
   function openProductDetail(product) {
@@ -310,17 +347,21 @@ function ProductsPage({ purchases = [], sales = [] }) {
   function openProductEditor(product) {
     setViewingProduct(null);
     setViewingTransaction(null);
+    setProductFormError("");
     setDraftProduct({
       ...product,
+      categoryId: resolveProductCategoryId(product, categories),
     });
   }
 
   function closeProductEditor() {
     setDraftProduct(null);
+    setProductFormError("");
   }
 
   function updateDraftField(key, value) {
     setDraftProduct((prev) => (prev ? { ...prev, [key]: value } : prev));
+    setProductFormError("");
   }
 
   function handleCreateProduct() {
@@ -331,6 +372,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
 
     setViewingProduct(null);
     setViewingTransaction(null);
+    setProductFormError("");
     setDraftProduct(createProduct({ productDisplayId: nextDisplayId }));
   }
 
@@ -339,7 +381,23 @@ function ProductsPage({ purchases = [], sales = [] }) {
       return;
     }
 
-    const nextProduct = normalizeProduct(draftProduct);
+    const normalizedDraft = normalizeProduct(draftProduct);
+    const categoryLabel = getCategoryPathById(categories, normalizedDraft.categoryId);
+
+    if (!normalizedDraft.categoryId) {
+      setProductFormError("Select a leaf category for this product.");
+      return;
+    }
+
+    if (!leafCategoryOptions.some((category) => category.id === normalizedDraft.categoryId)) {
+      setProductFormError("Products can only be assigned to leaf categories.");
+      return;
+    }
+
+    const nextProduct = {
+      ...normalizedDraft,
+      category: categoryLabel,
+    };
     const exists = products.some((p) => p.id === nextProduct.id);
 
     setProducts((current) =>
@@ -348,6 +406,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
         : [nextProduct, ...current]
     );
     setDraftProduct(null);
+    setProductFormError("");
   }
 
   function handleDeleteProduct() {
@@ -496,7 +555,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                 </div>
 
                 <div className="supplier-directory-body" role="rowgroup">
-                  {productsWithMetrics.map(({ product, metrics }, index) => (
+                  {productsWithMetrics.map(({ product, metrics, categoryLabel }, index) => (
                     <button
                       key={product.id}
                       type="button"
@@ -531,7 +590,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                       <span className="supplier-directory-cell" role="cell">
                         <span className="supplier-directory-cell-label">Category</span>
                         <span className="supplier-directory-cell-value">
-                          {product.category || "—"}
+                          {categoryLabel || "—"}
                         </span>
                       </span>
 
@@ -824,7 +883,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                 </div>
                 <div className="product-history-stat">
                   <span>Category</span>
-                  <strong>{viewingProduct.category || "—"}</strong>
+                  <strong>{getProductCategoryLabel(viewingProduct, categories) || "—"}</strong>
                 </div>
                 <div className="product-history-stat">
                   <span>Total Units</span>
@@ -859,7 +918,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
                     </div>
                     <div>
                       <p className="detail-label">Category</p>
-                      <strong>{viewingProduct.category || "—"}</strong>
+                      <strong>{getProductCategoryLabel(viewingProduct, categories) || "—"}</strong>
                     </div>
                     <div>
                       <p className="detail-label">Product Detail</p>
@@ -1033,6 +1092,8 @@ function ProductsPage({ purchases = [], sales = [] }) {
               </button>
             </div>
 
+            {productFormError ? <div className="error-banner">{productFormError}</div> : null}
+
             <form
               className="form-layout"
               onSubmit={(event) => {
@@ -1063,13 +1124,17 @@ function ProductsPage({ purchases = [], sales = [] }) {
                 <label>
                   Category
                   <select
-                    value={draftProduct.category}
-                    onChange={(event) => updateDraftField("category", event.target.value)}
+                    value={draftProduct.categoryId || ""}
+                    onChange={(event) => updateDraftField("categoryId", event.target.value)}
                   >
-                    <option value="">Select category</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.name}>
-                        {category.name}
+                    <option value="">
+                      {leafCategoryOptions.length
+                        ? "Select leaf category"
+                        : "Create a leaf category first"}
+                    </option>
+                    {leafCategoryOptions.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.label}
                       </option>
                     ))}
                   </select>

@@ -1378,7 +1378,40 @@ th {
 }
 
 .category-directory-grid {
-  grid-template-columns: 56px minmax(220px, 1fr) minmax(320px, 2fr);
+  grid-template-columns: minmax(260px, 1.3fr) minmax(260px, 1.2fr) minmax(320px, 2fr);
+}
+
+.category-tree-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.category-tree-toggle {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid #d8e0f5;
+  border-radius: 6px;
+  color: var(--accent-deep);
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: #fff;
+  cursor: pointer;
+}
+
+.category-tree-toggle.placeholder {
+  border-color: transparent;
+  color: transparent;
+  background: transparent;
+  cursor: default;
+}
+
+.category-tree-name {
+  min-width: 0;
 }
 
 .supplier-option-field {
