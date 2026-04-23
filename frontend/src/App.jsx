@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { api } from "./api";
 import ChatPanel from "./components/ChatPanel";
 import Dashboard from "./components/Dashboard";
-import CustomerPage from "./components/CustomerPage";
+import CustomerPage, { getDefaultCustomers } from "./components/CustomerPage";
 import { mockDashboard, mockPurchases, mockSales } from "./mockData";
 import PurchaseHistoryPage from "./components/PurchaseHistoryPage";
 import SalesHistoryPage from "./components/SalesHistoryPage";
-import SupplierPage from "./components/SupplierPage";
-import ProductsPage from "./components/ProductsPage";
-import CategoryPage from "./components/CategoryPage";
+import SupplierPage, { getDefaultSuppliers } from "./components/SupplierPage";
+import ProductsPage, { getDefaultProducts } from "./components/ProductsPage";
+import CategoryPage, { getDefaultCategories } from "./components/CategoryPage";
 import { applyPurchaseStatusToItems } from "./purchaseStatus";
 import { applySaleStatusToItems } from "./saleStatus";
 
@@ -81,11 +81,15 @@ function App() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [usingMockSuppliers, setUsingMockSuppliers] = useState(false);
   const [customers, setCustomers] = useState([]);
+  const [usingMockCustomers, setUsingMockCustomers] = useState(false);
   const [purchases, setPurchases] = useState([]);
   const [usingMockPurchases, setUsingMockPurchases] = useState(false);
   const [sales, setSales] = useState([]);
   const [usingMockSales, setUsingMockSales] = useState(false);
+  const [usingMockCategories, setUsingMockCategories] = useState(false);
+  const [usingMockProducts, setUsingMockProducts] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -132,29 +136,37 @@ function App() {
 
     if (supplierResult.status === "fulfilled") {
       setSuppliers(getCollectionRows(supplierResult.value));
+      setUsingMockSuppliers(false);
     } else {
-      setSuppliers([]);
+      setSuppliers(getDefaultSuppliers());
+      setUsingMockSuppliers(true);
       failures.push("suppliers");
     }
 
     if (customerResult.status === "fulfilled") {
       setCustomers(getCollectionRows(customerResult.value));
+      setUsingMockCustomers(false);
     } else {
-      setCustomers([]);
+      setCustomers(getDefaultCustomers());
+      setUsingMockCustomers(true);
       failures.push("customers");
     }
 
     if (categoryResult.status === "fulfilled") {
       setCategories(getCollectionRows(categoryResult.value));
+      setUsingMockCategories(false);
     } else {
-      setCategories([]);
+      setCategories(getDefaultCategories());
+      setUsingMockCategories(true);
       failures.push("categories");
     }
 
     if (productResult.status === "fulfilled") {
       setProducts(getCollectionRows(productResult.value));
+      setUsingMockProducts(false);
     } else {
-      setProducts([]);
+      setProducts(getDefaultProducts());
+      setUsingMockProducts(true);
       failures.push("products");
     }
 
@@ -399,6 +411,20 @@ function App() {
   }
 
   async function handleSupplierSave(nextSupplier) {
+    if (usingMockSuppliers) {
+      const resolvedSupplier = nextSupplier;
+
+      setSuppliers((currentRows) =>
+        currentRows.some((row) => `${row.id}` === `${nextSupplier.id}`)
+          ? currentRows.map((row) =>
+              `${row.id}` === `${nextSupplier.id}` ? resolvedSupplier : row
+            )
+          : [resolvedSupplier, ...currentRows]
+      );
+      setNotice(`Supplier ${resolvedSupplier.companyName || resolvedSupplier.id} saved.`);
+      return resolvedSupplier;
+    }
+
     try {
       const exists = suppliers.some((row) => `${row.id}` === `${nextSupplier.id}`);
       const savedSupplier = exists
@@ -422,6 +448,12 @@ function App() {
   }
 
   async function handleSupplierDelete(deletedSupplier) {
+    if (usingMockSuppliers) {
+      setSuppliers((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
+      setNotice(`Supplier ${deletedSupplier.companyName || deletedSupplier.id} deleted.`);
+      return true;
+    }
+
     try {
       await api.deleteSupplier(deletedSupplier.id);
       setSuppliers((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
@@ -434,6 +466,20 @@ function App() {
   }
 
   async function handleCustomerSave(nextCustomer) {
+    if (usingMockCustomers) {
+      const resolvedCustomer = nextCustomer;
+
+      setCustomers((currentRows) =>
+        currentRows.some((row) => `${row.id}` === `${nextCustomer.id}`)
+          ? currentRows.map((row) =>
+              `${row.id}` === `${nextCustomer.id}` ? resolvedCustomer : row
+            )
+          : [resolvedCustomer, ...currentRows]
+      );
+      setNotice(`Customer ${resolvedCustomer.companyName || resolvedCustomer.id} saved.`);
+      return resolvedCustomer;
+    }
+
     try {
       const exists = customers.some((row) => `${row.id}` === `${nextCustomer.id}`);
       const savedCustomer = exists
@@ -457,6 +503,12 @@ function App() {
   }
 
   async function handleCustomerDelete(deletedCustomer) {
+    if (usingMockCustomers) {
+      setCustomers((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
+      setNotice(`Customer ${deletedCustomer.companyName || deletedCustomer.id} deleted.`);
+      return true;
+    }
+
     try {
       await api.deleteCustomer(deletedCustomer.id);
       setCustomers((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
@@ -469,6 +521,20 @@ function App() {
   }
 
   async function handleCategorySave(nextCategory) {
+    if (usingMockCategories) {
+      const resolvedCategory = nextCategory;
+
+      setCategories((currentRows) =>
+        currentRows.some((row) => `${row.id}` === `${nextCategory.id}`)
+          ? currentRows.map((row) =>
+              `${row.id}` === `${nextCategory.id}` ? resolvedCategory : row
+            )
+          : [resolvedCategory, ...currentRows]
+      );
+      setNotice(`Category ${resolvedCategory.name || resolvedCategory.id} saved.`);
+      return resolvedCategory;
+    }
+
     try {
       const exists = categories.some((row) => `${row.id}` === `${nextCategory.id}`);
       const savedCategory = exists
@@ -492,6 +558,12 @@ function App() {
   }
 
   async function handleCategoryDelete(deletedCategory) {
+    if (usingMockCategories) {
+      setCategories((currentRows) => currentRows.filter((row) => row.id !== deletedCategory.id));
+      setNotice(`Category ${deletedCategory.name || deletedCategory.id} deleted.`);
+      return true;
+    }
+
     try {
       await api.deleteCategory(deletedCategory.id);
       setCategories((currentRows) => currentRows.filter((row) => row.id !== deletedCategory.id));
@@ -504,6 +576,20 @@ function App() {
   }
 
   async function handleProductSave(nextProduct) {
+    if (usingMockProducts) {
+      const resolvedProduct = nextProduct;
+
+      setProducts((currentRows) =>
+        currentRows.some((row) => `${row.id}` === `${nextProduct.id}`)
+          ? currentRows.map((row) =>
+              `${row.id}` === `${nextProduct.id}` ? resolvedProduct : row
+            )
+          : [resolvedProduct, ...currentRows]
+      );
+      setNotice(`Product ${resolvedProduct.productName || resolvedProduct.id} saved.`);
+      return resolvedProduct;
+    }
+
     try {
       const exists = products.some((row) => `${row.id}` === `${nextProduct.id}`);
       const savedProduct = exists
@@ -527,6 +613,12 @@ function App() {
   }
 
   async function handleProductDelete(deletedProduct) {
+    if (usingMockProducts) {
+      setProducts((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));
+      setNotice(`Product ${deletedProduct.productName || deletedProduct.id} deleted.`);
+      return true;
+    }
+
     try {
       await api.deleteProduct(deletedProduct.id);
       setProducts((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));

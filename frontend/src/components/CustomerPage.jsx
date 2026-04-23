@@ -61,6 +61,10 @@ const defaultCustomers = [
   }),
 ];
 
+export function getDefaultCustomers() {
+  return defaultCustomers.map((customer) => normalizeCustomer(customer));
+}
+
 function clampIndex(list, index) {
   if (!list.length) {
     return 0;

@@ -61,6 +61,10 @@ const defaultSuppliers = [
   }),
 ];
 
+export function getDefaultSuppliers() {
+  return defaultSuppliers.map((supplier) => normalizeSupplier(supplier));
+}
+
 function clampIndex(list, index) {
   if (!list.length) {
     return 0;

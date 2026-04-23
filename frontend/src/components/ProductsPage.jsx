@@ -69,6 +69,10 @@ const defaultProducts = [
   }),
 ];
 
+export function getDefaultProducts() {
+  return defaultProducts.map((product) => normalizeProduct(product));
+}
+
 function normalizeProduct(product) {
   return {
     id: product.id || `product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
