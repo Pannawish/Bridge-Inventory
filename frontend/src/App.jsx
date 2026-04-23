@@ -10,6 +10,7 @@ import SupplierPage from "./components/SupplierPage";
 import ProductsPage from "./components/ProductsPage";
 import CategoryPage from "./components/CategoryPage";
 import { applyPurchaseStatusToItems } from "./purchaseStatus";
+import { applySaleStatusToItems } from "./saleStatus";
 
 const tabs = [
   {
@@ -229,10 +230,12 @@ function App() {
     setError("");
 
     if (usingMockSales) {
+      const updatedSale = applySaleStatusToItems(sale, nextStatus);
+
       setSales((currentRows) =>
-        currentRows.map((row) => (row.id === saleId ? { ...row, status: nextStatus } : row))
+        currentRows.map((row) => (row.id === saleId ? updatedSale : row))
       );
-      setNotice(`Sale ${sale.reference_no} status updated to ${nextStatus}.`);
+      setNotice(`Sale ${sale.reference_no} status updated to ${updatedSale.status}.`);
       return;
     }
 

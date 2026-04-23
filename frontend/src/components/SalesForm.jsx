@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { applySaleStatusToItems, getSaleStatusFromItems } from "../saleStatus";
 
 const CUSTOMER_STORAGE_KEY = "inventory-management-customers";
 const VAT_RATE = 0.07;
@@ -58,6 +59,9 @@ function emptyItem() {
   return {
     line_id: `sales-item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     product_id: "",
+    item_status: "pending",
+    shipped_date: "",
+    delivered_date: "",
     quantity: 1,
     unit_price: "",
     discounts: [0],
@@ -367,7 +371,15 @@ function SalesForm({ products, sales = [], onSubmit, onCancel = null }) {
           amount: computeAmount(item),
         };
       });
-    formData.append("items", JSON.stringify(filteredItems));
+    const saleWithItems = applySaleStatusToItems(
+      {
+        status: form.status,
+        items: filteredItems,
+      },
+      form.status
+    );
+    formData.set("status", getSaleStatusFromItems(saleWithItems));
+    formData.append("items", JSON.stringify(saleWithItems.items));
 
     await onSubmit(formData);
 

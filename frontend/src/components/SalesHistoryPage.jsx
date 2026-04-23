@@ -1,10 +1,16 @@
 import { useMemo, useState } from "react";
 import SalesForm from "./SalesForm";
 import TransactionTable from "./TransactionTable";
+import {
+  applySaleStatusToItems,
+  getSaleStatusFromItems,
+  getStoredSaleItemStatus,
+  saleStatuses,
+} from "../saleStatus";
 
 const CUSTOMER_STORAGE_KEY = "inventory-management-customers";
 const VAT_RATE = 0.07;
-const statusOptions = ["draft", "packed", "shipped", "delivered", "cancelled"];
+const statusOptions = saleStatuses;
 const vatOptions = [
   { value: "included", label: "VAT Included" },
   { value: "not_included", label: "VAT Not Included" },
@@ -35,6 +41,9 @@ function saleMatchesQuery(sale, query) {
       item.product_name,
       item.sku,
       item.category,
+      item.item_status,
+      item.shipped_date,
+      item.delivered_date,
       item.quantity,
       item.unit_price,
     ]),
@@ -241,6 +250,9 @@ function createEditItems(sale, products) {
         product_id: "",
         product_name: "",
         sku: "",
+        item_status: getStoredSaleItemStatus({}, sale.status),
+        shipped_date: "",
+        delivered_date: "",
         quantity: 1,
         unit_price: "",
         discounts: [0],
@@ -254,6 +266,9 @@ function createEditItems(sale, products) {
     product_id: item.product_id || "",
     product_name: item.product_name || "",
     sku: item.sku || "",
+    item_status: getStoredSaleItemStatus(item, sale.status),
+    shipped_date: item.shipped_date || "",
+    delivered_date: item.delivered_date || "",
     quantity: item.quantity ?? 1,
     unit_price: item.unit_price ?? "",
     discounts: Array.isArray(item.discounts)
@@ -441,6 +456,9 @@ function SalesEditForm({ sale, products, onCancel, onSave }) {
         product_id: "",
         product_name: "",
         sku: "",
+        item_status: "pending",
+        shipped_date: "",
+        delivered_date: "",
         quantity: 1,
         unit_price: "",
         discounts: [0],
@@ -474,6 +492,9 @@ function SalesEditForm({ sale, products, onCancel, onSave }) {
           product_id: item.product_id || undefined,
           product_name: item.product_name,
           sku: item.sku,
+          item_status: getStoredSaleItemStatus(item, form.status),
+          shipped_date: item.shipped_date || "",
+          delivered_date: item.delivered_date || "",
           quantity: Number(item.quantity) || 0,
           unit_price: Number(item.unit_price) || 0,
           discounts: item.discounts || [0],
@@ -487,17 +508,36 @@ function SalesEditForm({ sale, products, onCancel, onSave }) {
       return;
     }
 
+    const statusChanged = form.status !== (sale.status || "draft");
+    const saleWithItems = statusChanged
+      ? applySaleStatusToItems(
+          {
+            ...sale,
+            status: form.status,
+            items: normalizedItems,
+          },
+          form.status
+        )
+      : {
+          ...sale,
+          items: normalizedItems,
+          status: getSaleStatusFromItems({
+            ...sale,
+            items: normalizedItems,
+          }),
+        };
+
     onSave({
-      ...sale,
+      ...saleWithItems,
       reference_no: form.reference_no,
       customer_name: customerName,
-      status: form.status,
+      status: getSaleStatusFromItems(saleWithItems),
       payment_timing: form.payment_timing,
       payment_received_date: form.payment_received_date,
       transaction_date: form.transaction_date,
       note: form.note,
       document_url: form.document ? URL.createObjectURL(form.document) : sale.document_url,
-      items: normalizedItems,
+      items: saleWithItems.items,
       vat_mode: vatMode,
       total_before_vat: vatSummary.total,
       vat_amount: vatSummary.vat,
@@ -1076,6 +1116,7 @@ function SalesHistoryPage({
         rows={filteredSales}
         type="sale"
         onSaleStatusChange={onSaleStatusChange}
+        onSaleUpdate={onSaleUpdate}
         onEditRow={setEditingSale}
         onDeleteRow={handleDelete}
         headerActions={

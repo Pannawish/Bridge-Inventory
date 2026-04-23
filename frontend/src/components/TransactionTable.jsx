@@ -10,6 +10,14 @@ import {
   updatePurchaseItemReceivedDate,
   updatePurchaseItemStatus,
 } from "../purchaseStatus";
+import {
+  getSaleItemStatusCounts,
+  getStoredSaleItemStatus,
+  saleItemStatuses,
+  saleStatuses,
+  updateSaleItemDate,
+  updateSaleItemStatus,
+} from "../saleStatus";
 
 const VAT_RATE = 0.07;
 
@@ -56,14 +64,13 @@ function renderDiscounts(item) {
   return "—";
 }
 
-const saleStatuses = ["draft", "packed", "shipped", "delivered", "cancelled"];
-
 function TransactionTable({
   rows,
   type,
   onPurchaseStatusChange,
   onPurchaseItemStatusChange,
   onSaleStatusChange,
+  onSaleUpdate,
   onEditRow,
   onDeleteRow,
   compactRows = 0,
@@ -179,6 +186,25 @@ function TransactionTable({
 
   function handleSavePurchaseUpdates() {
     onPurchaseItemStatusChange?.(selectedRow);
+    setHasUnsavedItemChanges(false);
+  }
+
+  function handleSaleItemStatusChange(itemIndex, nextStatus) {
+    const updatedRow = updateSaleItemStatus(selectedRow, itemIndex, nextStatus);
+
+    setSelectedRow(updatedRow);
+    setHasUnsavedItemChanges(true);
+  }
+
+  function handleSaleItemDateChange(itemIndex, fieldName, nextValue) {
+    const updatedRow = updateSaleItemDate(selectedRow, itemIndex, fieldName, nextValue);
+
+    setSelectedRow(updatedRow);
+    setHasUnsavedItemChanges(true);
+  }
+
+  function handleSaveSaleUpdates() {
+    onSaleUpdate?.(selectedRow);
     setHasUnsavedItemChanges(false);
   }
 
@@ -463,6 +489,16 @@ function TransactionTable({
                     Save Purchase Updates
                   </button>
                 ) : null}
+                {type === "sale" && onSaleUpdate ? (
+                  <button
+                    className="primary-button table-action-button"
+                    type="button"
+                    onClick={handleSaveSaleUpdates}
+                    disabled={!hasUnsavedItemChanges}
+                  >
+                    Save Sale Updates
+                  </button>
+                ) : null}
                 <button
                   className="secondary-button table-action-button"
                   type="button"
@@ -546,6 +582,28 @@ function TransactionTable({
                   })()}
                 </div>
               ) : null}
+              {type === "sale" ? (
+                <div className="item-receiving-summary" aria-label="Item sales status">
+                  <span className="item-receiving-title">Item Sales Status</span>
+                  {(() => {
+                    const counts = getSaleItemStatusCounts(
+                      selectedRow.items || [],
+                      selectedRow.status
+                    );
+
+                    return ["pending", "packed", "shipped", "delivered", "cancelled"].map(
+                      (status) => (
+                        <span
+                          key={status}
+                          className={`status-badge item-status-badge status-${status}`}
+                        >
+                          {counts[status]} {formatStatusLabel(status)}
+                        </span>
+                      )
+                    );
+                  })()}
+                </div>
+              ) : null}
               <div className="table-scroll">
                 {type === "sale" ? (
                   <table>
@@ -553,6 +611,9 @@ function TransactionTable({
                       <tr>
                         <th className="table-index-cell">#</th>
                         <th>Product</th>
+                        <th>Item Status</th>
+                        <th>Shipped Date</th>
+                        <th>Delivered Date</th>
                         <th>Qty</th>
                         <th>Unit Price</th>
                         <th>Discounts</th>
@@ -562,10 +623,59 @@ function TransactionTable({
                     <tbody>
                       {(selectedRow.items || []).map((item, itemIndex) => {
                         const amount = computeItemAmount(item);
+                        const itemStatus = getStoredSaleItemStatus(item, selectedRow.status);
                         return (
-                          <tr key={item.id}>
+                          <tr key={item.id || `${item.sku}-${itemIndex}`}>
                             <td className="table-index-cell">{itemIndex + 1}</td>
                             <td>{item.product_name}</td>
+                            <td>
+                              <div className="purchase-item-status-control">
+                                <select
+                                  className={`status-select item-status-select status-${itemStatus}`}
+                                  value={itemStatus}
+                                  onChange={(event) =>
+                                    handleSaleItemStatusChange(itemIndex, event.target.value)
+                                  }
+                                  aria-label={`Change ${item.product_name} sales status`}
+                                >
+                                  {saleItemStatuses.map((status) => (
+                                    <option key={status} value={status}>
+                                      {formatStatusLabel(status)}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </td>
+                            <td>
+                              <input
+                                className="received-date-input"
+                                type="date"
+                                value={item.shipped_date || ""}
+                                onChange={(event) =>
+                                  handleSaleItemDateChange(
+                                    itemIndex,
+                                    "shipped_date",
+                                    event.target.value
+                                  )
+                                }
+                                disabled={!["shipped", "delivered"].includes(itemStatus)}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                className="received-date-input"
+                                type="date"
+                                value={item.delivered_date || ""}
+                                onChange={(event) =>
+                                  handleSaleItemDateChange(
+                                    itemIndex,
+                                    "delivered_date",
+                                    event.target.value
+                                  )
+                                }
+                                disabled={itemStatus !== "delivered"}
+                              />
+                            </td>
                             <td>{item.quantity}</td>
                             <td>{item.unit_price ? formatCurrency(item.unit_price) : "—"}</td>
                             <td>
