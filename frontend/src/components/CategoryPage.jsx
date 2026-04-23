@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 export const CATEGORY_STORAGE_KEY = "inventory-management-categories";
-const PRODUCT_STORAGE_KEY = "inventory-management-products";
 
 const defaultCategories = [
   {
@@ -161,55 +160,7 @@ export function resolveLegacyCategoryId(categories, categoryName = "") {
 }
 
 export function loadCategories() {
-  if (typeof window === "undefined") {
-    return defaultCategories;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(CATEGORY_STORAGE_KEY);
-
-    if (!raw) {
-      return defaultCategories;
-    }
-
-    const parsed = JSON.parse(raw);
-
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return defaultCategories;
-    }
-
-    const seen = new Set();
-
-    return parsed
-      .map(normalizeCategory)
-      .filter((category) => {
-        const key = `${category.parentId || "root"}::${getCategoryKey(category.name)}`;
-
-        if (!key || seen.has(key)) {
-          return false;
-        }
-
-        seen.add(key);
-        return true;
-      });
-  } catch {
-    return defaultCategories;
-  }
-}
-
-function loadStoredProducts() {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const raw = window.localStorage.getItem(PRODUCT_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return defaultCategories;
 }
 
 function getAssignedCategoryId(product, categories) {
@@ -239,20 +190,16 @@ function isDescendantCategory(categories, categoryId, potentialParentId) {
   return false;
 }
 
-function CategoryPage() {
-  const [categories, setCategories] = useState(() => loadCategories());
+function CategoryPage({
+  categories = defaultCategories,
+  products = [],
+  onSaveCategory,
+  onDeleteCategory,
+}) {
   const [draftCategory, setDraftCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [formError, setFormError] = useState("");
   const [collapsedCategoryIds, setCollapsedCategoryIds] = useState(() => new Set());
-
-  useEffect(() => {
-    window.localStorage.setItem(
-      CATEGORY_STORAGE_KEY,
-      JSON.stringify(categories.map(normalizeCategory))
-    );
-    window.dispatchEvent(new Event("inventory-categories-updated"));
-  }, [categories]);
 
   useEffect(() => {
     if (typeof document === "undefined" || !draftCategory) {
@@ -337,7 +284,7 @@ function CategoryPage() {
   const productAssignments = useMemo(() => {
     const assignmentCount = new Map();
 
-    loadStoredProducts().forEach((product) => {
+    products.forEach((product) => {
       const categoryId = getAssignedCategoryId(product, categories);
 
       if (!categoryId) {
@@ -396,7 +343,7 @@ function CategoryPage() {
     });
   }
 
-  function handleSaveCategory(event) {
+  async function handleSaveCategory(event) {
     event.preventDefault();
 
     if (!draftCategory) {
@@ -447,27 +394,17 @@ function CategoryPage() {
       return;
     }
 
-    const exists = categories.some((category) => category.id === nextCategory.id);
+    const savedCategory = await onSaveCategory?.(nextCategory);
 
-    setCategories((currentCategories) =>
-      exists
-        ? currentCategories.map((category) =>
-            category.id === nextCategory.id ? nextCategory : category
-          )
-        : [nextCategory, ...currentCategories]
-    );
-    closeCategoryEditor();
-  }
-
-  function handleDeleteCategory() {
-    if (!draftCategory) {
+    if (savedCategory === false) {
       return;
     }
 
-    const exists = categories.some((category) => category.id === draftCategory.id);
+    closeCategoryEditor();
+  }
 
-    if (!exists) {
-      closeCategoryEditor();
+  async function handleDeleteCategory() {
+    if (!draftCategory) {
       return;
     }
 
@@ -489,9 +426,12 @@ function CategoryPage() {
       return;
     }
 
-    setCategories((currentCategories) =>
-      currentCategories.filter((category) => category.id !== draftCategory.id)
-    );
+    const deleted = await onDeleteCategory?.(draftCategory);
+
+    if (deleted === false) {
+      return;
+    }
+
     closeCategoryEditor();
   }
 

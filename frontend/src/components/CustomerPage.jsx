@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 
-const STORAGE_KEY = "inventory-management-customers";
-
 function createCustomer(overrides = {}) {
   return {
     id: `customer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -108,30 +106,6 @@ function normalizeCustomer(customer) {
   };
 }
 
-function loadCustomers() {
-  if (typeof window === "undefined") {
-    return defaultCustomers;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-
-    if (!raw) {
-      return defaultCustomers;
-    }
-
-    const parsed = JSON.parse(raw);
-
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return defaultCustomers;
-    }
-
-    return parsed.map(normalizeCustomer);
-  } catch {
-    return defaultCustomers;
-  }
-}
-
 function getSelectedValue(list, index) {
   return list?.[index] || "-";
 }
@@ -180,18 +154,14 @@ function CustomerOptionField({
   );
 }
 
-function CustomerPage() {
-  const [customers, setCustomers] = useState(() => loadCustomers());
+function CustomerPage({
+  customers = defaultCustomers,
+  onSaveCustomer,
+  onDeleteCustomer,
+}) {
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [draftCustomer, setDraftCustomer] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-
-  useEffect(() => {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(customers.map((customer) => normalizeCustomer(customer)))
-    );
-  }, [customers]);
 
   useEffect(() => {
     if (typeof document === "undefined" || !draftCustomer) {
@@ -303,26 +273,23 @@ function CustomerPage() {
     );
   }
 
-  function handleSaveCustomer() {
+  async function handleSaveCustomer() {
     if (!draftCustomer) {
       return;
     }
 
     const nextCustomer = normalizeCustomer(draftCustomer);
-    const exists = customers.some((customer) => customer.id === nextCustomer.id);
+    const savedCustomer = await onSaveCustomer?.(nextCustomer);
 
-    setCustomers((currentCustomers) =>
-      exists
-        ? currentCustomers.map((customer) =>
-            customer.id === nextCustomer.id ? nextCustomer : customer
-          )
-        : [nextCustomer, ...currentCustomers]
-    );
-    setSelectedCustomerId(nextCustomer.id);
+    if (savedCustomer === false) {
+      return;
+    }
+
+    setSelectedCustomerId((savedCustomer || nextCustomer).id);
     setDraftCustomer(null);
   }
 
-  function handleDeleteCustomer() {
+  async function handleDeleteCustomer() {
     if (!draftCustomer) {
       return;
     }
@@ -342,9 +309,12 @@ function CustomerPage() {
       return;
     }
 
-    setCustomers((currentCustomers) =>
-      currentCustomers.filter((customer) => customer.id !== draftCustomer.id)
-    );
+    const deleted = await onDeleteCustomer?.(draftCustomer);
+
+    if (deleted === false) {
+      return;
+    }
+
     setSelectedCustomerId((currentId) =>
       currentId === draftCustomer.id ? null : currentId
     );
@@ -401,8 +371,7 @@ function CustomerPage() {
           </div>
 
           <p className="inventory-note">
-            Store customer details in the frontend for now. Changes are saved when you press the
-            save button in the customer popup.
+            Store customer contact and billing details here.
           </p>
 
           <div className="supplier-directory-toolbar">

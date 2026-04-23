@@ -11,7 +11,6 @@ import {
   purchaseStatuses,
 } from "../purchaseStatus";
 
-const SUPPLIER_STORAGE_KEY = "inventory-management-suppliers";
 const VAT_RATE = 0.07;
 const statusOptions = purchaseStatuses;
 const vatOptions = [
@@ -19,10 +18,7 @@ const vatOptions = [
   { value: "not_included", label: "VAT Not Included" },
   { value: "none", label: "No VAT" },
 ];
-const defaultSupplierOptions = [
-  { id: "supplier-1", companyName: "Bangkok Office Supply" },
-  { id: "supplier-2", companyName: "Learning Tools Co." },
-];
+const defaultSupplierOptions = [];
 
 function getToday() {
   return getTodayString();
@@ -57,10 +53,31 @@ function purchaseMatchesQuery(purchase, query) {
   return searchableText.includes(query);
 }
 
-function buildSupplierFilterOptions(purchases) {
+function normalizeSupplierOptions(suppliers = [], currentSupplierName = "") {
+  const normalizedSuppliers = suppliers
+    .map((supplier) => ({
+      id: supplier.id || supplier.companyName,
+      companyName: `${supplier.companyName ?? supplier.name ?? ""}`.trim(),
+    }))
+    .filter((supplier) => supplier.companyName);
+  const currentName = currentSupplierName.trim();
+
+  if (
+    currentName &&
+    !normalizedSuppliers.some(
+      (supplier) => supplier.companyName.toLowerCase() === currentName.toLowerCase()
+    )
+  ) {
+    return [{ id: `current-${currentName}`, companyName: currentName }, ...normalizedSuppliers];
+  }
+
+  return normalizedSuppliers;
+}
+
+function buildSupplierFilterOptions(purchases, suppliers = []) {
   const optionMap = new Map();
 
-  loadSupplierOptions().forEach((supplier) => {
+  normalizeSupplierOptions(suppliers).forEach((supplier) => {
     optionMap.set(supplier.companyName.toLowerCase(), supplier);
   });
 
@@ -168,39 +185,6 @@ function computeVatSummary(itemTotal, vatMode) {
   };
 }
 
-function loadSupplierOptions(currentSupplierName = "") {
-  let suppliers = defaultSupplierOptions;
-
-  if (typeof window !== "undefined") {
-    try {
-      const raw = window.localStorage.getItem(SUPPLIER_STORAGE_KEY);
-      const parsed = raw ? JSON.parse(raw) : null;
-
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        suppliers = parsed
-          .map((supplier) => ({
-            id: supplier.id || supplier.companyName,
-            companyName: `${supplier.companyName ?? ""}`.trim(),
-          }))
-          .filter((supplier) => supplier.companyName);
-      }
-    } catch {
-      suppliers = defaultSupplierOptions;
-    }
-  }
-
-  const currentName = currentSupplierName.trim();
-
-  if (
-    currentName &&
-    !suppliers.some((supplier) => supplier.companyName.toLowerCase() === currentName.toLowerCase())
-  ) {
-    return [{ id: `current-${currentName}`, companyName: currentName }, ...suppliers];
-  }
-
-  return suppliers;
-}
-
 function createEditItems(purchase) {
   const sourceItems = purchase.items?.length ? purchase.items : [];
 
@@ -250,11 +234,15 @@ function createEditForm(purchase) {
   };
 }
 
-function PurchaseEditForm({ purchase, onCancel, onSave }) {
+function PurchaseEditForm({
+  purchase,
+  suppliers = defaultSupplierOptions,
+  onCancel,
+  onSave,
+}) {
   const [form, setForm] = useState(() => createEditForm(purchase));
   const [items, setItems] = useState(() => createEditItems(purchase));
   const [vatMode, setVatMode] = useState(purchase.vat_mode || "not_included");
-  const [suppliers] = useState(() => loadSupplierOptions(purchase.supplier_name || ""));
   const [supplierQuery, setSupplierQuery] = useState(purchase.supplier_name || "");
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [supplierError, setSupplierError] = useState("");
@@ -263,14 +251,16 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
   const filteredSuppliers = useMemo(() => {
     const normalizedQuery = supplierQuery.trim().toLowerCase();
 
+    const supplierOptions = normalizeSupplierOptions(suppliers, purchase.supplier_name || "");
+
     if (!normalizedQuery) {
-      return suppliers;
+      return supplierOptions;
     }
 
-    return suppliers.filter((supplier) =>
+    return supplierOptions.filter((supplier) =>
       supplier.companyName.toLowerCase().includes(normalizedQuery)
     );
-  }, [supplierQuery, suppliers]);
+  }, [purchase.supplier_name, supplierQuery, suppliers]);
 
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
   const vatSummary = computeVatSummary(itemTotal, vatMode);
@@ -777,6 +767,7 @@ function PurchaseEditForm({ purchase, onCancel, onSave }) {
 
 function PurchaseHistoryPage({
   products,
+  suppliers = defaultSupplierOptions,
   purchases,
   onCreatePurchase,
   onPurchaseStatusChange,
@@ -796,8 +787,8 @@ function PurchaseHistoryPage({
   const [showNewPurchaseForm, setShowNewPurchaseForm] = useState(false);
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const supplierOptions = useMemo(
-    () => buildSupplierFilterOptions(purchases),
-    [purchases]
+    () => buildSupplierFilterOptions(purchases, suppliers),
+    [purchases, suppliers]
   );
   const filteredSupplierOptions = useMemo(() => {
     const normalizedQuery = supplierFilterQuery.trim().toLowerCase();
@@ -855,8 +846,13 @@ function PurchaseHistoryPage({
     setSupplierFilterOpen(false);
   }
 
-  function handleSave(updatedPurchase) {
-    onPurchaseUpdate?.(updatedPurchase);
+  async function handleSave(updatedPurchase) {
+    const saved = await onPurchaseUpdate?.(updatedPurchase);
+
+    if (saved === false) {
+      return;
+    }
+
     setEditingPurchase(null);
   }
 
@@ -865,8 +861,13 @@ function PurchaseHistoryPage({
     setShowNewPurchaseForm(false);
   }
 
-  function handleDelete(deletedPurchase) {
-    onPurchaseDelete?.(deletedPurchase);
+  async function handleDelete(deletedPurchase) {
+    const deleted = await onPurchaseDelete?.(deletedPurchase);
+
+    if (deleted === false) {
+      return;
+    }
+
     setEditingPurchase((currentPurchase) =>
       currentPurchase?.id === deletedPurchase.id ? null : currentPurchase
     );
@@ -877,6 +878,7 @@ function PurchaseHistoryPage({
       <div className="stack-layout">
         <PurchaseForm
           products={products}
+          suppliers={suppliers}
           purchases={purchases}
           onSubmit={handleCreatePurchase}
           onCancel={() => setShowNewPurchaseForm(false)}
@@ -1023,6 +1025,7 @@ function PurchaseHistoryPage({
         <PurchaseEditForm
           key={editingPurchase.id}
           purchase={editingPurchase}
+          suppliers={suppliers}
           onCancel={() => setEditingPurchase(null)}
           onSave={handleSave}
         />

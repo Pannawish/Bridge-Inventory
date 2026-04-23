@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   getCategoryPathById,
   getLeafCategoryOptions,
-  loadCategories,
   resolveLegacyCategoryId,
 } from "./CategoryPage";
 import {
@@ -11,7 +10,6 @@ import {
   getStoredPurchaseItemStatus,
 } from "../purchaseStatus";
 
-const STORAGE_KEY = "inventory-management-products";
 const VAT_RATE = 0.07;
 
 function createProduct(overrides = {}) {
@@ -82,30 +80,6 @@ function normalizeProduct(product) {
     detail: `${product.detail ?? ""}`,
     pictureUrl: `${product.pictureUrl ?? ""}`,
   };
-}
-
-export function loadProducts() {
-  if (typeof window === "undefined") {
-    return defaultProducts;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-
-    if (!raw) {
-      return defaultProducts;
-    }
-
-    const parsed = JSON.parse(raw);
-
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return defaultProducts;
-    }
-
-    return parsed.map(normalizeProduct);
-  } catch {
-    return defaultProducts;
-  }
 }
 
 function formatCurrency(value) {
@@ -245,36 +219,19 @@ function getProductMetrics(product, purchases, sales) {
   };
 }
 
-function ProductsPage({ purchases = [], sales = [] }) {
-  const [products, setProducts] = useState(() => loadProducts());
-  const [categories, setCategories] = useState(() => loadCategories());
+function ProductsPage({
+  products = defaultProducts,
+  categories = [],
+  purchases = [],
+  sales = [],
+  onSaveProduct,
+  onDeleteProduct,
+}) {
   const [viewingProduct, setViewingProduct] = useState(null);
   const [viewingTransaction, setViewingTransaction] = useState(null);
   const [draftProduct, setDraftProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [productFormError, setProductFormError] = useState("");
-
-  useEffect(() => {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(products.map(normalizeProduct))
-    );
-    window.dispatchEvent(new Event("inventory-products-updated"));
-  }, [products]);
-
-  useEffect(() => {
-    function refreshCategories() {
-      setCategories(loadCategories());
-    }
-
-    window.addEventListener("storage", refreshCategories);
-    window.addEventListener("inventory-categories-updated", refreshCategories);
-
-    return () => {
-      window.removeEventListener("storage", refreshCategories);
-      window.removeEventListener("inventory-categories-updated", refreshCategories);
-    };
-  }, []);
 
   useEffect(() => {
     const isOpen = !!(viewingProduct || viewingTransaction || draftProduct);
@@ -376,7 +333,7 @@ function ProductsPage({ purchases = [], sales = [] }) {
     setDraftProduct(createProduct({ productDisplayId: nextDisplayId }));
   }
 
-  function handleSaveProduct() {
+  async function handleSaveProduct() {
     if (!draftProduct) {
       return;
     }
@@ -398,26 +355,18 @@ function ProductsPage({ purchases = [], sales = [] }) {
       ...normalizedDraft,
       category: categoryLabel,
     };
-    const exists = products.some((p) => p.id === nextProduct.id);
+    const savedProduct = await onSaveProduct?.(nextProduct);
 
-    setProducts((current) =>
-      exists
-        ? current.map((p) => (p.id === nextProduct.id ? nextProduct : p))
-        : [nextProduct, ...current]
-    );
+    if (savedProduct === false) {
+      return;
+    }
+
     setDraftProduct(null);
     setProductFormError("");
   }
 
-  function handleDeleteProduct() {
+  async function handleDeleteProduct() {
     if (!draftProduct) {
-      return;
-    }
-
-    const exists = products.some((p) => p.id === draftProduct.id);
-
-    if (!exists) {
-      setDraftProduct(null);
       return;
     }
 
@@ -429,7 +378,12 @@ function ProductsPage({ purchases = [], sales = [] }) {
       return;
     }
 
-    setProducts((current) => current.filter((p) => p.id !== draftProduct.id));
+    const deleted = await onDeleteProduct?.(draftProduct);
+
+    if (deleted === false) {
+      return;
+    }
+
     setDraftProduct(null);
   }
 

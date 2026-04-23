@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadProducts } from "./ProductsPage";
 import {
   formatStatusLabel,
   getInitialPurchaseItemStatus,
@@ -8,17 +7,13 @@ import {
 } from "../purchaseStatus";
 
 const today = getTodayString();
-const SUPPLIER_STORAGE_KEY = "inventory-management-suppliers";
 const VAT_RATE = 0.07;
 const vatOptions = [
   { value: "included", label: "VAT Included" },
   { value: "not_included", label: "VAT Not Included" },
   { value: "none", label: "No VAT" },
 ];
-const defaultSupplierOptions = [
-  { id: "supplier-1", companyName: "Bangkok Office Supply" },
-  { id: "supplier-2", companyName: "Learning Tools Co." },
-];
+const defaultSupplierOptions = [];
 
 function getPurchaseReferencePrefix(date = new Date()) {
   const buddhistYear = date.getFullYear() + 543;
@@ -132,35 +127,6 @@ function computeVatSummary(itemTotal, vatMode) {
   };
 }
 
-function loadSupplierOptions() {
-  if (typeof window === "undefined") {
-    return defaultSupplierOptions;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(SUPPLIER_STORAGE_KEY);
-
-    if (!raw) {
-      return defaultSupplierOptions;
-    }
-
-    const parsed = JSON.parse(raw);
-
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return defaultSupplierOptions;
-    }
-
-    return parsed
-      .map((supplier) => ({
-        id: supplier.id || supplier.companyName,
-        companyName: `${supplier.companyName ?? ""}`.trim(),
-      }))
-      .filter((supplier) => supplier.companyName);
-  } catch {
-    return defaultSupplierOptions;
-  }
-}
-
 function createInitialForm(referenceNo) {
   return {
     reference_no: referenceNo,
@@ -172,7 +138,13 @@ function createInitialForm(referenceNo) {
   };
 }
 
-function PurchaseForm({ products = [], onSubmit, purchases = [], onCancel = null }) {
+function PurchaseForm({
+  products = [],
+  suppliers = defaultSupplierOptions,
+  onSubmit,
+  purchases = [],
+  onCancel = null,
+}) {
   const nextReferenceNo = useMemo(
     () => getNextPurchaseReference(purchases),
     [purchases]
@@ -181,15 +153,13 @@ function PurchaseForm({ products = [], onSubmit, purchases = [], onCancel = null
   const [form, setForm] = useState(() => createInitialForm(nextReferenceNo));
   const [items, setItems] = useState([emptyItem()]);
   const [vatMode, setVatMode] = useState("not_included");
-  const [catalogProducts, setCatalogProducts] = useState(() => loadProducts());
-  const [suppliers] = useState(() => loadSupplierOptions());
   const [supplierQuery, setSupplierQuery] = useState("");
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [supplierError, setSupplierError] = useState("");
   const [openProductIndex, setOpenProductIndex] = useState(null);
   const [itemErrors, setItemErrors] = useState({});
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
-  const productOptions = catalogProducts.length ? catalogProducts : products;
+  const productOptions = products;
   const filteredSuppliers = useMemo(() => {
     const normalizedQuery = supplierQuery.trim().toLowerCase();
 
@@ -217,20 +187,6 @@ function PurchaseForm({ products = [], onSubmit, purchases = [], onCancel = null
       return { ...currentForm, reference_no: nextReferenceNo };
     });
   }, [nextReferenceNo]);
-
-  useEffect(() => {
-    function refreshProducts() {
-      setCatalogProducts(loadProducts());
-    }
-
-    window.addEventListener("storage", refreshProducts);
-    window.addEventListener("inventory-products-updated", refreshProducts);
-
-    return () => {
-      window.removeEventListener("storage", refreshProducts);
-      window.removeEventListener("inventory-products-updated", refreshProducts);
-    };
-  }, []);
 
   function updateItem(index, key, value) {
     setItems((currentItems) =>

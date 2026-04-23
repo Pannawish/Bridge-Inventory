@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 
-const STORAGE_KEY = "inventory-management-suppliers";
-
 function createSupplier(overrides = {}) {
   return {
     id: `supplier-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -108,30 +106,6 @@ function normalizeSupplier(supplier) {
   };
 }
 
-function loadSuppliers() {
-  if (typeof window === "undefined") {
-    return defaultSuppliers;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-
-    if (!raw) {
-      return defaultSuppliers;
-    }
-
-    const parsed = JSON.parse(raw);
-
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return defaultSuppliers;
-    }
-
-    return parsed.map(normalizeSupplier);
-  } catch {
-    return defaultSuppliers;
-  }
-}
-
 function getSelectedValue(list, index) {
   return list?.[index] || "-";
 }
@@ -180,18 +154,14 @@ function SupplierOptionField({
   );
 }
 
-function SupplierPage() {
-  const [suppliers, setSuppliers] = useState(() => loadSuppliers());
+function SupplierPage({
+  suppliers = defaultSuppliers,
+  onSaveSupplier,
+  onDeleteSupplier,
+}) {
   const [selectedSupplierId, setSelectedSupplierId] = useState(null);
   const [draftSupplier, setDraftSupplier] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-
-  useEffect(() => {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(suppliers.map((supplier) => normalizeSupplier(supplier)))
-    );
-  }, [suppliers]);
 
   useEffect(() => {
     if (typeof document === "undefined" || !draftSupplier) {
@@ -303,26 +273,23 @@ function SupplierPage() {
     );
   }
 
-  function handleSaveSupplier() {
+  async function handleSaveSupplier() {
     if (!draftSupplier) {
       return;
     }
 
     const nextSupplier = normalizeSupplier(draftSupplier);
-    const exists = suppliers.some((supplier) => supplier.id === nextSupplier.id);
+    const savedSupplier = await onSaveSupplier?.(nextSupplier);
 
-    setSuppliers((currentSuppliers) =>
-      exists
-        ? currentSuppliers.map((supplier) =>
-            supplier.id === nextSupplier.id ? nextSupplier : supplier
-          )
-        : [nextSupplier, ...currentSuppliers]
-    );
-    setSelectedSupplierId(nextSupplier.id);
+    if (savedSupplier === false) {
+      return;
+    }
+
+    setSelectedSupplierId((savedSupplier || nextSupplier).id);
     setDraftSupplier(null);
   }
 
-  function handleDeleteSupplier() {
+  async function handleDeleteSupplier() {
     if (!draftSupplier) {
       return;
     }
@@ -342,9 +309,12 @@ function SupplierPage() {
       return;
     }
 
-    setSuppliers((currentSuppliers) =>
-      currentSuppliers.filter((supplier) => supplier.id !== draftSupplier.id)
-    );
+    const deleted = await onDeleteSupplier?.(draftSupplier);
+
+    if (deleted === false) {
+      return;
+    }
+
     setSelectedSupplierId((currentId) =>
       currentId === draftSupplier.id ? null : currentId
     );
@@ -401,8 +371,7 @@ function SupplierPage() {
           </div>
 
           <p className="inventory-note">
-            Store supplier details in the frontend for now. Changes are saved when you press the
-            save button in the supplier popup.
+            Store supplier contact and billing details here.
           </p>
 
           <div className="supplier-directory-toolbar">

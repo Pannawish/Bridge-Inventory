@@ -8,7 +8,6 @@ import {
   saleStatuses,
 } from "../saleStatus";
 
-const CUSTOMER_STORAGE_KEY = "inventory-management-customers";
 const VAT_RATE = 0.07;
 const statusOptions = saleStatuses;
 const vatOptions = [
@@ -16,10 +15,7 @@ const vatOptions = [
   { value: "not_included", label: "VAT Not Included" },
   { value: "none", label: "No VAT" },
 ];
-const defaultCustomerOptions = [
-  { id: "customer-1", companyName: "Faculty of Engineering" },
-  { id: "customer-2", companyName: "Student Council" },
-];
+const defaultCustomerOptions = [];
 
 function getToday() {
   return new Date().toISOString().split("T")[0];
@@ -54,10 +50,31 @@ function saleMatchesQuery(sale, query) {
   return searchableText.includes(query);
 }
 
-function buildCustomerFilterOptions(sales) {
+function normalizeCustomerOptions(customers = [], currentCustomerName = "") {
+  const normalizedCustomers = customers
+    .map((customer) => ({
+      id: customer.id || customer.companyName,
+      companyName: `${customer.companyName ?? customer.name ?? ""}`.trim(),
+    }))
+    .filter((customer) => customer.companyName);
+  const currentName = currentCustomerName.trim();
+
+  if (
+    currentName &&
+    !normalizedCustomers.some(
+      (customer) => customer.companyName.toLowerCase() === currentName.toLowerCase()
+    )
+  ) {
+    return [{ id: `current-${currentName}`, companyName: currentName }, ...normalizedCustomers];
+  }
+
+  return normalizedCustomers;
+}
+
+function buildCustomerFilterOptions(sales, customers = []) {
   const optionMap = new Map();
 
-  loadCustomerOptions().forEach((customer) => {
+  normalizeCustomerOptions(customers).forEach((customer) => {
     optionMap.set(customer.companyName.toLowerCase(), customer);
   });
 
@@ -147,39 +164,6 @@ function computeVatSummary(itemTotal, vatMode) {
     vat: 0,
     grandTotal: itemTotal,
   };
-}
-
-function loadCustomerOptions(currentCustomerName = "") {
-  let customers = defaultCustomerOptions;
-
-  if (typeof window !== "undefined") {
-    try {
-      const raw = window.localStorage.getItem(CUSTOMER_STORAGE_KEY);
-      const parsed = raw ? JSON.parse(raw) : null;
-
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        customers = parsed
-          .map((customer) => ({
-            id: customer.id || customer.companyName,
-            companyName: `${customer.companyName ?? ""}`.trim(),
-          }))
-          .filter((customer) => customer.companyName);
-      }
-    } catch {
-      customers = defaultCustomerOptions;
-    }
-  }
-
-  const currentName = currentCustomerName.trim();
-
-  if (
-    currentName &&
-    !customers.some((customer) => customer.companyName.toLowerCase() === currentName.toLowerCase())
-  ) {
-    return [{ id: `current-${currentName}`, companyName: currentName }, ...customers];
-  }
-
-  return customers;
 }
 
 function getProductName(product) {
@@ -300,11 +284,16 @@ function createEditForm(sale) {
   };
 }
 
-function SalesEditForm({ sale, products, onCancel, onSave }) {
+function SalesEditForm({
+  sale,
+  products,
+  customers = defaultCustomerOptions,
+  onCancel,
+  onSave,
+}) {
   const [form, setForm] = useState(() => createEditForm(sale));
   const [items, setItems] = useState(() => createEditItems(sale, products));
   const [vatMode, setVatMode] = useState(sale.vat_mode || "not_included");
-  const [customers] = useState(() => loadCustomerOptions(sale.customer_name || ""));
   const [customerQuery, setCustomerQuery] = useState(sale.customer_name || "");
   const [customerOpen, setCustomerOpen] = useState(false);
   const [customerError, setCustomerError] = useState("");
@@ -313,14 +302,16 @@ function SalesEditForm({ sale, products, onCancel, onSave }) {
   const filteredCustomers = useMemo(() => {
     const normalizedQuery = customerQuery.trim().toLowerCase();
 
+    const customerOptions = normalizeCustomerOptions(customers, sale.customer_name || "");
+
     if (!normalizedQuery) {
-      return customers;
+      return customerOptions;
     }
 
-    return customers.filter((customer) =>
+    return customerOptions.filter((customer) =>
       customer.companyName.toLowerCase().includes(normalizedQuery)
     );
-  }, [customerQuery, customers]);
+  }, [customerQuery, customers, sale.customer_name]);
 
   const productOptions = useMemo(
     () => buildProductOptions(products, items),
@@ -862,6 +853,7 @@ function SalesEditForm({ sale, products, onCancel, onSave }) {
 function SalesHistoryPage({
   sales,
   products = [],
+  customers = defaultCustomerOptions,
   onCreateSale,
   onSaleStatusChange,
   onSaleUpdate,
@@ -879,8 +871,8 @@ function SalesHistoryPage({
   const [showNewSaleForm, setShowNewSaleForm] = useState(false);
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const customerOptions = useMemo(
-    () => buildCustomerFilterOptions(sales),
-    [sales]
+    () => buildCustomerFilterOptions(sales, customers),
+    [customers, sales]
   );
   const filteredCustomerOptions = useMemo(() => {
     const normalizedQuery = customerFilterQuery.trim().toLowerCase();
@@ -938,8 +930,13 @@ function SalesHistoryPage({
     setCustomerFilterOpen(false);
   }
 
-  function handleSave(updatedSale) {
-    onSaleUpdate?.(updatedSale);
+  async function handleSave(updatedSale) {
+    const saved = await onSaleUpdate?.(updatedSale);
+
+    if (saved === false) {
+      return;
+    }
+
     setEditingSale(null);
   }
 
@@ -948,8 +945,13 @@ function SalesHistoryPage({
     setShowNewSaleForm(false);
   }
 
-  function handleDelete(deletedSale) {
-    onSaleDelete?.(deletedSale);
+  async function handleDelete(deletedSale) {
+    const deleted = await onSaleDelete?.(deletedSale);
+
+    if (deleted === false) {
+      return;
+    }
+
     setEditingSale((currentSale) =>
       currentSale?.id === deletedSale.id ? null : currentSale
     );
@@ -960,6 +962,7 @@ function SalesHistoryPage({
       <div className="stack-layout">
         <SalesForm
           products={products}
+          customers={customers}
           sales={sales}
           onSubmit={handleCreateSale}
           onCancel={() => setShowNewSaleForm(false)}
@@ -1107,6 +1110,7 @@ function SalesHistoryPage({
           key={editingSale.id}
           sale={editingSale}
           products={products}
+          customers={customers}
           onCancel={() => setEditingSale(null)}
           onSave={handleSave}
         />

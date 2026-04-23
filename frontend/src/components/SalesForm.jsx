@@ -1,17 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { applySaleStatusToItems, getSaleStatusFromItems } from "../saleStatus";
 
-const CUSTOMER_STORAGE_KEY = "inventory-management-customers";
 const VAT_RATE = 0.07;
 const vatOptions = [
   { value: "included", label: "VAT Included" },
   { value: "not_included", label: "VAT Not Included" },
   { value: "none", label: "No VAT" },
 ];
-const defaultCustomerOptions = [
-  { id: "customer-1", companyName: "Faculty of Engineering" },
-  { id: "customer-2", companyName: "Student Council" },
-];
+const defaultCustomerOptions = [];
 
 function getToday() {
   return new Date().toISOString().split("T")[0];
@@ -109,35 +105,6 @@ function computeVatSummary(itemTotal, vatMode) {
   };
 }
 
-function loadCustomerOptions() {
-  if (typeof window === "undefined") {
-    return defaultCustomerOptions;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(CUSTOMER_STORAGE_KEY);
-
-    if (!raw) {
-      return defaultCustomerOptions;
-    }
-
-    const parsed = JSON.parse(raw);
-
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return defaultCustomerOptions;
-    }
-
-    return parsed
-      .map((customer) => ({
-        id: customer.id || customer.companyName,
-        companyName: `${customer.companyName ?? ""}`.trim(),
-      }))
-      .filter((customer) => customer.companyName);
-  } catch {
-    return defaultCustomerOptions;
-  }
-}
-
 function getProductName(product) {
   return product.name || product.productName || product.product_name || product.sku || `Product ${product.id}`;
 }
@@ -146,7 +113,13 @@ function getProductSku(product) {
   return product.sku || product.SKU || "";
 }
 
-function SalesForm({ products, sales = [], onSubmit, onCancel = null }) {
+function SalesForm({
+  products,
+  customers = defaultCustomerOptions,
+  sales = [],
+  onSubmit,
+  onCancel = null,
+}) {
   const nextReferenceNo = useMemo(
     () => getNextSalesReference(sales),
     [sales]
@@ -155,7 +128,6 @@ function SalesForm({ products, sales = [], onSubmit, onCancel = null }) {
   const [form, setForm] = useState(() => createInitialForm(nextReferenceNo));
   const [items, setItems] = useState([emptyItem()]);
   const [vatMode, setVatMode] = useState("not_included");
-  const [customers] = useState(() => loadCustomerOptions());
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerOpen, setCustomerOpen] = useState(false);
   const [customerError, setCustomerError] = useState("");

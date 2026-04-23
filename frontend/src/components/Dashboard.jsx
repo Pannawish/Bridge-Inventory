@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { loadProducts } from "./ProductsPage";
+import { useMemo, useState } from "react";
 import {
   getPurchaseItemDisplayStatus,
   getStoredPurchaseItemStatus,
@@ -383,17 +382,16 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
   });
 }
 
-function Dashboard({ dashboard, purchases = [], sales = [] }) {
+function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("low-to-high");
-  const [catalogProducts, setCatalogProducts] = useState(() => loadProducts());
   const metrics = dashboard.metrics || {};
   const lowStockItems = dashboard.low_stock_items || [];
   const stockReport = dashboard.stock_report || [];
   const stockRows = useMemo(
-    () => createProductStockRows(catalogProducts, stockReport, lowStockItems, purchases, sales),
-    [catalogProducts, lowStockItems, purchases, sales, stockReport]
+    () => createProductStockRows(products, stockReport, lowStockItems, purchases, sales),
+    [lowStockItems, products, purchases, sales, stockReport]
   );
   const stockMetrics = useMemo(
     () => ({
@@ -435,20 +433,6 @@ function Dashboard({ dashboard, purchases = [], sales = [] }) {
 
       return leftItem.available_stock - rightItem.available_stock;
     });
-  useEffect(() => {
-    function refreshProducts() {
-      setCatalogProducts(loadProducts());
-    }
-
-    window.addEventListener("storage", refreshProducts);
-    window.addEventListener("inventory-products-updated", refreshProducts);
-
-    return () => {
-      window.removeEventListener("storage", refreshProducts);
-      window.removeEventListener("inventory-products-updated", refreshProducts);
-    };
-  }, []);
-
   return (
     <div className="stack-layout">
       <section className="metrics-grid">
