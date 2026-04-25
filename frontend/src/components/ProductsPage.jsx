@@ -19,6 +19,7 @@ import {
 } from "../unitConversion";
 
 const VAT_RATE = 0.07;
+const SKU_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 
 function createProduct(overrides = {}) {
   return {
@@ -159,6 +160,14 @@ function getProductDisplayName(product) {
   return getProductAllNames(product)[0] || product?.sku || `Product ${product?.id || ""}`.trim();
 }
 
+function normalizeSku(value) {
+  return `${value ?? ""}`.trim().toUpperCase().replace(/\s+/g, "-");
+}
+
+function isValidSku(value) {
+  return SKU_PATTERN.test(value);
+}
+
 function normalizeProduct(product) {
   const allNames = getProductAllNames(product);
   const [productName = "", ...subNames] = allNames;
@@ -171,7 +180,7 @@ function normalizeProduct(product) {
   return {
     id: product.id || `product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     productDisplayId: Math.max(1, Math.round(Number(product.productDisplayId) || 1001)),
-    sku: `${product.sku ?? ""}`,
+    sku: normalizeSku(product.sku),
     productName,
     subNames,
     stockBaseUnit,
@@ -248,10 +257,6 @@ function computeVatSummary(items, vatMode) {
 
   const vat = itemTotal * VAT_RATE;
   return { subtotal: itemTotal, vat, grandTotal: itemTotal + vat };
-}
-
-function normalizeSku(value) {
-  return `${value ?? ""}`.trim().toLowerCase();
 }
 
 function matchesSku(item, sku) {
@@ -623,6 +628,29 @@ function ProductsPage({
 
     const normalizedDraft = normalizeProduct(draftProduct);
     const categoryLabel = getCategoryPathById(categories, normalizedDraft.categoryId);
+
+    if (!normalizedDraft.sku) {
+      setProductFormError("SKU is required for every product.");
+      return;
+    }
+
+    if (!isValidSku(normalizedDraft.sku)) {
+      setProductFormError("SKU can only use A-Z, 0-9, and single hyphens between parts.");
+      return;
+    }
+
+    const duplicateProduct = products.find(
+      (product) =>
+        `${product.id}` !== `${normalizedDraft.id}` &&
+        normalizeSku(product.sku) === normalizedDraft.sku
+    );
+
+    if (duplicateProduct) {
+      setProductFormError(
+        `SKU ${normalizedDraft.sku} is already used by ${getProductDisplayName(duplicateProduct)}.`
+      );
+      return;
+    }
 
     if (!normalizedDraft.categoryId) {
       setProductFormError("Select a leaf category for this product.");
@@ -1515,8 +1543,12 @@ function ProductsPage({
                   <input
                     value={draftProduct.sku}
                     onChange={(event) => updateDraftField("sku", event.target.value)}
-                    placeholder="e.g. NB-A5-001"
+                    onBlur={() => updateDraftField("sku", normalizeSku(draftProduct.sku))}
+                    placeholder="e.g. PVC-PIPE-20MM-4M-001"
                   />
+                  <span className="field-helper-text">
+                    Required and unique. Use A-Z, 0-9, and hyphens only.
+                  </span>
                 </label>
 
                 <label>

@@ -617,6 +617,12 @@ label textarea:focus,
   font-size: 0.85rem;
 }
 
+.field-helper-text {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .supplier-combobox-empty {
   padding: 10px 12px;
 }
