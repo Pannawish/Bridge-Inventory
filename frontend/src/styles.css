@@ -1447,6 +1447,13 @@ th {
   margin: 4px 0 0;
 }
 
+.product-sku-edit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
 .unit-conversion-row {
   display: grid;
   grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) auto auto auto;
@@ -2318,6 +2325,10 @@ th {
   .sales-line-item-row {
     grid-template-columns: 1fr;
     min-width: 0;
+  }
+
+  .product-sku-edit-row {
+    grid-template-columns: 1fr;
   }
 
   .purchase-line-item-row {

@@ -20,12 +20,46 @@ import {
 
 const VAT_RATE = 0.07;
 const SKU_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
+const SKU_PREFIX_BY_KEYWORD = [
+  ["bolt", "BLT"],
+  ["nut", "NUT"],
+  ["screw", "SCR"],
+  ["pipe", "PIP"],
+  ["pvc", "PVC"],
+  ["cable", "CBL"],
+  ["wire", "WIR"],
+  ["drill", "DRL"],
+  ["bit", "BIT"],
+  ["glove", "GLV"],
+  ["paint", "PNT"],
+  ["chemical", "CHM"],
+  ["electrical", "ELC"],
+  ["marker", "MRK"],
+  ["pen", "PEN"],
+  ["notebook", "NB"],
+  ["stapler", "STP"],
+  ["sticky", "STK"],
+  ["folder", "FLD"],
+];
+const SKU_STOP_WORDS = new Set([
+  "THE",
+  "AND",
+  "FOR",
+  "WITH",
+  "SET",
+  "PCS",
+  "PC",
+  "PACK",
+  "BOX",
+  "CARTON",
+]);
 
 function createProduct(overrides = {}) {
   return {
     id: `product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     productDisplayId: 1001,
     sku: "",
+    previousSkus: [],
     productName: "",
     subNames: [],
     stockBaseUnit: "pcs",
@@ -152,6 +186,16 @@ function getProductSubNames(product) {
   );
 }
 
+function getProductPreviousSkus(product) {
+  return normalizeUniqueNames(
+    Array.isArray(product?.previousSkus)
+      ? product.previousSkus.map(normalizeSku)
+      : Array.isArray(product?.previous_skus)
+        ? product.previous_skus.map(normalizeSku)
+        : []
+  );
+}
+
 function getProductAllNames(product) {
   return normalizeUniqueNames([getProductMainName(product), ...getProductSubNames(product)]);
 }
@@ -168,6 +212,71 @@ function isValidSku(value) {
   return SKU_PATTERN.test(value);
 }
 
+function normalizeSkuToken(value) {
+  return `${value ?? ""}`.toUpperCase().replace(/[^A-Z0-9]+/g, "");
+}
+
+function getCategoryLeafName(categoryLabel = "") {
+  const parts = `${categoryLabel}`.split("/").map((part) => part.trim()).filter(Boolean);
+  return parts[parts.length - 1] || "";
+}
+
+function getSkuPrefix(categoryLabel = "", productName = "") {
+  const source = `${categoryLabel} ${productName}`.toLowerCase();
+  const matchedPrefix = SKU_PREFIX_BY_KEYWORD.find(([keyword]) => source.includes(keyword));
+
+  if (matchedPrefix) {
+    return matchedPrefix[1];
+  }
+
+  const leafName = getCategoryLeafName(categoryLabel) || productName || "PRODUCT";
+  const words = leafName.match(/[a-z0-9]+/gi) || [];
+  const acronym = words.map((word) => word[0]).join("").toUpperCase().slice(0, 3);
+
+  return acronym || "PRD";
+}
+
+function getSkuDescriptor(product) {
+  const rawText = [
+    product?.productName,
+    ...(Array.isArray(product?.subNames) ? product.subNames : []),
+    product?.detail,
+  ].join(" ");
+  const rawTokens = rawText.match(/[A-Za-z]*\d+(?:\.\d+)?(?:X\d+(?:\.\d+)?)?[A-Za-z]*|[A-Za-z]+/g) || [];
+  const tokens = rawTokens
+    .map(normalizeSkuToken)
+    .filter((token) => token && !SKU_STOP_WORDS.has(token));
+  const specTokens = tokens.filter((token) => /\d/.test(token)).slice(0, 2);
+  const wordTokens = tokens.filter((token) => !/\d/.test(token)).slice(0, 2);
+  const descriptor = [...specTokens, ...wordTokens].slice(0, 3).join("-");
+
+  return descriptor || "ITEM";
+}
+
+function getNextSkuSerial(baseSku, products, currentProductId = "") {
+  const usedSerials = products.reduce((serials, product) => {
+    if (`${product.id}` === `${currentProductId}`) {
+      return serials;
+    }
+
+    const sku = normalizeSku(product.sku);
+    const match = sku.match(new RegExp(`^${baseSku}-(\\d{3})$`));
+
+    if (match) {
+      serials.add(Number(match[1]));
+    }
+
+    return serials;
+  }, new Set());
+  let serial = 1;
+
+  while (usedSerials.has(serial)) {
+    serial += 1;
+  }
+
+  return `${serial}`.padStart(3, "0");
+}
+
 function normalizeProduct(product) {
   const allNames = getProductAllNames(product);
   const [productName = "", ...subNames] = allNames;
@@ -181,6 +290,7 @@ function normalizeProduct(product) {
     id: product.id || `product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     productDisplayId: Math.max(1, Math.round(Number(product.productDisplayId) || 1001)),
     sku: normalizeSku(product.sku),
+    previousSkus: getProductPreviousSkus(product),
     productName,
     subNames,
     stockBaseUnit,
@@ -269,6 +379,21 @@ function matchesSku(item, sku) {
   return normalizeSku(item.sku) === normalizedSku;
 }
 
+function itemMatchesProduct(item, product) {
+  if (!item || !product) {
+    return false;
+  }
+
+  const itemProductId = `${item.product_id ?? item.productId ?? ""}`;
+  const productId = `${product.id ?? ""}`;
+
+  if (itemProductId && productId && itemProductId === productId) {
+    return true;
+  }
+
+  return matchesSku(item, product.sku) || getProductPreviousSkus(product).some((sku) => matchesSku(item, sku));
+}
+
 function resolveProductCategoryId(product, categories) {
   if (product.categoryId && categories.some((category) => category.id === product.categoryId)) {
     return product.categoryId;
@@ -290,12 +415,12 @@ function getProductCategoryLabel(product, categories) {
 function getProductMetrics(product, purchases, sales) {
   const purchaseItems = purchases.flatMap((purchase) =>
     (purchase.items || [])
-      .filter((item) => matchesSku(item, product.sku))
+      .filter((item) => itemMatchesProduct(item, product))
       .map((item) => ({ transaction: purchase, item }))
   );
   const salesItems = sales.flatMap((sale) =>
     (sale.items || [])
-      .filter((item) => matchesSku(item, product.sku))
+      .filter((item) => itemMatchesProduct(item, product))
       .map((item) => ({ transaction: sale, item }))
   );
   const receivedPurchaseItems = purchaseItems.filter(
@@ -349,6 +474,7 @@ function ProductsPage({
   const [stockFilter, setStockFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [productFormError, setProductFormError] = useState("");
+  const [skuChangeUnlocked, setSkuChangeUnlocked] = useState(false);
 
   useEffect(() => {
     const isOpen = !!(viewingProduct || viewingTransaction || draftProduct);
@@ -397,6 +523,7 @@ function ProductsPage({
           searchableNames.some((name) => name.toLowerCase().includes(normalizedSearch)) ||
           categoryLabel.toLowerCase().includes(normalizedSearch) ||
           `${product.sku ?? ""}`.toLowerCase().includes(normalizedSearch) ||
+          getProductPreviousSkus(product).some((sku) => sku.toLowerCase().includes(normalizedSearch)) ||
           `${product.productDisplayId}`.includes(normalizedSearch);
 
         if (!matchesSearch) {
@@ -469,6 +596,7 @@ function ProductsPage({
     setViewingProduct(null);
     setViewingTransaction(null);
     setProductFormError("");
+    setSkuChangeUnlocked(false);
     setDraftProduct({
       ...normalizedProduct,
       categoryId: resolveProductCategoryId(product, categories),
@@ -478,6 +606,7 @@ function ProductsPage({
   function closeProductEditor() {
     setDraftProduct(null);
     setProductFormError("");
+    setSkuChangeUnlocked(false);
   }
 
   function updateDraftField(key, value) {
@@ -609,6 +738,61 @@ function ProductsPage({
     setProductFormError("");
   }
 
+  function getExistingProduct(product) {
+    return products.find((item) => `${item.id}` === `${product?.id}`);
+  }
+
+  function productHasTransactionHistory(product) {
+    if (!product) {
+      return false;
+    }
+
+    return (
+      purchases.some((purchase) =>
+        (purchase.items || []).some((item) => itemMatchesProduct(item, product))
+      ) ||
+      sales.some((sale) =>
+        (sale.items || []).some((item) => itemMatchesProduct(item, product))
+      )
+    );
+  }
+
+  function generateStructuredSku(product) {
+    const categoryLabel = getCategoryPathById(categories, product.categoryId) || product.category;
+    const prefix = getSkuPrefix(categoryLabel, product.productName);
+    const descriptor = getSkuDescriptor(product);
+    const baseSku = normalizeSku(`${prefix}-${descriptor}`);
+    const serial = getNextSkuSerial(baseSku, products, product.id);
+
+    return `${baseSku}-${serial}`;
+  }
+
+  function handleGenerateSku() {
+    if (!draftProduct) {
+      return;
+    }
+
+    setDraftProduct((prev) => (prev ? { ...prev, sku: generateStructuredSku(prev) } : prev));
+    setProductFormError("");
+  }
+
+  function handleUnlockSkuChange() {
+    if (!draftProduct) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "This product already has purchase or sales history. Changing SKU will only affect the product master; old transaction rows keep their original SKU snapshot. Continue?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setSkuChangeUnlocked(true);
+    setProductFormError("");
+  }
+
   function handleCreateProduct() {
     const nextDisplayId =
       products.length === 0
@@ -618,6 +802,7 @@ function ProductsPage({
     setViewingProduct(null);
     setViewingTransaction(null);
     setProductFormError("");
+    setSkuChangeUnlocked(false);
     setDraftProduct(createProduct({ productDisplayId: nextDisplayId }));
   }
 
@@ -628,6 +813,10 @@ function ProductsPage({
 
     const normalizedDraft = normalizeProduct(draftProduct);
     const categoryLabel = getCategoryPathById(categories, normalizedDraft.categoryId);
+    const existingProduct = getExistingProduct(normalizedDraft);
+    const existingProductHasHistory = productHasTransactionHistory(existingProduct);
+    const skuChanged =
+      existingProduct && normalizeSku(existingProduct.sku) !== normalizedDraft.sku;
 
     if (!normalizedDraft.sku) {
       setProductFormError("SKU is required for every product.");
@@ -642,13 +831,19 @@ function ProductsPage({
     const duplicateProduct = products.find(
       (product) =>
         `${product.id}` !== `${normalizedDraft.id}` &&
-        normalizeSku(product.sku) === normalizedDraft.sku
+        (normalizeSku(product.sku) === normalizedDraft.sku ||
+          getProductPreviousSkus(product).some((sku) => normalizeSku(sku) === normalizedDraft.sku))
     );
 
     if (duplicateProduct) {
       setProductFormError(
         `SKU ${normalizedDraft.sku} is already used by ${getProductDisplayName(duplicateProduct)}.`
       );
+      return;
+    }
+
+    if (existingProductHasHistory && skuChanged && !skuChangeUnlocked) {
+      setProductFormError("SKU is locked because this product has purchase or sales history.");
       return;
     }
 
@@ -686,8 +881,16 @@ function ProductsPage({
       return;
     }
 
+    const nextPreviousSkus =
+      existingProduct && skuChanged
+        ? normalizeUniqueNames([
+            ...(normalizedDraft.previousSkus || []),
+            normalizeSku(existingProduct.sku),
+          ])
+        : normalizedDraft.previousSkus;
     const nextProduct = {
       ...normalizedDraft,
+      previousSkus: nextPreviousSkus,
       category: categoryLabel,
     };
     const savedProduct = await onSaveProduct?.(nextProduct);
@@ -697,6 +900,7 @@ function ProductsPage({
     }
 
     setDraftProduct(null);
+    setSkuChangeUnlocked(false);
     setProductFormError("");
   }
 
@@ -722,18 +926,18 @@ function ProductsPage({
     setDraftProduct(null);
   }
 
-  function getPurchaseHistory(productSku) {
+  function getPurchaseHistory(product) {
     return purchases.flatMap((purchase) =>
       (purchase.items || [])
-        .filter((item) => matchesSku(item, productSku))
+        .filter((item) => itemMatchesProduct(item, product))
         .map((item) => ({ purchase, item }))
     );
   }
 
-  function getSalesHistory(productSku) {
+  function getSalesHistory(product) {
     return sales.flatMap((sale) =>
       (sale.items || [])
-        .filter((item) => matchesSku(item, productSku))
+        .filter((item) => itemMatchesProduct(item, product))
         .map((item) => ({ sale, item }))
     );
   }
@@ -753,14 +957,17 @@ function ProductsPage({
   };
 
   const viewPurchaseHistory = viewingProduct
-    ? getPurchaseHistory(viewingProduct.sku)
+    ? getPurchaseHistory(viewingProduct)
     : [];
   const viewSalesHistory = viewingProduct
-    ? getSalesHistory(viewingProduct.sku)
+    ? getSalesHistory(viewingProduct)
     : [];
   const viewingProductMetrics = viewingProduct
     ? getProductMetrics(viewingProduct, purchases, sales)
     : null;
+  const draftExistingProduct = draftProduct ? getExistingProduct(draftProduct) : null;
+  const draftProductHasHistory = productHasTransactionHistory(draftExistingProduct);
+  const isSkuLocked = Boolean(draftExistingProduct && draftProductHasHistory && !skuChangeUnlocked);
 
   return (
     <div className="stack-layout">
@@ -1050,7 +1257,7 @@ function ProductsPage({
                                 {(transaction.items || []).map((item, itemIndex) => {
                                   const isHighlighted =
                                     viewingProduct &&
-                                    matchesSku(item, viewingProduct.sku);
+                                    itemMatchesProduct(item, viewingProduct);
                                   const amount = computeItemAmount(item);
                                   const quantityDetails = getItemQuantityDetails(
                                     item,
@@ -1120,7 +1327,7 @@ function ProductsPage({
                                 {(transaction.items || []).map((item, itemIndex) => {
                                   const isHighlighted =
                                     viewingProduct &&
-                                    matchesSku(item, viewingProduct.sku);
+                                    itemMatchesProduct(item, viewingProduct);
                                   const amount = computeItemAmount(item);
                                   const quantityDetails = getItemQuantityDetails(
                                     item,
@@ -1538,16 +1745,42 @@ function ProductsPage({
                   )}
                 </div>
 
-                <label>
-                  SKU
-                  <input
-                    value={draftProduct.sku}
-                    onChange={(event) => updateDraftField("sku", event.target.value)}
-                    onBlur={() => updateDraftField("sku", normalizeSku(draftProduct.sku))}
-                    placeholder="e.g. PVC-PIPE-20MM-4M-001"
-                  />
+                <label className="supplier-option-field">
+                  <span>SKU</span>
+                  <div className="product-sku-edit-row">
+                    <input
+                      value={draftProduct.sku}
+                      onChange={(event) => updateDraftField("sku", event.target.value)}
+                      onBlur={() => {
+                        if (!isSkuLocked) {
+                          updateDraftField("sku", normalizeSku(draftProduct.sku));
+                        }
+                      }}
+                      placeholder="e.g. PVC-PIPE-20MM-4M-001"
+                      disabled={isSkuLocked}
+                    />
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={handleGenerateSku}
+                      disabled={isSkuLocked}
+                    >
+                      Generate
+                    </button>
+                    {isSkuLocked ? (
+                      <button
+                        className="table-action-button"
+                        type="button"
+                        onClick={handleUnlockSkuChange}
+                      >
+                        Change SKU
+                      </button>
+                    ) : null}
+                  </div>
                   <span className="field-helper-text">
-                    Required and unique. Use A-Z, 0-9, and hyphens only.
+                    {isSkuLocked
+                      ? "Locked because this product has purchase or sales history."
+                      : "Required and unique. Use A-Z, 0-9, and hyphens only."}
                   </span>
                 </label>
 
