@@ -5,6 +5,8 @@ import {
 } from "../purchaseStatus";
 import { getItemBaseQuantity, getProductBaseUnit } from "../unitConversion";
 
+const SAFETY_STOCK_DAYS = 7;
+
 function formatCurrency(value) {
   return `฿${Number(value || 0).toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -157,6 +159,21 @@ function computeDateDiffInDays(startDate, endDate) {
   return Math.max(0, Math.round((endTime - startTime) / 86400000));
 }
 
+function computeDateSpanDays(dates) {
+  const validTimes = dates
+    .map(parseUtcDate)
+    .filter((time) => time !== null);
+
+  if (validTimes.length <= 1) {
+    return validTimes.length;
+  }
+
+  const earliestTime = Math.min(...validTimes);
+  const latestTime = Math.max(...validTimes);
+
+  return Math.max(1, Math.round((latestTime - earliestTime) / 86400000) + 1);
+}
+
 function getMovementKey(item) {
   return normalizeSku(item.sku) || normalizeName(item.product_name);
 }
@@ -219,6 +236,8 @@ function createEmptyStockRow(key, overrides = {}) {
     received_purchase_units: 0,
     received_purchase_value: 0,
     allocated_sales_units: 0,
+    sales_history_units: 0,
+    sales_history_dates: [],
     pending_purchase_units: 0,
     delayed_purchase_units: 0,
     lead_time_sample_days: 0,
@@ -348,7 +367,14 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
         category: "-",
       });
 
-      row.allocated_sales_units += getMovementQuantity(item);
+      const quantity = getMovementQuantity(item);
+
+      row.allocated_sales_units += quantity;
+      row.sales_history_units += quantity;
+
+      if (sale.transaction_date) {
+        row.sales_history_dates.push(sale.transaction_date);
+      }
     });
   });
 
@@ -362,16 +388,21 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
       item.lead_time_sample_count > 0
         ? item.lead_time_sample_days / item.lead_time_sample_count
         : null;
-    const averageDailyDemand = (Number(item.predicted_7_day_demand) || 0) / 7;
-    const reorderLevelFromActualLeadTime =
+    const salesHistoryDays = computeDateSpanDays(item.sales_history_dates);
+    const averageDailyDemand =
+      item.sales_history_units > 0 && salesHistoryDays > 0
+        ? item.sales_history_units / salesHistoryDays
+        : 0;
+    const leadTimeDemand =
       averageLeadTimeDays !== null && averageDailyDemand > 0
-        ? Math.ceil(averageDailyDemand * averageLeadTimeDays)
-        : null;
+        ? averageDailyDemand * averageLeadTimeDays
+        : 0;
+    const safetyStock = averageDailyDemand > 0
+      ? averageDailyDemand * SAFETY_STOCK_DAYS
+      : 0;
     const stockValue = availableStock * avgUnitCost;
-    const reorderLevel =
-      reorderLevelFromActualLeadTime !== null
-        ? reorderLevelFromActualLeadTime
-        : item.reorder_level;
+    const calculatedReorderLevel = Math.ceil(leadTimeDemand + safetyStock);
+    const reorderLevel = calculatedReorderLevel || item.reorder_level;
     const recommendedPurchase = Math.max(
       0,
       reorderLevel - availableStock - item.pending_purchase_units
@@ -385,9 +416,12 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
       available_stock: availableStock,
       current_stock: availableStock,
       reorder_level: reorderLevel,
+      average_daily_demand: averageDailyDemand,
       average_unit_cost: avgUnitCost,
       average_lead_time_days:
         averageLeadTimeDays !== null ? Number(averageLeadTimeDays.toFixed(1)) : null,
+      safety_stock: Math.ceil(safetyStock),
+      safety_stock_days: SAFETY_STOCK_DAYS,
       stock_value: stockValue,
       total_cost: stockValue,
       incoming_purchase_units: item.pending_purchase_units + item.delayed_purchase_units,
@@ -534,9 +568,9 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
 
         <p className="inventory-note">
           Available stock is calculated from received purchase items minus active sales.
-          Reorder point now uses each product's actual received lead time from purchase date to
-          item received date. Pending and delayed purchase items are tracked separately as incoming
-          stock.
+          Reorder point uses actual average daily sales demand, received purchase lead time, and
+          a {SAFETY_STOCK_DAYS}-day safety stock buffer. Pending and delayed purchase items are
+          tracked separately as incoming stock.
         </p>
 
         <div className="stock-report-toolbar">
@@ -588,6 +622,8 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                 <th>Active Sales</th>
                 <th>Pending PO</th>
                 <th>Delayed PO</th>
+                <th>Avg Daily Demand</th>
+                <th>Safety Stock</th>
                 <th>Reorder Point</th>
                 <th>Days Left</th>
                 <th>Suggested Purchase</th>
@@ -597,7 +633,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan="12">
+                  <td colSpan="14">
                     <p className="empty-copy">No inventory items match the current search or filter.</p>
                   </td>
                 </tr>
@@ -621,6 +657,8 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                     <td>{formatStockQuantity(item.allocated_sales_units, item.unit)}</td>
                     <td>{formatStockQuantity(item.pending_purchase_units, item.unit)}</td>
                     <td>{formatStockQuantity(item.delayed_purchase_units, item.unit)}</td>
+                    <td>{formatStockQuantity(item.average_daily_demand, item.unit)}</td>
+                    <td>{formatStockQuantity(item.safety_stock, item.unit)}</td>
                     <td>{formatStockQuantity(item.reorder_level, item.unit)}</td>
                     <td>{formatNumber(item.days_until_stockout)}</td>
                     <td>{formatStockQuantity(item.recommended_restock, item.unit)}</td>
@@ -672,6 +710,14 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                   <div>
                     <span>Delayed PO</span>
                     <strong>{formatStockQuantity(item.delayed_purchase_units, item.unit)}</strong>
+                  </div>
+                  <div>
+                    <span>Avg Daily Demand</span>
+                    <strong>{formatStockQuantity(item.average_daily_demand, item.unit)}</strong>
+                  </div>
+                  <div>
+                    <span>Safety Stock</span>
+                    <strong>{formatStockQuantity(item.safety_stock, item.unit)}</strong>
                   </div>
                   <div>
                     <span>Reorder Point</span>
