@@ -5,6 +5,11 @@ import {
   getTodayString,
   purchaseStatuses,
 } from "../purchaseStatus";
+import {
+  buildConvertedItemFields,
+  getProductDefaultPurchaseUnit,
+  getProductUnitOptions,
+} from "../unitConversion";
 
 const today = getTodayString();
 const VAT_RATE = 0.07;
@@ -75,7 +80,7 @@ function getProductSku(product) {
 }
 
 function getProductUnit(product) {
-  return product.unit || product.uom || product.unit_name || "pcs";
+  return getProductDefaultPurchaseUnit(product);
 }
 
 function computeAmount(item) {
@@ -237,6 +242,7 @@ function PurchaseForm({
               product_query: value,
               product_name: "",
               sku: "",
+              unit: "pcs",
             }
           : item
       )
@@ -248,6 +254,7 @@ function PurchaseForm({
   function selectProduct(index, product) {
     const productName = getProductName(product);
     const sku = getProductSku(product);
+    const unit = getProductUnit(product);
 
     setItems((currentItems) =>
       currentItems.map((item, itemIndex) =>
@@ -258,7 +265,7 @@ function PurchaseForm({
               product_query: sku ? `${productName} (${sku})` : productName,
               product_name: productName,
               sku,
-              unit: getProductUnit(product),
+              unit,
             }
           : item
       )
@@ -437,7 +444,12 @@ function PurchaseForm({
           product_id: selectedProduct.id,
           product_name: getProductName(selectedProduct),
           sku: getProductSku(selectedProduct),
-          unit: item.unit,
+          ...buildConvertedItemFields(
+            selectedProduct,
+            item.quantity,
+            item.unit,
+            "purchase"
+          ),
           expected_delivery_date: item.expected_delivery_date,
           item_status: getInitialPurchaseItemStatus(form.status),
           received_date:
@@ -634,6 +646,15 @@ function PurchaseForm({
           {items.map((item, index) => {
             const amount = computeAmount(item);
             const filteredProducts = getFilteredProducts(item.product_query);
+            const selectedProduct = productOptions.find(
+              (product) => `${product.id}` === `${item.product_id}`
+            );
+            const unitOptions = selectedProduct
+              ? getProductUnitOptions(selectedProduct, "purchase")
+              : [];
+            const conversionPreview = selectedProduct
+              ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "purchase")
+              : null;
 
             return (
               <div
@@ -735,11 +756,26 @@ function PurchaseForm({
 
                 <label className="purchase-item-field purchase-item-unit">
                   <span>Unit</span>
-                  <input
+                  <select
                     value={item.unit}
                     onChange={(event) => updateItem(index, "unit", event.target.value)}
-                    placeholder="Unit"
-                  />
+                    disabled={!selectedProduct}
+                  >
+                    {unitOptions.length ? (
+                      unitOptions.map((conversion) => (
+                        <option key={conversion.unit} value={conversion.unit}>
+                          {conversion.unit}
+                        </option>
+                      ))
+                    ) : (
+                      <option value={item.unit || "pcs"}>{item.unit || "pcs"}</option>
+                    )}
+                  </select>
+                  {conversionPreview ? (
+                    <span className="unit-conversion-preview">
+                      {conversionPreview.base_quantity} {conversionPreview.base_unit}
+                    </span>
+                  ) : null}
                 </label>
 
                 <label className="purchase-item-field purchase-item-delivery">

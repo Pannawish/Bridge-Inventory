@@ -9,6 +9,13 @@ import {
   getPurchaseItemDisplayStatus,
   getStoredPurchaseItemStatus,
 } from "../purchaseStatus";
+import {
+  getItemBaseQuantity,
+  getProductBaseUnit,
+  getProductDefaultPurchaseUnit,
+  getProductDefaultSalesUnit,
+  getProductUnitConversions,
+} from "../unitConversion";
 
 const VAT_RATE = 0.07;
 
@@ -19,6 +26,12 @@ function createProduct(overrides = {}) {
     sku: "",
     productName: "",
     subNames: [],
+    stockBaseUnit: "pcs",
+    defaultPurchaseUnit: "pcs",
+    defaultSalesUnit: "pcs",
+    unitConversions: [
+      { unit: "pcs", factorToBase: 1, allowPurchase: true, allowSale: true },
+    ],
     categoryId: "",
     category: "",
     detail: "",
@@ -34,6 +47,14 @@ const defaultProducts = [
     sku: "NB-A5-001",
     productName: "Notebook A5",
     subNames: ["A5 Notebook", "Spiral Notebook A5"],
+    stockBaseUnit: "pcs",
+    defaultPurchaseUnit: "pack",
+    defaultSalesUnit: "pcs",
+    unitConversions: [
+      { unit: "pcs", factorToBase: 1, allowPurchase: true, allowSale: true },
+      { unit: "pack", factorToBase: 12, allowPurchase: true, allowSale: false },
+      { unit: "carton", factorToBase: 120, allowPurchase: true, allowSale: false },
+    ],
     categoryId: "category-notebooks",
     category: "Stationery / Notebooks",
     detail: "Standard A5 spiral notebook, 80 pages, ruled. Suitable for students and office use.",
@@ -45,6 +66,13 @@ const defaultProducts = [
     sku: "PEN-BL-014",
     productName: "Blue Ballpoint Pen",
     subNames: ["Blue Pen", "Ball Pen Blue"],
+    stockBaseUnit: "pcs",
+    defaultPurchaseUnit: "box",
+    defaultSalesUnit: "pcs",
+    unitConversions: [
+      { unit: "pcs", factorToBase: 1, allowPurchase: true, allowSale: true },
+      { unit: "box", factorToBase: 50, allowPurchase: true, allowSale: true },
+    ],
     categoryId: "category-pens",
     category: "Writing Tools / Pens",
     detail: "Medium tip blue ballpoint pen. Smooth writing, long-lasting ink.",
@@ -56,6 +84,12 @@ const defaultProducts = [
     sku: "STP-MN-009",
     productName: "Mini Stapler",
     subNames: ["Small Stapler"],
+    stockBaseUnit: "pcs",
+    defaultPurchaseUnit: "pcs",
+    defaultSalesUnit: "pcs",
+    unitConversions: [
+      { unit: "pcs", factorToBase: 1, allowPurchase: true, allowSale: true },
+    ],
     categoryId: "category-staplers",
     category: "Desk Accessories / Staplers",
     detail: "Compact desktop stapler. Accepts standard 26/6 staples. Capacity up to 20 sheets.",
@@ -67,6 +101,13 @@ const defaultProducts = [
     sku: "STK-NT-022",
     productName: "Sticky Notes Set",
     subNames: ["Memo Notes Set", "Sticky Memo Pads"],
+    stockBaseUnit: "set",
+    defaultPurchaseUnit: "box",
+    defaultSalesUnit: "set",
+    unitConversions: [
+      { unit: "set", factorToBase: 1, allowPurchase: true, allowSale: true },
+      { unit: "box", factorToBase: 24, allowPurchase: true, allowSale: false },
+    ],
     categoryId: "category-sticky-notes",
     category: "Paper Goods / Sticky Notes",
     detail: "Pack of 4 sticky note pads, 100 sheets each. Assorted colors.",
@@ -120,6 +161,11 @@ function getProductDisplayName(product) {
 function normalizeProduct(product) {
   const allNames = getProductAllNames(product);
   const [productName = "", ...subNames] = allNames;
+  const stockBaseUnit = getProductBaseUnit(product);
+  const unitConversions = getProductUnitConversions({
+    ...product,
+    stockBaseUnit,
+  });
 
   return {
     id: product.id || `product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -127,6 +173,10 @@ function normalizeProduct(product) {
     sku: `${product.sku ?? ""}`,
     productName,
     subNames,
+    stockBaseUnit,
+    defaultPurchaseUnit: getProductDefaultPurchaseUnit({ ...product, stockBaseUnit, unitConversions }),
+    defaultSalesUnit: getProductDefaultSalesUnit({ ...product, stockBaseUnit, unitConversions }),
+    unitConversions,
     categoryId: `${product.categoryId ?? ""}`,
     category: `${product.category ?? ""}`,
     detail: `${product.detail ?? ""}`,
@@ -139,6 +189,11 @@ function formatCurrency(value) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
+}
+
+function formatStockQuantity(value, product) {
+  const unit = getProductBaseUnit(product);
+  return `${Number(value || 0).toLocaleString()} ${unit}`;
 }
 
 function computeItemAmount(item) {
@@ -246,16 +301,16 @@ function getProductMetrics(product, purchases, sales) {
   );
 
   const purchasedUnits = receivedPurchaseItems.reduce(
-    (sum, { item }) => sum + (Number(item.quantity) || 0),
+    (sum, { item }) => sum + getItemBaseQuantity(item),
     0
   );
   const soldUnits = activeSalesItems.reduce(
-    (sum, { item }) => sum + (Number(item.quantity) || 0),
+    (sum, { item }) => sum + getItemBaseQuantity(item),
     0
   );
   const priceRows = [...receivedPurchaseItems, ...activeSalesItems];
   const totalPricedUnits = priceRows.reduce(
-    (sum, { item }) => sum + (Number(item.quantity) || 0),
+    (sum, { item }) => sum + getItemBaseQuantity(item),
     0
   );
   const totalPriceAmount = priceRows.reduce(
@@ -482,6 +537,72 @@ function ProductsPage({
     setProductFormError("");
   }
 
+  function updateDraftUnitConversion(index, key, value) {
+    setDraftProduct((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const nextConversions = [...(prev.unitConversions || [])];
+      nextConversions[index] = {
+        ...nextConversions[index],
+        [key]: value,
+      };
+
+      return { ...prev, unitConversions: nextConversions };
+    });
+    setProductFormError("");
+  }
+
+  function toggleDraftUnitConversion(index, key) {
+    setDraftProduct((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const nextConversions = [...(prev.unitConversions || [])];
+      nextConversions[index] = {
+        ...nextConversions[index],
+        [key]: !nextConversions[index]?.[key],
+      };
+
+      return { ...prev, unitConversions: nextConversions };
+    });
+    setProductFormError("");
+  }
+
+  function addDraftUnitConversion() {
+    setDraftProduct((prev) =>
+      prev
+        ? {
+            ...prev,
+            unitConversions: [
+              ...(prev.unitConversions || []),
+              { unit: "", factorToBase: 1, allowPurchase: true, allowSale: true },
+            ],
+          }
+        : prev
+    );
+    setProductFormError("");
+  }
+
+  function removeDraftUnitConversion(index) {
+    setDraftProduct((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const stockBaseUnit = getProductBaseUnit(prev);
+      const nextConversions = (prev.unitConversions || []).filter((conversion, itemIndex) =>
+        itemIndex !== index ||
+        `${conversion.unit}`.toLowerCase() === stockBaseUnit.toLowerCase()
+      );
+
+      return { ...prev, unitConversions: nextConversions };
+    });
+    setProductFormError("");
+  }
+
   function handleCreateProduct() {
     const nextDisplayId =
       products.length === 0
@@ -509,6 +630,30 @@ function ProductsPage({
 
     if (!leafCategoryOptions.some((category) => category.id === normalizedDraft.categoryId)) {
       setProductFormError("Products can only be assigned to leaf categories.");
+      return;
+    }
+
+    if (!normalizedDraft.stockBaseUnit) {
+      setProductFormError("Set a base stock unit for this product.");
+      return;
+    }
+
+    const purchaseUnit = normalizedDraft.unitConversions.find(
+      (conversion) =>
+        conversion.unit.toLowerCase() === normalizedDraft.defaultPurchaseUnit.toLowerCase()
+    );
+    const salesUnit = normalizedDraft.unitConversions.find(
+      (conversion) =>
+        conversion.unit.toLowerCase() === normalizedDraft.defaultSalesUnit.toLowerCase()
+    );
+
+    if (!purchaseUnit?.allowPurchase) {
+      setProductFormError("Default purchase unit must be listed and allowed for purchases.");
+      return;
+    }
+
+    if (!salesUnit?.allowSale) {
+      setProductFormError("Default sales unit must be listed and allowed for sales.");
       return;
     }
 
@@ -741,7 +886,9 @@ function ProductsPage({
 
                       <span className="supplier-directory-cell" role="cell">
                         <span className="supplier-directory-cell-label">Total Units</span>
-                        <span className="supplier-directory-cell-value">{metrics.totalUnits}</span>
+                        <span className="supplier-directory-cell-value">
+                          {formatStockQuantity(metrics.totalUnits, product)}
+                        </span>
                       </span>
 
                       <span className="supplier-directory-cell" role="cell">
@@ -1032,7 +1179,9 @@ function ProductsPage({
                 </div>
                 <div className="product-history-stat">
                   <span>Total Units</span>
-                  <strong>{viewingProductMetrics?.totalUnits ?? 0}</strong>
+                  <strong>
+                    {formatStockQuantity(viewingProductMetrics?.totalUnits ?? 0, viewingProduct)}
+                  </strong>
                 </div>
                 <div className="product-history-stat">
                   <span>Avg Price</span>
@@ -1082,6 +1231,10 @@ function ProductsPage({
                     <div>
                       <p className="detail-label">Category</p>
                       <strong>{getProductCategoryLabel(viewingProduct, categories) || "—"}</strong>
+                    </div>
+                    <div>
+                      <p className="detail-label">Base Stock Unit</p>
+                      <strong>{getProductBaseUnit(viewingProduct)}</strong>
                     </div>
                     <div>
                       <p className="detail-label">Product Detail</p>
@@ -1332,6 +1485,103 @@ function ProductsPage({
                     placeholder="e.g. NB-A5-001"
                   />
                 </label>
+
+                <label>
+                  Base Stock Unit
+                  <input
+                    value={draftProduct.stockBaseUnit}
+                    onChange={(event) => updateDraftField("stockBaseUnit", event.target.value)}
+                    placeholder="pcs, m, kg, L, set"
+                  />
+                </label>
+
+                <label>
+                  Default Purchase Unit
+                  <input
+                    value={draftProduct.defaultPurchaseUnit}
+                    onChange={(event) => updateDraftField("defaultPurchaseUnit", event.target.value)}
+                    placeholder="e.g. box"
+                  />
+                </label>
+
+                <label>
+                  Default Sales Unit
+                  <input
+                    value={draftProduct.defaultSalesUnit}
+                    onChange={(event) => updateDraftField("defaultSalesUnit", event.target.value)}
+                    placeholder="e.g. pcs"
+                  />
+                </label>
+
+                <div className="full-width supplier-option-field">
+                  <div className="product-name-editor-header">
+                    <div>
+                      <p className="detail-label">Unit Conversions</p>
+                      <p className="inventory-note product-name-editor-note">
+                        Factor means how many base units are inside one selected unit.
+                      </p>
+                    </div>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={addDraftUnitConversion}
+                    >
+                      Add Unit
+                    </button>
+                  </div>
+
+                  {(draftProduct.unitConversions || []).map((conversion, index) => (
+                    <div className="unit-conversion-row" key={`unit-conversion-${index}`}>
+                      <label>
+                        Unit
+                        <input
+                          value={conversion.unit}
+                          onChange={(event) =>
+                            updateDraftUnitConversion(index, "unit", event.target.value)
+                          }
+                          placeholder="box"
+                        />
+                      </label>
+                      <label>
+                        Factor to Base
+                        <input
+                          type="number"
+                          min="0.000001"
+                          step="0.000001"
+                          value={conversion.factorToBase}
+                          onChange={(event) =>
+                            updateDraftUnitConversion(index, "factorToBase", event.target.value)
+                          }
+                          placeholder="1"
+                        />
+                      </label>
+                      <label className="unit-conversion-check">
+                        <input
+                          type="checkbox"
+                          checked={!!conversion.allowPurchase}
+                          onChange={() => toggleDraftUnitConversion(index, "allowPurchase")}
+                        />
+                        Purchase
+                      </label>
+                      <label className="unit-conversion-check">
+                        <input
+                          type="checkbox"
+                          checked={!!conversion.allowSale}
+                          onChange={() => toggleDraftUnitConversion(index, "allowSale")}
+                        />
+                        Sale
+                      </label>
+                      <button
+                        className="icon-button subtle"
+                        type="button"
+                        aria-label={`Remove unit conversion ${index + 1}`}
+                        onClick={() => removeDraftUnitConversion(index)}
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))}
+                </div>
 
                 <label>
                   Category

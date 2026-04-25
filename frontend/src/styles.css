@@ -703,10 +703,10 @@ label textarea:focus,
 }
 
 .sales-line-item-row {
-  grid-template-columns: 38px minmax(220px, 1.7fr) minmax(90px, 0.7fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) auto;
+  grid-template-columns: 38px minmax(220px, 1.7fr) minmax(90px, 0.65fr) minmax(90px, 0.65fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) auto;
   grid-template-areas:
-    "index product qty price amount action"
-    ". discounts discounts discounts discounts discounts";
+    "index product unit qty price amount action"
+    ". discounts discounts discounts discounts discounts discounts";
   align-items: start;
   min-width: 820px;
   padding: 14px;
@@ -778,6 +778,14 @@ label textarea:focus,
   min-height: 47px;
 }
 
+.unit-conversion-preview {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .purchase-item-product {
   grid-area: product;
 }
@@ -821,6 +829,10 @@ label textarea:focus,
 
 .sales-item-product {
   grid-area: product;
+}
+
+.sales-item-unit {
+  grid-area: unit;
 }
 
 .sales-item-qty {
@@ -1427,6 +1439,27 @@ th {
 
 .product-name-editor-note {
   margin: 4px 0 0;
+}
+
+.unit-conversion-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) auto auto auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.unit-conversion-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 47px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.unit-conversion-check input {
+  width: auto;
 }
 
 .supplier-option-edit-row {
@@ -2330,6 +2363,10 @@ th {
   }
 
   .supplier-option-edit-row {
+    grid-template-columns: 1fr;
+  }
+
+  .unit-conversion-row {
     grid-template-columns: 1fr;
   }
 

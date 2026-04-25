@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { applySaleStatusToItems, getSaleStatusFromItems } from "../saleStatus";
+import {
+  buildConvertedItemFields,
+  getProductDefaultSalesUnit,
+  getProductUnitOptions,
+} from "../unitConversion";
 
 const VAT_RATE = 0.07;
 const vatOptions = [
@@ -58,6 +63,7 @@ function emptyItem() {
     item_status: "pending",
     shipped_date: "",
     delivered_date: "",
+    unit: "pcs",
     quantity: 1,
     unit_price: "",
     discounts: [0],
@@ -111,6 +117,10 @@ function getProductName(product) {
 
 function getProductSku(product) {
   return product.sku || product.SKU || "";
+}
+
+function getProductUnit(product) {
+  return getProductDefaultSalesUnit(product);
 }
 
 function SalesForm({
@@ -182,6 +192,22 @@ function SalesForm({
   function updateItem(itemIndex, key, value) {
     setItems((current) =>
       current.map((item, i) => (i === itemIndex ? { ...item, [key]: value } : item))
+    );
+  }
+
+  function updateProduct(itemIndex, productId) {
+    const selectedProduct = products.find((product) => `${product.id}` === `${productId}`);
+
+    setItems((current) =>
+      current.map((item, i) =>
+        i === itemIndex
+          ? {
+              ...item,
+              product_id: productId,
+              unit: selectedProduct ? getProductUnit(selectedProduct) : "pcs",
+            }
+          : item
+      )
     );
   }
 
@@ -340,6 +366,9 @@ function SalesForm({
           ...itemPayload,
           product_name: selectedProduct ? getProductName(selectedProduct) : item.product_name,
           sku: selectedProduct ? getProductSku(selectedProduct) : item.sku,
+          ...(selectedProduct
+            ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
+            : {}),
           amount: computeAmount(item),
         };
       });
@@ -517,6 +546,15 @@ function SalesForm({
 
           {items.map((item, index) => {
             const amount = computeAmount(item);
+            const selectedProduct = products.find(
+              (product) => `${product.id}` === `${item.product_id}`
+            );
+            const unitOptions = selectedProduct
+              ? getProductUnitOptions(selectedProduct, "sale")
+              : [];
+            const conversionPreview = selectedProduct
+              ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
+              : null;
 
             return (
               <div
@@ -548,7 +586,7 @@ function SalesForm({
                   <span>Product</span>
                   <select
                     value={item.product_id}
-                    onChange={(event) => updateItem(index, "product_id", event.target.value)}
+                    onChange={(event) => updateProduct(index, event.target.value)}
                     required
                   >
                     <option value="">Select product</option>
@@ -560,6 +598,30 @@ function SalesForm({
                       </option>
                     ))}
                   </select>
+                </label>
+
+                <label className="purchase-item-field sales-item-unit">
+                  <span>Unit</span>
+                  <select
+                    value={item.unit}
+                    onChange={(event) => updateItem(index, "unit", event.target.value)}
+                    disabled={!selectedProduct}
+                  >
+                    {unitOptions.length ? (
+                      unitOptions.map((conversion) => (
+                        <option key={conversion.unit} value={conversion.unit}>
+                          {conversion.unit}
+                        </option>
+                      ))
+                    ) : (
+                      <option value={item.unit || "pcs"}>{item.unit || "pcs"}</option>
+                    )}
+                  </select>
+                  {conversionPreview ? (
+                    <span className="unit-conversion-preview">
+                      {conversionPreview.base_quantity} {conversionPreview.base_unit}
+                    </span>
+                  ) : null}
                 </label>
 
                 <label className="purchase-item-field sales-item-qty">

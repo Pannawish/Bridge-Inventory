@@ -7,6 +7,11 @@ import {
   getStoredSaleItemStatus,
   saleStatuses,
 } from "../saleStatus";
+import {
+  buildConvertedItemFields,
+  getProductDefaultSalesUnit,
+  getProductUnitOptions,
+} from "../unitConversion";
 
 const VAT_RATE = 0.07;
 const statusOptions = saleStatuses;
@@ -36,6 +41,8 @@ function saleMatchesQuery(sale, query) {
     ...(sale.items || []).flatMap((item) => [
       item.product_name,
       item.sku,
+      item.unit,
+      item.base_unit,
       item.category,
       item.item_status,
       item.shipped_date,
@@ -174,6 +181,10 @@ function getProductSku(product) {
   return product.sku || product.SKU || "";
 }
 
+function getProductUnit(product) {
+  return getProductDefaultSalesUnit(product);
+}
+
 function createProductValueFromItem(item, products) {
   if (item.product_id) {
     const matchedProduct = products.find(
@@ -234,6 +245,10 @@ function createEditItems(sale, products) {
         product_id: "",
         product_name: "",
         sku: "",
+        unit: "pcs",
+        base_unit: "pcs",
+        conversion_factor: 1,
+        base_quantity: 1,
         item_status: getStoredSaleItemStatus({}, sale.status),
         shipped_date: "",
         delivered_date: "",
@@ -250,6 +265,10 @@ function createEditItems(sale, products) {
     product_id: item.product_id || "",
     product_name: item.product_name || "",
     sku: item.sku || "",
+    unit: item.unit || item.base_unit || "pcs",
+    base_unit: item.base_unit || item.unit || "pcs",
+    conversion_factor: item.conversion_factor || 1,
+    base_quantity: item.base_quantity ?? item.quantity ?? 1,
     item_status: getStoredSaleItemStatus(item, sale.status),
     shipped_date: item.shipped_date || "",
     delivered_date: item.delivered_date || "",
@@ -387,6 +406,9 @@ function SalesEditForm({
               product_id: selectedProduct?.id || "",
               product_name: selectedProduct?.name || "",
               sku: selectedProduct?.sku || "",
+              unit: selectedProduct?.id
+                ? getProductUnit(products.find((product) => `${product.id}` === `${selectedProduct.id}`))
+                : "pcs",
             }
           : item
       )
@@ -447,6 +469,10 @@ function SalesEditForm({
         product_id: "",
         product_name: "",
         sku: "",
+        unit: "pcs",
+        base_unit: "pcs",
+        conversion_factor: 1,
+        base_quantity: 1,
         item_status: "pending",
         shipped_date: "",
         delivered_date: "",
@@ -477,12 +503,25 @@ function SalesEditForm({
       .filter((item) => item.product_name && item.quantity && item.unit_price)
       .map((item) => {
         const amount = computeAmount(item);
+        const selectedProduct = products.find(
+          (product) => `${product.id}` === `${item.product_id}`
+        );
+        const convertedFields = selectedProduct
+          ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
+          : {
+              unit: item.unit || "pcs",
+              base_unit: item.base_unit || item.unit || "pcs",
+              conversion_factor: Number(item.conversion_factor) || 1,
+              base_quantity:
+                (Number(item.quantity) || 0) * (Number(item.conversion_factor) || 1),
+            };
 
         return {
           id: item.id,
           product_id: item.product_id || undefined,
           product_name: item.product_name,
           sku: item.sku,
+          ...convertedFields,
           item_status: getStoredSaleItemStatus(item, form.status),
           shipped_date: item.shipped_date || "",
           delivered_date: item.delivered_date || "",
@@ -688,6 +727,15 @@ function SalesEditForm({
 
           {items.map((item, index) => {
             const amount = computeAmount(item);
+            const selectedProduct = products.find(
+              (product) => `${product.id}` === `${item.product_id}`
+            );
+            const unitOptions = selectedProduct
+              ? getProductUnitOptions(selectedProduct, "sale")
+              : [];
+            const conversionPreview = selectedProduct
+              ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
+              : null;
 
             return (
               <div className="line-item-row sales-line-item-row" key={item.id}>
@@ -709,6 +757,33 @@ function SalesEditForm({
                       </option>
                     ))}
                   </select>
+                </label>
+
+                <label className="purchase-item-field sales-item-unit">
+                  <span>Unit</span>
+                  {selectedProduct ? (
+                    <select
+                      value={item.unit}
+                      onChange={(event) => updateItem(index, "unit", event.target.value)}
+                    >
+                      {unitOptions.map((conversion) => (
+                        <option key={conversion.unit} value={conversion.unit}>
+                          {conversion.unit}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      value={item.unit}
+                      onChange={(event) => updateItem(index, "unit", event.target.value)}
+                      placeholder="Unit"
+                    />
+                  )}
+                  {conversionPreview ? (
+                    <span className="unit-conversion-preview">
+                      {conversionPreview.base_quantity} {conversionPreview.base_unit}
+                    </span>
+                  ) : null}
                 </label>
 
                 <label className="purchase-item-field sales-item-qty">

@@ -3,6 +3,7 @@ import {
   getPurchaseItemDisplayStatus,
   getStoredPurchaseItemStatus,
 } from "../purchaseStatus";
+import { getItemBaseQuantity, getProductBaseUnit } from "../unitConversion";
 
 function formatCurrency(value) {
   return `฿${Number(value || 0).toLocaleString("en-US", {
@@ -17,6 +18,11 @@ function formatNumber(value) {
   }
 
   return Number(value).toLocaleString();
+}
+
+function formatStockQuantity(value, unit) {
+  const formattedValue = formatNumber(value);
+  return unit && unit !== "-" ? `${formattedValue} ${unit}` : formattedValue;
 }
 
 function StatCard({ label, value, helper, trend }) {
@@ -114,6 +120,10 @@ function getProductCategory(product) {
   return product.category || product.product_category || "";
 }
 
+function getProductStockUnit(product) {
+  return getProductBaseUnit(product);
+}
+
 function normalizeSku(value) {
   return `${value ?? ""}`.trim().toLowerCase();
 }
@@ -193,12 +203,17 @@ function computeAmount(item) {
   return qty * price * (1 - discount / 100);
 }
 
+function getMovementQuantity(item) {
+  return getItemBaseQuantity(item);
+}
+
 function createEmptyStockRow(key, overrides = {}) {
   return {
     product_id: overrides.product_id || key,
     product_name: overrides.product_name || "Unnamed Product",
     sku: overrides.sku || "",
     category: overrides.category || "-",
+    unit: overrides.unit || "-",
     reorder_level: Number(overrides.reorder_level) || 0,
     predicted_7_day_demand: Number(overrides.predicted_7_day_demand) || 0,
     received_purchase_units: 0,
@@ -223,6 +238,7 @@ function getOrCreateStockRow(rowMap, key, overrides = {}) {
   row.product_name = row.product_name || overrides.product_name || "Unnamed Product";
   row.sku = row.sku || overrides.sku || "";
   row.category = row.category === "-" ? overrides.category || "-" : row.category;
+  row.unit = row.unit === "-" ? overrides.unit || "-" : row.unit;
   row.reorder_level = Math.max(row.reorder_level, Number(overrides.reorder_level) || 0);
   row.predicted_7_day_demand =
     row.predicted_7_day_demand || Number(overrides.predicted_7_day_demand) || 0;
@@ -243,6 +259,7 @@ function buildStockSeedRows(products, stockReport, lowStockItems) {
       product_name: getProductName(product),
       sku: getProductSku(product),
       category: getProductCategory(product) || stockItem.category || "-",
+      unit: getProductStockUnit(product),
       reorder_level: lowStockItem.reorder_level || stockItem.reorder_level || 0,
       predicted_7_day_demand: stockItem.predicted_7_day_demand || 0,
     });
@@ -261,6 +278,7 @@ function buildStockSeedRows(products, stockReport, lowStockItems) {
       product_name: stockItem.product_name,
       sku: stockItem.sku,
       category: stockItem.category || "-",
+      unit: stockItem.unit || stockItem.base_unit || "-",
       reorder_level: lowStockItem.reorder_level || stockItem.reorder_level || 0,
       predicted_7_day_demand: stockItem.predicted_7_day_demand || 0,
     });
@@ -283,9 +301,10 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
       const row = getOrCreateStockRow(rowMap, key, {
         product_name: item.product_name,
         sku: item.sku,
+        unit: item.base_unit || item.unit,
         category: "-",
       });
-      const quantity = Number(item.quantity) || 0;
+      const quantity = getMovementQuantity(item);
       const storedStatus = getStoredPurchaseItemStatus(item, purchase.status);
       const displayStatus = getPurchaseItemDisplayStatus(item, purchase.status);
 
@@ -325,10 +344,11 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
       const row = getOrCreateStockRow(rowMap, key, {
         product_name: item.product_name,
         sku: item.sku,
+        unit: item.base_unit || item.unit,
         category: "-",
       });
 
-      row.allocated_sales_units += Number(item.quantity) || 0;
+      row.allocated_sales_units += getMovementQuantity(item);
     });
   });
 
@@ -480,7 +500,8 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                   <div className="attention-meta">
                     <strong>{item.product_name}</strong>
                     <span>
-                      Available {item.available_stock} / Reorder {item.reorder_level}
+                      Available {formatStockQuantity(item.available_stock, item.unit)} / Reorder{" "}
+                      {formatStockQuantity(item.reorder_level, item.unit)}
                     </span>
                   </div>
                   <div className="attention-bar-track">
@@ -595,14 +616,14 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                         {item.health.label}
                       </span>
                     </td>
-                    <td>{formatNumber(item.available_stock)}</td>
-                    <td>{formatNumber(item.received_purchase_units)}</td>
-                    <td>{formatNumber(item.allocated_sales_units)}</td>
-                    <td>{formatNumber(item.pending_purchase_units)}</td>
-                    <td>{formatNumber(item.delayed_purchase_units)}</td>
-                    <td>{formatNumber(item.reorder_level)}</td>
+                    <td>{formatStockQuantity(item.available_stock, item.unit)}</td>
+                    <td>{formatStockQuantity(item.received_purchase_units, item.unit)}</td>
+                    <td>{formatStockQuantity(item.allocated_sales_units, item.unit)}</td>
+                    <td>{formatStockQuantity(item.pending_purchase_units, item.unit)}</td>
+                    <td>{formatStockQuantity(item.delayed_purchase_units, item.unit)}</td>
+                    <td>{formatStockQuantity(item.reorder_level, item.unit)}</td>
                     <td>{formatNumber(item.days_until_stockout)}</td>
-                    <td>{formatNumber(item.recommended_restock)}</td>
+                    <td>{formatStockQuantity(item.recommended_restock, item.unit)}</td>
                     <td>{formatCurrency(item.stock_value)}</td>
                   </tr>
                 ))
@@ -634,27 +655,27 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                   </div>
                   <div>
                     <span>Available</span>
-                    <strong>{formatNumber(item.available_stock)}</strong>
+                    <strong>{formatStockQuantity(item.available_stock, item.unit)}</strong>
                   </div>
                   <div>
                     <span>Received</span>
-                    <strong>{formatNumber(item.received_purchase_units)}</strong>
+                    <strong>{formatStockQuantity(item.received_purchase_units, item.unit)}</strong>
                   </div>
                   <div>
                     <span>Active Sales</span>
-                    <strong>{formatNumber(item.allocated_sales_units)}</strong>
+                    <strong>{formatStockQuantity(item.allocated_sales_units, item.unit)}</strong>
                   </div>
                   <div>
                     <span>Pending PO</span>
-                    <strong>{formatNumber(item.pending_purchase_units)}</strong>
+                    <strong>{formatStockQuantity(item.pending_purchase_units, item.unit)}</strong>
                   </div>
                   <div>
                     <span>Delayed PO</span>
-                    <strong>{formatNumber(item.delayed_purchase_units)}</strong>
+                    <strong>{formatStockQuantity(item.delayed_purchase_units, item.unit)}</strong>
                   </div>
                   <div>
                     <span>Reorder Point</span>
-                    <strong>{formatNumber(item.reorder_level)}</strong>
+                    <strong>{formatStockQuantity(item.reorder_level, item.unit)}</strong>
                   </div>
                   <div>
                     <span>Days Left</span>
@@ -662,7 +683,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                   </div>
                   <div>
                     <span>Suggested Purchase</span>
-                    <strong>{formatNumber(item.recommended_restock)}</strong>
+                    <strong>{formatStockQuantity(item.recommended_restock, item.unit)}</strong>
                   </div>
                   <div>
                     <span>Stock Value</span>

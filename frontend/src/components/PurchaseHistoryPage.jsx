@@ -10,6 +10,10 @@ import {
   getTodayString,
   purchaseStatuses,
 } from "../purchaseStatus";
+import {
+  buildConvertedItemFields,
+  getProductUnitOptions,
+} from "../unitConversion";
 
 const VAT_RATE = 0.07;
 const statusOptions = purchaseStatuses;
@@ -39,6 +43,8 @@ function purchaseMatchesQuery(purchase, query) {
     ...(purchase.items || []).flatMap((item) => [
       item.product_name,
       item.sku,
+      item.unit,
+      item.base_unit,
       item.expected_delivery_date,
       item.received_date,
       getPurchaseItemDisplayStatus(item, purchase.status),
@@ -185,6 +191,40 @@ function computeVatSummary(itemTotal, vatMode) {
   };
 }
 
+function getProductName(product) {
+  return product.name || product.productName || product.product_name || product.sku || `Product ${product.id}`;
+}
+
+function getProductSku(product) {
+  return product.sku || product.SKU || "";
+}
+
+function findProductForItem(item, products = []) {
+  if (item.product_id) {
+    const matchedById = products.find((product) => `${product.id}` === `${item.product_id}`);
+
+    if (matchedById) {
+      return matchedById;
+    }
+  }
+
+  const sku = `${item.sku ?? ""}`.trim().toLowerCase();
+
+  if (sku) {
+    const matchedBySku = products.find(
+      (product) => getProductSku(product).toLowerCase() === sku
+    );
+
+    if (matchedBySku) {
+      return matchedBySku;
+    }
+  }
+
+  const productName = `${item.product_name ?? ""}`.trim().toLowerCase();
+
+  return products.find((product) => getProductName(product).toLowerCase() === productName);
+}
+
 function createEditItems(purchase) {
   const sourceItems = purchase.items?.length ? purchase.items : [];
 
@@ -192,9 +232,13 @@ function createEditItems(purchase) {
     return [
       {
         id: `purchase-${purchase.id}-item-new`,
+        product_id: "",
         product_name: "",
         sku: "",
         unit: "pcs",
+        base_unit: "pcs",
+        conversion_factor: 1,
+        base_quantity: 1,
         expected_delivery_date: "",
         item_status: getInitialPurchaseItemStatus(purchase.status),
         received_date: "",
@@ -207,6 +251,7 @@ function createEditItems(purchase) {
 
   return sourceItems.map((item, index) => ({
     id: item.id || `purchase-${purchase.id}-item-${index}`,
+    product_id: item.product_id || "",
     product_name: item.product_name || "",
     sku: item.sku || "",
     unit: item.unit || "pcs",
@@ -215,6 +260,9 @@ function createEditItems(purchase) {
     received_date: item.received_date || "",
     quantity: item.quantity ?? 1,
     unit_cost: item.unit_cost ?? "",
+    base_unit: item.base_unit || item.unit || "pcs",
+    conversion_factor: item.conversion_factor || 1,
+    base_quantity: item.base_quantity ?? item.quantity ?? 1,
     discounts: Array.isArray(item.discounts)
       ? item.discounts
       : Number(item.discount) > 0
@@ -236,6 +284,7 @@ function createEditForm(purchase) {
 
 function PurchaseEditForm({
   purchase,
+  products = [],
   suppliers = defaultSupplierOptions,
   onCancel,
   onSave,
@@ -327,6 +376,7 @@ function PurchaseEditForm({
       ...currentItems,
       {
         id: `purchase-${purchase.id}-item-${Date.now()}`,
+        product_id: "",
         product_name: "",
         sku: "",
         unit: "pcs",
@@ -387,6 +437,16 @@ function PurchaseEditForm({
       .filter((item) => item.product_name && item.quantity && item.unit_cost)
       .map((item) => {
         const amount = computeAmount(item);
+        const selectedProduct = findProductForItem(item, products);
+        const convertedFields = selectedProduct
+          ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "purchase")
+          : {
+              unit: item.unit || "pcs",
+              base_unit: item.base_unit || item.unit || "pcs",
+              conversion_factor: Number(item.conversion_factor) || 1,
+              base_quantity:
+                (Number(item.quantity) || 0) * (Number(item.conversion_factor) || 1),
+            };
         const itemStatus =
           form.status === "received" ||
           form.status === "cancelled" ||
@@ -397,9 +457,10 @@ function PurchaseEditForm({
 
         return {
           id: item.id,
+          product_id: selectedProduct?.id || item.product_id || undefined,
           product_name: item.product_name,
           sku: item.sku,
-          unit: item.unit || "pcs",
+          ...convertedFields,
           expected_delivery_date: item.expected_delivery_date || "",
           item_status: itemStatus,
           received_date: itemStatus === "received" ? item.received_date || getToday() : "",
@@ -577,6 +638,13 @@ function PurchaseEditForm({
 
           {items.map((item, index) => {
             const amount = computeAmount(item);
+            const selectedProduct = findProductForItem(item, products);
+            const unitOptions = selectedProduct
+              ? getProductUnitOptions(selectedProduct, "purchase")
+              : [];
+            const conversionPreview = selectedProduct
+              ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "purchase")
+              : null;
 
             return (
               <div className="line-item-row purchase-line-item-row" key={item.id}>
@@ -607,11 +675,29 @@ function PurchaseEditForm({
 
                 <label className="purchase-item-field purchase-item-unit">
                   <span>Unit</span>
-                  <input
-                    value={item.unit}
-                    onChange={(event) => updateItem(index, "unit", event.target.value)}
-                    placeholder="Unit"
-                  />
+                  {selectedProduct ? (
+                    <select
+                      value={item.unit}
+                      onChange={(event) => updateItem(index, "unit", event.target.value)}
+                    >
+                      {unitOptions.map((conversion) => (
+                        <option key={conversion.unit} value={conversion.unit}>
+                          {conversion.unit}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      value={item.unit}
+                      onChange={(event) => updateItem(index, "unit", event.target.value)}
+                      placeholder="Unit"
+                    />
+                  )}
+                  {conversionPreview ? (
+                    <span className="unit-conversion-preview">
+                      {conversionPreview.base_quantity} {conversionPreview.base_unit}
+                    </span>
+                  ) : null}
                 </label>
 
                 <label className="purchase-item-field purchase-item-delivery">
@@ -1025,6 +1111,7 @@ function PurchaseHistoryPage({
         <PurchaseEditForm
           key={editingPurchase.id}
           purchase={editingPurchase}
+          products={products}
           suppliers={suppliers}
           onCancel={() => setEditingPurchase(null)}
           onSave={handleSave}
