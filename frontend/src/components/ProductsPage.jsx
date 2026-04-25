@@ -18,6 +18,7 @@ function createProduct(overrides = {}) {
     productDisplayId: 1001,
     sku: "",
     productName: "",
+    subNames: [],
     categoryId: "",
     category: "",
     detail: "",
@@ -32,6 +33,7 @@ const defaultProducts = [
     productDisplayId: 1001,
     sku: "NB-A5-001",
     productName: "Notebook A5",
+    subNames: ["A5 Notebook", "Spiral Notebook A5"],
     categoryId: "category-notebooks",
     category: "Stationery / Notebooks",
     detail: "Standard A5 spiral notebook, 80 pages, ruled. Suitable for students and office use.",
@@ -42,6 +44,7 @@ const defaultProducts = [
     productDisplayId: 1002,
     sku: "PEN-BL-014",
     productName: "Blue Ballpoint Pen",
+    subNames: ["Blue Pen", "Ball Pen Blue"],
     categoryId: "category-pens",
     category: "Writing Tools / Pens",
     detail: "Medium tip blue ballpoint pen. Smooth writing, long-lasting ink.",
@@ -52,6 +55,7 @@ const defaultProducts = [
     productDisplayId: 1003,
     sku: "STP-MN-009",
     productName: "Mini Stapler",
+    subNames: ["Small Stapler"],
     categoryId: "category-staplers",
     category: "Desk Accessories / Staplers",
     detail: "Compact desktop stapler. Accepts standard 26/6 staples. Capacity up to 20 sheets.",
@@ -62,6 +66,7 @@ const defaultProducts = [
     productDisplayId: 1004,
     sku: "STK-NT-022",
     productName: "Sticky Notes Set",
+    subNames: ["Memo Notes Set", "Sticky Memo Pads"],
     categoryId: "category-sticky-notes",
     category: "Paper Goods / Sticky Notes",
     detail: "Pack of 4 sticky note pads, 100 sheets each. Assorted colors.",
@@ -73,12 +78,55 @@ export function getDefaultProducts() {
   return defaultProducts.map((product) => normalizeProduct(product));
 }
 
+function normalizeUniqueNames(values) {
+  const seen = new Set();
+
+  return values.reduce((names, value) => {
+    const nextName = `${value ?? ""}`.trim();
+    const key = nextName.toLowerCase();
+
+    if (!nextName || seen.has(key)) {
+      return names;
+    }
+
+    seen.add(key);
+    names.push(nextName);
+    return names;
+  }, []);
+}
+
+function getProductMainName(product) {
+  return `${product?.productName ?? product?.name ?? product?.product_name ?? ""}`.trim();
+}
+
+function getProductSubNames(product) {
+  return normalizeUniqueNames(
+    Array.isArray(product?.subNames)
+      ? product.subNames
+      : Array.isArray(product?.aliases)
+        ? product.aliases
+        : []
+  );
+}
+
+function getProductAllNames(product) {
+  return normalizeUniqueNames([getProductMainName(product), ...getProductSubNames(product)]);
+}
+
+function getProductDisplayName(product) {
+  return getProductAllNames(product)[0] || product?.sku || `Product ${product?.id || ""}`.trim();
+}
+
 function normalizeProduct(product) {
+  const allNames = getProductAllNames(product);
+  const [productName = "", ...subNames] = allNames;
+
   return {
     id: product.id || `product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     productDisplayId: Math.max(1, Math.round(Number(product.productDisplayId) || 1001)),
     sku: `${product.sku ?? ""}`,
-    productName: `${product.productName ?? ""}`,
+    productName,
+    subNames,
     categoryId: `${product.categoryId ?? ""}`,
     category: `${product.category ?? ""}`,
     detail: `${product.detail ?? ""}`,
@@ -218,6 +266,8 @@ function getProductMetrics(product, purchases, sales) {
   return {
     totalUnits: purchasedUnits - soldUnits,
     avgPrice: totalPricedUnits > 0 ? totalPriceAmount / totalPricedUnits : 0,
+    receivedPurchaseCount: receivedPurchaseItems.length,
+    activeSalesCount: activeSalesItems.length,
     purchaseItems,
     salesItems,
   };
@@ -235,6 +285,8 @@ function ProductsPage({
   const [viewingTransaction, setViewingTransaction] = useState(null);
   const [draftProduct, setDraftProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [stockFilter, setStockFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [productFormError, setProductFormError] = useState("");
 
   useEffect(() => {
@@ -253,24 +305,6 @@ function ProductsPage({
   }, [viewingProduct, viewingTransaction, draftProduct]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filteredProducts = useMemo(
-    () =>
-      products.filter((product) => {
-        const categoryLabel = getProductCategoryLabel(product, categories).toLowerCase();
-
-        if (!normalizedSearch) {
-          return true;
-        }
-
-        return (
-          product.productName.toLowerCase().includes(normalizedSearch) ||
-          categoryLabel.includes(normalizedSearch) ||
-          product.sku.toLowerCase().includes(normalizedSearch) ||
-          `${product.productDisplayId}`.includes(normalizedSearch)
-        );
-      }),
-    [categories, normalizedSearch, products]
-  );
   const leafCategoryOptions = useMemo(
     () => getLeafCategoryOptions(categories),
     [categories]
@@ -278,13 +312,76 @@ function ProductsPage({
 
   const productsWithMetrics = useMemo(
     () =>
-      filteredProducts.map((product) => ({
+      products.map((product) => ({
         product,
         metrics: getProductMetrics(product, purchases, sales),
         categoryLabel: getProductCategoryLabel(product, categories),
       })),
-    [categories, filteredProducts, purchases, sales]
+    [categories, products, purchases, sales]
   );
+
+  const categoryOptions = useMemo(
+    () =>
+      [...new Set(productsWithMetrics.map(({ categoryLabel }) => categoryLabel).filter(Boolean))]
+        .sort((left, right) => left.localeCompare(right)),
+    [productsWithMetrics]
+  );
+
+  const filteredProductsWithMetrics = useMemo(
+    () =>
+      productsWithMetrics.filter(({ product, metrics, categoryLabel }) => {
+        const searchableNames = getProductAllNames(product);
+        const matchesSearch =
+          !normalizedSearch ||
+          searchableNames.some((name) => name.toLowerCase().includes(normalizedSearch)) ||
+          categoryLabel.toLowerCase().includes(normalizedSearch) ||
+          `${product.sku ?? ""}`.toLowerCase().includes(normalizedSearch) ||
+          `${product.productDisplayId}`.includes(normalizedSearch);
+
+        if (!matchesSearch) {
+          return false;
+        }
+
+        if (categoryFilter !== "all" && categoryLabel !== categoryFilter) {
+          return false;
+        }
+
+        if (stockFilter === "in-stock") {
+          return metrics.totalUnits > 0;
+        }
+
+        if (stockFilter === "out-of-stock") {
+          return metrics.totalUnits <= 0;
+        }
+
+        if (stockFilter === "selling") {
+          return metrics.activeSalesCount > 0;
+        }
+
+        if (stockFilter === "no-sales") {
+          return metrics.activeSalesCount === 0;
+        }
+
+        if (stockFilter === "no-purchases") {
+          return metrics.receivedPurchaseCount === 0;
+        }
+
+        return true;
+      }),
+    [categoryFilter, normalizedSearch, productsWithMetrics, stockFilter]
+  );
+  const stockFilterLabel =
+    stockFilter === "all"
+      ? "All inventory states"
+      : stockFilter === "in-stock"
+        ? "In stock"
+        : stockFilter === "out-of-stock"
+          ? "Out of stock"
+          : stockFilter === "selling"
+            ? "Has sales"
+            : stockFilter === "no-sales"
+              ? "No sales yet"
+              : "No received purchases";
 
   function openProductDetail(product) {
     setViewingProduct(product);
@@ -306,11 +403,13 @@ function ProductsPage({
   }
 
   function openProductEditor(product) {
+    const normalizedProduct = normalizeProduct(product);
+
     setViewingProduct(null);
     setViewingTransaction(null);
     setProductFormError("");
     setDraftProduct({
-      ...product,
+      ...normalizedProduct,
       categoryId: resolveProductCategoryId(product, categories),
     });
   }
@@ -322,6 +421,64 @@ function ProductsPage({
 
   function updateDraftField(key, value) {
     setDraftProduct((prev) => (prev ? { ...prev, [key]: value } : prev));
+    setProductFormError("");
+  }
+
+  function updateDraftSubName(index, value) {
+    setDraftProduct((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const nextSubNames = [...(prev.subNames || [])];
+      nextSubNames[index] = value;
+      return { ...prev, subNames: nextSubNames };
+    });
+    setProductFormError("");
+  }
+
+  function addDraftSubName() {
+    setDraftProduct((prev) =>
+      prev ? { ...prev, subNames: [...(prev.subNames || []), ""] } : prev
+    );
+    setProductFormError("");
+  }
+
+  function removeDraftSubName(index) {
+    setDraftProduct((prev) =>
+      prev
+        ? { ...prev, subNames: (prev.subNames || []).filter((_, itemIndex) => itemIndex !== index) }
+        : prev
+    );
+    setProductFormError("");
+  }
+
+  function setDraftSubNameAsMain(index) {
+    setDraftProduct((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const currentSubNames = [...(prev.subNames || [])];
+      const selectedSubName = `${currentSubNames[index] ?? ""}`.trim();
+
+      if (!selectedSubName) {
+        return prev;
+      }
+
+      const currentMainName = `${prev.productName ?? ""}`.trim();
+      const nextSubNames = currentSubNames.filter((_, itemIndex) => itemIndex !== index);
+
+      if (currentMainName) {
+        nextSubNames.unshift(currentMainName);
+      }
+
+      return {
+        ...prev,
+        productName: selectedSubName,
+        subNames: normalizeUniqueNames(nextSubNames),
+      };
+    });
     setProductFormError("");
   }
 
@@ -375,7 +532,7 @@ function ProductsPage({
     }
 
     const confirmed = window.confirm(
-      `Delete product ${draftProduct.productName || "this product"}?`
+      `Delete product ${getProductDisplayName(draftProduct) || "this product"}?`
     );
 
     if (!confirmed) {
@@ -475,25 +632,62 @@ function ProductsPage({
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search by name, category, SKU, or ID"
+                placeholder="Search by main name, subname, category, SKU, or ID"
               />
             </label>
-            <div className="stock-report-summary supplier-search-meta">
-              <span>{productsWithMetrics.length} products shown</span>
+
+            <div className="stock-report-actions">
+              <label className="stock-control">
+                <span>Category</span>
+                <select
+                  value={categoryFilter}
+                  onChange={(event) => setCategoryFilter(event.target.value)}
+                >
+                  <option value="all">All categories</option>
+                  {categoryOptions.map((categoryLabel) => (
+                    <option key={categoryLabel} value={categoryLabel}>
+                      {categoryLabel}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="stock-control">
+                <span>Inventory</span>
+                <select
+                  value={stockFilter}
+                  onChange={(event) => setStockFilter(event.target.value)}
+                >
+                  <option value="all">All products</option>
+                  <option value="in-stock">In stock</option>
+                  <option value="out-of-stock">Out of stock</option>
+                  <option value="selling">Has sales</option>
+                  <option value="no-sales">No sales yet</option>
+                  <option value="no-purchases">No received purchases</option>
+                </select>
+              </label>
             </div>
           </div>
 
+          <div className="stock-report-summary">
+            <span>
+              {filteredProductsWithMetrics.length} of {productsWithMetrics.length} products shown
+            </span>
+            <span>
+              {categoryFilter === "all" ? "All categories" : categoryFilter}
+              {" · "}
+              {stockFilterLabel}
+            </span>
+          </div>
+
           <div className="supplier-directory-table" role="table" aria-label="Product list">
-            {productsWithMetrics.length === 0 ? (
-              <p className="empty-copy">No products match the current search.</p>
+            {filteredProductsWithMetrics.length === 0 ? (
+              <p className="empty-copy">No products match the current search or filters.</p>
             ) : (
               <>
                 <div className="supplier-directory-head product-directory-grid" role="row">
                   <span className="supplier-directory-column supplier-directory-index" role="columnheader">
                     #
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Product ID
                   </span>
                   <span className="supplier-directory-column" role="columnheader">
                     Product Name
@@ -513,7 +707,7 @@ function ProductsPage({
                 </div>
 
                 <div className="supplier-directory-body" role="rowgroup">
-                  {productsWithMetrics.map(({ product, metrics, categoryLabel }, index) => (
+                  {filteredProductsWithMetrics.map(({ product, metrics, categoryLabel }, index) => (
                     <button
                       key={product.id}
                       type="button"
@@ -527,16 +721,9 @@ function ProductsPage({
                       </span>
 
                       <span className="supplier-directory-cell" role="cell">
-                        <span className="supplier-directory-cell-label">Product ID</span>
-                        <span className="supplier-directory-cell-value">
-                          {product.productDisplayId || "—"}
-                        </span>
-                      </span>
-
-                      <span className="supplier-directory-cell" role="cell">
                         <span className="supplier-directory-cell-label">Product Name</span>
                         <strong className="supplier-directory-cell-value">
-                          {product.productName || product.sku || "Unnamed Product"}
+                          {getProductDisplayName(product)}
                         </strong>
                       </span>
 
@@ -812,7 +999,7 @@ function ProductsPage({
                 <div>
                   <p className="eyebrow">Product History</p>
                   <h3 id="product-history-title">
-                    {viewingProduct.productName || viewingProduct.sku || "Product"}
+                    {getProductDisplayName(viewingProduct)}
                   </h3>
                 </div>
                 <div className="product-detail-header-actions">
@@ -860,7 +1047,7 @@ function ProductsPage({
                   {viewingProduct.pictureUrl ? (
                     <img
                       src={viewingProduct.pictureUrl}
-                      alt={viewingProduct.productName || "Product"}
+                      alt={getProductDisplayName(viewingProduct)}
                       className="product-profile-image"
                       onError={(event) => {
                         event.target.style.display = "none";
@@ -870,6 +1057,24 @@ function ProductsPage({
                     <div className="product-profile-placeholder">No Image</div>
                   )}
                   <div className="product-profile-copy">
+                    <div>
+                      <p className="detail-label">Main Product Name</p>
+                      <strong>{getProductDisplayName(viewingProduct)}</strong>
+                    </div>
+                    <div>
+                      <p className="detail-label">Sub Names</p>
+                      {getProductSubNames(viewingProduct).length ? (
+                        <div className="item-pill-list">
+                          {getProductSubNames(viewingProduct).map((subName) => (
+                            <span key={subName} className="item-pill">
+                              {subName}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <strong>—</strong>
+                      )}
+                    </div>
                     <div>
                       <p className="detail-label">Product ID</p>
                       <strong>{viewingProduct.productDisplayId}</strong>
@@ -1037,7 +1242,7 @@ function ProductsPage({
                   {products.some((p) => p.id === draftProduct.id) ? "Edit Product" : "New Product"}
                 </p>
                 <h3 id="product-modal-title">
-                  {draftProduct.productName || draftProduct.sku || "New Product"}
+                  {getProductDisplayName(draftProduct) || "New Product"}
                 </h3>
               </div>
               <button
@@ -1061,14 +1266,63 @@ function ProductsPage({
             >
               <div className="form-grid">
                 <label className="full-width">
-                  Product Name
+                  Main Product Name
                   <input
                     autoFocus
                     value={draftProduct.productName}
                     onChange={(event) => updateDraftField("productName", event.target.value)}
-                    placeholder="Product name"
+                    placeholder="Name used across the system"
                   />
                 </label>
+
+                <div className="full-width supplier-option-field">
+                  <div className="product-name-editor-header">
+                    <div>
+                      <p className="detail-label">Sub Names</p>
+                      <p className="inventory-note product-name-editor-note">
+                        Add alternate names and promote any one of them to the main name.
+                      </p>
+                    </div>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={addDraftSubName}
+                    >
+                      Add Sub Name
+                    </button>
+                  </div>
+
+                  {(draftProduct.subNames || []).length === 0 ? (
+                    <p className="empty-copy">No sub names added yet.</p>
+                  ) : (
+                    (draftProduct.subNames || []).map((subName, index) => (
+                      <div className="supplier-option-edit-row" key={`product-sub-name-${index}`}>
+                        <input
+                          value={subName}
+                          onChange={(event) => updateDraftSubName(index, event.target.value)}
+                          placeholder={`Sub name ${index + 1}`}
+                        />
+                        <div className="supplier-option-edit-actions">
+                          <button
+                            className="table-action-button"
+                            type="button"
+                            onClick={() => setDraftSubNameAsMain(index)}
+                          >
+                            Use as Main
+                          </button>
+                          <button
+                            className="icon-button subtle"
+                            type="button"
+                            aria-label={`Remove sub name ${index + 1}`}
+                            onClick={() => removeDraftSubName(index)}
+                          >
+                            X
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
 
                 <label>
                   SKU

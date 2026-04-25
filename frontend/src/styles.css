@@ -1369,8 +1369,7 @@ th {
 .product-directory-grid {
   grid-template-columns:
     56px
-    minmax(100px, 0.75fr)
-    minmax(220px, 1.6fr)
+    minmax(240px, 1.8fr)
     minmax(140px, 1fr)
     minmax(150px, 1fr)
     minmax(110px, 0.75fr)
@@ -1417,6 +1416,17 @@ th {
 .supplier-option-field {
   display: grid;
   gap: 10px;
+}
+
+.product-name-editor-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.product-name-editor-note {
+  margin: 4px 0 0;
 }
 
 .supplier-option-edit-row {
@@ -2334,6 +2344,11 @@ th {
 
   .supplier-option-edit-actions,
   .supplier-modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .product-name-editor-header {
     flex-direction: column;
     align-items: stretch;
   }

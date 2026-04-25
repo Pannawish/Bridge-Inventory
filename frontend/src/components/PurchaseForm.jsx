@@ -61,6 +61,15 @@ function getProductName(product) {
   return product.name || product.productName || product.product_name || product.sku || `Product ${product.id}`;
 }
 
+function getProductSearchNames(product) {
+  const mainName = `${getProductName(product)}`.trim();
+  const subNames = Array.isArray(product.subNames) ? product.subNames : [];
+
+  return [mainName, ...subNames]
+    .map((name) => `${name ?? ""}`.trim())
+    .filter((name, index, names) => name && names.findIndex((item) => item.toLowerCase() === name.toLowerCase()) === index);
+}
+
 function getProductSku(product) {
   return product.sku || product.SKU || "";
 }
@@ -204,12 +213,14 @@ function PurchaseForm({
     }
 
     return productOptions.filter((product) => {
-      const productName = getProductName(product).toLowerCase();
+      const matchesName = getProductSearchNames(product).some((name) =>
+        name.toLowerCase().includes(normalizedQuery)
+      );
       const sku = getProductSku(product).toLowerCase();
       const displayId = `${product.productDisplayId || product.id || ""}`.toLowerCase();
 
       return (
-        productName.includes(normalizedQuery) ||
+        matchesName ||
         sku.includes(normalizedQuery) ||
         displayId.includes(normalizedQuery)
       );
