@@ -14,6 +14,7 @@ import {
   getProductBaseUnit,
   getProductDefaultPurchaseUnit,
   getProductDefaultSalesUnit,
+  getItemQuantityDetails,
   getProductUnitConversions,
 } from "../unitConversion";
 
@@ -1006,12 +1007,12 @@ function ProductsPage({
                                   <th className="table-index-cell">#</th>
                                   <th>Product</th>
                                   <th>SKU</th>
-                                  <th>Unit</th>
                                   <th>Expected Delivery</th>
                                   <th>Lead Time</th>
                                   <th>Item Status</th>
                                   <th>Received Date</th>
                                   <th>Qty</th>
+                                  <th>Base Qty</th>
                                   <th>Unit Cost</th>
                                   <th>Discounts</th>
                                   <th>Amount</th>
@@ -1023,6 +1024,11 @@ function ProductsPage({
                                     viewingProduct &&
                                     matchesSku(item, viewingProduct.sku);
                                   const amount = computeItemAmount(item);
+                                  const quantityDetails = getItemQuantityDetails(
+                                    item,
+                                    viewingProduct,
+                                    "purchase"
+                                  );
 
                                   return (
                                     <tr
@@ -1032,7 +1038,6 @@ function ProductsPage({
                                       <td className="table-index-cell">{itemIndex + 1}</td>
                                       <td>{item.product_name}</td>
                                       <td>{item.sku || "—"}</td>
-                                      <td>{item.unit || "—"}</td>
                                       <td>{item.expected_delivery_date || "—"}</td>
                                       <td>
                                         {item.lead_time_days !== undefined && item.lead_time_days !== ""
@@ -1052,7 +1057,8 @@ function ProductsPage({
                                         </span>
                                       </td>
                                       <td>{item.received_date || "—"}</td>
-                                      <td>{item.quantity}</td>
+                                      <td>{quantityDetails.enteredLabel}</td>
+                                      <td>{quantityDetails.baseLabel}</td>
                                       <td>
                                         {item.unit_cost !== undefined && item.unit_cost !== null
                                           ? formatCurrency(item.unit_cost)
@@ -1076,6 +1082,7 @@ function ProductsPage({
                                   <th className="table-index-cell">#</th>
                                   <th>Product</th>
                                   <th>Qty</th>
+                                  <th>Base Qty</th>
                                   <th>Unit Price</th>
                                   <th>Discounts</th>
                                   <th>Amount</th>
@@ -1087,6 +1094,11 @@ function ProductsPage({
                                     viewingProduct &&
                                     matchesSku(item, viewingProduct.sku);
                                   const amount = computeItemAmount(item);
+                                  const quantityDetails = getItemQuantityDetails(
+                                    item,
+                                    viewingProduct,
+                                    "sale"
+                                  );
 
                                   return (
                                     <tr
@@ -1095,7 +1107,8 @@ function ProductsPage({
                                     >
                                       <td className="table-index-cell">{itemIndex + 1}</td>
                                       <td>{item.product_name}</td>
-                                      <td>{item.quantity}</td>
+                                      <td>{quantityDetails.enteredLabel}</td>
+                                      <td>{quantityDetails.baseLabel}</td>
                                       <td>
                                         {item.unit_price !== undefined && item.unit_price !== null
                                           ? formatCurrency(item.unit_price)
@@ -1259,6 +1272,7 @@ function ProductsPage({
                             <th>Supplier</th>
                             <th>Date</th>
                             <th>Qty</th>
+                            <th>Base Qty</th>
                             <th>Unit Cost</th>
                             <th>Discounts</th>
                             <th>Amount</th>
@@ -1267,13 +1281,21 @@ function ProductsPage({
                           </tr>
                         </thead>
                         <tbody>
-                          {viewPurchaseHistory.map(({ purchase, item }, itemIndex) => (
+                          {viewPurchaseHistory.map(({ purchase, item }, itemIndex) => {
+                            const quantityDetails = getItemQuantityDetails(
+                              item,
+                              viewingProduct,
+                              "purchase"
+                            );
+
+                            return (
                             <tr key={`${purchase.id}-${item.id}`}>
                               <td className="table-index-cell">{itemIndex + 1}</td>
                               <td>{purchase.reference_no}</td>
                               <td>{purchase.supplier_name}</td>
                               <td>{purchase.transaction_date}</td>
-                              <td>{item.quantity}</td>
+                              <td>{quantityDetails.enteredLabel}</td>
+                              <td>{quantityDetails.baseLabel}</td>
                               <td>
                                 {item.unit_cost !== undefined && item.unit_cost !== null
                                   ? formatCurrency(item.unit_cost)
@@ -1307,7 +1329,8 @@ function ProductsPage({
                                 </button>
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -1328,6 +1351,7 @@ function ProductsPage({
                             <th>Customer</th>
                             <th>Date</th>
                             <th>Qty</th>
+                            <th>Base Qty</th>
                             <th>Unit Price</th>
                             <th>Discounts</th>
                             <th>Amount</th>
@@ -1336,13 +1360,21 @@ function ProductsPage({
                           </tr>
                         </thead>
                         <tbody>
-                          {viewSalesHistory.map(({ sale, item }, itemIndex) => (
+                          {viewSalesHistory.map(({ sale, item }, itemIndex) => {
+                            const quantityDetails = getItemQuantityDetails(
+                              item,
+                              viewingProduct,
+                              "sale"
+                            );
+
+                            return (
                             <tr key={`${sale.id}-${item.id}`}>
                               <td className="table-index-cell">{itemIndex + 1}</td>
                               <td>{sale.reference_no}</td>
                               <td>{sale.customer_name}</td>
                               <td>{sale.transaction_date}</td>
-                              <td>{item.quantity}</td>
+                              <td>{quantityDetails.enteredLabel}</td>
+                              <td>{quantityDetails.baseLabel}</td>
                               <td>
                                 {item.unit_price !== undefined && item.unit_price !== null
                                   ? formatCurrency(item.unit_price)
@@ -1369,7 +1401,8 @@ function ProductsPage({
                                 </button>
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

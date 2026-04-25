@@ -18,6 +18,7 @@ import {
   updateSaleItemDate,
   updateSaleItemStatus,
 } from "../saleStatus";
+import { getItemQuantityDetails } from "../unitConversion";
 
 const VAT_RATE = 0.07;
 
@@ -64,8 +65,51 @@ function renderDiscounts(item) {
   return "—";
 }
 
+function normalizeLookupValue(value) {
+  return `${value ?? ""}`.trim().toLowerCase();
+}
+
+function getProductSearchNames(product) {
+  const mainName = `${
+    product?.name ?? product?.productName ?? product?.product_name ?? ""
+  }`.trim();
+  const subNames = Array.isArray(product?.subNames)
+    ? product.subNames
+    : Array.isArray(product?.sub_names)
+      ? product.sub_names
+      : [];
+
+  return [mainName, ...subNames]
+    .map((name) => `${name ?? ""}`.trim())
+    .filter(
+      (name, index, names) =>
+        name && names.findIndex((item) => item.toLowerCase() === name.toLowerCase()) === index
+    );
+}
+
+function findProductForItem(products = [], item = {}) {
+  const itemProductId = normalizeLookupValue(item.product_id ?? item.productId);
+  const itemSku = normalizeLookupValue(item.sku);
+  const itemName = normalizeLookupValue(item.product_name ?? item.productName ?? item.name);
+
+  return (
+    products.find((product) => {
+      const productId = normalizeLookupValue(product.id);
+      const productSku = normalizeLookupValue(product.sku ?? product.SKU);
+      const productNames = getProductSearchNames(product).map(normalizeLookupValue);
+
+      return (
+        (itemProductId && productId === itemProductId) ||
+        (itemSku && productSku === itemSku) ||
+        (itemName && productNames.includes(itemName))
+      );
+    }) || null
+  );
+}
+
 function TransactionTable({
   rows,
+  products = [],
   type,
   onPurchaseStatusChange,
   onPurchaseItemStatusChange,
@@ -298,7 +342,11 @@ function TransactionTable({
                           {(row.items || []).map((item, itemIndex) => (
                             <span key={item.id} className="item-pill">
                               <span className="item-pill-index">{itemIndex + 1}.</span>
-                              {item.product_name} ×{item.quantity}
+                              {item.product_name} × {getItemQuantityDetails(
+                                item,
+                                findProductForItem(products, item),
+                                type
+                              ).inlineLabel}
                             </span>
                           ))}
                         </div>
@@ -418,7 +466,11 @@ function TransactionTable({
                         {(row.items || []).map((item, itemIndex) => (
                           <span key={item.id} className="item-pill">
                             <span className="item-pill-index">{itemIndex + 1}.</span>
-                            {item.product_name} ×{item.quantity}
+                            {item.product_name} × {getItemQuantityDetails(
+                              item,
+                              findProductForItem(products, item),
+                              type
+                            ).inlineLabel}
                           </span>
                         ))}
                       </div>
@@ -615,6 +667,7 @@ function TransactionTable({
                         <th>Shipped Date</th>
                         <th>Delivered Date</th>
                         <th>Qty</th>
+                        <th>Base Qty</th>
                         <th>Unit Price</th>
                         <th>Discounts</th>
                         <th>Amount</th>
@@ -624,6 +677,11 @@ function TransactionTable({
                       {(selectedRow.items || []).map((item, itemIndex) => {
                         const amount = computeItemAmount(item);
                         const itemStatus = getStoredSaleItemStatus(item, selectedRow.status);
+                        const quantityDetails = getItemQuantityDetails(
+                          item,
+                          findProductForItem(products, item),
+                          "sale"
+                        );
                         return (
                           <tr key={item.id || `${item.sku}-${itemIndex}`}>
                             <td className="table-index-cell">{itemIndex + 1}</td>
@@ -676,7 +734,8 @@ function TransactionTable({
                                 disabled={itemStatus !== "delivered"}
                               />
                             </td>
-                            <td>{item.quantity}</td>
+                            <td>{quantityDetails.enteredLabel}</td>
+                            <td>{quantityDetails.baseLabel}</td>
                             <td>{item.unit_price ? formatCurrency(item.unit_price) : "—"}</td>
                             <td>
                               <span className="tx-discount-label">
@@ -696,12 +755,12 @@ function TransactionTable({
                         <th className="table-index-cell">#</th>
                         <th>Product</th>
                         <th>SKU</th>
-                        <th>Unit</th>
                         <th>Expected Delivery</th>
                         <th>Lead Time</th>
                         <th>Item Status</th>
                         <th>Received Date</th>
                         <th>Qty</th>
+                        <th>Base Qty</th>
                         <th>Unit Cost</th>
                         <th>Discounts</th>
                         <th>Amount</th>
@@ -722,13 +781,17 @@ function TransactionTable({
                         const canMarkReceived =
                           !["draft", "cancelled"].includes(selectedRow.status) &&
                           !["cancelled", "received"].includes(storedStatus);
+                        const quantityDetails = getItemQuantityDetails(
+                          item,
+                          findProductForItem(products, item),
+                          "purchase"
+                        );
 
                         return (
                           <tr key={item.id || `${item.sku}-${itemIndex}`}>
                             <td className="table-index-cell">{itemIndex + 1}</td>
                             <td>{item.product_name}</td>
                             <td>{item.sku || "—"}</td>
-                            <td>{item.unit || "—"}</td>
                             <td>{item.expected_delivery_date || "—"}</td>
                             <td>
                               {item.lead_time_days !== undefined && item.lead_time_days !== ""
@@ -774,7 +837,8 @@ function TransactionTable({
                                 aria-label={`Edit ${item.product_name} received date`}
                               />
                             </td>
-                            <td>{item.quantity}</td>
+                            <td>{quantityDetails.enteredLabel}</td>
+                            <td>{quantityDetails.baseLabel}</td>
                             <td>{item.unit_cost ? formatCurrency(item.unit_cost) : "—"}</td>
                             <td>
                               <span className="tx-discount-label">

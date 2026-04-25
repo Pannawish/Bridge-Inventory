@@ -125,6 +125,49 @@ export function roundQuantity(value) {
   return Number(quantity.toFixed(6));
 }
 
+function formatQuantityValue(value) {
+  return Number(value || 0).toLocaleString();
+}
+
+function getItemConversionFactor(item) {
+  if (item?.conversion_factor !== undefined && item?.conversion_factor !== null) {
+    return normalizeFactor(item.conversion_factor);
+  }
+
+  const quantity = Number(item?.quantity) || 0;
+  const baseQuantity = Number(item?.base_quantity);
+
+  if (quantity > 0 && Number.isFinite(baseQuantity) && baseQuantity > 0) {
+    return normalizeFactor(baseQuantity / quantity);
+  }
+
+  return 1;
+}
+
+function findProductUnitByFactor(product, factor, mode) {
+  if (!product) {
+    return "";
+  }
+
+  const conversions = getProductUnitConversions(product).filter((conversion) => {
+    if (mode === "purchase") {
+      return conversion.allowPurchase;
+    }
+
+    if (mode === "sale") {
+      return conversion.allowSale;
+    }
+
+    return true;
+  });
+
+  const matchedConversion = conversions.find(
+    (conversion) => Math.abs(normalizeFactor(conversion.factorToBase) - factor) < 0.000001
+  );
+
+  return matchedConversion?.unit || "";
+}
+
 export function buildConvertedItemFields(product, quantity, unit, mode = "purchase") {
   const conversion = getConversionForUnit(product, unit, mode);
   const baseUnit = getProductBaseUnit(product);
@@ -148,4 +191,31 @@ export function getItemBaseQuantity(item) {
   }
 
   return Number(item?.quantity) || 0;
+}
+
+export function getItemQuantityDetails(item, product = null, mode = "") {
+  const enteredQuantity = Number(item?.quantity) || 0;
+  const baseQuantity = getItemBaseQuantity(item);
+  const productBaseUnit = product ? getProductBaseUnit(product) : "";
+  const inferredUnit = findProductUnitByFactor(product, getItemConversionFactor(item), mode);
+  const baseUnit = normalizeUnit(
+    item?.base_unit ?? productBaseUnit ?? item?.unit,
+    "pcs"
+  );
+  const enteredUnit = normalizeUnit(
+    item?.unit ?? inferredUnit ?? item?.base_unit ?? productBaseUnit ?? baseUnit,
+    baseUnit
+  );
+  const enteredLabel = enteredUnit
+    ? `${formatQuantityValue(enteredQuantity)} ${enteredUnit}`
+    : formatQuantityValue(enteredQuantity);
+  const baseLabel = baseUnit
+    ? `${formatQuantityValue(baseQuantity)} ${baseUnit}`
+    : formatQuantityValue(baseQuantity);
+
+  return {
+    enteredLabel,
+    baseLabel,
+    inlineLabel: `${enteredLabel} / ${baseLabel}`,
+  };
 }

@@ -1120,6 +1120,7 @@ function PurchaseHistoryPage({
 
       <TransactionTable
         rows={filteredPurchases}
+        products={products}
         type="purchase"
         onPurchaseStatusChange={onPurchaseStatusChange}
         onPurchaseItemStatusChange={onPurchaseItemStatusChange}

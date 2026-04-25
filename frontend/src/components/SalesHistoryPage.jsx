@@ -1193,6 +1193,7 @@ function SalesHistoryPage({
 
       <TransactionTable
         rows={filteredSales}
+        products={products}
         type="sale"
         onSaleStatusChange={onSaleStatusChange}
         onSaleUpdate={onSaleUpdate}
