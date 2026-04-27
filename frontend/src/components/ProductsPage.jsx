@@ -1765,7 +1765,7 @@ function ProductsPage({
       {draftProduct ? (
         <div className="modal-backdrop">
           <div
-            className="detail-modal supplier-modal section-card"
+            className="detail-modal supplier-modal product-editor-modal section-card"
             role="dialog"
             aria-modal="true"
             aria-labelledby="product-modal-title"
@@ -1798,265 +1798,303 @@ function ProductsPage({
                 handleSaveProduct();
               }}
             >
-              <div className="form-grid">
-                <label className="full-width">
-                  Main Product Name
-                  <input
-                    autoFocus
-                    value={draftProduct.productName}
-                    onChange={(event) => updateDraftField("productName", event.target.value)}
-                    placeholder="Name used across the system"
-                  />
-                </label>
-
-                <div className="full-width supplier-option-field">
-                  <div className="product-name-editor-header">
+              <div className="product-editor-layout">
+                <section className="product-editor-section">
+                  <div className="product-editor-section-heading">
                     <div>
-                      <p className="detail-label">Sub Names</p>
-                      <p className="inventory-note product-name-editor-note">
-                        Add alternate names and promote any one of them to the main name.
-                      </p>
+                      <p className="eyebrow">Identity</p>
+                      <h4>Name, SKU, and Product ID</h4>
                     </div>
-                    <button
-                      className="secondary-button"
-                      type="button"
-                      onClick={addDraftSubName}
-                    >
-                      Add Sub Name
-                    </button>
+                    <span>Start here</span>
                   </div>
 
-                  {(draftProduct.subNames || []).length === 0 ? (
-                    <p className="empty-copy">No sub names added yet.</p>
-                  ) : (
-                    (draftProduct.subNames || []).map((subName, index) => (
-                      <div className="supplier-option-edit-row" key={`product-sub-name-${index}`}>
+                  <div className="product-editor-grid">
+                    <label className="full-width">
+                      Main Product Name
+                      <input
+                        autoFocus
+                        value={draftProduct.productName}
+                        onChange={(event) => updateDraftField("productName", event.target.value)}
+                        placeholder="Name used across the system"
+                      />
+                    </label>
+
+                    <label className="supplier-option-field product-editor-wide-field">
+                      <span>SKU</span>
+                      <div className="product-sku-edit-row">
                         <input
-                          value={subName}
-                          onChange={(event) => updateDraftSubName(index, event.target.value)}
-                          placeholder={`Sub name ${index + 1}`}
+                          value={draftProduct.sku}
+                          onChange={(event) => updateDraftField("sku", event.target.value)}
+                          onBlur={() => {
+                            if (!isSkuLocked) {
+                              updateDraftField("sku", normalizeSku(draftProduct.sku));
+                            }
+                          }}
+                          placeholder="e.g. PVC-PIPE-20MM-4M-001"
+                          disabled={isSkuLocked}
                         />
-                        <div className="supplier-option-edit-actions">
+                        <button
+                          className="secondary-button"
+                          type="button"
+                          onClick={handleGenerateSku}
+                          disabled={isSkuLocked}
+                        >
+                          Generate
+                        </button>
+                        {isSkuLocked ? (
                           <button
                             className="table-action-button"
                             type="button"
-                            onClick={() => setDraftSubNameAsMain(index)}
+                            onClick={handleUnlockSkuChange}
                           >
-                            Use as Main
+                            Change SKU
                           </button>
-                          <button
-                            className="icon-button subtle"
-                            type="button"
-                            aria-label={`Remove sub name ${index + 1}`}
-                            onClick={() => removeDraftSubName(index)}
-                          >
-                            X
-                          </button>
-                        </div>
+                        ) : null}
                       </div>
-                    ))
-                  )}
-                </div>
+                      <span className="field-helper-text">
+                        {isSkuLocked
+                          ? "Locked because this product has purchase or sales history."
+                          : "Required and unique. Use A-Z, 0-9, and hyphens only."}
+                      </span>
+                    </label>
 
-                <label className="supplier-option-field">
-                  <span>SKU</span>
-                  <div className="product-sku-edit-row">
-                    <input
-                      value={draftProduct.sku}
-                      onChange={(event) => updateDraftField("sku", event.target.value)}
-                      onBlur={() => {
-                        if (!isSkuLocked) {
-                          updateDraftField("sku", normalizeSku(draftProduct.sku));
+                    <label>
+                      Product ID
+                      <input
+                        type="number"
+                        value={draftProduct.productDisplayId}
+                        onChange={(event) =>
+                          updateDraftField("productDisplayId", event.target.value)
                         }
-                      }}
-                      placeholder="e.g. PVC-PIPE-20MM-4M-001"
-                      disabled={isSkuLocked}
-                    />
-                    <button
-                      className="secondary-button"
-                      type="button"
-                      onClick={handleGenerateSku}
-                      disabled={isSkuLocked}
-                    >
-                      Generate
-                    </button>
-                    {isSkuLocked ? (
-                      <button
-                        className="table-action-button"
-                        type="button"
-                        onClick={handleUnlockSkuChange}
-                      >
-                        Change SKU
-                      </button>
-                    ) : null}
+                        placeholder="e.g. 1232"
+                        min="1"
+                      />
+                    </label>
                   </div>
-                  <span className="field-helper-text">
-                    {isSkuLocked
-                      ? "Locked because this product has purchase or sales history."
-                      : "Required and unique. Use A-Z, 0-9, and hyphens only."}
-                  </span>
-                </label>
 
-                <label>
-                  Base Stock Unit
-                  <input
-                    value={draftProduct.stockBaseUnit}
-                    onChange={(event) => updateDraftField("stockBaseUnit", event.target.value)}
-                    placeholder="pcs, m, kg, L, set"
-                  />
-                </label>
+                  <div className="supplier-option-field product-editor-subsection">
+                    <div className="product-name-editor-header">
+                      <div>
+                        <p className="detail-label">Sub Names</p>
+                        <p className="inventory-note product-name-editor-note">
+                          Add alternate names and promote any one of them to the main name.
+                        </p>
+                      </div>
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        onClick={addDraftSubName}
+                      >
+                        Add Sub Name
+                      </button>
+                    </div>
 
-                <label>
-                  Default Purchase Unit
-                  <input
-                    value={draftProduct.defaultPurchaseUnit}
-                    onChange={(event) => updateDraftField("defaultPurchaseUnit", event.target.value)}
-                    placeholder="e.g. box"
-                  />
-                </label>
+                    {(draftProduct.subNames || []).length === 0 ? (
+                      <p className="empty-copy">No sub names added yet.</p>
+                    ) : (
+                      (draftProduct.subNames || []).map((subName, index) => (
+                        <div className="supplier-option-edit-row" key={`product-sub-name-${index}`}>
+                          <input
+                            value={subName}
+                            onChange={(event) => updateDraftSubName(index, event.target.value)}
+                            placeholder={`Sub name ${index + 1}`}
+                          />
+                          <div className="supplier-option-edit-actions">
+                            <button
+                              className="table-action-button"
+                              type="button"
+                              onClick={() => setDraftSubNameAsMain(index)}
+                            >
+                              Use as Main
+                            </button>
+                            <button
+                              className="icon-button subtle"
+                              type="button"
+                              aria-label={`Remove sub name ${index + 1}`}
+                              onClick={() => removeDraftSubName(index)}
+                            >
+                              X
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </section>
 
-                <label>
-                  Default Sales Unit
-                  <input
-                    value={draftProduct.defaultSalesUnit}
-                    onChange={(event) => updateDraftField("defaultSalesUnit", event.target.value)}
-                    placeholder="e.g. pcs"
-                  />
-                </label>
-
-                <div className="full-width supplier-option-field">
-                  <div className="product-name-editor-header">
+                <section className="product-editor-section">
+                  <div className="product-editor-section-heading">
                     <div>
-                      <p className="detail-label">Unit Conversions</p>
-                      <p className="inventory-note product-name-editor-note">
-                        Factor means how many base units are inside one selected unit.
-                      </p>
+                      <p className="eyebrow">Stock Units</p>
+                      <h4>Base Unit and Conversions</h4>
                     </div>
-                    <button
-                      className="secondary-button"
-                      type="button"
-                      onClick={addDraftUnitConversion}
-                    >
-                      Add Unit
-                    </button>
+                    <span>Inventory logic</span>
                   </div>
 
-                  {(draftProduct.unitConversions || []).map((conversion, index) => (
-                    <div className="unit-conversion-row" key={`unit-conversion-${index}`}>
-                      <label>
-                        Unit
-                        <input
-                          value={conversion.unit}
-                          onChange={(event) =>
-                            updateDraftUnitConversion(index, "unit", event.target.value)
-                          }
-                          placeholder="box"
-                        />
-                      </label>
-                      <label>
-                        Factor to Base
-                        <input
-                          type="number"
-                          min="0.000001"
-                          step="0.000001"
-                          value={conversion.factorToBase}
-                          onChange={(event) =>
-                            updateDraftUnitConversion(index, "factorToBase", event.target.value)
-                          }
-                          placeholder="1"
-                        />
-                      </label>
-                      <label className="unit-conversion-check">
-                        <input
-                          type="checkbox"
-                          checked={!!conversion.allowPurchase}
-                          onChange={() => toggleDraftUnitConversion(index, "allowPurchase")}
-                        />
-                        Purchase
-                      </label>
-                      <label className="unit-conversion-check">
-                        <input
-                          type="checkbox"
-                          checked={!!conversion.allowSale}
-                          onChange={() => toggleDraftUnitConversion(index, "allowSale")}
-                        />
-                        Sale
-                      </label>
+                  <div className="product-editor-grid product-editor-unit-grid">
+                    <label>
+                      Base Stock Unit
+                      <input
+                        value={draftProduct.stockBaseUnit}
+                        onChange={(event) => updateDraftField("stockBaseUnit", event.target.value)}
+                        placeholder="pcs, m, kg, L, set"
+                      />
+                    </label>
+
+                    <label>
+                      Default Purchase Unit
+                      <input
+                        value={draftProduct.defaultPurchaseUnit}
+                        onChange={(event) =>
+                          updateDraftField("defaultPurchaseUnit", event.target.value)
+                        }
+                        placeholder="e.g. box"
+                      />
+                    </label>
+
+                    <label>
+                      Default Sales Unit
+                      <input
+                        value={draftProduct.defaultSalesUnit}
+                        onChange={(event) => updateDraftField("defaultSalesUnit", event.target.value)}
+                        placeholder="e.g. pcs"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="supplier-option-field product-editor-subsection">
+                    <div className="product-name-editor-header">
+                      <div>
+                        <p className="detail-label">Unit Conversions</p>
+                        <p className="inventory-note product-name-editor-note">
+                          Factor means how many base units are inside one selected unit.
+                        </p>
+                      </div>
                       <button
-                        className="icon-button subtle"
+                        className="secondary-button"
                         type="button"
-                        aria-label={`Remove unit conversion ${index + 1}`}
-                        onClick={() => removeDraftUnitConversion(index)}
+                        onClick={addDraftUnitConversion}
                       >
-                        X
+                        Add Unit
                       </button>
                     </div>
-                  ))}
-                </div>
 
-                <label>
-                  Category
-                  <select
-                    value={draftProduct.categoryId || ""}
-                    onChange={(event) => updateDraftField("categoryId", event.target.value)}
-                  >
-                    <option value="">
-                      {productCategoryOptions.length
-                        ? "Select category"
-                        : "Create a category first"}
-                    </option>
-                    {productCategoryOptions.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.label}
-                      </option>
+                    {(draftProduct.unitConversions || []).map((conversion, index) => (
+                      <div className="unit-conversion-row" key={`unit-conversion-${index}`}>
+                        <label>
+                          Unit
+                          <input
+                            value={conversion.unit}
+                            onChange={(event) =>
+                              updateDraftUnitConversion(index, "unit", event.target.value)
+                            }
+                            placeholder="box"
+                          />
+                        </label>
+                        <label>
+                          Factor to Base
+                          <input
+                            type="number"
+                            min="0.000001"
+                            step="0.000001"
+                            value={conversion.factorToBase}
+                            onChange={(event) =>
+                              updateDraftUnitConversion(index, "factorToBase", event.target.value)
+                            }
+                            placeholder="1"
+                          />
+                        </label>
+                        <label className="unit-conversion-check">
+                          <input
+                            type="checkbox"
+                            checked={!!conversion.allowPurchase}
+                            onChange={() => toggleDraftUnitConversion(index, "allowPurchase")}
+                          />
+                          Purchase
+                        </label>
+                        <label className="unit-conversion-check">
+                          <input
+                            type="checkbox"
+                            checked={!!conversion.allowSale}
+                            onChange={() => toggleDraftUnitConversion(index, "allowSale")}
+                          />
+                          Sale
+                        </label>
+                        <button
+                          className="icon-button subtle"
+                          type="button"
+                          aria-label={`Remove unit conversion ${index + 1}`}
+                          onClick={() => removeDraftUnitConversion(index)}
+                        >
+                          X
+                        </button>
+                      </div>
                     ))}
-                  </select>
-                </label>
-
-                <label>
-                  Product ID
-                  <input
-                    type="number"
-                    value={draftProduct.productDisplayId}
-                    onChange={(event) =>
-                      updateDraftField("productDisplayId", event.target.value)
-                    }
-                    placeholder="e.g. 1232"
-                    min="1"
-                  />
-                </label>
-
-                <label className="full-width">
-                  Picture URL
-                  <input
-                    value={draftProduct.pictureUrl}
-                    onChange={(event) => updateDraftField("pictureUrl", event.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                  />
-                </label>
-
-                {draftProduct.pictureUrl ? (
-                  <div className="full-width">
-                    <img
-                      src={draftProduct.pictureUrl}
-                      alt="Product preview"
-                      className="product-picture-preview"
-                      onError={(event) => {
-                        event.target.style.display = "none";
-                      }}
-                    />
                   </div>
-                ) : null}
+                </section>
 
-                <label className="full-width">
-                  Product Detail
-                  <textarea
-                    rows="4"
-                    value={draftProduct.detail}
-                    onChange={(event) => updateDraftField("detail", event.target.value)}
-                    placeholder="Product description, specifications, or notes"
-                  />
-                </label>
+                <section className="product-editor-section">
+                  <div className="product-editor-section-heading">
+                    <div>
+                      <p className="eyebrow">Classification</p>
+                      <h4>Category, Image, and Notes</h4>
+                    </div>
+                    <span>Optional detail</span>
+                  </div>
+
+                  <div className="product-editor-grid">
+                    <label>
+                      Category
+                      <select
+                        value={draftProduct.categoryId || ""}
+                        onChange={(event) => updateDraftField("categoryId", event.target.value)}
+                      >
+                        <option value="">
+                          {productCategoryOptions.length
+                            ? "Select category"
+                            : "Create a category first"}
+                        </option>
+                        {productCategoryOptions.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label>
+                      Picture URL
+                      <input
+                        value={draftProduct.pictureUrl}
+                        onChange={(event) => updateDraftField("pictureUrl", event.target.value)}
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </label>
+
+                    {draftProduct.pictureUrl ? (
+                      <div className="full-width">
+                        <img
+                          src={draftProduct.pictureUrl}
+                          alt="Product preview"
+                          className="product-picture-preview"
+                          onError={(event) => {
+                            event.target.style.display = "none";
+                          }}
+                        />
+                      </div>
+                    ) : null}
+
+                    <label className="full-width">
+                      Product Detail
+                      <textarea
+                        rows="4"
+                        value={draftProduct.detail}
+                        onChange={(event) => updateDraftField("detail", event.target.value)}
+                        placeholder="Product description, specifications, or notes"
+                      />
+                    </label>
+                  </div>
+                </section>
               </div>
 
               <div className="supplier-modal-actions">
