@@ -145,6 +145,7 @@ function createInitialForm(referenceNo) {
   return {
     reference_no: referenceNo,
     supplier_name: "",
+    supplier_tax_invoice: "",
     status: "ordered",
     transaction_date: today,
     note: "",
@@ -477,6 +478,7 @@ function PurchaseForm({
     const formData = new FormData();
     formData.append("reference_no", form.reference_no);
     formData.append("supplier_name", supplierName);
+    formData.append("supplier_tax_invoice", form.supplier_tax_invoice);
     formData.append("status", form.status);
     formData.append("transaction_date", form.transaction_date);
     formData.append("note", form.note);
@@ -584,6 +586,17 @@ function PurchaseForm({
               ) : null}
             </div>
             {supplierError ? <span className="field-error-text">{supplierError}</span> : null}
+          </label>
+
+          <label>
+            Supplier's Tax Invoice
+            <input
+              value={form.supplier_tax_invoice}
+              onChange={(event) =>
+                setForm({ ...form, supplier_tax_invoice: event.target.value })
+              }
+              placeholder="Optional supplier tax invoice"
+            />
           </label>
 
           <label>
