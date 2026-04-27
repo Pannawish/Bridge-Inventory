@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { applySaleStatusToItems, getSaleStatusFromItems } from "../saleStatus";
+import { formatSaleStockIssueMessage, getSaleStockIssues } from "../saleStock";
 import {
   buildConvertedItemFields,
   getProductDefaultSalesUnit,
@@ -47,7 +48,7 @@ function createInitialForm(referenceNo) {
   return {
     reference_no: referenceNo,
     customer_name: "",
-    status: "delivered",
+    status: "draft",
     payment_timing: "instant",
     payment_received_date: getToday(),
     transaction_date: getToday(),
@@ -123,9 +124,16 @@ function getProductUnit(product) {
   return getProductDefaultSalesUnit(product);
 }
 
+function showStockAlert(message) {
+  if (message && typeof window !== "undefined") {
+    window.alert(message);
+  }
+}
+
 function SalesForm({
   products,
   customers = defaultCustomerOptions,
+  purchases = [],
   sales = [],
   onSubmit,
   onCancel = null,
@@ -141,6 +149,7 @@ function SalesForm({
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerOpen, setCustomerOpen] = useState(false);
   const [customerError, setCustomerError] = useState("");
+  const [statusError, setStatusError] = useState("");
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
   const filteredCustomers = useMemo(() => {
     const normalizedQuery = customerQuery.trim().toLowerCase();
@@ -170,8 +179,81 @@ function SalesForm({
     });
   }, [nextReferenceNo]);
 
+  const stockPreviewItems = useMemo(
+    () =>
+      items
+        .filter((item) => item.product_id && item.quantity)
+        .map((item) => {
+          const selectedProduct = products.find(
+            (product) => `${product.id}` === `${item.product_id}`
+          );
+
+          return {
+            product_id: item.product_id,
+            product_name: selectedProduct ? getProductName(selectedProduct) : item.product_name,
+            sku: selectedProduct ? getProductSku(selectedProduct) : item.sku,
+            ...(selectedProduct
+              ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
+              : {
+                  unit: item.unit || "pcs",
+                  base_unit: item.unit || "pcs",
+                  conversion_factor: 1,
+                  base_quantity: Number(item.quantity) || 0,
+                }),
+            quantity: Number(item.quantity) || 0,
+          };
+        }),
+    [items, products]
+  );
+  const saleStockIssues = useMemo(
+    () =>
+      getSaleStockIssues(
+        {
+          status: form.status,
+          items: stockPreviewItems,
+        },
+        products,
+        purchases,
+        sales
+      ),
+    [form.status, products, purchases, sales, stockPreviewItems]
+  );
+  const saleStockMessage =
+    !["draft", "cancelled"].includes(form.status) && saleStockIssues.length
+      ? formatSaleStockIssueMessage(saleStockIssues)
+      : "";
+
+  useEffect(() => {
+    if (!saleStockIssues.length) {
+      setStatusError("");
+    }
+  }, [saleStockIssues]);
+
   function updateForm(key, value) {
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
+  }
+
+  function handleStatusChange(nextStatus) {
+    const nextIssues = getSaleStockIssues(
+      {
+        status: nextStatus,
+        items: stockPreviewItems,
+      },
+      products,
+      purchases,
+      sales
+    );
+
+    if (!["draft", "cancelled"].includes(nextStatus) && nextIssues.length) {
+      const message = formatSaleStockIssueMessage(nextIssues);
+      updateForm("status", "draft");
+      setStatusError(message);
+      showStockAlert(message);
+      return;
+    }
+
+    setStatusError("");
+    updateForm("status", nextStatus);
   }
 
   function handlePaymentTimingChange(event) {
@@ -331,6 +413,10 @@ function SalesForm({
     event.preventDefault();
 
     const customerName = resolveCustomerName();
+    const requestedStatus =
+      !["draft", "cancelled"].includes(form.status) && saleStockIssues.length
+        ? "draft"
+        : form.status;
 
     if (!customerName) {
       setCustomerError("Select an existing customer from the list.");
@@ -341,7 +427,7 @@ function SalesForm({
     const formData = new FormData();
     formData.append("reference_no", form.reference_no);
     formData.append("customer_name", customerName);
-    formData.append("status", form.status);
+    formData.append("status", requestedStatus);
     formData.append("transaction_date", form.transaction_date);
     formData.append("payment_received_date", form.payment_received_date);
     formData.append("note", form.note);
@@ -374,21 +460,26 @@ function SalesForm({
       });
     const saleWithItems = applySaleStatusToItems(
       {
-        status: form.status,
+        status: requestedStatus,
         items: filteredItems,
       },
-      form.status
+      requestedStatus
     );
     formData.set("status", getSaleStatusFromItems(saleWithItems));
     formData.append("items", JSON.stringify(saleWithItems.items));
 
-    await onSubmit(formData);
+    const saved = await onSubmit(formData);
+
+    if (saved === false) {
+      return;
+    }
 
     setForm(createInitialForm(lastGeneratedReference.current));
     setItems([emptyItem()]);
     setVatMode("not_included");
     setCustomerQuery("");
     setCustomerError("");
+    setStatusError("");
     setDraggedItemIndex(null);
   }
 
@@ -479,7 +570,7 @@ function SalesForm({
             Status
             <select
               value={form.status}
-              onChange={(event) => updateForm("status", event.target.value)}
+              onChange={(event) => handleStatusChange(event.target.value)}
             >
               <option value="draft">Draft</option>
               <option value="packed">Packed</option>
@@ -487,6 +578,9 @@ function SalesForm({
               <option value="delivered">Delivered</option>
               <option value="cancelled">Cancelled</option>
             </select>
+            {statusError || saleStockMessage ? (
+              <span className="field-error-text">{statusError || saleStockMessage}</span>
+            ) : null}
           </label>
 
           <label>

@@ -18,6 +18,7 @@ import {
   updateSaleItemDate,
   updateSaleItemStatus,
 } from "../saleStatus";
+import { formatSaleStockIssueMessage, getSaleStockIssues } from "../saleStock";
 import { getItemQuantityDetails } from "../unitConversion";
 
 const VAT_RATE = 0.07;
@@ -118,11 +119,14 @@ function getItemStatusOptions(editableStatuses, currentStatus) {
 function TransactionTable({
   rows,
   products = [],
+  purchases = [],
+  sales = [],
   type,
   onPurchaseStatusChange,
   onPurchaseItemStatusChange,
   onSaleStatusChange,
   onSaleUpdate,
+  onWarning,
   onEditRow,
   onDeleteRow,
   compactRows = 0,
@@ -243,7 +247,16 @@ function TransactionTable({
 
   function handleSaleItemStatusChange(itemIndex, nextStatus) {
     const updatedRow = updateSaleItemStatus(selectedRow, itemIndex, nextStatus);
+    const issues = getSaleStockIssues(updatedRow, products, purchases, sales, {
+      excludeSaleId: selectedRow.id,
+    });
 
+    if (issues.length) {
+      onWarning?.(formatSaleStockIssueMessage(issues));
+      return;
+    }
+
+    onWarning?.("");
     setSelectedRow(updatedRow);
     setHasUnsavedItemChanges(true);
   }
@@ -255,8 +268,13 @@ function TransactionTable({
     setHasUnsavedItemChanges(true);
   }
 
-  function handleSaveSaleUpdates() {
-    onSaleUpdate?.(selectedRow);
+  async function handleSaveSaleUpdates() {
+    const saved = await onSaleUpdate?.(selectedRow);
+
+    if (saved === false) {
+      return;
+    }
+
     setHasUnsavedItemChanges(false);
   }
 
@@ -337,7 +355,10 @@ function TransactionTable({
                             <option
                               key={status}
                               value={status}
-                              disabled={type === "purchase" && status === "partially_received"}
+                              disabled={
+                                (type === "purchase" && status === "partially_received") ||
+                                (type === "sale" && status.startsWith("partially_"))
+                              }
                             >
                               {formatStatusLabel(status)}
                             </option>
@@ -428,7 +449,10 @@ function TransactionTable({
                         <option
                           key={status}
                           value={status}
-                          disabled={type === "purchase" && status === "partially_received"}
+                          disabled={
+                            (type === "purchase" && status === "partially_received") ||
+                            (type === "sale" && status.startsWith("partially_"))
+                          }
                         >
                           {formatStatusLabel(status)}
                         </option>

@@ -1619,19 +1619,22 @@ th {
 
 .status-draft,
 .status-packed,
-.status-partially_received {
+.status-partially_received,
+.status-partially_packed {
   color: #8f6900;
   background: #fff7dc;
 }
 
 .status-ordered,
 .status-shipped,
+.status-partially_shipped,
 .status-pending {
   color: var(--accent-deep);
   background: #eef3ff;
 }
 
 .status-received,
+.status-partially_delivered,
 .status-delivered {
   color: #0f5a3d;
   background: #e9fbf2;

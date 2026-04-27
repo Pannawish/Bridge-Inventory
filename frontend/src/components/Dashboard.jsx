@@ -3,6 +3,7 @@ import {
   getPurchaseItemDisplayStatus,
   getStoredPurchaseItemStatus,
 } from "../purchaseStatus";
+import { getStoredSaleItemStatus } from "../saleStatus";
 import { getItemBaseQuantity, getProductBaseUnit } from "../unitConversion";
 
 const SAFETY_STOCK_DAYS = 7;
@@ -349,11 +350,13 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
   });
 
   sales.forEach((sale) => {
-    if (sale.status === "cancelled" || sale.status === "draft") {
-      return;
-    }
-
     (sale.items || []).forEach((item) => {
+      const itemStatus = getStoredSaleItemStatus(item, sale.status);
+
+      if (!["packed", "shipped", "delivered"].includes(itemStatus)) {
+        return;
+      }
+
       const key = getMovementKey(item);
 
       if (!key) {

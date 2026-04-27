@@ -51,6 +51,30 @@ const defaultCategories = [
     description: "Sticky note pads and adhesive memo paper.",
     parentId: "category-paper-goods",
   },
+  {
+    id: "category-presentation",
+    name: "Presentation Supplies",
+    description: "Whiteboard, highlighting, and classroom presentation tools.",
+    parentId: null,
+  },
+  {
+    id: "category-markers",
+    name: "Markers",
+    description: "Whiteboard markers, permanent markers, and highlighters.",
+    parentId: "category-presentation",
+  },
+  {
+    id: "category-filing",
+    name: "Filing",
+    description: "Binders, folders, and storage accessories for documents.",
+    parentId: "category-desk-accessories",
+  },
+  {
+    id: "category-correction",
+    name: "Correction",
+    description: "Correction tape and correction stationery.",
+    parentId: "category-writing-tools",
+  },
 ];
 
 function createCategory(overrides = {}) {

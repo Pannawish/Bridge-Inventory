@@ -11,6 +11,7 @@ import ProductsPage, { getDefaultProducts } from "./components/ProductsPage";
 import CategoryPage, { getDefaultCategories } from "./components/CategoryPage";
 import { applyPurchaseStatusToItems } from "./purchaseStatus";
 import { applySaleStatusToItems } from "./saleStatus";
+import { formatSaleStockIssueMessage, getSaleStockIssues } from "./saleStock";
 
 function getCollectionRows(result, fallback = []) {
   if (Array.isArray(result)) {
@@ -203,6 +204,50 @@ function App() {
     loadData();
   }, []);
 
+  function showWarning(message) {
+    setNotice("");
+    setError("");
+    if (!message) {
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      window.alert(message);
+    }
+
+    window.setTimeout(() => {
+      setError(message);
+    }, 0);
+  }
+
+  function shouldKeepSaleAsDraft(status) {
+    return !["draft", "cancelled"].includes(`${status || "draft"}`);
+  }
+
+  function buildDraftSale(sale) {
+    return applySaleStatusToItems({ ...sale, status: "draft" }, "draft");
+  }
+
+  function normalizeSaleForAvailableStock(sale, options = {}) {
+    const requestedStatus = sale?.status || "draft";
+
+    if (!shouldKeepSaleAsDraft(requestedStatus)) {
+      return { sale, issues: [], forcedDraft: false };
+    }
+
+    const issues = getSaleStockIssues(sale, products, purchases, sales, options);
+
+    if (!issues.length) {
+      return { sale, issues: [], forcedDraft: false };
+    }
+
+    return {
+      sale: buildDraftSale(sale),
+      issues,
+      forcedDraft: true,
+    };
+  }
+
   function handleTabSelect(tabId) {
     setActiveTab(tabId);
   }
@@ -215,10 +260,35 @@ function App() {
   }
 
   async function handleSalesCreateFromHistory(formData) {
-    await api.createSale(formData);
-    setNotice("Sales transaction saved.");
-    setActiveTab("sales-history");
-    await loadData();
+    setError("");
+
+    const requestedSale = {
+      status: `${formData.get("status") || "draft"}`,
+      items: JSON.parse(`${formData.get("items") || "[]"}`),
+    };
+    const { sale: normalizedSale, issues, forcedDraft } = normalizeSaleForAvailableStock(
+      requestedSale
+    );
+
+    if (forcedDraft) {
+      formData.set("status", normalizedSale.status);
+      formData.set("items", JSON.stringify(normalizedSale.items || []));
+    }
+
+    try {
+      await api.createSale(formData);
+      setNotice(
+        forcedDraft
+          ? `Sales transaction saved as draft. ${formatSaleStockIssueMessage(issues)}`
+          : "Sales transaction saved."
+      );
+      setActiveTab("sales-history");
+      await loadData();
+      return true;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
   }
 
   async function handlePurchaseStatusChange(purchaseId, nextStatus) {
@@ -295,6 +365,18 @@ function App() {
       return;
     }
 
+    if (shouldKeepSaleAsDraft(nextStatus)) {
+      const nextSale = applySaleStatusToItems({ ...sale, status: nextStatus }, nextStatus);
+      const issues = getSaleStockIssues(nextSale, products, purchases, sales, {
+        excludeSaleId: sale.id,
+      });
+
+      if (issues.length) {
+        showWarning(formatSaleStockIssueMessage(issues));
+        return;
+      }
+    }
+
     const confirmed = window.confirm(
       `Change sale ${sale.reference_no} status from ${sale.status} to ${nextStatus}?`
     );
@@ -325,20 +407,31 @@ function App() {
   }
 
   async function handleSaleUpdate(updatedSale) {
+    setError("");
+    const { sale: normalizedSale, issues, forcedDraft } = normalizeSaleForAvailableStock(
+      updatedSale,
+      { excludeSaleId: updatedSale.id }
+    );
+    const successNotice = forcedDraft
+      ? `Sale ${updatedSale.reference_no || updatedSale.id} saved as draft. ${formatSaleStockIssueMessage(issues)}`
+      : `Sale ${updatedSale.reference_no || updatedSale.id} updated.`;
+
     if (usingMockSales) {
       setSales((currentRows) =>
-        currentRows.map((row) => (row.id === updatedSale.id ? updatedSale : row))
+        currentRows.map((row) => (row.id === normalizedSale.id ? normalizedSale : row))
       );
-      setNotice(`Sale ${updatedSale.reference_no || updatedSale.id} updated.`);
+      setNotice(successNotice);
       return true;
     }
 
     try {
-      const savedSale = await api.updateSale(updatedSale.id, updatedSale);
+      const savedSale = await api.updateSale(normalizedSale.id, normalizedSale);
       setSales((currentRows) =>
-        currentRows.map((row) => (row.id === updatedSale.id ? savedSale || updatedSale : row))
+        currentRows.map((row) =>
+          row.id === normalizedSale.id ? savedSale || normalizedSale : row
+        )
       );
-      setNotice(`Sale ${updatedSale.reference_no || updatedSale.id} updated.`);
+      setNotice(successNotice);
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -736,11 +829,13 @@ function App() {
               <SalesHistoryPage
                 sales={sales}
                 products={products}
+                purchases={purchases}
                 customers={customers}
                 onCreateSale={handleSalesCreateFromHistory}
                 onSaleStatusChange={handleSaleStatusChange}
                 onSaleUpdate={handleSaleUpdate}
                 onSaleDelete={handleSaleDelete}
+                onWarning={showWarning}
               />
             ) : null}
 

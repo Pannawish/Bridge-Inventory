@@ -9,6 +9,7 @@ import {
   getPurchaseItemDisplayStatus,
   getStoredPurchaseItemStatus,
 } from "../purchaseStatus";
+import { getStoredSaleItemStatus } from "../saleStatus";
 import {
   getItemBaseQuantity,
   getProductBaseUnit,
@@ -147,6 +148,115 @@ const defaultProducts = [
     categoryId: "category-sticky-notes",
     category: "Paper Goods / Sticky Notes",
     detail: "Pack of 4 sticky note pads, 100 sheets each. Assorted colors.",
+    pictureUrl: "",
+  }),
+  createProduct({
+    id: "product-5",
+    productDisplayId: 1005,
+    sku: "WBM-001",
+    productName: "Whiteboard Marker",
+    subNames: ["Dry Erase Marker", "Board Marker"],
+    stockBaseUnit: "pcs",
+    defaultPurchaseUnit: "box",
+    defaultSalesUnit: "pcs",
+    unitConversions: [
+      { unit: "pcs", factorToBase: 1, allowPurchase: true, allowSale: true },
+      { unit: "box", factorToBase: 12, allowPurchase: true, allowSale: true },
+    ],
+    categoryId: "category-markers",
+    category: "Presentation Supplies / Markers",
+    detail: "Low-odor whiteboard marker with chisel tip. Suitable for classrooms and meeting rooms.",
+    pictureUrl: "",
+  }),
+  createProduct({
+    id: "product-6",
+    productDisplayId: 1006,
+    sku: "FLD-A4-010",
+    productName: "File Folder",
+    subNames: ["A4 File Folder", "Document Folder"],
+    stockBaseUnit: "pcs",
+    defaultPurchaseUnit: "pack",
+    defaultSalesUnit: "pcs",
+    unitConversions: [
+      { unit: "pcs", factorToBase: 1, allowPurchase: true, allowSale: true },
+      { unit: "pack", factorToBase: 10, allowPurchase: true, allowSale: true },
+      { unit: "carton", factorToBase: 100, allowPurchase: true, allowSale: false },
+    ],
+    categoryId: "category-filing",
+    category: "Desk Accessories / Filing",
+    detail: "Durable A4 file folder for daily document handling and archiving.",
+    pictureUrl: "",
+  }),
+  createProduct({
+    id: "product-7",
+    productDisplayId: 1007,
+    sku: "STP-26-006",
+    productName: "Staples Pack",
+    subNames: ["26/6 Staples", "Stapler Refills"],
+    stockBaseUnit: "pack",
+    defaultPurchaseUnit: "box",
+    defaultSalesUnit: "pack",
+    unitConversions: [
+      { unit: "pack", factorToBase: 1, allowPurchase: true, allowSale: true },
+      { unit: "box", factorToBase: 10, allowPurchase: true, allowSale: false },
+    ],
+    categoryId: "category-staplers",
+    category: "Desk Accessories / Staplers",
+    detail: "Standard 26/6 staples refill pack for office staplers.",
+    pictureUrl: "",
+  }),
+  createProduct({
+    id: "product-8",
+    productDisplayId: 1008,
+    sku: "HLT-SET-008",
+    productName: "Highlighter Set",
+    subNames: ["Fluorescent Marker Set"],
+    stockBaseUnit: "set",
+    defaultPurchaseUnit: "box",
+    defaultSalesUnit: "set",
+    unitConversions: [
+      { unit: "set", factorToBase: 1, allowPurchase: true, allowSale: true },
+      { unit: "box", factorToBase: 12, allowPurchase: true, allowSale: false },
+    ],
+    categoryId: "category-markers",
+    category: "Presentation Supplies / Markers",
+    detail: "Set of assorted-color highlighters for review and study marking.",
+    pictureUrl: "",
+  }),
+  createProduct({
+    id: "product-9",
+    productDisplayId: 1009,
+    sku: "BND-PVC-002",
+    productName: "PVC Binder 2 Inch",
+    subNames: ["2 Inch Binder", "Ring Binder"],
+    stockBaseUnit: "pcs",
+    defaultPurchaseUnit: "carton",
+    defaultSalesUnit: "pcs",
+    unitConversions: [
+      { unit: "pcs", factorToBase: 1, allowPurchase: true, allowSale: true },
+      { unit: "carton", factorToBase: 12, allowPurchase: true, allowSale: false },
+    ],
+    categoryId: "category-filing",
+    category: "Desk Accessories / Filing",
+    detail: "Heavy-duty PVC ring binder for document storage and archive workflows.",
+    pictureUrl: "",
+  }),
+  createProduct({
+    id: "product-10",
+    productDisplayId: 1010,
+    sku: "CRT-005",
+    productName: "Correction Tape",
+    subNames: ["White Correction Tape"],
+    stockBaseUnit: "pcs",
+    defaultPurchaseUnit: "box",
+    defaultSalesUnit: "pcs",
+    unitConversions: [
+      { unit: "pcs", factorToBase: 1, allowPurchase: true, allowSale: true },
+      { unit: "box", factorToBase: 24, allowPurchase: true, allowSale: false },
+    ],
+    categoryId: "category-correction",
+    category: "Writing Tools / Correction",
+    detail: "Quick-dry correction tape for forms, notes, and printed worksheets.",
     pictureUrl: "",
   }),
 ];
@@ -427,8 +537,10 @@ function getProductMetrics(product, purchases, sales) {
     ({ transaction, item }) =>
       getStoredPurchaseItemStatus(item, transaction.status) === "received"
   );
-  const activeSalesItems = salesItems.filter(
-    ({ transaction }) => !["draft", "cancelled"].includes(transaction.status)
+  const activeSalesItems = salesItems.filter(({ transaction, item }) =>
+    ["packed", "shipped", "delivered"].includes(
+      getStoredSaleItemStatus(item, transaction.status)
+    )
   );
 
   const purchasedUnits = receivedPurchaseItems.reduce(
@@ -448,9 +560,10 @@ function getProductMetrics(product, purchases, sales) {
     (sum, { item }) => sum + computeItemAmount(item),
     0
   );
+  const totalUnits = Math.max(0, purchasedUnits - soldUnits);
 
   return {
-    totalUnits: purchasedUnits - soldUnits,
+    totalUnits,
     avgPrice: totalPricedUnits > 0 ? totalPriceAmount / totalPricedUnits : 0,
     receivedPurchaseCount: receivedPurchaseItems.length,
     activeSalesCount: activeSalesItems.length,

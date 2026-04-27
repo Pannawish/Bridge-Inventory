@@ -7,6 +7,7 @@ import {
   getStoredSaleItemStatus,
   saleStatuses,
 } from "../saleStatus";
+import { formatSaleStockIssueMessage, getSaleStockIssues } from "../saleStock";
 import {
   buildConvertedItemFields,
   getProductDefaultSalesUnit,
@@ -185,6 +186,12 @@ function getProductUnit(product) {
   return getProductDefaultSalesUnit(product);
 }
 
+function showStockAlert(message) {
+  if (message && typeof window !== "undefined") {
+    window.alert(message);
+  }
+}
+
 function createProductValueFromItem(item, products) {
   if (item.product_id) {
     const matchedProduct = products.find(
@@ -307,6 +314,8 @@ function SalesEditForm({
   sale,
   products,
   customers = defaultCustomerOptions,
+  purchases = [],
+  sales = [],
   onCancel,
   onSave,
 }) {
@@ -339,9 +348,80 @@ function SalesEditForm({
 
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
   const vatSummary = computeVatSummary(itemTotal, vatMode);
+  const stockPreviewItems = useMemo(
+    () =>
+      items
+        .filter((item) => item.product_name && item.quantity)
+        .map((item) => {
+          const selectedProduct = products.find(
+            (product) => `${product.id}` === `${item.product_id}`
+          );
+
+          return {
+            product_id: item.product_id || undefined,
+            product_name: item.product_name,
+            sku: item.sku,
+            ...(selectedProduct
+              ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
+              : {
+                  unit: item.unit || "pcs",
+                  base_unit: item.base_unit || item.unit || "pcs",
+                  conversion_factor: Number(item.conversion_factor) || 1,
+                  base_quantity:
+                    (Number(item.quantity) || 0) * (Number(item.conversion_factor) || 1),
+                }),
+            quantity: Number(item.quantity) || 0,
+          };
+        }),
+    [items, products]
+  );
+  const saleStockIssues = useMemo(
+    () =>
+      getSaleStockIssues(
+        {
+          ...sale,
+          status: form.status,
+          items: stockPreviewItems,
+        },
+        products,
+        purchases,
+        sales,
+        { excludeSaleId: sale.id }
+      ),
+    [form.status, items, products, purchases, sale, sales, stockPreviewItems]
+  );
+  const saleStockMessage =
+    !["draft", "cancelled"].includes(form.status) && saleStockIssues.length
+      ? formatSaleStockIssueMessage(saleStockIssues)
+      : "";
 
   function updateForm(key, value) {
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
+  }
+
+  function handleStatusChange(nextStatus) {
+    const nextIssues = getSaleStockIssues(
+      {
+        ...sale,
+        status: nextStatus,
+        items: stockPreviewItems,
+      },
+      products,
+      purchases,
+      sales,
+      { excludeSaleId: sale.id }
+    );
+
+    if (!["draft", "cancelled"].includes(nextStatus) && nextIssues.length) {
+      const message = formatSaleStockIssueMessage(nextIssues);
+      updateForm("status", "draft");
+      setFormError(message);
+      showStockAlert(message);
+      return;
+    }
+
+    setFormError("");
+    updateForm("status", nextStatus);
   }
 
   function handlePaymentTimingChange(event) {
@@ -538,15 +618,20 @@ function SalesEditForm({
       return;
     }
 
-    const statusChanged = form.status !== (sale.status || "draft");
-    const saleWithItems = statusChanged
+    const requestedStatus =
+      !["draft", "cancelled"].includes(form.status) && saleStockIssues.length
+        ? "draft"
+        : form.status;
+    const shouldApplyRequestedStatus =
+      requestedStatus !== (sale.status || "draft") || requestedStatus !== form.status;
+    const saleWithItems = shouldApplyRequestedStatus
       ? applySaleStatusToItems(
           {
             ...sale,
-            status: form.status,
+            status: requestedStatus,
             items: normalizedItems,
           },
-          form.status
+          requestedStatus
         )
       : {
           ...sale,
@@ -660,14 +745,21 @@ function SalesEditForm({
             Status
             <select
               value={form.status}
-              onChange={(event) => updateForm("status", event.target.value)}
+              onChange={(event) => handleStatusChange(event.target.value)}
             >
               {statusOptions.map((status) => (
-                <option key={status} value={status}>
+                <option
+                  key={status}
+                  value={status}
+                  disabled={status.startsWith("partially_")}
+                >
                   {status}
                 </option>
               ))}
             </select>
+            {saleStockMessage ? (
+              <span className="field-error-text">{saleStockMessage}</span>
+            ) : null}
           </label>
 
           <label>
@@ -928,11 +1020,13 @@ function SalesEditForm({
 function SalesHistoryPage({
   sales,
   products = [],
+  purchases = [],
   customers = defaultCustomerOptions,
   onCreateSale,
   onSaleStatusChange,
   onSaleUpdate,
   onSaleDelete,
+  onWarning,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -1016,8 +1110,14 @@ function SalesHistoryPage({
   }
 
   async function handleCreateSale(formData) {
-    await onCreateSale?.(formData);
+    const saved = await onCreateSale?.(formData);
+
+    if (saved === false) {
+      return false;
+    }
+
     setShowNewSaleForm(false);
+    return true;
   }
 
   async function handleDelete(deletedSale) {
@@ -1038,6 +1138,7 @@ function SalesHistoryPage({
         <SalesForm
           products={products}
           customers={customers}
+          purchases={purchases}
           sales={sales}
           onSubmit={handleCreateSale}
           onCancel={() => setShowNewSaleForm(false)}
@@ -1186,6 +1287,8 @@ function SalesHistoryPage({
           sale={editingSale}
           products={products}
           customers={customers}
+          purchases={purchases}
+          sales={sales}
           onCancel={() => setEditingSale(null)}
           onSave={handleSave}
         />
@@ -1194,9 +1297,12 @@ function SalesHistoryPage({
       <TransactionTable
         rows={filteredSales}
         products={products}
+        purchases={purchases}
+        sales={sales}
         type="sale"
         onSaleStatusChange={onSaleStatusChange}
         onSaleUpdate={onSaleUpdate}
+        onWarning={onWarning}
         onEditRow={setEditingSale}
         onDeleteRow={handleDelete}
         headerActions={

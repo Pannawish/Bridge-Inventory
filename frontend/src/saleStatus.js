@@ -2,11 +2,28 @@ import { formatStatusLabel, getTodayString } from "./purchaseStatus";
 
 export { formatStatusLabel, getTodayString };
 
-export const saleStatuses = ["draft", "packed", "shipped", "delivered", "cancelled"];
+export const saleStatuses = [
+  "draft",
+  "partially_packed",
+  "packed",
+  "partially_shipped",
+  "shipped",
+  "partially_delivered",
+  "delivered",
+  "cancelled",
+];
 export const saleItemStatuses = ["pending", "packed", "shipped", "delivered", "cancelled"];
 export const editableSaleItemStatuses = ["pending", "packed", "shipped", "delivered"];
 
 export function getInitialSaleItemStatus(saleStatus = "draft") {
+  if (
+    saleStatus === "partially_packed" ||
+    saleStatus === "partially_shipped" ||
+    saleStatus === "partially_delivered"
+  ) {
+    return "pending";
+  }
+
   if (saleStatus === "delivered") {
     return "delivered";
   }
@@ -53,6 +70,10 @@ export function getSaleItemStatusCounts(items = [], saleStatus = "draft") {
   );
 }
 
+function isNonCancelledStatus(status) {
+  return status !== "cancelled";
+}
+
 export function getSaleStatusFromItems(sale) {
   const items = sale.items || [];
 
@@ -61,21 +82,38 @@ export function getSaleStatusFromItems(sale) {
   }
 
   const storedStatuses = items.map((item) => getStoredSaleItemStatus(item, sale.status));
+  const activeStatuses = storedStatuses.filter(isNonCancelledStatus);
 
   if (storedStatuses.every((status) => status === "cancelled")) {
     return "cancelled";
   }
 
-  if (storedStatuses.every((status) => status === "delivered")) {
+  if (!activeStatuses.length) {
+    return "cancelled";
+  }
+
+  if (activeStatuses.every((status) => status === "delivered")) {
     return "delivered";
   }
 
-  if (storedStatuses.some((status) => status === "shipped" || status === "delivered")) {
+  if (activeStatuses.some((status) => status === "delivered")) {
+    return "partially_delivered";
+  }
+
+  if (activeStatuses.every((status) => status === "shipped")) {
     return "shipped";
   }
 
-  if (storedStatuses.some((status) => status === "packed")) {
+  if (activeStatuses.some((status) => status === "shipped")) {
+    return "partially_shipped";
+  }
+
+  if (activeStatuses.every((status) => status === "packed")) {
     return "packed";
+  }
+
+  if (activeStatuses.some((status) => status === "packed")) {
+    return "partially_packed";
   }
 
   return "draft";
