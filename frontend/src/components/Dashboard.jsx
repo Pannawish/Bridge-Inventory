@@ -7,6 +7,7 @@ import { getStoredSaleItemStatus } from "../saleStatus";
 import { getItemBaseQuantity, getProductBaseUnit } from "../unitConversion";
 
 const SAFETY_STOCK_DAYS = 7;
+const COMMITTED_SALE_ITEM_STATUSES = ["packed", "shipped", "delivered"];
 
 function formatCurrency(value) {
   return `฿${Number(value || 0).toLocaleString("en-US", {
@@ -28,7 +29,7 @@ function formatStockQuantity(value, unit) {
   return unit && unit !== "-" ? `${formattedValue} ${unit}` : formattedValue;
 }
 
-function StatCard({ label, value, helper, trend }) {
+function StatCard({ label, value, helper, trend = 0 }) {
   return (
     <article className="stat-card">
       <div className="stat-card-top">
@@ -45,19 +46,28 @@ function StatCard({ label, value, helper, trend }) {
   );
 }
 
-function DashboardChart() {
-  const points = [
-    [0, 78],
-    [45, 54],
-    [90, 60],
-    [135, 35],
-    [180, 48],
-    [225, 26],
-    [270, 42],
-    [315, 30],
-    [360, 38],
-  ];
+function getShortWeekday(dateString) {
+  const date = new Date(`${dateString}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleDateString("en-US", { weekday: "short" });
+}
+
+function DashboardChart({ trendRows = [], totalSalesValue = 0, salesTrendPercent = 0 }) {
+  const maxValue = Math.max(...trendRows.map((row) => row.value), 1);
+  const points = trendRows.map((row, index) => {
+    const x = trendRows.length <= 1 ? 0 : (index / (trendRows.length - 1)) * 360;
+    const y = 92 - (row.value / maxValue) * 72;
+
+    return [Number(x.toFixed(2)), Number(Math.max(12, y).toFixed(2))];
+  });
   const polyline = points.map((point) => point.join(",")).join(" ");
+  const areaPath = points.length
+    ? `M0 100 L${points.map((point) => point.join(" ")).join(" L")} L360 100 Z`
+    : "M0 100 L360 100 Z";
 
   return (
     <div className="trend-card">
@@ -67,8 +77,8 @@ function DashboardChart() {
           <h3>Total Sales</h3>
         </div>
         <div className="trend-summary">
-          <strong>$84,994.80</strong>
-          <span>+16% from last month</span>
+          <strong>{formatCurrency(totalSalesValue)}</strong>
+          <span>{salesTrendPercent >= 0 ? "+" : ""}{salesTrendPercent}% from previous period</span>
         </div>
       </div>
 
@@ -79,31 +89,35 @@ function DashboardChart() {
             <stop offset="100%" stopColor="rgba(65, 104, 255, 0.02)" />
           </linearGradient>
         </defs>
-        <path d="M0 100 L0 78 L45 54 L90 60 L135 35 L180 48 L225 26 L270 42 L315 30 L360 38 L360 100 Z" fill="url(#trendFill)" />
+        <path d={areaPath} fill="url(#trendFill)" />
         <polyline points={polyline} fill="none" stroke="#4168ff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
 
       <div className="chart-axis">
-        <span>Sat</span>
-        <span>Sun</span>
-        <span>Mon</span>
-        <span>Tue</span>
-        <span>Wed</span>
-        <span>Thu</span>
-        <span>Fri</span>
+        {trendRows.map((row) => (
+          <span key={row.date}>{getShortWeekday(row.date)}</span>
+        ))}
       </div>
     </div>
   );
 }
 
 function getStockHealth(item) {
+  if (
+    item.oversold_units > 0 ||
+    item.pending_sales_units > item.available_stock + item.pending_purchase_units
+  ) {
+    return { label: "Urgent", tone: "danger" };
+  }
+
   if (item.available_stock <= 0 || item.available_stock <= item.reorder_level) {
     return { label: "Urgent", tone: "danger" };
   }
 
   if (
     item.available_stock <= item.reorder_level + item.predicted_7_day_demand ||
-    item.delayed_purchase_units > 0
+    item.delayed_purchase_units > 0 ||
+    item.pending_sales_units > 0
   ) {
     return { label: "Watch", tone: "warning" };
   }
@@ -175,6 +189,17 @@ function computeDateSpanDays(dates) {
   return Math.max(1, Math.round((latestTime - earliestTime) / 86400000) + 1);
 }
 
+function addDays(dateString, offset) {
+  const time = parseUtcDate(dateString);
+
+  if (time === null) {
+    return "";
+  }
+
+  const date = new Date(time + offset * 86400000);
+  return date.toISOString().split("T")[0];
+}
+
 function getMovementKey(item) {
   return normalizeSku(item.sku) || normalizeName(item.product_name);
 }
@@ -225,6 +250,84 @@ function getMovementQuantity(item) {
   return getItemBaseQuantity(item);
 }
 
+function isCommittedSaleItemStatus(status) {
+  return COMMITTED_SALE_ITEM_STATUSES.includes(status);
+}
+
+function createCommittedSalesRows(sales) {
+  return sales.flatMap((sale) =>
+    (sale.items || [])
+      .filter((item) => isCommittedSaleItemStatus(getStoredSaleItemStatus(item, sale.status)))
+      .map((item) => ({ sale, item }))
+  );
+}
+
+function createSalesTrendRows(sales) {
+  const committedRows = createCommittedSalesRows(sales);
+  const totalsByDate = committedRows.reduce((totals, { sale, item }) => {
+    const date = sale.transaction_date || "No date";
+    totals.set(date, (totals.get(date) || 0) + computeAmount(item));
+    return totals;
+  }, new Map());
+  const validDates = [...totalsByDate.keys()]
+    .filter((date) => parseUtcDate(date) !== null)
+    .sort();
+  const latestDate = validDates[validDates.length - 1] || new Date().toISOString().split("T")[0];
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = addDays(latestDate, index - 6);
+
+    return {
+      date,
+      value: totalsByDate.get(date) || 0,
+    };
+  });
+}
+
+function computeSalesTrendPercent(sales) {
+  const committedRows = createCommittedSalesRows(sales);
+  const validDates = committedRows
+    .map(({ sale }) => sale.transaction_date)
+    .filter((date) => parseUtcDate(date) !== null)
+    .sort();
+  const latestDate = validDates[validDates.length - 1];
+
+  if (!latestDate) {
+    return 0;
+  }
+
+  const latestTime = parseUtcDate(latestDate);
+  const currentStart = latestTime - 6 * 86400000;
+  const previousStart = latestTime - 13 * 86400000;
+  const previousEnd = latestTime - 7 * 86400000;
+  const totals = committedRows.reduce(
+    (acc, { sale, item }) => {
+      const saleTime = parseUtcDate(sale.transaction_date);
+
+      if (saleTime === null) {
+        return acc;
+      }
+
+      const amount = computeAmount(item);
+
+      if (saleTime >= currentStart && saleTime <= latestTime) {
+        acc.current += amount;
+      } else if (saleTime >= previousStart && saleTime <= previousEnd) {
+        acc.previous += amount;
+      }
+
+      return acc;
+    },
+    { current: 0, previous: 0 }
+  );
+
+  if (totals.previous === 0) {
+    return totals.current > 0 ? 100 : 0;
+  }
+
+  return Math.round(((totals.current - totals.previous) / totals.previous) * 100);
+}
+
 function createEmptyStockRow(key, overrides = {}) {
   return {
     product_id: overrides.product_id || key,
@@ -237,6 +340,8 @@ function createEmptyStockRow(key, overrides = {}) {
     received_purchase_units: 0,
     received_purchase_value: 0,
     allocated_sales_units: 0,
+    pending_sales_units: 0,
+    oversold_units: 0,
     sales_history_units: 0,
     sales_history_dates: [],
     pending_purchase_units: 0,
@@ -353,7 +458,7 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
     (sale.items || []).forEach((item) => {
       const itemStatus = getStoredSaleItemStatus(item, sale.status);
 
-      if (!["packed", "shipped", "delivered"].includes(itemStatus)) {
+      if (!isCommittedSaleItemStatus(itemStatus) && itemStatus !== "pending") {
         return;
       }
 
@@ -372,17 +477,23 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
 
       const quantity = getMovementQuantity(item);
 
-      row.allocated_sales_units += quantity;
-      row.sales_history_units += quantity;
+      if (isCommittedSaleItemStatus(itemStatus)) {
+        row.allocated_sales_units += quantity;
+        row.sales_history_units += quantity;
 
-      if (sale.transaction_date) {
-        row.sales_history_dates.push(sale.transaction_date);
+        if (sale.transaction_date) {
+          row.sales_history_dates.push(sale.transaction_date);
+        }
+      } else if (itemStatus === "pending") {
+        row.pending_sales_units += quantity;
       }
     });
   });
 
   return [...rowMap.values()].map((item) => {
-    const availableStock = item.received_purchase_units - item.allocated_sales_units;
+    const rawAvailableStock = item.received_purchase_units - item.allocated_sales_units;
+    const availableStock = Math.max(0, rawAvailableStock);
+    const oversoldUnits = Math.max(0, -rawAvailableStock);
     const avgUnitCost =
       item.received_purchase_units > 0
         ? item.received_purchase_value / item.received_purchase_units
@@ -408,7 +519,7 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
     const reorderLevel = calculatedReorderLevel || item.reorder_level;
     const recommendedPurchase = Math.max(
       0,
-      reorderLevel - availableStock - item.pending_purchase_units
+      reorderLevel + item.pending_sales_units + oversoldUnits - availableStock - item.pending_purchase_units
     );
     const daysUntilStockout =
       averageDailyDemand > 0
@@ -418,6 +529,7 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
       ...item,
       available_stock: availableStock,
       current_stock: availableStock,
+      oversold_units: oversoldUnits,
       reorder_level: reorderLevel,
       average_daily_demand: averageDailyDemand,
       average_unit_cost: avgUnitCost,
@@ -456,9 +568,16 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
       totalStockUnits: stockRows.reduce((sum, item) => sum + item.available_stock, 0),
       totalStockValue: stockRows.reduce((sum, item) => sum + item.stock_value, 0),
       lowStockCount: stockRows.filter((item) => item.health.label === "Urgent").length,
+      committedSalesValue: createCommittedSalesRows(sales).reduce(
+        (sum, { item }) => sum + computeAmount(item),
+        0
+      ),
+      pendingSalesUnits: stockRows.reduce((sum, item) => sum + item.pending_sales_units, 0),
     }),
-    [metrics.total_products, stockRows]
+    [metrics.total_products, sales, stockRows]
   );
+  const salesTrendRows = useMemo(() => createSalesTrendRows(sales), [sales]);
+  const salesTrendPercent = useMemo(() => computeSalesTrendPercent(sales), [sales]);
   const attentionRows = stockRows
     .filter((item) => item.health.label === "Urgent")
     .sort((leftItem, rightItem) => leftItem.available_stock - rightItem.available_stock);
@@ -506,15 +625,15 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
           trend={8}
         />
         <StatCard
-          label="Stock Value"
-          value={formatCurrency(stockMetrics.totalStockValue)}
-          helper="Available stock x average received cost"
-          trend={16}
+          label="Committed Sales"
+          value={formatCurrency(stockMetrics.committedSalesValue)}
+          helper="Packed, shipped, and delivered sale items"
+          trend={salesTrendPercent}
         />
         <StatCard
           label="Low Stock"
           value={formatNumber(stockMetrics.lowStockCount)}
-          helper="Products at or below reorder level"
+          helper={`${formatNumber(stockMetrics.pendingSalesUnits)} units pending in sales`}
           trend={-6}
         />
       </section>
@@ -558,7 +677,11 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
           )}
         </article>
 
-        <DashboardChart />
+        <DashboardChart
+          trendRows={salesTrendRows}
+          totalSalesValue={stockMetrics.committedSalesValue}
+          salesTrendPercent={salesTrendPercent}
+        />
       </section>
 
       <section className="section-card">
@@ -570,10 +693,10 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
         </div>
 
         <p className="inventory-note">
-          Available stock is calculated from received purchase items minus active sales.
+          Available stock is calculated from received purchase items minus committed sale items.
           Reorder point uses actual average daily sales demand, received purchase lead time, and
-          a {SAFETY_STOCK_DAYS}-day safety stock buffer. Pending and delayed purchase items are
-          tracked separately as incoming stock.
+          a {SAFETY_STOCK_DAYS}-day safety stock buffer. Pending sales, pending purchases, and
+          delayed purchases are tracked separately.
         </p>
 
         <div className="stock-report-toolbar">
@@ -622,7 +745,9 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                 <th>Health</th>
                 <th>Available</th>
                 <th>Received</th>
-                <th>Active Sales</th>
+                <th>Committed Sales</th>
+                <th>Pending Sales</th>
+                <th>Oversold</th>
                 <th>Pending PO</th>
                 <th>Delayed PO</th>
                 <th>Avg Daily Demand</th>
@@ -636,7 +761,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan="14">
+                  <td colSpan="16">
                     <p className="empty-copy">No inventory items match the current search or filter.</p>
                   </td>
                 </tr>
@@ -658,6 +783,8 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                     <td>{formatStockQuantity(item.available_stock, item.unit)}</td>
                     <td>{formatStockQuantity(item.received_purchase_units, item.unit)}</td>
                     <td>{formatStockQuantity(item.allocated_sales_units, item.unit)}</td>
+                    <td>{formatStockQuantity(item.pending_sales_units, item.unit)}</td>
+                    <td>{formatStockQuantity(item.oversold_units, item.unit)}</td>
                     <td>{formatStockQuantity(item.pending_purchase_units, item.unit)}</td>
                     <td>{formatStockQuantity(item.delayed_purchase_units, item.unit)}</td>
                     <td>{formatStockQuantity(item.average_daily_demand, item.unit)}</td>
@@ -703,8 +830,16 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                     <strong>{formatStockQuantity(item.received_purchase_units, item.unit)}</strong>
                   </div>
                   <div>
-                    <span>Active Sales</span>
+                    <span>Committed Sales</span>
                     <strong>{formatStockQuantity(item.allocated_sales_units, item.unit)}</strong>
+                  </div>
+                  <div>
+                    <span>Pending Sales</span>
+                    <strong>{formatStockQuantity(item.pending_sales_units, item.unit)}</strong>
+                  </div>
+                  <div>
+                    <span>Oversold</span>
+                    <strong>{formatStockQuantity(item.oversold_units, item.unit)}</strong>
                   </div>
                   <div>
                     <span>Pending PO</span>
