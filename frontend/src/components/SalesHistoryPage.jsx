@@ -1367,6 +1367,8 @@ function SalesHistoryPage({
         onWarning={onWarning}
         onEditRow={setEditingSale}
         onDeleteRow={handleDelete}
+        compactRows={5}
+        enableViewAll
         headerActions={
           <button
             className="primary-button"
