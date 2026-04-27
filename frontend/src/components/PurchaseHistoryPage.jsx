@@ -164,6 +164,33 @@ function fmt(value) {
   return `฿${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function getPurchaseItemRemovalMessage(purchase, item, itemIndex) {
+  const displayStatus = getPurchaseItemDisplayStatus(item, purchase.status);
+  const quantity = `${item.quantity || 0} ${item.unit || ""}`.trim();
+  const baseQuantity = item.base_quantity
+    ? ` (${item.base_quantity} ${item.base_unit || item.unit || "base units"})`
+    : "";
+  const impact =
+    displayStatus === "received"
+      ? "This item is already received. Removing it will remove its received quantity from inventory calculations, delete its received-date history, and recalculate this purchase total and status."
+      : "This item is not fully received yet. Removing it will delete the expected incoming stock line, delivery planning data, and recalculate this purchase total and status.";
+
+  return [
+    `Remove purchase item ${itemIndex + 1} from ${purchase.reference_no || "this purchase"}?`,
+    "",
+    `Product: ${item.product_name || "Unnamed item"}`,
+    `SKU: ${item.sku || "—"}`,
+    `Quantity: ${quantity || "—"}${baseQuantity}`,
+    `Status: ${formatStatusLabel(displayStatus)}`,
+    `Expected delivery: ${item.expected_delivery_date || "—"}`,
+    `Received date: ${item.received_date || "—"}`,
+    `Line amount: ${fmt(computeAmount(item))}`,
+    "",
+    impact,
+    "This cannot be undone after you save the transaction.",
+  ].join("\n");
+}
+
 function computeVatSummary(itemTotal, vatMode) {
   if (vatMode === "included") {
     const totalBeforeVat = itemTotal / (1 + VAT_RATE);
@@ -193,6 +220,18 @@ function computeVatSummary(itemTotal, vatMode) {
 
 function getProductName(product) {
   return product.name || product.productName || product.product_name || product.sku || `Product ${product.id}`;
+}
+
+function getProductSearchNames(product) {
+  const mainName = `${getProductName(product)}`.trim();
+  const subNames = Array.isArray(product.subNames) ? product.subNames : [];
+
+  return [mainName, ...subNames]
+    .map((name) => `${name ?? ""}`.trim())
+    .filter(
+      (name, index, names) =>
+        name && names.findIndex((item) => item.toLowerCase() === name.toLowerCase()) === index
+    );
 }
 
 function getProductSku(product) {
@@ -225,7 +264,11 @@ function findProductForItem(item, products = []) {
   return products.find((product) => getProductName(product).toLowerCase() === productName);
 }
 
-function createEditItems(purchase) {
+function getPurchaseProductQuery(productName, sku) {
+  return sku ? `${productName} (${sku})` : productName;
+}
+
+function createEditItems(purchase, products = []) {
   const sourceItems = purchase.items?.length ? purchase.items : [];
 
   if (!sourceItems.length) {
@@ -233,6 +276,7 @@ function createEditItems(purchase) {
       {
         id: `purchase-${purchase.id}-item-new`,
         product_id: "",
+        product_query: "",
         product_name: "",
         sku: "",
         unit: "pcs",
@@ -249,26 +293,33 @@ function createEditItems(purchase) {
     ];
   }
 
-  return sourceItems.map((item, index) => ({
-    id: item.id || `purchase-${purchase.id}-item-${index}`,
-    product_id: item.product_id || "",
-    product_name: item.product_name || "",
-    sku: item.sku || "",
-    unit: item.unit || "pcs",
-    expected_delivery_date: item.expected_delivery_date || "",
-    item_status: getStoredPurchaseItemStatus(item, purchase.status),
-    received_date: item.received_date || "",
-    quantity: item.quantity ?? 1,
-    unit_cost: item.unit_cost ?? "",
-    base_unit: item.base_unit || item.unit || "pcs",
-    conversion_factor: item.conversion_factor || 1,
-    base_quantity: item.base_quantity ?? item.quantity ?? 1,
-    discounts: Array.isArray(item.discounts)
-      ? item.discounts
-      : Number(item.discount) > 0
-        ? [item.discount]
-        : [0],
-  }));
+  return sourceItems.map((item, index) => {
+    const selectedProduct = findProductForItem(item, products);
+    const productName = selectedProduct ? getProductName(selectedProduct) : item.product_name || "";
+    const sku = selectedProduct ? getProductSku(selectedProduct) : item.sku || "";
+
+    return {
+      id: item.id || `purchase-${purchase.id}-item-${index}`,
+      product_id: selectedProduct?.id || item.product_id || "",
+      product_query: getPurchaseProductQuery(productName, sku),
+      product_name: productName,
+      sku,
+      unit: item.unit || "pcs",
+      expected_delivery_date: item.expected_delivery_date || "",
+      item_status: getStoredPurchaseItemStatus(item, purchase.status),
+      received_date: item.received_date || "",
+      quantity: item.quantity ?? 1,
+      unit_cost: item.unit_cost ?? "",
+      base_unit: item.base_unit || item.unit || "pcs",
+      conversion_factor: item.conversion_factor || 1,
+      base_quantity: item.base_quantity ?? item.quantity ?? 1,
+      discounts: Array.isArray(item.discounts)
+        ? item.discounts
+        : Number(item.discount) > 0
+          ? [item.discount]
+          : [0],
+    };
+  });
 }
 
 function createEditForm(purchase) {
@@ -290,11 +341,13 @@ function PurchaseEditForm({
   onSave,
 }) {
   const [form, setForm] = useState(() => createEditForm(purchase));
-  const [items, setItems] = useState(() => createEditItems(purchase));
+  const [items, setItems] = useState(() => createEditItems(purchase, products));
   const [vatMode, setVatMode] = useState(purchase.vat_mode || "not_included");
   const [supplierQuery, setSupplierQuery] = useState(purchase.supplier_name || "");
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [supplierError, setSupplierError] = useState("");
+  const [openProductIndex, setOpenProductIndex] = useState(null);
+  const [itemErrors, setItemErrors] = useState({});
   const [formError, setFormError] = useState("");
 
   const filteredSuppliers = useMemo(() => {
@@ -313,6 +366,25 @@ function PurchaseEditForm({
 
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
   const vatSummary = computeVatSummary(itemTotal, vatMode);
+  const productOptions = products;
+
+  function getFilteredProducts(query) {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return productOptions;
+    }
+
+    return productOptions.filter((product) => {
+      const matchesName = getProductSearchNames(product).some((name) =>
+        name.toLowerCase().includes(normalizedQuery)
+      );
+      const sku = getProductSku(product).toLowerCase();
+      const displayId = `${product.productDisplayId || product.id || ""}`.toLowerCase();
+
+      return matchesName || sku.includes(normalizedQuery) || displayId.includes(normalizedQuery);
+    });
+  }
 
   function updateForm(key, value) {
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
@@ -324,6 +396,50 @@ function PurchaseEditForm({
         index === itemIndex ? { ...item, [key]: value } : item
       )
     );
+  }
+
+  function updateProductQuery(itemIndex, value) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex
+          ? {
+              ...item,
+              product_id: "",
+              product_query: value,
+              product_name: "",
+              sku: "",
+              unit: "pcs",
+            }
+          : item
+      )
+    );
+    setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
+    setOpenProductIndex(itemIndex);
+  }
+
+  function selectProduct(itemIndex, product) {
+    const productName = getProductName(product);
+    const sku = getProductSku(product);
+    const unitOptions = getProductUnitOptions(product, "purchase");
+
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex
+          ? {
+              ...item,
+              product_id: product.id,
+              product_query: getPurchaseProductQuery(productName, sku),
+              product_name: productName,
+              sku,
+              unit: unitOptions.some((conversion) => conversion.unit === item.unit)
+                ? item.unit
+                : unitOptions[0]?.unit || item.unit || "pcs",
+            }
+          : item
+      )
+    );
+    setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
+    setOpenProductIndex(null);
   }
 
   function addDiscount(itemIndex) {
@@ -377,6 +493,7 @@ function PurchaseEditForm({
       {
         id: `purchase-${purchase.id}-item-${Date.now()}`,
         product_id: "",
+        product_query: "",
         product_name: "",
         sku: "",
         unit: "pcs",
@@ -391,7 +508,31 @@ function PurchaseEditForm({
   }
 
   function removeItem(itemIndex) {
+    const item = items[itemIndex];
+    const confirmed = window.confirm(
+      getPurchaseItemRemovalMessage(purchase, item || {}, itemIndex)
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     setItems((currentItems) => currentItems.filter((_, index) => index !== itemIndex));
+    setItemErrors((currentErrors) => {
+      const nextErrors = {};
+
+      Object.entries(currentErrors).forEach(([key, value]) => {
+        const currentIndex = Number(key);
+
+        if (currentIndex < itemIndex) {
+          nextErrors[currentIndex] = value;
+        } else if (currentIndex > itemIndex) {
+          nextErrors[currentIndex - 1] = value;
+        }
+      });
+
+      return nextErrors;
+    });
   }
 
   function selectSupplier(supplier) {
@@ -433,20 +574,38 @@ function PurchaseEditForm({
       return;
     }
 
-    const normalizedItems = items
-      .filter((item) => item.product_name && item.quantity && item.unit_cost)
-      .map((item) => {
+    const nextItemErrors = {};
+    const normalizedItems = items.reduce((nextItems, item, index) => {
+      const hasAnyValue =
+        item.product_query ||
+        item.product_name ||
+        item.sku ||
+        item.quantity ||
+        item.unit_cost ||
+        item.expected_delivery_date;
+
+      if (!hasAnyValue) {
+        return nextItems;
+      }
+
+      const selectedProduct = findProductForItem(item, products);
+
+      if (!selectedProduct) {
+        nextItemErrors[index] = "Select an existing product from the list.";
+        return nextItems;
+      }
+
+      if (!item.quantity || !item.unit_cost) {
+        return nextItems;
+      }
+
         const amount = computeAmount(item);
-        const selectedProduct = findProductForItem(item, products);
-        const convertedFields = selectedProduct
-          ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "purchase")
-          : {
-              unit: item.unit || "pcs",
-              base_unit: item.base_unit || item.unit || "pcs",
-              conversion_factor: Number(item.conversion_factor) || 1,
-              base_quantity:
-                (Number(item.quantity) || 0) * (Number(item.conversion_factor) || 1),
-            };
+        const convertedFields = buildConvertedItemFields(
+          selectedProduct,
+          item.quantity,
+          item.unit,
+          "purchase"
+        );
         const itemStatus =
           form.status === "received" ||
           form.status === "cancelled" ||
@@ -455,11 +614,13 @@ function PurchaseEditForm({
             ? getInitialPurchaseItemStatus(form.status)
             : item.item_status || getInitialPurchaseItemStatus(form.status);
 
-        return {
+        return [
+          ...nextItems,
+          {
           id: item.id,
-          product_id: selectedProduct?.id || item.product_id || undefined,
-          product_name: item.product_name,
-          sku: item.sku,
+          product_id: selectedProduct.id,
+          product_name: getProductName(selectedProduct),
+          sku: getProductSku(selectedProduct),
           ...convertedFields,
           expected_delivery_date: item.expected_delivery_date || "",
           item_status: itemStatus,
@@ -473,8 +634,16 @@ function PurchaseEditForm({
           discounts: item.discounts || [0],
           amount,
           line_total: amount,
-        };
-      });
+          },
+        ];
+      }, []);
+
+    if (Object.keys(nextItemErrors).length) {
+      setItemErrors(nextItemErrors);
+      setOpenProductIndex(Number(Object.keys(nextItemErrors)[0]));
+      setFormError("Select an existing product for every purchase item.");
+      return;
+    }
 
     if (!normalizedItems.length) {
       setFormError("Add at least one complete purchase item.");
@@ -638,6 +807,7 @@ function PurchaseEditForm({
 
           {items.map((item, index) => {
             const amount = computeAmount(item);
+            const filteredProducts = getFilteredProducts(item.product_query || "");
             const selectedProduct = findProductForItem(item, products);
             const unitOptions = selectedProduct
               ? getProductUnitOptions(selectedProduct, "purchase")
@@ -652,47 +822,94 @@ function PurchaseEditForm({
                   {index + 1}
                 </div>
 
-                <label className="purchase-item-field purchase-item-product">
+                <label className="purchase-item-field purchase-item-product purchase-product-field">
                   <span>Product</span>
-                  <input
-                    value={item.product_name}
-                    onChange={(event) =>
-                      updateItem(index, "product_name", event.target.value)
-                    }
-                    placeholder="Product Name"
-                    required
-                  />
+                  <div className="supplier-combobox">
+                    <input
+                      value={item.product_query || ""}
+                      onChange={(event) => updateProductQuery(index, event.target.value)}
+                      onFocus={() => setOpenProductIndex(index)}
+                      onBlur={() => {
+                        window.setTimeout(() => setOpenProductIndex(null), 120);
+                      }}
+                      placeholder="Search existing product"
+                      autoComplete="off"
+                      aria-expanded={openProductIndex === index}
+                      aria-controls={`edit-purchase-product-list-${item.id}`}
+                      aria-invalid={itemErrors[index] ? "true" : "false"}
+                      required
+                    />
+
+                    {openProductIndex === index ? (
+                      <div
+                        className="supplier-combobox-menu"
+                        id={`edit-purchase-product-list-${item.id}`}
+                        role="listbox"
+                      >
+                        {filteredProducts.length ? (
+                          filteredProducts.map((product) => {
+                            const productName = getProductName(product);
+                            const sku = getProductSku(product);
+
+                            return (
+                              <button
+                                key={product.id}
+                                type="button"
+                                className={
+                                  `${product.id}` === `${item.product_id}`
+                                    ? "supplier-combobox-option active"
+                                    : "supplier-combobox-option"
+                                }
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                  selectProduct(index, product);
+                                }}
+                                role="option"
+                                aria-selected={`${product.id}` === `${item.product_id}`}
+                              >
+                                {getPurchaseProductQuery(productName, sku)}
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div className="supplier-combobox-empty">
+                            No product found. Add it in Product page first.
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                  {itemErrors[index] ? (
+                    <span className="field-error-text">{itemErrors[index]}</span>
+                  ) : null}
                 </label>
 
                 <label className="purchase-item-field purchase-item-sku">
                   <span>SKU</span>
                   <input
                     value={item.sku}
-                    onChange={(event) => updateItem(index, "sku", event.target.value)}
+                    readOnly
                     placeholder="SKU"
                   />
                 </label>
 
                 <label className="purchase-item-field purchase-item-unit">
                   <span>Unit</span>
-                  {selectedProduct ? (
-                    <select
-                      value={item.unit}
-                      onChange={(event) => updateItem(index, "unit", event.target.value)}
-                    >
-                      {unitOptions.map((conversion) => (
+                  <select
+                    value={item.unit}
+                    onChange={(event) => updateItem(index, "unit", event.target.value)}
+                    disabled={!selectedProduct}
+                  >
+                    {unitOptions.length ? (
+                      unitOptions.map((conversion) => (
                         <option key={conversion.unit} value={conversion.unit}>
                           {conversion.unit}
                         </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      value={item.unit}
-                      onChange={(event) => updateItem(index, "unit", event.target.value)}
-                      placeholder="Unit"
-                    />
-                  )}
+                      ))
+                    ) : (
+                      <option value={item.unit || "pcs"}>{item.unit || "pcs"}</option>
+                    )}
+                  </select>
                   {conversionPreview ? (
                     <span className="unit-conversion-preview">
                       {conversionPreview.base_quantity} {conversionPreview.base_unit}

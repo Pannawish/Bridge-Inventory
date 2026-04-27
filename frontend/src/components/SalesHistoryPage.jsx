@@ -147,6 +147,39 @@ function fmt(value) {
   return `฿${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function formatSalesStatusLabel(status = "") {
+  return `${status || "pending"}`
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function getSalesItemRemovalMessage(sale, item, itemIndex) {
+  const itemStatus = getStoredSaleItemStatus(item, sale.status);
+  const quantity = `${item.quantity || 0} ${item.unit || ""}`.trim();
+  const baseQuantity = item.base_quantity
+    ? ` (${item.base_quantity} ${item.base_unit || item.unit || "base units"})`
+    : "";
+  const committedStatuses = new Set(["packed", "shipped", "delivered"]);
+  const impact = committedStatuses.has(itemStatus)
+    ? "This item is already committed to the sales flow. Removing it will release/remove its committed stock usage, delete shipped/delivered date history for this item, and recalculate this sale total and status."
+    : "This item is not committed to stock yet. Removing it will delete the customer demand line and recalculate this sale total and status.";
+
+  return [
+    `Remove sales item ${itemIndex + 1} from ${sale.reference_no || "this sale"}?`,
+    "",
+    `Product: ${item.product_name || "Unnamed item"}`,
+    `SKU: ${item.sku || "—"}`,
+    `Quantity: ${quantity || "—"}${baseQuantity}`,
+    `Status: ${formatSalesStatusLabel(itemStatus)}`,
+    `Shipped date: ${item.shipped_date || "—"}`,
+    `Delivered date: ${item.delivered_date || "—"}`,
+    `Line amount: ${fmt(computeAmount(item))}`,
+    "",
+    impact,
+    "This cannot be undone after you save the transaction.",
+  ].join("\n");
+}
+
 function computeVatSummary(itemTotal, vatMode) {
   if (vatMode === "included") {
     const totalBeforeVat = itemTotal / (1 + VAT_RATE);
@@ -192,20 +225,36 @@ function showStockAlert(message) {
   }
 }
 
-function createProductValueFromItem(item, products) {
+function findProductForSaleItem(item, products = []) {
   if (item.product_id) {
     const matchedProduct = products.find(
       (product) => `${product.id}` === `${item.product_id}`
     );
 
     if (matchedProduct) {
-      return `id:${item.product_id}`;
+      return matchedProduct;
     }
   }
 
-  const matchedProduct = products.find(
-    (product) => getProductName(product).toLowerCase() === `${item.product_name ?? ""}`.toLowerCase()
-  );
+  const sku = `${item.sku ?? ""}`.trim().toLowerCase();
+
+  if (sku) {
+    const matchedBySku = products.find(
+      (product) => getProductSku(product).toLowerCase() === sku
+    );
+
+    if (matchedBySku) {
+      return matchedBySku;
+    }
+  }
+
+  const productName = `${item.product_name ?? ""}`.trim().toLowerCase();
+
+  return products.find((product) => getProductName(product).toLowerCase() === productName);
+}
+
+function createProductValueFromItem(item, products) {
+  const matchedProduct = findProductForSaleItem(item, products);
 
   if (matchedProduct) {
     return `id:${matchedProduct.id}`;
@@ -266,27 +315,31 @@ function createEditItems(sale, products) {
     ];
   }
 
-  return sourceItems.map((item, index) => ({
-    id: item.id || `sale-${sale.id}-item-${index}`,
-    product_value: createProductValueFromItem(item, products),
-    product_id: item.product_id || "",
-    product_name: item.product_name || "",
-    sku: item.sku || "",
-    unit: item.unit || item.base_unit || "pcs",
-    base_unit: item.base_unit || item.unit || "pcs",
-    conversion_factor: item.conversion_factor || 1,
-    base_quantity: item.base_quantity ?? item.quantity ?? 1,
-    item_status: getStoredSaleItemStatus(item, sale.status),
-    shipped_date: item.shipped_date || "",
-    delivered_date: item.delivered_date || "",
-    quantity: item.quantity ?? 1,
-    unit_price: item.unit_price ?? "",
-    discounts: Array.isArray(item.discounts)
-      ? item.discounts
-      : Number(item.discount) > 0
-        ? [item.discount]
-        : [0],
-  }));
+  return sourceItems.map((item, index) => {
+    const selectedProduct = findProductForSaleItem(item, products);
+
+    return {
+      id: item.id || `sale-${sale.id}-item-${index}`,
+      product_value: createProductValueFromItem(item, products),
+      product_id: selectedProduct?.id || item.product_id || "",
+      product_name: selectedProduct ? getProductName(selectedProduct) : item.product_name || "",
+      sku: selectedProduct ? getProductSku(selectedProduct) : item.sku || "",
+      unit: item.unit || item.base_unit || "pcs",
+      base_unit: item.base_unit || item.unit || "pcs",
+      conversion_factor: item.conversion_factor || 1,
+      base_quantity: item.base_quantity ?? item.quantity ?? 1,
+      item_status: getStoredSaleItemStatus(item, sale.status),
+      shipped_date: item.shipped_date || "",
+      delivered_date: item.delivered_date || "",
+      quantity: item.quantity ?? 1,
+      unit_price: item.unit_price ?? "",
+      discounts: Array.isArray(item.discounts)
+        ? item.discounts
+        : Number(item.discount) > 0
+          ? [item.discount]
+          : [0],
+    };
+  });
 }
 
 function createEditForm(sale) {
@@ -564,6 +617,15 @@ function SalesEditForm({
   }
 
   function removeItem(itemIndex) {
+    const item = items[itemIndex];
+    const confirmed = window.confirm(
+      getSalesItemRemovalMessage(sale, item || {}, itemIndex)
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     setItems((currentItems) => currentItems.filter((_, index) => index !== itemIndex));
   }
 
