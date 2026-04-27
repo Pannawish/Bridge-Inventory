@@ -1,19 +1,19 @@
 import { useState } from "react";
 import {
+  editablePurchaseItemStatuses,
   formatStatusLabel,
   getPurchaseItemDisplayStatus,
   getPurchaseItemStatusCounts,
   getStoredPurchaseItemStatus,
   markPurchaseItemReceived,
-  purchaseItemStatuses,
   purchaseStatuses,
   updatePurchaseItemReceivedDate,
   updatePurchaseItemStatus,
 } from "../purchaseStatus";
 import {
+  editableSaleItemStatuses,
   getSaleItemStatusCounts,
   getStoredSaleItemStatus,
-  saleItemStatuses,
   saleStatuses,
   updateSaleItemDate,
   updateSaleItemStatus,
@@ -105,6 +105,14 @@ function findProductForItem(products = [], item = {}) {
       );
     }) || null
   );
+}
+
+function getItemStatusOptions(editableStatuses, currentStatus) {
+  if (!currentStatus || editableStatuses.includes(currentStatus)) {
+    return editableStatuses;
+  }
+
+  return [currentStatus, ...editableStatuses];
 }
 
 function TransactionTable({
@@ -623,7 +631,7 @@ function TransactionTable({
                       selectedRow.status
                     );
 
-                    return ["pending", "delayed", "received", "cancelled"].map((status) => (
+                    return ["pending", "delayed", "received"].map((status) => (
                       <span
                         key={status}
                         className={`status-badge item-status-badge status-${status}`}
@@ -643,7 +651,7 @@ function TransactionTable({
                       selectedRow.status
                     );
 
-                    return ["pending", "packed", "shipped", "delivered", "cancelled"].map(
+                    return ["pending", "packed", "shipped", "delivered"].map(
                       (status) => (
                         <span
                           key={status}
@@ -677,6 +685,10 @@ function TransactionTable({
                       {(selectedRow.items || []).map((item, itemIndex) => {
                         const amount = computeItemAmount(item);
                         const itemStatus = getStoredSaleItemStatus(item, selectedRow.status);
+                        const itemStatusOptions = getItemStatusOptions(
+                          editableSaleItemStatuses,
+                          itemStatus
+                        );
                         const quantityDetails = getItemQuantityDetails(
                           item,
                           findProductForItem(products, item),
@@ -694,9 +706,10 @@ function TransactionTable({
                                   onChange={(event) =>
                                     handleSaleItemStatusChange(itemIndex, event.target.value)
                                   }
+                                  disabled={itemStatus === "cancelled"}
                                   aria-label={`Change ${item.product_name} sales status`}
                                 >
-                                  {saleItemStatuses.map((status) => (
+                                  {itemStatusOptions.map((status) => (
                                     <option key={status} value={status}>
                                       {formatStatusLabel(status)}
                                     </option>
@@ -778,6 +791,10 @@ function TransactionTable({
                           item,
                           selectedRow.status
                         );
+                        const itemStatusOptions = getItemStatusOptions(
+                          editablePurchaseItemStatuses,
+                          storedStatus
+                        );
                         const canMarkReceived =
                           !["draft", "cancelled"].includes(selectedRow.status) &&
                           !["cancelled", "received"].includes(storedStatus);
@@ -806,10 +823,13 @@ function TransactionTable({
                                   onChange={(event) =>
                                     handlePurchaseItemStatusChange(itemIndex, event.target.value)
                                   }
-                                  disabled={["draft", "cancelled"].includes(selectedRow.status)}
+                                  disabled={
+                                    ["draft", "cancelled"].includes(selectedRow.status) ||
+                                    storedStatus === "cancelled"
+                                  }
                                   aria-label={`Change ${item.product_name} receiving status`}
                                 >
-                                  {purchaseItemStatuses.map((status) => (
+                                  {itemStatusOptions.map((status) => (
                                     <option key={status} value={status}>
                                       {formatStatusLabel(status)}
                                     </option>

@@ -4,6 +4,7 @@ export { formatStatusLabel, getTodayString };
 
 export const saleStatuses = ["draft", "packed", "shipped", "delivered", "cancelled"];
 export const saleItemStatuses = ["pending", "packed", "shipped", "delivered", "cancelled"];
+export const editableSaleItemStatuses = ["pending", "packed", "shipped", "delivered"];
 
 export function getInitialSaleItemStatus(saleStatus = "draft") {
   if (saleStatus === "delivered") {

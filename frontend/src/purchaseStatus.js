@@ -7,6 +7,7 @@ export const purchaseStatuses = [
 ];
 
 export const purchaseItemStatuses = ["pending", "received", "cancelled"];
+export const editablePurchaseItemStatuses = ["pending", "received"];
 
 export function formatStatusLabel(status) {
   return `${status || ""}`
