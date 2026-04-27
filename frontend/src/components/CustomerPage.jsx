@@ -549,7 +549,7 @@ function CustomerPage({
       {draftCustomer ? (
         <div className="modal-backdrop">
           <div
-            className="detail-modal supplier-modal section-card"
+            className="detail-modal supplier-modal contact-editor-modal section-card"
             role="dialog"
             aria-modal="true"
             aria-labelledby="customer-modal-title"
@@ -578,123 +578,163 @@ function CustomerPage({
                 handleSaveCustomer();
               }}
             >
-              <div className="form-grid">
-                <label>
-                  Customer Company Name
-                  <input
-                    autoFocus
-                    value={draftCustomer.companyName}
-                    onChange={(event) => updateTextField("companyName", event.target.value)}
-                    placeholder="Customer company name"
-                  />
-                </label>
+              <div className="contact-editor-layout">
+                <section className="contact-editor-section">
+                  <div className="contact-editor-section-heading">
+                    <div>
+                      <p className="eyebrow">Company</p>
+                      <h4>Customer Identity</h4>
+                    </div>
+                    <span>Account profile</span>
+                  </div>
 
-                <label>
-                  Customer Taxpayer Identification Number
-                  <input
-                    value={draftCustomer.taxpayerId}
-                    onChange={(event) => updateTextField("taxpayerId", event.target.value)}
-                    placeholder="Taxpayer identification number"
-                  />
-                </label>
+                  <div className="contact-editor-grid">
+                    <label>
+                      Customer Company Name
+                      <input
+                        autoFocus
+                        value={draftCustomer.companyName}
+                        onChange={(event) => updateTextField("companyName", event.target.value)}
+                        placeholder="Customer company name"
+                      />
+                    </label>
 
-                <CustomerOptionField
-                  label="Customer Company Location"
-                  options={draftCustomer.locations}
-                  selectedIndex={draftCustomer.selectedLocationIndex}
-                  placeholder="Add or edit a company location"
-                  onSelect={(nextIndex) => updateOptionIndex("selectedLocationIndex", nextIndex)}
-                  onChange={(nextValue) =>
-                    updateOptionValue("locations", "selectedLocationIndex", nextValue)
-                  }
-                  onAdd={() => addOption("locations", "selectedLocationIndex")}
-                  onDelete={() => deleteOption("locations", "selectedLocationIndex")}
-                />
+                    <label>
+                      Customer Taxpayer Identification Number
+                      <input
+                        value={draftCustomer.taxpayerId}
+                        onChange={(event) => updateTextField("taxpayerId", event.target.value)}
+                        placeholder="Taxpayer identification number"
+                      />
+                    </label>
 
-                <CustomerOptionField
-                  label="Customer Email"
-                  options={draftCustomer.emails}
-                  selectedIndex={draftCustomer.selectedEmailIndex}
-                  placeholder="Add or edit an email"
-                  type="email"
-                  onSelect={(nextIndex) => updateOptionIndex("selectedEmailIndex", nextIndex)}
-                  onChange={(nextValue) =>
-                    updateOptionValue("emails", "selectedEmailIndex", nextValue)
-                  }
-                  onAdd={() => addOption("emails", "selectedEmailIndex")}
-                  onDelete={() => deleteOption("emails", "selectedEmailIndex")}
-                />
+                    <div className="full-width">
+                      <CustomerOptionField
+                        label="Customer Branch"
+                        options={draftCustomer.branches}
+                        selectedIndex={draftCustomer.selectedBranchIndex}
+                        placeholder="Add or edit a branch"
+                        onSelect={(nextIndex) => updateOptionIndex("selectedBranchIndex", nextIndex)}
+                        onChange={(nextValue) =>
+                          updateOptionValue("branches", "selectedBranchIndex", nextValue)
+                        }
+                        onAdd={() => addOption("branches", "selectedBranchIndex")}
+                        onDelete={() => deleteOption("branches", "selectedBranchIndex")}
+                      />
+                    </div>
+                  </div>
+                </section>
 
-                <CustomerOptionField
-                  label="Customer Tel"
-                  options={draftCustomer.tels}
-                  selectedIndex={draftCustomer.selectedTelIndex}
-                  placeholder="Add or edit a telephone number"
-                  onSelect={(nextIndex) => updateOptionIndex("selectedTelIndex", nextIndex)}
-                  onChange={(nextValue) =>
-                    updateOptionValue("tels", "selectedTelIndex", nextValue)
-                  }
-                  onAdd={() => addOption("tels", "selectedTelIndex")}
-                  onDelete={() => deleteOption("tels", "selectedTelIndex")}
-                />
+                <section className="contact-editor-section">
+                  <div className="contact-editor-section-heading">
+                    <div>
+                      <p className="eyebrow">Contact</p>
+                      <h4>Location, Email, and Telephone</h4>
+                    </div>
+                    <span>Communication</span>
+                  </div>
 
-                <CustomerOptionField
-                  label="Customer Branch"
-                  options={draftCustomer.branches}
-                  selectedIndex={draftCustomer.selectedBranchIndex}
-                  placeholder="Add or edit a branch"
-                  onSelect={(nextIndex) => updateOptionIndex("selectedBranchIndex", nextIndex)}
-                  onChange={(nextValue) =>
-                    updateOptionValue("branches", "selectedBranchIndex", nextValue)
-                  }
-                  onAdd={() => addOption("branches", "selectedBranchIndex")}
-                  onDelete={() => deleteOption("branches", "selectedBranchIndex")}
-                />
+                  <div className="contact-editor-grid">
+                    <CustomerOptionField
+                      label="Customer Company Location"
+                      options={draftCustomer.locations}
+                      selectedIndex={draftCustomer.selectedLocationIndex}
+                      placeholder="Add or edit a company location"
+                      onSelect={(nextIndex) => updateOptionIndex("selectedLocationIndex", nextIndex)}
+                      onChange={(nextValue) =>
+                        updateOptionValue("locations", "selectedLocationIndex", nextValue)
+                      }
+                      onAdd={() => addOption("locations", "selectedLocationIndex")}
+                      onDelete={() => deleteOption("locations", "selectedLocationIndex")}
+                    />
 
-                <div className="full-width">
-                  <CustomerOptionField
-                    label="Shipping Address"
-                    options={draftCustomer.shippingAddresses}
-                    selectedIndex={draftCustomer.selectedShippingAddressIndex}
-                    placeholder="Add or edit a shipping address"
-                    onSelect={(nextIndex) =>
-                      updateOptionIndex("selectedShippingAddressIndex", nextIndex)
-                    }
-                    onChange={(nextValue) =>
-                      updateOptionValue(
-                        "shippingAddresses",
-                        "selectedShippingAddressIndex",
-                        nextValue
-                      )
-                    }
-                    onAdd={() =>
-                      addOption("shippingAddresses", "selectedShippingAddressIndex")
-                    }
-                    onDelete={() =>
-                      deleteOption("shippingAddresses", "selectedShippingAddressIndex")
-                    }
-                  />
-                </div>
+                    <CustomerOptionField
+                      label="Customer Email"
+                      options={draftCustomer.emails}
+                      selectedIndex={draftCustomer.selectedEmailIndex}
+                      placeholder="Add or edit an email"
+                      type="email"
+                      onSelect={(nextIndex) => updateOptionIndex("selectedEmailIndex", nextIndex)}
+                      onChange={(nextValue) =>
+                        updateOptionValue("emails", "selectedEmailIndex", nextValue)
+                      }
+                      onAdd={() => addOption("emails", "selectedEmailIndex")}
+                      onDelete={() => deleteOption("emails", "selectedEmailIndex")}
+                    />
 
-                <label className="full-width">
-                  Remark
-                  <textarea
-                    rows="4"
-                    value={draftCustomer.remark}
-                    onChange={(event) => updateTextField("remark", event.target.value)}
-                    placeholder="Internal note about this customer"
-                  />
-                </label>
+                    <div className="full-width">
+                      <CustomerOptionField
+                        label="Customer Tel"
+                        options={draftCustomer.tels}
+                        selectedIndex={draftCustomer.selectedTelIndex}
+                        placeholder="Add or edit a telephone number"
+                        onSelect={(nextIndex) => updateOptionIndex("selectedTelIndex", nextIndex)}
+                        onChange={(nextValue) =>
+                          updateOptionValue("tels", "selectedTelIndex", nextValue)
+                        }
+                        onAdd={() => addOption("tels", "selectedTelIndex")}
+                        onDelete={() => deleteOption("tels", "selectedTelIndex")}
+                      />
+                    </div>
+                  </div>
+                </section>
 
-                <label className="full-width">
-                  Billing Note Date
-                  <textarea
-                    rows="4"
-                    value={draftCustomer.billingNoteDate}
-                    onChange={(event) => updateTextField("billingNoteDate", event.target.value)}
-                    placeholder="Billing note date or billing instruction text"
-                  />
-                </label>
+                <section className="contact-editor-section">
+                  <div className="contact-editor-section-heading">
+                    <div>
+                      <p className="eyebrow">Delivery & Billing</p>
+                      <h4>Shipping Address and Notes</h4>
+                    </div>
+                    <span>Fulfillment</span>
+                  </div>
+
+                  <div className="contact-editor-grid">
+                    <div className="full-width">
+                      <CustomerOptionField
+                        label="Shipping Address"
+                        options={draftCustomer.shippingAddresses}
+                        selectedIndex={draftCustomer.selectedShippingAddressIndex}
+                        placeholder="Add or edit a shipping address"
+                        onSelect={(nextIndex) =>
+                          updateOptionIndex("selectedShippingAddressIndex", nextIndex)
+                        }
+                        onChange={(nextValue) =>
+                          updateOptionValue(
+                            "shippingAddresses",
+                            "selectedShippingAddressIndex",
+                            nextValue
+                          )
+                        }
+                        onAdd={() =>
+                          addOption("shippingAddresses", "selectedShippingAddressIndex")
+                        }
+                        onDelete={() =>
+                          deleteOption("shippingAddresses", "selectedShippingAddressIndex")
+                        }
+                      />
+                    </div>
+
+                    <label>
+                      Remark
+                      <textarea
+                        rows="4"
+                        value={draftCustomer.remark}
+                        onChange={(event) => updateTextField("remark", event.target.value)}
+                        placeholder="Internal note about this customer"
+                      />
+                    </label>
+
+                    <label>
+                      Billing Note Date
+                      <textarea
+                        rows="4"
+                        value={draftCustomer.billingNoteDate}
+                        onChange={(event) => updateTextField("billingNoteDate", event.target.value)}
+                        placeholder="Billing note date or billing instruction text"
+                      />
+                    </label>
+                  </div>
+                </section>
               </div>
 
               <div className="supplier-modal-actions">

@@ -1508,6 +1508,10 @@ th {
   width: min(1120px, 100%);
 }
 
+.contact-editor-modal {
+  width: min(1040px, 100%);
+}
+
 .supplier-modal-header {
   align-items: flex-start;
 }
@@ -1580,6 +1584,53 @@ th {
 
 .product-editor-subsection {
   padding-top: 4px;
+}
+
+.contact-editor-layout {
+  display: grid;
+  gap: 18px;
+}
+
+.contact-editor-section {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid #e8edf8;
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(250, 252, 255, 0.94), rgba(255, 255, 255, 0.98)),
+    #fff;
+}
+
+.contact-editor-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eef2fb;
+}
+
+.contact-editor-section-heading h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.contact-editor-section-heading span {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #185a53;
+  font-size: 0.76rem;
+  font-weight: 800;
+  background: #e8f7f4;
+}
+
+.contact-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .attention-list {
@@ -2388,6 +2439,7 @@ th {
   .form-grid,
   .product-editor-grid,
   .product-editor-unit-grid,
+  .contact-editor-grid,
   .detail-grid,
   .line-item-row,
   .sales-line-item-row {
@@ -2480,6 +2532,10 @@ th {
   }
 
   .product-editor-section-heading {
+    flex-direction: column;
+  }
+
+  .contact-editor-section-heading {
     flex-direction: column;
   }
 

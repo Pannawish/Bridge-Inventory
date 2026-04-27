@@ -535,7 +535,7 @@ function SupplierPage({
       {draftSupplier ? (
         <div className="modal-backdrop">
           <div
-            className="detail-modal supplier-modal section-card"
+            className="detail-modal supplier-modal contact-editor-modal section-card"
             role="dialog"
             aria-modal="true"
             aria-labelledby="supplier-modal-title"
@@ -564,123 +564,163 @@ function SupplierPage({
                 handleSaveSupplier();
               }}
             >
-              <div className="form-grid">
-                <label>
-                  Supplier Company Name
-                  <input
-                    autoFocus
-                    value={draftSupplier.companyName}
-                    onChange={(event) => updateTextField("companyName", event.target.value)}
-                    placeholder="Supplier company name"
-                  />
-                </label>
+              <div className="contact-editor-layout">
+                <section className="contact-editor-section">
+                  <div className="contact-editor-section-heading">
+                    <div>
+                      <p className="eyebrow">Company</p>
+                      <h4>Supplier Identity</h4>
+                    </div>
+                    <span>Required profile</span>
+                  </div>
 
-                <label>
-                  Supplier Taxpayer Identification Number
-                  <input
-                    value={draftSupplier.taxpayerId}
-                    onChange={(event) => updateTextField("taxpayerId", event.target.value)}
-                    placeholder="Taxpayer identification number"
-                  />
-                </label>
+                  <div className="contact-editor-grid">
+                    <label>
+                      Supplier Company Name
+                      <input
+                        autoFocus
+                        value={draftSupplier.companyName}
+                        onChange={(event) => updateTextField("companyName", event.target.value)}
+                        placeholder="Supplier company name"
+                      />
+                    </label>
 
-                <SupplierOptionField
-                  label="Supplier Company Location"
-                  options={draftSupplier.locations}
-                  selectedIndex={draftSupplier.selectedLocationIndex}
-                  placeholder="Add or edit a company location"
-                  onSelect={(nextIndex) => updateOptionIndex("selectedLocationIndex", nextIndex)}
-                  onChange={(nextValue) =>
-                    updateOptionValue("locations", "selectedLocationIndex", nextValue)
-                  }
-                  onAdd={() => addOption("locations", "selectedLocationIndex")}
-                  onDelete={() => deleteOption("locations", "selectedLocationIndex")}
-                />
+                    <label>
+                      Supplier Taxpayer Identification Number
+                      <input
+                        value={draftSupplier.taxpayerId}
+                        onChange={(event) => updateTextField("taxpayerId", event.target.value)}
+                        placeholder="Taxpayer identification number"
+                      />
+                    </label>
 
-                <SupplierOptionField
-                  label="Supplier Email"
-                  options={draftSupplier.emails}
-                  selectedIndex={draftSupplier.selectedEmailIndex}
-                  placeholder="Add or edit an email"
-                  type="email"
-                  onSelect={(nextIndex) => updateOptionIndex("selectedEmailIndex", nextIndex)}
-                  onChange={(nextValue) =>
-                    updateOptionValue("emails", "selectedEmailIndex", nextValue)
-                  }
-                  onAdd={() => addOption("emails", "selectedEmailIndex")}
-                  onDelete={() => deleteOption("emails", "selectedEmailIndex")}
-                />
+                    <div className="full-width">
+                      <SupplierOptionField
+                        label="Supplier Branch"
+                        options={draftSupplier.branches}
+                        selectedIndex={draftSupplier.selectedBranchIndex}
+                        placeholder="Add or edit a branch"
+                        onSelect={(nextIndex) => updateOptionIndex("selectedBranchIndex", nextIndex)}
+                        onChange={(nextValue) =>
+                          updateOptionValue("branches", "selectedBranchIndex", nextValue)
+                        }
+                        onAdd={() => addOption("branches", "selectedBranchIndex")}
+                        onDelete={() => deleteOption("branches", "selectedBranchIndex")}
+                      />
+                    </div>
+                  </div>
+                </section>
 
-                <SupplierOptionField
-                  label="Supplier Tel"
-                  options={draftSupplier.tels}
-                  selectedIndex={draftSupplier.selectedTelIndex}
-                  placeholder="Add or edit a telephone number"
-                  onSelect={(nextIndex) => updateOptionIndex("selectedTelIndex", nextIndex)}
-                  onChange={(nextValue) =>
-                    updateOptionValue("tels", "selectedTelIndex", nextValue)
-                  }
-                  onAdd={() => addOption("tels", "selectedTelIndex")}
-                  onDelete={() => deleteOption("tels", "selectedTelIndex")}
-                />
+                <section className="contact-editor-section">
+                  <div className="contact-editor-section-heading">
+                    <div>
+                      <p className="eyebrow">Contact</p>
+                      <h4>Location, Email, and Telephone</h4>
+                    </div>
+                    <span>Communication</span>
+                  </div>
 
-                <SupplierOptionField
-                  label="Supplier Branch"
-                  options={draftSupplier.branches}
-                  selectedIndex={draftSupplier.selectedBranchIndex}
-                  placeholder="Add or edit a branch"
-                  onSelect={(nextIndex) => updateOptionIndex("selectedBranchIndex", nextIndex)}
-                  onChange={(nextValue) =>
-                    updateOptionValue("branches", "selectedBranchIndex", nextValue)
-                  }
-                  onAdd={() => addOption("branches", "selectedBranchIndex")}
-                  onDelete={() => deleteOption("branches", "selectedBranchIndex")}
-                />
+                  <div className="contact-editor-grid">
+                    <SupplierOptionField
+                      label="Supplier Company Location"
+                      options={draftSupplier.locations}
+                      selectedIndex={draftSupplier.selectedLocationIndex}
+                      placeholder="Add or edit a company location"
+                      onSelect={(nextIndex) => updateOptionIndex("selectedLocationIndex", nextIndex)}
+                      onChange={(nextValue) =>
+                        updateOptionValue("locations", "selectedLocationIndex", nextValue)
+                      }
+                      onAdd={() => addOption("locations", "selectedLocationIndex")}
+                      onDelete={() => deleteOption("locations", "selectedLocationIndex")}
+                    />
 
-                <div className="full-width">
-                  <SupplierOptionField
-                    label="Shipping Address"
-                    options={draftSupplier.shippingAddresses}
-                    selectedIndex={draftSupplier.selectedShippingAddressIndex}
-                    placeholder="Add or edit a shipping address"
-                    onSelect={(nextIndex) =>
-                      updateOptionIndex("selectedShippingAddressIndex", nextIndex)
-                    }
-                    onChange={(nextValue) =>
-                      updateOptionValue(
-                        "shippingAddresses",
-                        "selectedShippingAddressIndex",
-                        nextValue
-                      )
-                    }
-                    onAdd={() =>
-                      addOption("shippingAddresses", "selectedShippingAddressIndex")
-                    }
-                    onDelete={() =>
-                      deleteOption("shippingAddresses", "selectedShippingAddressIndex")
-                    }
-                  />
-                </div>
+                    <SupplierOptionField
+                      label="Supplier Email"
+                      options={draftSupplier.emails}
+                      selectedIndex={draftSupplier.selectedEmailIndex}
+                      placeholder="Add or edit an email"
+                      type="email"
+                      onSelect={(nextIndex) => updateOptionIndex("selectedEmailIndex", nextIndex)}
+                      onChange={(nextValue) =>
+                        updateOptionValue("emails", "selectedEmailIndex", nextValue)
+                      }
+                      onAdd={() => addOption("emails", "selectedEmailIndex")}
+                      onDelete={() => deleteOption("emails", "selectedEmailIndex")}
+                    />
 
-                <label className="full-width">
-                  Remark
-                  <textarea
-                    rows="4"
-                    value={draftSupplier.remark}
-                    onChange={(event) => updateTextField("remark", event.target.value)}
-                    placeholder="Internal note about this supplier"
-                  />
-                </label>
+                    <div className="full-width">
+                      <SupplierOptionField
+                        label="Supplier Tel"
+                        options={draftSupplier.tels}
+                        selectedIndex={draftSupplier.selectedTelIndex}
+                        placeholder="Add or edit a telephone number"
+                        onSelect={(nextIndex) => updateOptionIndex("selectedTelIndex", nextIndex)}
+                        onChange={(nextValue) =>
+                          updateOptionValue("tels", "selectedTelIndex", nextValue)
+                        }
+                        onAdd={() => addOption("tels", "selectedTelIndex")}
+                        onDelete={() => deleteOption("tels", "selectedTelIndex")}
+                      />
+                    </div>
+                  </div>
+                </section>
 
-                <label className="full-width">
-                  Billing Note Date
-                  <textarea
-                    rows="4"
-                    value={draftSupplier.billingNoteDate}
-                    onChange={(event) => updateTextField("billingNoteDate", event.target.value)}
-                    placeholder="Billing note date or billing instruction text"
-                  />
-                </label>
+                <section className="contact-editor-section">
+                  <div className="contact-editor-section-heading">
+                    <div>
+                      <p className="eyebrow">Delivery & Billing</p>
+                      <h4>Shipping Address and Notes</h4>
+                    </div>
+                    <span>Operations</span>
+                  </div>
+
+                  <div className="contact-editor-grid">
+                    <div className="full-width">
+                      <SupplierOptionField
+                        label="Shipping Address"
+                        options={draftSupplier.shippingAddresses}
+                        selectedIndex={draftSupplier.selectedShippingAddressIndex}
+                        placeholder="Add or edit a shipping address"
+                        onSelect={(nextIndex) =>
+                          updateOptionIndex("selectedShippingAddressIndex", nextIndex)
+                        }
+                        onChange={(nextValue) =>
+                          updateOptionValue(
+                            "shippingAddresses",
+                            "selectedShippingAddressIndex",
+                            nextValue
+                          )
+                        }
+                        onAdd={() =>
+                          addOption("shippingAddresses", "selectedShippingAddressIndex")
+                        }
+                        onDelete={() =>
+                          deleteOption("shippingAddresses", "selectedShippingAddressIndex")
+                        }
+                      />
+                    </div>
+
+                    <label>
+                      Remark
+                      <textarea
+                        rows="4"
+                        value={draftSupplier.remark}
+                        onChange={(event) => updateTextField("remark", event.target.value)}
+                        placeholder="Internal note about this supplier"
+                      />
+                    </label>
+
+                    <label>
+                      Billing Note Date
+                      <textarea
+                        rows="4"
+                        value={draftSupplier.billingNoteDate}
+                        onChange={(event) => updateTextField("billingNoteDate", event.target.value)}
+                        placeholder="Billing note date or billing instruction text"
+                      />
+                    </label>
+                  </div>
+                </section>
               </div>
 
               <div className="supplier-modal-actions">
