@@ -1118,19 +1118,10 @@ th {
   border-bottom: 0;
 }
 
-.stock-report-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
-}
-
 .stock-search {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 280px;
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -1141,6 +1132,14 @@ th {
   width: 100%;
   border: 0;
   background: transparent;
+}
+
+.stock-filter-search-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
 }
 
 .stock-search-icon {
@@ -1155,16 +1154,10 @@ th {
   background: var(--accent-soft);
 }
 
-.stock-report-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .stock-control {
   display: grid;
   gap: 6px;
-  min-width: 150px;
+  min-width: 0;
 }
 
 .stock-control span {
@@ -1181,6 +1174,87 @@ th {
   margin-bottom: 10px;
   color: var(--muted);
   font-size: 0.88rem;
+}
+
+.stock-filter-panel {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 16px;
+  border: 1px solid #e4ebfb;
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(248, 251, 255, 0.96), rgba(255, 255, 255, 0.98)),
+    #fff;
+}
+
+.stock-filter-panel-top {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.stock-filter-helper {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.stock-filter-groups {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.3fr) minmax(260px, 1fr) minmax(260px, 0.95fr);
+  gap: 14px;
+}
+
+.stock-filter-group {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #edf2fb;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.stock-filter-group-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stock-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.stock-filter-group-compact .stock-filter-grid {
+  grid-template-columns: 1fr;
+}
+
+.stock-filter-reset {
+  min-height: 47px;
+  white-space: nowrap;
+}
+
+.stock-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -2px 0 14px;
+}
+
+.stock-filter-chips span {
+  padding: 7px 10px;
+  border: 1px solid #dbe4fb;
+  border-radius: 999px;
+  color: var(--accent-deep);
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: var(--accent-soft);
 }
 
 .inventory-note {
@@ -2406,17 +2480,21 @@ th {
     font-size: 1.65rem;
   }
 
-  .stock-report-toolbar,
   .stock-report-summary,
-  .stock-report-actions,
   .supplier-directory-toolbar {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .stock-search,
-  .stock-control {
-    min-width: 0;
+  .stock-filter-search-row,
+  .stock-filter-panel-top,
+  .stock-filter-groups {
+    grid-template-columns: 1fr;
+  }
+
+  .stock-filter-grid,
+  .stock-filter-group-compact .stock-filter-grid {
+    grid-template-columns: 1fr;
   }
 
   .topbar-action-cluster {

@@ -29,6 +29,10 @@ function formatStockQuantity(value, unit) {
   return unit && unit !== "-" ? `${formattedValue} ${unit}` : formattedValue;
 }
 
+function getFilterLabel(options, value) {
+  return options.find((option) => option.value === value)?.label || value;
+}
+
 function StatCard({ label, value, helper, trend = 0 }) {
   return (
     <article className="stat-card">
@@ -553,7 +557,13 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
 
 function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [stockFilter, setStockFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [salesFilter, setSalesFilter] = useState("all");
+  const [purchaseFilter, setPurchaseFilter] = useState("all");
+  const [stockoutFilter, setStockoutFilter] = useState("all");
+  const [sortMetric, setSortMetric] = useState("available_stock");
   const [sortOrder, setSortOrder] = useState("low-to-high");
   const metrics = dashboard.metrics || {};
   const lowStockItems = dashboard.low_stock_items || [];
@@ -582,6 +592,49 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
     .filter((item) => item.health.label === "Urgent")
     .sort((leftItem, rightItem) => leftItem.available_stock - rightItem.available_stock);
   const strongestStock = Math.max(...attentionRows.map((item) => item.reorder_level || 0), 1);
+  const categoryOptions = useMemo(
+    () =>
+      [...new Set(stockRows.map((item) => item.category).filter((category) => category && category !== "-"))]
+        .sort((left, right) => left.localeCompare(right)),
+    [stockRows]
+  );
+  const healthFilterOptions = [
+    { value: "all", label: "All health" },
+    { value: "urgent", label: "Urgent" },
+    { value: "watch", label: "Watch" },
+    { value: "healthy", label: "Healthy" },
+  ];
+  const salesFilterOptions = [
+    { value: "all", label: "All sales states" },
+    { value: "committed", label: "Has committed sales" },
+    { value: "pending", label: "Has pending sales" },
+    { value: "oversold", label: "Oversold" },
+    { value: "no-demand", label: "No sales demand" },
+  ];
+  const purchaseFilterOptions = [
+    { value: "all", label: "All purchase states" },
+    { value: "pending-po", label: "Has pending PO" },
+    { value: "delayed-po", label: "Has delayed PO" },
+    { value: "needs-po", label: "Needs purchase" },
+    { value: "no-pipeline", label: "No purchase pipeline" },
+  ];
+  const stockoutFilterOptions = [
+    { value: "all", label: "All stockout timing" },
+    { value: "out-now", label: "Out now" },
+    { value: "within-7", label: "Stockout within 7 days" },
+    { value: "within-30", label: "Stockout within 30 days" },
+    { value: "stable", label: "Stable or no demand" },
+  ];
+  const sortMetricOptions = [
+    { value: "available_stock", label: "Available stock" },
+    { value: "pending_sales_units", label: "Pending sales" },
+    { value: "oversold_units", label: "Oversold units" },
+    { value: "pending_purchase_units", label: "Pending PO" },
+    { value: "delayed_purchase_units", label: "Delayed PO" },
+    { value: "recommended_restock", label: "Suggested purchase" },
+    { value: "stock_value", label: "Stock value" },
+    { value: "days_until_stockout", label: "Days left" },
+  ];
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredRows = [...stockRows]
     .filter((item) => {
@@ -602,13 +655,101 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
 
       return item.health.label.toLowerCase() === stockFilter;
     })
-    .sort((leftItem, rightItem) => {
-      if (sortOrder === "high-to-low") {
-        return rightItem.available_stock - leftItem.available_stock;
+    .filter((item) => categoryFilter === "all" || item.category === categoryFilter)
+    .filter((item) => {
+      if (salesFilter === "committed") {
+        return item.allocated_sales_units > 0;
       }
 
-      return leftItem.available_stock - rightItem.available_stock;
+      if (salesFilter === "pending") {
+        return item.pending_sales_units > 0;
+      }
+
+      if (salesFilter === "oversold") {
+        return item.oversold_units > 0;
+      }
+
+      if (salesFilter === "no-demand") {
+        return (
+          item.allocated_sales_units <= 0 &&
+          item.pending_sales_units <= 0 &&
+          item.average_daily_demand <= 0
+        );
+      }
+
+      return true;
+    })
+    .filter((item) => {
+      if (purchaseFilter === "pending-po") {
+        return item.pending_purchase_units > 0;
+      }
+
+      if (purchaseFilter === "delayed-po") {
+        return item.delayed_purchase_units > 0;
+      }
+
+      if (purchaseFilter === "needs-po") {
+        return item.recommended_restock > 0;
+      }
+
+      if (purchaseFilter === "no-pipeline") {
+        return item.pending_purchase_units <= 0 && item.delayed_purchase_units <= 0;
+      }
+
+      return true;
+    })
+    .filter((item) => {
+      if (stockoutFilter === "out-now") {
+        return item.available_stock <= 0 || item.oversold_units > 0;
+      }
+
+      if (stockoutFilter === "within-7") {
+        return item.days_until_stockout !== null && item.days_until_stockout <= 7;
+      }
+
+      if (stockoutFilter === "within-30") {
+        return item.days_until_stockout !== null && item.days_until_stockout <= 30;
+      }
+
+      if (stockoutFilter === "stable") {
+        return item.days_until_stockout === null || item.days_until_stockout > 30;
+      }
+
+      return true;
+    })
+    .sort((leftItem, rightItem) => {
+      const leftValue =
+        sortMetric === "days_until_stockout" && leftItem.days_until_stockout === null
+          ? Number.POSITIVE_INFINITY
+          : Number(leftItem[sortMetric]) || 0;
+      const rightValue =
+        sortMetric === "days_until_stockout" && rightItem.days_until_stockout === null
+          ? Number.POSITIVE_INFINITY
+          : Number(rightItem[sortMetric]) || 0;
+
+      if (sortOrder === "high-to-low") {
+        return rightValue - leftValue;
+      }
+
+      return leftValue - rightValue;
     });
+  const activeFilterLabels = [
+    stockFilter !== "all" ? getFilterLabel(healthFilterOptions, stockFilter) : null,
+    categoryFilter !== "all" ? categoryFilter : null,
+    salesFilter !== "all" ? getFilterLabel(salesFilterOptions, salesFilter) : null,
+    purchaseFilter !== "all" ? getFilterLabel(purchaseFilterOptions, purchaseFilter) : null,
+    stockoutFilter !== "all" ? getFilterLabel(stockoutFilterOptions, stockoutFilter) : null,
+  ].filter(Boolean);
+  const clearStockFilters = () => {
+    setSearchTerm("");
+    setStockFilter("all");
+    setCategoryFilter("all");
+    setSalesFilter("all");
+    setPurchaseFilter("all");
+    setStockoutFilter("all");
+    setSortMetric("available_stock");
+    setSortOrder("low-to-high");
+  };
   return (
     <div className="stack-layout">
       <section className="metrics-grid">
@@ -699,42 +840,157 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
           delayed purchases are tracked separately.
         </p>
 
-        <div className="stock-report-toolbar">
+        <div className="stock-filter-search-row">
           <label className="stock-search">
             <span className="stock-search-icon">S</span>
             <input
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search product or SKU"
+              placeholder="Search product, SKU, or category"
             />
           </label>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => setFilterOpen((currentValue) => !currentValue)}
+          >
+            {filterOpen ? "Hide Filters" : "Filter"}
+          </button>
+        </div>
 
-          <div className="stock-report-actions">
-            <label className="stock-control">
-              <span>Filter</span>
-              <select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)}>
-                <option value="all">All</option>
-                <option value="urgent">Urgent</option>
-                <option value="watch">Watch</option>
-                <option value="healthy">Healthy</option>
-              </select>
-            </label>
+        {filterOpen ? (
+          <div className="stock-filter-panel">
+            <div className="stock-filter-panel-top">
+              <div>
+                <p className="stock-filter-group-title">Stock Filters</p>
+                <p className="stock-filter-helper">
+                  Narrow by inventory state, movement pipeline, and sorting.
+                </p>
+              </div>
+              <button className="secondary-button stock-filter-reset" type="button" onClick={clearStockFilters}>
+                Reset Filters
+              </button>
+            </div>
 
-            <label className="stock-control">
-              <span>Sort</span>
-              <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)}>
-                <option value="low-to-high">Low to High</option>
-                <option value="high-to-low">High to Low</option>
-              </select>
-            </label>
+            <div className="stock-filter-groups">
+              <div className="stock-filter-group">
+                <p className="stock-filter-group-title">Inventory State</p>
+                <div className="stock-filter-grid">
+                  <label className="stock-control">
+                    <span>Health</span>
+                    <select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)}>
+                      {healthFilterOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                <label className="stock-control">
+                  <span>Category</span>
+                  <select
+                    value={categoryFilter}
+                    onChange={(event) => setCategoryFilter(event.target.value)}
+                  >
+                    <option value="all">All categories</option>
+                    {categoryOptions.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="stock-control">
+                  <span>Stockout</span>
+                  <select
+                    value={stockoutFilter}
+                    onChange={(event) => setStockoutFilter(event.target.value)}
+                  >
+                    {stockoutFilterOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div className="stock-filter-group">
+              <p className="stock-filter-group-title">Movement Pipeline</p>
+              <div className="stock-filter-grid">
+                <label className="stock-control">
+                  <span>Sales</span>
+                  <select value={salesFilter} onChange={(event) => setSalesFilter(event.target.value)}>
+                    {salesFilterOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="stock-control">
+                  <span>Purchase</span>
+                  <select
+                    value={purchaseFilter}
+                    onChange={(event) => setPurchaseFilter(event.target.value)}
+                  >
+                    {purchaseFilterOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div className="stock-filter-group stock-filter-group-compact">
+              <p className="stock-filter-group-title">Sort</p>
+              <div className="stock-filter-grid">
+                <label className="stock-control">
+                  <span>Sort By</span>
+                  <select value={sortMetric} onChange={(event) => setSortMetric(event.target.value)}>
+                    {sortMetricOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="stock-control">
+                  <span>Direction</span>
+                  <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)}>
+                    <option value="low-to-high">Low to High</option>
+                    <option value="high-to-low">High to Low</option>
+                  </select>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
+        ) : null}
 
         <div className="stock-report-summary">
           <span>{filteredRows.length} products shown</span>
-          <span>Available stock sorted {sortOrder === "low-to-high" ? "ascending" : "descending"}</span>
+          <span>
+            Sorted by {getFilterLabel(sortMetricOptions, sortMetric).toLowerCase()}{" "}
+            {sortOrder === "low-to-high" ? "ascending" : "descending"}
+          </span>
         </div>
+
+        {activeFilterLabels.length ? (
+          <div className="stock-filter-chips" aria-label="Active stock filters">
+            {activeFilterLabels.map((label) => (
+              <span key={label}>{label}</span>
+            ))}
+          </div>
+        ) : null}
 
         <div className="table-scroll desktop-table">
           <table>
