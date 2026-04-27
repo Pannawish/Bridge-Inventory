@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  getCategoryOptions,
   getCategoryPathById,
-  getLeafCategoryOptions,
   resolveLegacyCategoryId,
 } from "./CategoryPage";
 import {
@@ -605,8 +605,8 @@ function ProductsPage({
   }, [viewingProduct, viewingTransaction, draftProduct]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
-  const leafCategoryOptions = useMemo(
-    () => getLeafCategoryOptions(categories),
+  const productCategoryOptions = useMemo(
+    () => getCategoryOptions(categories),
     [categories]
   );
 
@@ -961,12 +961,12 @@ function ProductsPage({
     }
 
     if (!normalizedDraft.categoryId) {
-      setProductFormError("Select a leaf category for this product.");
+      setProductFormError("Select a category for this product.");
       return;
     }
 
-    if (!leafCategoryOptions.some((category) => category.id === normalizedDraft.categoryId)) {
-      setProductFormError("Products can only be assigned to leaf categories.");
+    if (!productCategoryOptions.some((category) => category.id === normalizedDraft.categoryId)) {
+      setProductFormError("Select an existing category for this product.");
       return;
     }
 
@@ -2001,11 +2001,11 @@ function ProductsPage({
                     onChange={(event) => updateDraftField("categoryId", event.target.value)}
                   >
                     <option value="">
-                      {leafCategoryOptions.length
-                        ? "Select leaf category"
-                        : "Create a leaf category first"}
+                      {productCategoryOptions.length
+                        ? "Select category"
+                        : "Create a category first"}
                     </option>
-                    {leafCategoryOptions.map((category) => (
+                    {productCategoryOptions.map((category) => (
                       <option key={category.id} value={category.id}>
                         {category.label}
                       </option>

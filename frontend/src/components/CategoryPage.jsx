@@ -28,6 +28,24 @@ const defaultCategories = [
     parentId: "category-writing-tools",
   },
   {
+    id: "category-gel-pens",
+    name: "Gel Pens",
+    description: "Smooth ink gel pens grouped under pens.",
+    parentId: "category-pens",
+  },
+  {
+    id: "category-blue-gel-pens",
+    name: "Blue Gel Pens",
+    description: "Blue gel pens nested inside gel pens.",
+    parentId: "category-gel-pens",
+  },
+  {
+    id: "category-premium-blue-gel-pens",
+    name: "Premium Blue Gel Pens",
+    description: "Premium blue gel pens nested multiple levels deep.",
+    parentId: "category-blue-gel-pens",
+  },
+  {
     id: "category-desk-accessories",
     name: "Desk Accessories",
     description: "Staplers, clips, folders, and desktop tools.",
@@ -68,6 +86,18 @@ const defaultCategories = [
     name: "Filing",
     description: "Binders, folders, and storage accessories for documents.",
     parentId: "category-desk-accessories",
+  },
+  {
+    id: "category-archive-folders",
+    name: "Archive Folders",
+    description: "Long-term document storage folders nested under filing.",
+    parentId: "category-filing",
+  },
+  {
+    id: "category-yearly-archive-folders",
+    name: "Yearly Archive Folders",
+    description: "Year-based archive folders nested inside archive folders.",
+    parentId: "category-archive-folders",
   },
   {
     id: "category-correction",
@@ -161,6 +191,14 @@ export function getLeafCategoryOptions(categories) {
     }));
 }
 
+export function getCategoryOptions(categories) {
+  return categories.map((category) => ({
+    id: category.id,
+    name: category.name,
+    label: getCategoryPathById(categories, category.id) || category.name,
+  }));
+}
+
 export function resolveLegacyCategoryId(categories, categoryName = "") {
   const normalizedName = getCategoryKey(categoryName);
 
@@ -222,6 +260,8 @@ function CategoryPage({
 }) {
   const [draftCategory, setDraftCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [parentCategoryInput, setParentCategoryInput] = useState("");
+  const [isParentCategoryMenuOpen, setIsParentCategoryMenuOpen] = useState(false);
   const [formError, setFormError] = useState("");
   const [collapsedCategoryIds, setCollapsedCategoryIds] = useState(() => new Set());
 
@@ -319,7 +359,7 @@ function CategoryPage({
     });
 
     return assignmentCount;
-  }, [categories]);
+  }, [categories, products]);
   const parentCategoryOptions = useMemo(() => {
     if (!draftCategory) {
       return [];
@@ -331,19 +371,38 @@ function CategoryPage({
       .map((category) => ({
         id: category.id,
         label: getCategoryPathById(categories, category.id) || category.name,
-        disabled:
-          (productAssignments.get(category.id) || 0) > 0 &&
-          draftCategory.parentId !== category.id,
       }));
-  }, [categories, draftCategory, productAssignments]);
+  }, [categories, draftCategory]);
+  const normalizedParentCategorySearch = parentCategoryInput.trim().toLowerCase();
+  const filteredParentCategoryOptions = useMemo(() => {
+    if (!normalizedParentCategorySearch) {
+      return parentCategoryOptions;
+    }
+
+    return parentCategoryOptions.filter((category) =>
+      category.label.toLowerCase().includes(normalizedParentCategorySearch)
+    );
+  }, [normalizedParentCategorySearch, parentCategoryOptions]);
+  const selectedParentCategoryOption = parentCategoryOptions.find(
+    (category) => category.id === draftCategory?.parentId
+  );
+  const shouldShowRootParentOption =
+    !normalizedParentCategorySearch ||
+    "root category".includes(normalizedParentCategorySearch);
 
   function openCategoryEditor(category = createCategory()) {
     setDraftCategory(category);
+    setParentCategoryInput(
+      category.parentId ? getCategoryPathById(categories, category.parentId) || "" : ""
+    );
+    setIsParentCategoryMenuOpen(false);
     setFormError("");
   }
 
   function closeCategoryEditor() {
     setDraftCategory(null);
+    setParentCategoryInput("");
+    setIsParentCategoryMenuOpen(false);
     setFormError("");
   }
 
@@ -367,6 +426,42 @@ function CategoryPage({
     });
   }
 
+  function selectParentCategory(category) {
+    updateDraftField("parentId", category?.id || null);
+    setParentCategoryInput(category?.label || "");
+    setIsParentCategoryMenuOpen(false);
+    setFormError("");
+  }
+
+  function handleParentCategoryInputChange(value) {
+    const nextValue = value;
+    const normalizedValue = nextValue.trim().toLowerCase();
+    const exactMatch = parentCategoryOptions.find(
+      (category) => category.label.toLowerCase() === normalizedValue
+    );
+
+    setParentCategoryInput(nextValue);
+    updateDraftField("parentId", exactMatch?.id || null);
+    setIsParentCategoryMenuOpen(true);
+    setFormError("");
+  }
+
+  function handleParentCategoryInputKeyDown(event) {
+    if (event.key === "Escape") {
+      setIsParentCategoryMenuOpen(false);
+      return;
+    }
+
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    if (filteredParentCategoryOptions.length === 1) {
+      event.preventDefault();
+      selectParentCategory(filteredParentCategoryOptions[0]);
+    }
+  }
+
   async function handleSaveCategory(event) {
     event.preventDefault();
 
@@ -383,18 +478,21 @@ function CategoryPage({
     }
 
     if (
-      nextCategory.parentId &&
-      isDescendantCategory(categories, nextCategory.id, nextCategory.parentId)
+      parentCategoryInput.trim() &&
+      selectedParentCategoryOption?.label.toLowerCase() !==
+        parentCategoryInput.trim().toLowerCase()
     ) {
-      setFormError("Parent category cannot be the current category or its child.");
+      setFormError(
+        "Choose a matching parent category from the dropdown, or clear the field for Root Category."
+      );
       return;
     }
 
     if (
       nextCategory.parentId &&
-      (productAssignments.get(nextCategory.parentId) || 0) > 0
+      isDescendantCategory(categories, nextCategory.id, nextCategory.parentId)
     ) {
-      setFormError("A category with assigned products cannot become a parent folder.");
+      setFormError("Parent category cannot be the current category or its child.");
       return;
     }
 
@@ -407,14 +505,6 @@ function CategoryPage({
 
     if (duplicate) {
       setFormError("This category already exists in the selected parent folder.");
-      return;
-    }
-
-    if (
-      hasCategoryChildren(categories, nextCategory.id) &&
-      (productAssignments.get(nextCategory.id) || 0) > 0
-    ) {
-      setFormError("A folder category cannot keep products assigned to it directly.");
       return;
     }
 
@@ -620,23 +710,80 @@ function CategoryPage({
                   />
                 </label>
 
-                <label className="full-width">
+                <label className="full-width supplier-combobox-field">
                   Parent Category
-                  <select
-                    value={draftCategory.parentId || ""}
-                    onChange={(event) => {
-                      updateDraftField("parentId", event.target.value || null);
-                      setFormError("");
-                    }}
-                  >
-                    <option value="">Root Category</option>
-                    {parentCategoryOptions.map((category) => (
-                      <option key={category.id} value={category.id} disabled={category.disabled}>
-                        {category.label}
-                        {category.disabled ? " (Has assigned products)" : ""}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="supplier-combobox">
+                    <input
+                      type="search"
+                      role="combobox"
+                      aria-expanded={isParentCategoryMenuOpen}
+                      aria-controls="category-parent-list"
+                      aria-autocomplete="list"
+                      value={parentCategoryInput}
+                      onChange={(event) => handleParentCategoryInputChange(event.target.value)}
+                      onFocus={() => setIsParentCategoryMenuOpen(true)}
+                      onBlur={() => setIsParentCategoryMenuOpen(false)}
+                      onKeyDown={handleParentCategoryInputKeyDown}
+                      placeholder="Root Category or type category name"
+                    />
+
+                    {isParentCategoryMenuOpen ? (
+                      <div
+                        className="supplier-combobox-menu"
+                        id="category-parent-list"
+                        role="listbox"
+                      >
+                        {shouldShowRootParentOption ? (
+                          <button
+                            className={
+                              draftCategory.parentId
+                                ? "supplier-combobox-option"
+                                : "supplier-combobox-option active"
+                            }
+                            type="button"
+                            role="option"
+                            aria-selected={!draftCategory.parentId}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              selectParentCategory(null);
+                            }}
+                          >
+                            Root Category
+                          </button>
+                        ) : null}
+
+                        {filteredParentCategoryOptions.map((category) => (
+                          <button
+                            className={
+                              category.id === draftCategory.parentId
+                                ? "supplier-combobox-option active"
+                                : "supplier-combobox-option"
+                            }
+                            key={category.id}
+                            type="button"
+                            role="option"
+                            aria-selected={category.id === draftCategory.parentId}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              selectParentCategory(category);
+                            }}
+                          >
+                            {category.label}
+                          </button>
+                        ))}
+
+                        {!shouldShowRootParentOption &&
+                        filteredParentCategoryOptions.length === 0 ? (
+                          <div className="supplier-combobox-empty">
+                            No matching parent category found.
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                  <span className="field-helper-text">
+                    Clear this field to keep the category at root level.
+                  </span>
                 </label>
 
                 <label className="full-width">
