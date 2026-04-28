@@ -2100,6 +2100,59 @@ th {
   grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.05fr) minmax(0, 0.95fr);
 }
 
+.category-tree-table table {
+  min-width: 820px;
+  table-layout: fixed;
+}
+
+.category-col-name {
+  width: 38%;
+}
+
+.category-col-parent {
+  width: 25%;
+}
+
+.category-col-products {
+  width: 10%;
+}
+
+.category-col-children {
+  width: 12%;
+}
+
+.category-col-action {
+  width: 15%;
+}
+
+.category-tree-table th,
+.category-tree-table td {
+  padding: 11px 10px;
+  vertical-align: middle;
+  font-size: 0.86rem;
+}
+
+.category-tree-table tbody tr {
+  height: 66px;
+}
+
+.category-tree-table tbody tr:hover {
+  background: #f8fbff;
+}
+
+.category-tree-table .cell-stack {
+  min-width: 0;
+  gap: 3px;
+}
+
+.category-tree-table .cell-stack strong,
+.category-tree-table .cell-stack span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .directory-entity {
   display: grid;
   gap: 4px;
@@ -2155,6 +2208,30 @@ th {
   min-width: 0;
 }
 
+.category-tree-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.category-tree-main strong,
+.category-tree-main span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-tree-main strong {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.category-tree-main span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .category-tree-toggle {
   display: grid;
   place-items: center;
@@ -2179,6 +2256,22 @@ th {
 
 .category-tree-name {
   min-width: 0;
+}
+
+.category-row-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.category-row-actions .table-action-button {
+  min-width: 0;
+}
+
+.secondary-table-action {
+  border: 1px solid #dbe4fb;
+  color: var(--accent-deep);
+  background: #fff;
 }
 
 .supplier-option-field {

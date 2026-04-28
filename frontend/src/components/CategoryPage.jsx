@@ -409,6 +409,10 @@ function CategoryPage({
     setFormError("");
   }
 
+  function openSubcategoryEditor(parentCategory) {
+    openCategoryEditor(createCategory({ parentId: parentCategory.id }));
+  }
+
   function closeCategoryEditor() {
     setDraftCategory(null);
     setParentCategoryInput("");
@@ -587,113 +591,98 @@ function CategoryPage({
           </div>
         </div>
 
-        <div className="supplier-directory-table" role="table" aria-label="Category list">
+        <div className="table-scroll category-tree-table">
           {categoryRows.length === 0 ? (
             <p className="empty-copy">No categories match the current search.</p>
           ) : (
-            <>
-              <div className="supplier-directory-head category-directory-grid" role="row">
-                <span className="supplier-directory-column" role="columnheader">
-                  Category
-                </span>
-                <span className="supplier-directory-column" role="columnheader">
-                  Structure
-                </span>
-                <span className="supplier-directory-column" role="columnheader">
-                  Coverage
-                </span>
-              </div>
+            <table>
+              <colgroup>
+                <col className="category-col-name" />
+                <col className="category-col-parent" />
+                <col className="category-col-products" />
+                <col className="category-col-children" />
+                <col className="category-col-action" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Parent Path</th>
+                  <th>Products</th>
+                  <th>Subcategories</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categoryRows.map(({ category, depth, hasChildren }) => {
+                  const directChildCount = childCategoryCounts.get(category.id) || 0;
+                  const assignedProductCount = productAssignments.get(category.id) || 0;
 
-              <div className="supplier-directory-body" role="rowgroup">
-                {categoryRows.map(({ category, depth, hasChildren }) => (
-                  <div
-                    key={category.id}
-                    className="supplier-directory-row category-directory-grid"
-                    onClick={() => openCategoryEditor(category)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        openCategoryEditor(category);
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <span className="supplier-directory-cell" role="cell">
-                      <span className="supplier-directory-cell-label">Category</span>
-                      <span
-                        className="category-tree-cell directory-entity"
-                        style={{ paddingInlineStart: `${depth * 20}px` }}
-                      >
-                        {hasChildren ? (
-                          <button
-                            className="category-tree-toggle"
-                            type="button"
-                            aria-label={
-                              collapsedCategoryIds.has(category.id)
-                                ? `Expand ${category.name}`
-                                : `Collapse ${category.name}`
-                            }
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              toggleCategoryFolder(category.id);
-                            }}
-                          >
-                            {collapsedCategoryIds.has(category.id) ? ">" : "v"}
-                          </button>
-                        ) : (
-                          <span className="category-tree-toggle placeholder" aria-hidden="true">
-                            .
+                  return (
+                    <tr key={category.id}>
+                      <td>
+                        <div
+                          className="category-tree-cell"
+                          style={{ paddingInlineStart: `${depth * 22}px` }}
+                        >
+                          {hasChildren ? (
+                            <button
+                              className="category-tree-toggle"
+                              type="button"
+                              aria-label={
+                                collapsedCategoryIds.has(category.id)
+                                  ? `Expand ${category.name}`
+                                  : `Collapse ${category.name}`
+                              }
+                              onClick={() => toggleCategoryFolder(category.id)}
+                            >
+                              {collapsedCategoryIds.has(category.id) ? ">" : "v"}
+                            </button>
+                          ) : (
+                            <span className="category-tree-toggle placeholder" aria-hidden="true">
+                              .
+                            </span>
+                          )}
+                          <span className="category-tree-main">
+                            <strong>{category.name || "Unnamed Category"}</strong>
+                            <span>{category.description || "No description"}</span>
                           </span>
-                        )}
-                        <span className="directory-entity">
-                          <strong className="supplier-directory-cell-value category-tree-name directory-primary-text">
-                            {category.name || "Unnamed Category"}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="cell-stack">
+                          <strong>
+                            {category.parentId
+                              ? getCategoryPathById(categories, category.parentId) || "—"
+                              : "Root category"}
                           </strong>
-                          <span className="directory-secondary-text">
-                            {category.description || "No description"}
-                          </span>
-                          <span className="directory-chip-row">
-                            <span className="directory-chip">
-                              {depth === 0 ? "Root" : `Level ${depth + 1}`}
-                            </span>
-                            <span className="directory-chip subtle">
-                              {childCategoryCounts.get(category.id) || 0} subcategories
-                            </span>
-                          </span>
-                        </span>
-                      </span>
-                    </span>
-
-                    <span className="supplier-directory-cell" role="cell">
-                      <span className="supplier-directory-cell-label">Structure</span>
-                      <span className="directory-entity">
-                        <strong className="supplier-directory-cell-value directory-primary-text">
-                          {category.parentId
-                            ? getCategoryPathById(categories, category.parentId) || "—"
-                            : "Root category"}
-                        </strong>
-                        <span className="directory-secondary-text">
-                          {hasChildren ? "Expandable branch" : "Leaf category"}
-                        </span>
-                      </span>
-                    </span>
-
-                    <span className="supplier-directory-cell" role="cell">
-                      <span className="supplier-directory-cell-label">Coverage</span>
-                      <span className="directory-entity">
-                        <strong className="supplier-directory-cell-value directory-primary-text">
-                          {productAssignments.get(category.id) || 0} assigned products
-                        </strong>
-                        <span className="directory-secondary-text">
-                          {childCategoryCounts.get(category.id) || 0} direct subcategories
-                        </span>
-                      </span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </>
+                          <span>{depth === 0 ? "Root" : `Level ${depth + 1}`}</span>
+                        </div>
+                      </td>
+                      <td>{assignedProductCount}</td>
+                      <td>{directChildCount}</td>
+                      <td>
+                        <div className="category-row-actions">
+                          <button
+                            className="table-action-button"
+                            type="button"
+                            onClick={() => openCategoryEditor(category)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="table-action-button secondary-table-action"
+                            type="button"
+                            onClick={() => openSubcategoryEditor(category)}
+                          >
+                            Add Sub
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </div>
       </section>
