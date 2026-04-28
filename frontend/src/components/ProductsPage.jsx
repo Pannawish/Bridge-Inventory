@@ -1870,7 +1870,7 @@ function ProductsPage({
 
                   <div className="product-editor-grid">
                     <label className="full-width">
-                      Main Product Name
+                      <span className="required-label">Main Product Name</span>
                       <input
                         autoFocus
                         value={draftProduct.productName}
@@ -1880,7 +1880,7 @@ function ProductsPage({
                     </label>
 
                     <label className="supplier-option-field product-editor-wide-field">
-                      <span>SKU</span>
+                      <span className="required-label">SKU</span>
                       <div className="product-sku-edit-row">
                         <input
                           value={draftProduct.sku}
@@ -1919,7 +1919,7 @@ function ProductsPage({
                     </label>
 
                     <label>
-                      Product ID
+                      <span className="required-label">Product ID</span>
                       <input
                         type="number"
                         value={draftProduct.productDisplayId}
@@ -1993,7 +1993,7 @@ function ProductsPage({
 
                   <div className="product-editor-grid product-editor-unit-grid">
                     <label>
-                      Base Stock Unit
+                      <span className="required-label">Base Stock Unit</span>
                       <input
                         value={draftProduct.stockBaseUnit}
                         onChange={(event) => updateDraftField("stockBaseUnit", event.target.value)}
@@ -2002,7 +2002,7 @@ function ProductsPage({
                     </label>
 
                     <label>
-                      Default Purchase Unit
+                      <span className="required-label">Default Purchase Unit</span>
                       <input
                         value={draftProduct.defaultPurchaseUnit}
                         onChange={(event) =>
@@ -2013,7 +2013,7 @@ function ProductsPage({
                     </label>
 
                     <label>
-                      Default Sales Unit
+                      <span className="required-label">Default Sales Unit</span>
                       <input
                         value={draftProduct.defaultSalesUnit}
                         onChange={(event) => updateDraftField("defaultSalesUnit", event.target.value)}
@@ -2042,7 +2042,7 @@ function ProductsPage({
                     {(draftProduct.unitConversions || []).map((conversion, index) => (
                       <div className="unit-conversion-row" key={`unit-conversion-${index}`}>
                         <label>
-                          Unit
+                          <span className="required-label">Unit</span>
                           <input
                             value={conversion.unit}
                             onChange={(event) =>
@@ -2052,7 +2052,7 @@ function ProductsPage({
                           />
                         </label>
                         <label>
-                          Factor to Base
+                          <span className="required-label">Factor to Base</span>
                           <input
                             type="number"
                             min="0.000001"
@@ -2104,7 +2104,7 @@ function ProductsPage({
 
                   <div className="product-editor-grid">
                     <label>
-                      Category
+                      <span className="required-label">Category</span>
                       <select
                         value={draftProduct.categoryId || ""}
                         onChange={(event) => updateDraftField("categoryId", event.target.value)}

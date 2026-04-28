@@ -512,7 +512,7 @@ function SalesForm({
           </label>
 
           <label className="supplier-combobox-field">
-            Customer Name
+            <span className="required-label">Customer Name</span>
             <div className="supplier-combobox">
               <input
                 value={customerQuery}
@@ -567,7 +567,7 @@ function SalesForm({
           </label>
 
           <label>
-            Status
+            <span className="required-label">Status</span>
             <select
               value={form.status}
               onChange={(event) => handleStatusChange(event.target.value)}
@@ -584,7 +584,7 @@ function SalesForm({
           </label>
 
           <label>
-            Transaction Date
+            <span className="required-label">Transaction Date</span>
             <input
               type="date"
               value={form.transaction_date}
@@ -593,7 +593,7 @@ function SalesForm({
           </label>
 
           <label>
-            Money Receive
+            <span className="required-label">Money Receive</span>
             <select value={form.payment_timing} onChange={handlePaymentTimingChange}>
               <option value="instant">Instantly</option>
               <option value="later">Later</option>
@@ -601,7 +601,9 @@ function SalesForm({
           </label>
 
           <label>
-            Money Receive Date
+            <span className={form.payment_timing === "later" ? "required-label" : undefined}>
+              Money Receive Date
+            </span>
             <input
               type="date"
               value={form.payment_received_date}
@@ -719,7 +721,7 @@ function SalesForm({
                 </div>
 
                 <label className="purchase-item-field sales-item-product">
-                  <span>Product</span>
+                  <span className="required-label">Product</span>
                   <select
                     value={item.product_id}
                     onChange={(event) => updateProduct(index, event.target.value)}
@@ -737,7 +739,7 @@ function SalesForm({
                 </label>
 
                 <label className="purchase-item-field sales-item-unit">
-                  <span>Unit</span>
+                  <span className="required-label">Unit</span>
                   <select
                     value={item.unit}
                     onChange={(event) => updateItem(index, "unit", event.target.value)}
@@ -761,7 +763,7 @@ function SalesForm({
                 </label>
 
                 <label className="purchase-item-field sales-item-qty">
-                  <span>Qty</span>
+                  <span className="required-label">Qty</span>
                   <input
                     type="number"
                     min="1"
@@ -773,7 +775,7 @@ function SalesForm({
                 </label>
 
                 <label className="purchase-item-field sales-item-price">
-                  <span>Unit Price</span>
+                  <span className="required-label">Unit Price</span>
                   <input
                     type="number"
                     min="0"

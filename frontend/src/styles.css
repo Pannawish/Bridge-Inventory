@@ -623,6 +623,12 @@ label textarea:focus,
   line-height: 1.35;
 }
 
+.required-label::after {
+  content: " *";
+  color: var(--danger);
+  font-weight: 600;
+}
+
 .supplier-combobox-empty {
   padding: 10px 12px;
 }
@@ -2125,7 +2131,7 @@ th {
   border-radius: 999px;
   color: var(--accent-deep);
   font-size: 0.76rem;
-  font-weight: 800;
+  font-weight: 500;
   background: var(--accent-soft);
 }
 
@@ -2184,7 +2190,7 @@ th {
   border-radius: 999px;
   color: #185a53;
   font-size: 0.76rem;
-  font-weight: 800;
+  font-weight: 500;
   background: #e8f7f4;
 }
 

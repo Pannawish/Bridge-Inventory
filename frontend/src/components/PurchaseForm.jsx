@@ -538,7 +538,7 @@ function PurchaseForm({
           </label>
 
           <label className="supplier-combobox-field">
-            Supplier Name
+            <span className="required-label">Supplier Name</span>
             <div className="supplier-combobox">
               <input
                 value={supplierQuery}
@@ -604,7 +604,7 @@ function PurchaseForm({
           </label>
 
           <label>
-            Status
+            <span className="required-label">Status</span>
             <select
               value={form.status}
               onChange={(event) => setForm({ ...form, status: event.target.value })}
@@ -622,7 +622,7 @@ function PurchaseForm({
           </label>
 
           <label>
-            Date
+            <span className="required-label">Date</span>
             <input
               type="date"
               value={form.transaction_date}
@@ -740,7 +740,7 @@ function PurchaseForm({
                 </div>
 
                 <label className="purchase-item-field purchase-item-product purchase-product-field">
-                  <span>Product</span>
+                  <span className="required-label">Product</span>
                   <div className="supplier-combobox">
                     <input
                       value={item.product_query}
@@ -812,7 +812,7 @@ function PurchaseForm({
                 </label>
 
                 <label className="purchase-item-field purchase-item-unit">
-                  <span>Unit</span>
+                  <span className="required-label">Unit</span>
                   <select
                     value={item.unit}
                     onChange={(event) => updateItem(index, "unit", event.target.value)}
@@ -836,7 +836,7 @@ function PurchaseForm({
                 </label>
 
                 <label className="purchase-item-field purchase-item-delivery">
-                  <span>Expected Delivery</span>
+                  <span className="required-label">Expected Delivery</span>
                   <input
                     type="date"
                     value={item.expected_delivery_date}
@@ -849,7 +849,7 @@ function PurchaseForm({
                 </label>
 
                 <label className="purchase-item-field purchase-item-qty">
-                  <span>Qty</span>
+                  <span className="required-label">Qty</span>
                   <input
                     type="number"
                     min="1"
@@ -861,7 +861,7 @@ function PurchaseForm({
                 </label>
 
                 <label className="purchase-item-field purchase-item-cost">
-                  <span>Unit Cost</span>
+                  <span className="required-label">Unit Cost</span>
                   <input
                     type="number"
                     min="0"
