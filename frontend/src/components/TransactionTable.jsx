@@ -368,7 +368,6 @@ function TransactionTable({
                     <col className="history-col-money" />
                   </>
                 )}
-                <col className="history-col-document" />
                 <col className="history-col-action" />
               </colgroup>
               <thead>
@@ -391,7 +390,6 @@ function TransactionTable({
                       <th>Total</th>
                     </>
                   )}
-                  <th>Doc</th>
                   <th />
                 </tr>
               </thead>
@@ -399,8 +397,6 @@ function TransactionTable({
                 {rows.map((row, rowIndex) => {
                   const salesSummary = type === "sale" ? getVatSummary(row) : null;
                   const itemSummary = getCompactItemSummary(row.items || []);
-                  const documents = getTransactionDocuments(row);
-
                   return (
                     <tr key={`${type}-${row.id}`}>
                       <td className="table-index-cell">{rowIndex + 1}</td>
@@ -475,15 +471,6 @@ function TransactionTable({
                           </td>
                         </>
                       )}
-                      <td>
-                        {documents.length ? (
-                          <a href={documents[0].url} target="_blank" rel="noreferrer">
-                            {documents.length === 1 ? "1 doc" : `${documents.length} docs`}
-                          </a>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
                       <td>
                         <button
                           className="table-action-button"

@@ -1787,11 +1787,11 @@ th {
 }
 
 .history-col-reference {
-  width: 9%;
+  width: 10%;
 }
 
 .history-col-party {
-  width: 12%;
+  width: 13%;
 }
 
 .history-col-status {
@@ -1803,23 +1803,19 @@ th {
 }
 
 .history-col-items {
-  width: 19%;
+  width: 21%;
 }
 
 .history-col-tax {
-  width: 10%;
+  width: 12%;
 }
 
 .history-col-money {
-  width: 8%;
-}
-
-.history-col-document {
-  width: 5%;
+  width: 9%;
 }
 
 .history-col-action {
-  width: 6%;
+  width: 7%;
 }
 
 .product-col-index {
