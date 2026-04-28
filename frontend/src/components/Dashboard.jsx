@@ -46,76 +46,13 @@ function StockHeader({ label, fullName }) {
   );
 }
 
-function StatCard({ label, value, helper, trend = 0 }) {
+function DashboardKpi({ label, value, helper, tone = "neutral" }) {
   return (
-    <article className="stat-card">
-      <div className="stat-card-top">
-        <span className="stat-icon">{label.slice(0, 1)}</span>
-        <span className={trend > 0 ? "trend-pill positive" : "trend-pill"}>
-          {trend > 0 ? "+" : ""}
-          {trend}%
-        </span>
-      </div>
+    <article className={`dashboard-kpi-card ${tone}`}>
       <p>{label}</p>
-      <h3>{value}</h3>
+      <strong>{value}</strong>
       <span>{helper}</span>
     </article>
-  );
-}
-
-function getShortWeekday(dateString) {
-  const date = new Date(`${dateString}T00:00:00`);
-
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-
-  return date.toLocaleDateString("en-US", { weekday: "short" });
-}
-
-function DashboardChart({ trendRows = [], totalSalesValue = 0, salesTrendPercent = 0 }) {
-  const maxValue = Math.max(...trendRows.map((row) => row.value), 1);
-  const points = trendRows.map((row, index) => {
-    const x = trendRows.length <= 1 ? 0 : (index / (trendRows.length - 1)) * 360;
-    const y = 92 - (row.value / maxValue) * 72;
-
-    return [Number(x.toFixed(2)), Number(Math.max(12, y).toFixed(2))];
-  });
-  const polyline = points.map((point) => point.join(",")).join(" ");
-  const areaPath = points.length
-    ? `M0 100 L${points.map((point) => point.join(" ")).join(" L")} L360 100 Z`
-    : "M0 100 L360 100 Z";
-
-  return (
-    <div className="trend-card">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">Sales View</p>
-          <h3>Total Sales</h3>
-        </div>
-        <div className="trend-summary">
-          <strong>{formatCurrency(totalSalesValue)}</strong>
-          <span>{salesTrendPercent >= 0 ? "+" : ""}{salesTrendPercent}% from previous period</span>
-        </div>
-      </div>
-
-      <svg viewBox="0 0 360 100" className="trend-graphic" role="img" aria-label="Sales trend">
-        <defs>
-          <linearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="rgba(65, 104, 255, 0.20)" />
-            <stop offset="100%" stopColor="rgba(65, 104, 255, 0.02)" />
-          </linearGradient>
-        </defs>
-        <path d={areaPath} fill="url(#trendFill)" />
-        <polyline points={polyline} fill="none" stroke="#4168ff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-
-      <div className="chart-axis">
-        {trendRows.map((row) => (
-          <span key={row.date}>{getShortWeekday(row.date)}</span>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -206,17 +143,6 @@ function computeDateSpanDays(dates) {
   return Math.max(1, Math.round((latestTime - earliestTime) / 86400000) + 1);
 }
 
-function addDays(dateString, offset) {
-  const time = parseUtcDate(dateString);
-
-  if (time === null) {
-    return "";
-  }
-
-  const date = new Date(time + offset * 86400000);
-  return date.toISOString().split("T")[0];
-}
-
 function getMovementKey(item) {
   return normalizeSku(item.sku) || normalizeName(item.product_name);
 }
@@ -277,72 +203,6 @@ function createCommittedSalesRows(sales) {
       .filter((item) => isCommittedSaleItemStatus(getStoredSaleItemStatus(item, sale.status)))
       .map((item) => ({ sale, item }))
   );
-}
-
-function createSalesTrendRows(sales) {
-  const committedRows = createCommittedSalesRows(sales);
-  const totalsByDate = committedRows.reduce((totals, { sale, item }) => {
-    const date = sale.transaction_date || "No date";
-    totals.set(date, (totals.get(date) || 0) + computeAmount(item));
-    return totals;
-  }, new Map());
-  const validDates = [...totalsByDate.keys()]
-    .filter((date) => parseUtcDate(date) !== null)
-    .sort();
-  const latestDate = validDates[validDates.length - 1] || new Date().toISOString().split("T")[0];
-
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = addDays(latestDate, index - 6);
-
-    return {
-      date,
-      value: totalsByDate.get(date) || 0,
-    };
-  });
-}
-
-function computeSalesTrendPercent(sales) {
-  const committedRows = createCommittedSalesRows(sales);
-  const validDates = committedRows
-    .map(({ sale }) => sale.transaction_date)
-    .filter((date) => parseUtcDate(date) !== null)
-    .sort();
-  const latestDate = validDates[validDates.length - 1];
-
-  if (!latestDate) {
-    return 0;
-  }
-
-  const latestTime = parseUtcDate(latestDate);
-  const currentStart = latestTime - 6 * 86400000;
-  const previousStart = latestTime - 13 * 86400000;
-  const previousEnd = latestTime - 7 * 86400000;
-  const totals = committedRows.reduce(
-    (acc, { sale, item }) => {
-      const saleTime = parseUtcDate(sale.transaction_date);
-
-      if (saleTime === null) {
-        return acc;
-      }
-
-      const amount = computeAmount(item);
-
-      if (saleTime >= currentStart && saleTime <= latestTime) {
-        acc.current += amount;
-      } else if (saleTime >= previousStart && saleTime <= previousEnd) {
-        acc.previous += amount;
-      }
-
-      return acc;
-    },
-    { current: 0, previous: 0 }
-  );
-
-  if (totals.previous === 0) {
-    return totals.current > 0 ? 100 : 0;
-  }
-
-  return Math.round(((totals.current - totals.previous) / totals.previous) * 100);
 }
 
 function createEmptyStockRow(key, overrides = {}) {
@@ -591,20 +451,51 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
       totalStockUnits: stockRows.reduce((sum, item) => sum + item.available_stock, 0),
       totalStockValue: stockRows.reduce((sum, item) => sum + item.stock_value, 0),
       lowStockCount: stockRows.filter((item) => item.health.label === "Urgent").length,
+      watchStockCount: stockRows.filter((item) => item.health.label === "Watch").length,
+      receivedPurchaseValue: stockRows.reduce(
+        (sum, item) => sum + item.received_purchase_value,
+        0
+      ),
       committedSalesValue: createCommittedSalesRows(sales).reduce(
         (sum, { item }) => sum + computeAmount(item),
         0
       ),
       pendingSalesUnits: stockRows.reduce((sum, item) => sum + item.pending_sales_units, 0),
+      pendingPurchaseUnits: stockRows.reduce((sum, item) => sum + item.pending_purchase_units, 0),
+      delayedPurchaseUnits: stockRows.reduce((sum, item) => sum + item.delayed_purchase_units, 0),
+      shortageUnits: stockRows.reduce((sum, item) => sum + item.oversold_units, 0),
+      recommendedRestockUnits: stockRows.reduce((sum, item) => sum + item.recommended_restock, 0),
     }),
     [metrics.total_products, sales, stockRows]
   );
-  const salesTrendRows = useMemo(() => createSalesTrendRows(sales), [sales]);
-  const salesTrendPercent = useMemo(() => computeSalesTrendPercent(sales), [sales]);
   const attentionRows = stockRows
     .filter((item) => item.health.label === "Urgent")
     .sort((leftItem, rightItem) => leftItem.available_stock - rightItem.available_stock);
+  const attentionPreviewRows = attentionRows.slice(0, 6);
+  const hiddenAttentionCount = Math.max(0, attentionRows.length - attentionPreviewRows.length);
   const strongestStock = Math.max(...attentionRows.map((item) => item.reorder_level || 0), 1);
+  const movementRows = [
+    {
+      label: "Committed sales",
+      value: formatCurrency(stockMetrics.committedSalesValue),
+      helper: "Packed, shipped, and delivered items",
+    },
+    {
+      label: "Received purchases",
+      value: formatCurrency(stockMetrics.receivedPurchaseValue),
+      helper: "Cost value already received into stock",
+    },
+    {
+      label: "Pending sales",
+      value: formatStockQuantity(stockMetrics.pendingSalesUnits, "units"),
+      helper: "Demand waiting for stock commitment",
+    },
+    {
+      label: "Purchase pipeline",
+      value: formatStockQuantity(stockMetrics.pendingPurchaseUnits, "units"),
+      helper: `${formatStockQuantity(stockMetrics.delayedPurchaseUnits, "units")} delayed`,
+    },
+  ];
   const categoryOptions = useMemo(
     () =>
       [...new Set(stockRows.map((item) => item.category).filter((category) => category && category !== "-"))]
@@ -621,7 +512,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
     { value: "all", label: "All sales states" },
     { value: "committed", label: "Has committed sales" },
     { value: "pending", label: "Has pending sales" },
-    { value: "oversold", label: "Oversold" },
+    { value: "oversold", label: "Shortage" },
     { value: "no-demand", label: "No sales demand" },
   ];
   const purchaseFilterOptions = [
@@ -641,7 +532,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
   const sortMetricOptions = [
     { value: "available_stock", label: "Available stock" },
     { value: "pending_sales_units", label: "Pending sales" },
-    { value: "oversold_units", label: "Oversold units" },
+    { value: "oversold_units", label: "Shortage units" },
     { value: "pending_purchase_units", label: "Pending PO" },
     { value: "delayed_purchase_units", label: "Delayed PO" },
     { value: "recommended_restock", label: "Suggested purchase" },
@@ -764,48 +655,47 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
     setSortOrder("low-to-high");
   };
   return (
-    <div className="stack-layout">
-      <section className="metrics-grid">
-        <StatCard
-          label="Products"
-          value={formatNumber(stockMetrics.totalProducts)}
-          helper="Total items in the system"
-          trend={12}
+    <div className="stack-layout dashboard-page">
+      <section className="dashboard-summary-grid" aria-label="Dashboard summary">
+        <DashboardKpi
+          label="Inventory value"
+          value={formatCurrency(stockMetrics.totalStockValue)}
+          helper="Current available stock value"
         />
-        <StatCard
-          label="Stock Units"
+        <DashboardKpi
+          label="Available units"
           value={formatNumber(stockMetrics.totalStockUnits)}
-          helper="Received purchases minus active sales"
-          trend={8}
+          helper={`${formatNumber(stockMetrics.totalProducts)} active products`}
         />
-        <StatCard
-          label="Committed Sales"
-          value={formatCurrency(stockMetrics.committedSalesValue)}
-          helper="Packed, shipped, and delivered sale items"
-          trend={salesTrendPercent}
-        />
-        <StatCard
-          label="Low Stock"
+        <DashboardKpi
+          label="Urgent stock"
           value={formatNumber(stockMetrics.lowStockCount)}
-          helper={`${formatNumber(stockMetrics.pendingSalesUnits)} units pending in sales`}
-          trend={-6}
+          helper={`${formatNumber(stockMetrics.watchStockCount)} products on watch`}
+          tone={stockMetrics.lowStockCount > 0 ? "danger" : "positive"}
+        />
+        <DashboardKpi
+          label="Suggested purchase"
+          value={formatStockQuantity(stockMetrics.recommendedRestockUnits, "units")}
+          helper={`${formatStockQuantity(stockMetrics.shortageUnits, "units")} shortage`}
+          tone={stockMetrics.recommendedRestockUnits > 0 ? "warning" : "positive"}
         />
       </section>
 
-      <section className="double-grid">
-        <article className="section-card">
+      <section className="dashboard-insight-grid">
+        <article className="section-card dashboard-attention-card">
           <div className="section-heading">
             <div>
               <p className="eyebrow">Need Attention</p>
               <h3>Low Stock Products</h3>
             </div>
+            <span className="dashboard-count-pill">{formatNumber(attentionRows.length)}</span>
           </div>
 
           {attentionRows.length === 0 ? (
             <p className="empty-copy">No low-stock products yet.</p>
           ) : (
             <div className="attention-list">
-              {attentionRows.map((item) => (
+              {attentionPreviewRows.map((item) => (
                 <div className="attention-row" key={item.product_id}>
                   <div className="attention-meta">
                     <strong>{item.product_name}</strong>
@@ -827,15 +717,35 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                   </div>
                 </div>
               ))}
+              {hiddenAttentionCount > 0 ? (
+                <p className="dashboard-inline-note">
+                  {formatNumber(hiddenAttentionCount)} more urgent products are shown in the stock table.
+                </p>
+              ) : null}
             </div>
           )}
         </article>
 
-        <DashboardChart
-          trendRows={salesTrendRows}
-          totalSalesValue={stockMetrics.committedSalesValue}
-          salesTrendPercent={salesTrendPercent}
-        />
+        <article className="section-card dashboard-movement-card">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Movement</p>
+              <h3>Stock Movement Summary</h3>
+            </div>
+          </div>
+
+          <div className="dashboard-movement-list">
+            {movementRows.map((row) => (
+              <div className="dashboard-movement-row" key={row.label}>
+                <div>
+                  <span>{row.label}</span>
+                  <p>{row.helper}</p>
+                </div>
+                <strong>{row.value}</strong>
+              </div>
+            ))}
+          </div>
+        </article>
       </section>
 
       <section className="section-card">
@@ -847,10 +757,8 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
         </div>
 
         <p className="inventory-note">
-          Available stock is calculated from received purchase items minus committed sale items.
-          Reorder point uses actual average daily sales demand, received purchase lead time, and
-          a {SAFETY_STOCK_DAYS}-day safety stock buffer. Pending sales, pending purchases, and
-          delayed purchases are tracked separately.
+          Available stock, shortage, pending sales, purchase pipeline, and suggested purchase are
+          calculated from your purchase and sales transactions.
         </p>
 
         <div className="stock-filter-search-row">
@@ -1107,7 +1015,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                     <strong>{formatStockQuantity(item.pending_sales_units, item.unit)}</strong>
                   </div>
                   <div>
-                    <span>Oversold</span>
+                    <span>Shortage</span>
                     <strong>{formatStockQuantity(item.oversold_units, item.unit)}</strong>
                   </div>
                   <div>
