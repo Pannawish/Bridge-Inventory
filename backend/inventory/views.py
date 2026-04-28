@@ -1,7 +1,9 @@
 import json
+import logging
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
-from django.db.models import ProtectedError
 from django.db import IntegrityError
+from django.db.models import ProtectedError
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -19,12 +21,37 @@ from .serializers import (
 from .services import answer_inventory_question, build_dashboard_summary
 
 
+logger = logging.getLogger(__name__)
+
+NULL_IF_BLANK_FIELDS = {
+    "expected_delivery_date",
+    "received_date",
+    "lead_time_days",
+    "shipped_date",
+    "delivered_date",
+    "payment_received_date",
+}
+
+DECIMAL_FIELD_PLACES = {
+    "total_before_vat": 2,
+    "vat_amount": 2,
+    "grand_total": 2,
+    "unit_cost": 2,
+    "unit_price": 2,
+    "amount": 2,
+    "line_total": 2,
+    "quantity": 3,
+    "base_quantity": 3,
+    "conversion_factor": 6,
+}
+
+
 def format_serializer_errors(errors):
     if isinstance(errors, dict):
         parts = []
         for field, messages in errors.items():
             if isinstance(messages, list):
-                message = " ".join(str(item) for item in messages)
+                message = " ".join(format_serializer_errors(item) for item in messages)
             elif isinstance(messages, dict):
                 message = format_serializer_errors(messages)
             else:
@@ -33,9 +60,30 @@ def format_serializer_errors(errors):
         return " ".join(parts)
 
     if isinstance(errors, list):
-        return " ".join(str(item) for item in errors)
+        return " ".join(format_serializer_errors(item) for item in errors)
 
     return str(errors)
+
+
+def normalize_decimal_value(value, decimal_places):
+    if value in ("", None):
+        return value
+
+    try:
+        decimal_value = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return value
+
+    quantizer = Decimal("1").scaleb(-decimal_places)
+    return str(decimal_value.quantize(quantizer, rounding=ROUND_HALF_UP))
+
+
+def normalize_decimal_fields(data):
+    for field, decimal_places in DECIMAL_FIELD_PLACES.items():
+        if field in data:
+            data[field] = normalize_decimal_value(data[field], decimal_places)
+
+    return data
 
 
 def normalize_request_data(request):
@@ -44,6 +92,23 @@ def normalize_request_data(request):
     raw_items = data.get("items")
     if isinstance(raw_items, str):
         data["items"] = json.loads(raw_items or "[]")
+
+    for field in NULL_IF_BLANK_FIELDS:
+        if data.get(field) == "":
+            data[field] = None
+
+    data = normalize_decimal_fields(data)
+
+    if isinstance(data.get("items"), list):
+        data["items"] = [
+            normalize_decimal_fields(
+                {
+                    key: None if key in NULL_IF_BLANK_FIELDS and value == "" else value
+                    for key, value in item.items()
+                }
+            )
+            for item in data["items"]
+        ]
 
     return data
 
@@ -59,6 +124,7 @@ class InventoryModelViewSet(viewsets.ModelViewSet):
             return Response({"error": "Items must be valid JSON."}, status=status.HTTP_400_BAD_REQUEST)
 
         if not serializer.is_valid():
+            logger.warning("%s create validation error: %s", self.__class__.__name__, serializer.errors)
             return Response(
                 {"error": format_serializer_errors(serializer.errors)},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -66,9 +132,10 @@ class InventoryModelViewSet(viewsets.ModelViewSet):
 
         try:
             self.perform_create(serializer)
-        except IntegrityError:
+        except IntegrityError as exc:
+            logger.warning("%s create integrity error: %s", self.__class__.__name__, exc)
             return Response(
-                {"error": "This record conflicts with existing data."},
+                {"error": f"This record conflicts with existing data: {exc}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

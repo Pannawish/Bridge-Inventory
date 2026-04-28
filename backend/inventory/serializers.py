@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.db import transaction
 from rest_framework import serializers
 
 from .models import (
@@ -27,6 +28,32 @@ def decimal_or_zero(value):
         return Decimal("0")
 
     return Decimal(str(value))
+
+
+def resolve_product(product_id=None, sku="", product_name=""):
+    product_id = str(product_id or "").strip()
+    sku = str(sku or "").strip()
+    product_name = str(product_name or "").strip()
+
+    if product_id:
+        product = Product.objects.filter(pk=product_id).first()
+        if product:
+            return product
+
+    if sku:
+        product = Product.objects.filter(sku__iexact=sku).first()
+        if product:
+            return product
+
+    if product_name:
+        return Product.objects.filter(product_name__iexact=product_name).first()
+
+    return None
+
+
+def strip_existing_item_id(item):
+    item.pop("id", None)
+    return item
 
 
 def build_file_url(request, file_field):
@@ -297,7 +324,7 @@ class PurchaseItemSerializer(serializers.ModelSerializer):
             "line_total",
         ]
         extra_kwargs = {
-            "id": {"required": False},
+            "id": {"read_only": True},
             "sku": {"required": False, "allow_blank": True},
             "expected_delivery_date": {"required": False, "allow_null": True},
             "received_date": {"required": False, "allow_null": True},
@@ -319,6 +346,12 @@ class PurchaseItemSerializer(serializers.ModelSerializer):
         return value or None
 
     def validate(self, attrs):
+        product_id_value = attrs.pop("product_id", None)
+        attrs["product"] = resolve_product(
+            product_id=product_id_value,
+            sku=attrs.get("sku", ""),
+            product_name=attrs.get("product_name", ""),
+        )
         quantity = decimal_or_zero(attrs.get("quantity", 0))
         factor = decimal_or_zero(attrs.get("conversion_factor", 1)) or Decimal("1")
         attrs["quantity"] = quantity
@@ -373,6 +406,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
 
         purchase.items.all().delete()
         for item in items:
+            item = strip_existing_item_id(item)
             PurchaseItem.objects.create(purchase=purchase, **item)
         if hasattr(purchase, "_prefetched_objects_cache"):
             purchase._prefetched_objects_cache = {}
@@ -384,23 +418,25 @@ class PurchaseSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items = validated_data.pop("items", [])
-        purchase = Purchase.objects.create(**validated_data)
-        self._replace_items(purchase, items)
+        with transaction.atomic():
+            purchase = Purchase.objects.create(**validated_data)
+            self._replace_items(purchase, items)
         return purchase
 
     def update(self, instance, validated_data):
         items = validated_data.pop("items", None)
         status_changed = "status" in validated_data
 
-        for field, value in validated_data.items():
-            setattr(instance, field, value)
-        instance.save()
-        self._replace_items(instance, items)
+        with transaction.atomic():
+            for field, value in validated_data.items():
+                setattr(instance, field, value)
+            instance.save()
+            self._replace_items(instance, items)
 
-        if status_changed and items is None:
-            self._apply_status_to_items(instance)
-            if hasattr(instance, "_prefetched_objects_cache"):
-                instance._prefetched_objects_cache = {}
+            if status_changed and items is None:
+                self._apply_status_to_items(instance)
+                if hasattr(instance, "_prefetched_objects_cache"):
+                    instance._prefetched_objects_cache = {}
 
         return instance
 
@@ -430,7 +466,7 @@ class SaleItemSerializer(serializers.ModelSerializer):
             "line_total",
         ]
         extra_kwargs = {
-            "id": {"required": False},
+            "id": {"read_only": True},
             "sku": {"required": False, "allow_blank": True},
             "shipped_date": {"required": False, "allow_null": True},
             "delivered_date": {"required": False, "allow_null": True},
@@ -451,6 +487,12 @@ class SaleItemSerializer(serializers.ModelSerializer):
         return value or None
 
     def validate(self, attrs):
+        product_id_value = attrs.pop("product_id", None)
+        attrs["product"] = resolve_product(
+            product_id=product_id_value,
+            sku=attrs.get("sku", ""),
+            product_name=attrs.get("product_name", ""),
+        )
         quantity = decimal_or_zero(attrs.get("quantity", 0))
         factor = decimal_or_zero(attrs.get("conversion_factor", 1)) or Decimal("1")
         attrs["quantity"] = quantity
@@ -507,6 +549,7 @@ class SaleSerializer(serializers.ModelSerializer):
 
         sale.items.all().delete()
         for item in items:
+            item = strip_existing_item_id(item)
             SaleItem.objects.create(sale=sale, **item)
         if hasattr(sale, "_prefetched_objects_cache"):
             sale._prefetched_objects_cache = {}
@@ -518,22 +561,24 @@ class SaleSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items = validated_data.pop("items", [])
-        sale = Sale.objects.create(**validated_data)
-        self._replace_items(sale, items)
+        with transaction.atomic():
+            sale = Sale.objects.create(**validated_data)
+            self._replace_items(sale, items)
         return sale
 
     def update(self, instance, validated_data):
         items = validated_data.pop("items", None)
         status_changed = "status" in validated_data
 
-        for field, value in validated_data.items():
-            setattr(instance, field, value)
-        instance.save()
-        self._replace_items(instance, items)
+        with transaction.atomic():
+            for field, value in validated_data.items():
+                setattr(instance, field, value)
+            instance.save()
+            self._replace_items(instance, items)
 
-        if status_changed and items is None:
-            self._apply_status_to_items(instance)
-            if hasattr(instance, "_prefetched_objects_cache"):
-                instance._prefetched_objects_cache = {}
+            if status_changed and items is None:
+                self._apply_status_to_items(instance)
+                if hasattr(instance, "_prefetched_objects_cache"):
+                    instance._prefetched_objects_cache = {}
 
         return instance

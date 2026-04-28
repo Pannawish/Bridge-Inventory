@@ -1160,8 +1160,14 @@ function PurchaseHistoryPage({
   }
 
   async function handleCreatePurchase(formData) {
-    await onCreatePurchase?.(formData);
+    const saved = await onCreatePurchase?.(formData);
+
+    if (saved === false) {
+      return false;
+    }
+
     setShowNewPurchaseForm(false);
+    return true;
   }
 
   async function handleDelete(deletedPurchase) {

@@ -253,10 +253,18 @@ function App() {
   }
 
   async function handlePurchaseCreateFromHistory(formData) {
-    await api.createPurchase(formData);
-    setNotice("Purchase transaction saved.");
-    setActiveTab("purchase-history");
-    await loadData();
+    setError("");
+
+    try {
+      await api.createPurchase(formData);
+      setNotice("Purchase transaction saved.");
+      setActiveTab("purchase-history");
+      await loadData();
+      return true;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
   }
 
   async function handleSalesCreateFromHistory(formData) {

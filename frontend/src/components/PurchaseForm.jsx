@@ -493,7 +493,11 @@ function PurchaseForm({
 
     formData.append("items", JSON.stringify(filteredItems));
 
-    await onSubmit(formData);
+    const saved = await onSubmit(formData);
+
+    if (saved === false) {
+      return;
+    }
 
     setForm(createInitialForm(lastGeneratedReference.current));
     setItems([emptyItem()]);
