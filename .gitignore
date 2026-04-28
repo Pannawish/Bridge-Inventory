@@ -3,10 +3,10 @@ node_modules/
 dist/
 .env
 .env.*
-!backend/.env.example
+!.env.example
+!**/.env.example
 .venv/
 __pycache__/
 db.sqlite3
-archrive-backend/
 backend/media/
 backend/staticfiles/
