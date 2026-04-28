@@ -1196,116 +1196,65 @@ function ProductsPage({
             </span>
           </div>
 
-          <div className="supplier-directory-table" role="table" aria-label="Product list">
+          <div className="table-scroll transaction-table-window product-table-window">
             {filteredProductsWithMetrics.length === 0 ? (
               <p className="empty-copy">No products match the current search or filters.</p>
             ) : (
-              <>
-                <div className="supplier-directory-head product-directory-grid" role="row">
-                  <span className="supplier-directory-column supplier-directory-index" role="columnheader">
-                    #
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Product
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Category
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Stock
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Avg Cost
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Setup
-                  </span>
-                </div>
-
-                <div className="supplier-directory-body" role="rowgroup">
+              <table>
+                <thead>
+                  <tr>
+                    <th className="product-col-index">#</th>
+                    <th className="product-col-name">Product</th>
+                    <th className="product-col-category">Category</th>
+                    <th className="product-col-stock">Stock</th>
+                    <th className="product-col-cost">Avg Cost</th>
+                    <th className="product-col-action">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {filteredProductsWithMetrics.map(({ product, metrics, categoryLabel }, index) => (
-                    <button
-                      key={product.id}
-                      type="button"
-                      className="supplier-directory-row product-directory-grid"
-                      onClick={() => openProductDetail(product)}
-                      role="row"
-                    >
-                      <span className="supplier-directory-cell supplier-directory-index" role="cell">
-                        <span className="supplier-directory-cell-label">#</span>
-                        <strong className="supplier-directory-cell-value">{index + 1}</strong>
-                      </span>
-
-                      <span className="supplier-directory-cell" role="cell">
-                        <span className="supplier-directory-cell-label">Product</span>
-                        <span className="directory-entity">
-                          <strong className="supplier-directory-cell-value directory-primary-text">
-                            {getProductDisplayName(product)}
-                          </strong>
-                          <span className="directory-secondary-text">
-                            {product.sku ? `SKU ${product.sku}` : "SKU not set"}
-                          </span>
-                          <span className="directory-chip-row">
-                            <span className="directory-chip">{getProductBaseUnit(product)} base</span>
-                            <span className="directory-chip subtle">
-                              {product.subNames.length} aliases
-                            </span>
-                          </span>
-                        </span>
-                      </span>
-
-                      <span className="supplier-directory-cell" role="cell">
-                        <span className="supplier-directory-cell-label">Category</span>
-                        <span className="directory-entity">
-                          <strong className="supplier-directory-cell-value directory-primary-text">
-                            {categoryLabel || "Unassigned"}
-                          </strong>
-                          <span className="directory-secondary-text">
-                            {product.detail || "No product detail"}
-                          </span>
-                        </span>
-                      </span>
-
-                      <span className="supplier-directory-cell" role="cell">
-                        <span className="supplier-directory-cell-label">Stock</span>
-                        <span className="directory-entity">
-                          <strong className="supplier-directory-cell-value directory-primary-text">
-                            {formatStockQuantity(metrics.totalUnits, product)}
-                          </strong>
-                          <span className="directory-secondary-text">
-                            Purchase in {getProductDefaultPurchaseUnit(product)} · Sales in{" "}
+                    <tr key={product.id}>
+                      <td>{index + 1}</td>
+                      <td>
+                        <div className="transaction-reference-cell">
+                          <strong>{getProductDisplayName(product)}</strong>
+                          <span>{product.sku ? `SKU ${product.sku}` : "SKU not set"}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="cell-stack">
+                          <strong>{categoryLabel || "Unassigned"}</strong>
+                          <span>{product.detail || "No product detail"}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="cell-stack">
+                          <strong>{formatStockQuantity(metrics.totalUnits, product)}</strong>
+                          <span>
+                            Buy {getProductDefaultPurchaseUnit(product)} · Sell{" "}
                             {getProductDefaultSalesUnit(product)}
                           </span>
-                        </span>
-                      </span>
-
-                      <span className="supplier-directory-cell" role="cell">
-                        <span className="supplier-directory-cell-label">Avg Cost</span>
-                        <span className="directory-entity">
-                          <strong className="supplier-directory-cell-value directory-primary-text">
-                            {formatCurrency(metrics.avgPrice)}
-                          </strong>
-                          <span className="directory-secondary-text">
-                            Product ID {product.productDisplayId}
-                          </span>
-                        </span>
-                      </span>
-
-                      <span className="supplier-directory-cell" role="cell">
-                        <span className="supplier-directory-cell-label">Setup</span>
-                        <span className="directory-entity">
-                          <strong className="supplier-directory-cell-value directory-primary-text">
-                            {product.unitConversions.length} unit mappings
-                          </strong>
-                          <span className="directory-secondary-text">
-                            {product.pictureUrl ? "Image linked" : "No image linked"}
-                          </span>
-                        </span>
-                      </span>
-                    </button>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="cell-stack">
+                          <strong>{formatCurrency(metrics.avgPrice)}</strong>
+                          <span>ID {product.productDisplayId}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <button
+                          className="table-action-button"
+                          type="button"
+                          onClick={() => openProductDetail(product)}
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              </>
+                </tbody>
+              </table>
             )}
           </div>
         </section>

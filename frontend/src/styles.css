@@ -1822,6 +1822,30 @@ th {
   width: 6%;
 }
 
+.product-col-index {
+  width: 4%;
+}
+
+.product-col-name {
+  width: 24%;
+}
+
+.product-col-category {
+  width: 26%;
+}
+
+.product-col-stock {
+  width: 19%;
+}
+
+.product-col-cost {
+  width: 15%;
+}
+
+.product-col-action {
+  width: 12%;
+}
+
 .transaction-table-window th,
 .transaction-table-window td {
   padding: 10px 8px;
@@ -1889,6 +1913,26 @@ th {
   top: 0;
   z-index: 1;
   background: #fff;
+}
+
+.product-table-window tbody tr {
+  height: 66px;
+}
+
+.product-table-window .cell-stack,
+.product-table-window .transaction-reference-cell {
+  gap: 3px;
+}
+
+.product-table-window .cell-stack strong,
+.product-table-window .transaction-reference-cell strong {
+  font-weight: 650;
+}
+
+.product-table-window .cell-stack span,
+.product-table-window .transaction-reference-cell span {
+  color: var(--muted);
+  font-size: 0.74rem;
 }
 
 .transaction-grand-total {
