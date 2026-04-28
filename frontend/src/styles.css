@@ -1783,7 +1783,7 @@ th {
   padding: 4px 7px;
   border-radius: 999px;
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -1948,7 +1948,7 @@ th {
   border-radius: 999px;
   color: var(--accent-deep);
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 500;
   background: var(--accent-soft);
   white-space: nowrap;
 }
