@@ -116,6 +116,28 @@ function getItemStatusOptions(editableStatuses, currentStatus) {
   return [currentStatus, ...editableStatuses];
 }
 
+function getCompactItemSummary(items = []) {
+  const previewItems = items.slice(0, 2);
+  const remainingCount = Math.max(0, items.length - previewItems.length);
+  const previewText = previewItems
+    .map((item) => item.product_name || item.productName || item.name || item.sku || "Unnamed item")
+    .join(", ");
+
+  if (!items.length) {
+    return {
+      countLabel: "0 items",
+      previewText: "No line items",
+      remainingLabel: "",
+    };
+  }
+
+  return {
+    countLabel: `${items.length} ${items.length === 1 ? "item" : "items"}`,
+    previewText,
+    remainingLabel: remainingCount > 0 ? `+${remainingCount} more` : "",
+  };
+}
+
 function TransactionTable({
   rows,
   products = [],
@@ -305,10 +327,32 @@ function TransactionTable({
         <div className={isCompact ? "transaction-table-window compact-history" : "transaction-table-window"}>
           <div className="table-scroll desktop-table">
             <table>
+              <colgroup>
+                <col className="history-col-index" />
+                <col className="history-col-reference" />
+                <col className="history-col-party" />
+                <col className="history-col-status" />
+                <col className="history-col-date" />
+                <col className="history-col-items" />
+                {type === "sale" ? (
+                  <>
+                    <col className="history-col-money" />
+                    <col className="history-col-money" />
+                    <col className="history-col-money" />
+                  </>
+                ) : (
+                  <>
+                    <col className="history-col-tax" />
+                    <col className="history-col-money" />
+                  </>
+                )}
+                <col className="history-col-document" />
+                <col className="history-col-action" />
+              </colgroup>
               <thead>
                 <tr>
                   <th className="table-index-cell">#</th>
-                  <th>Reference</th>
+                  <th>Ref</th>
                   <th>{type === "purchase" ? "Supplier" : "Customer"}</th>
                   <th>Status</th>
                   <th>Date</th>
@@ -321,23 +365,34 @@ function TransactionTable({
                     </>
                   ) : (
                     <>
-                      <th>Supplier's Tax Invoice</th>
+                      <th>Tax Inv.</th>
                       <th>Total</th>
                     </>
                   )}
-                  <th>Document</th>
+                  <th>Doc</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, rowIndex) => {
                   const salesSummary = type === "sale" ? getVatSummary(row) : null;
+                  const itemSummary = getCompactItemSummary(row.items || []);
 
                   return (
                     <tr key={`${type}-${row.id}`}>
                       <td className="table-index-cell">{rowIndex + 1}</td>
-                      <td>{row.reference_no}</td>
-                      <td>{row[personKey]}</td>
+                      <td>
+                        <div className="transaction-reference-cell">
+                          <strong>{row.reference_no || "—"}</strong>
+                          <span>{type === "purchase" ? "Purchase order" : "Sales invoice"}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="cell-stack">
+                          <strong>{row[personKey] || "—"}</strong>
+                          <span>{type === "purchase" ? "Supplier" : "Customer"}</span>
+                        </div>
+                      </td>
                       <td>
                         <select
                           className={`status-select status-${row.status}`}
@@ -367,17 +422,18 @@ function TransactionTable({
                       </td>
                       <td>{row.transaction_date}</td>
                       <td>
-                        <div className="item-pill-list">
-                          {(row.items || []).map((item, itemIndex) => (
-                            <span key={item.id} className="item-pill">
-                              <span className="item-pill-index">{itemIndex + 1}.</span>
-                              {item.product_name} × {getItemQuantityDetails(
-                                item,
-                                findProductForItem(products, item),
-                                type
-                              ).inlineLabel}
+                        <div className="history-item-summary">
+                          <span className="history-item-count">
+                            {itemSummary.countLabel}
+                          </span>
+                          <strong title={itemSummary.previewText}>
+                            {itemSummary.previewText}
+                          </strong>
+                          {itemSummary.remainingLabel ? (
+                            <span className="history-item-more">
+                              {itemSummary.remainingLabel}
                             </span>
-                          ))}
+                          ) : null}
                         </div>
                       </td>
                       {type === "sale" ? (
@@ -391,7 +447,9 @@ function TransactionTable({
                       ) : (
                         <>
                           <td>{row.supplier_tax_invoice || "—"}</td>
-                          <td>{formatCurrency(row.total_amount)}</td>
+                          <td>
+                            <strong>{formatCurrency(getRowGrandTotal(row))}</strong>
+                          </td>
                         </>
                       )}
                       <td>
@@ -422,6 +480,7 @@ function TransactionTable({
           <div className="mobile-record-list">
             {rows.map((row, rowIndex) => {
               const salesSummary = type === "sale" ? getVatSummary(row) : null;
+              const itemSummary = getCompactItemSummary(row.items || []);
 
               return (
                 <article className="mobile-record-card" key={`mobile-${type}-${row.id}`}>
@@ -489,22 +548,17 @@ function TransactionTable({
                     {type === "purchase" ? (
                       <div>
                         <span>Total</span>
-                        <strong>{formatCurrency(row.total_amount)}</strong>
+                        <strong>{formatCurrency(getRowGrandTotal(row))}</strong>
                       </div>
                     ) : null}
                     <div className="full-width-mobile">
                       <span>Items</span>
-                      <div className="item-pill-list">
-                        {(row.items || []).map((item, itemIndex) => (
-                          <span key={item.id} className="item-pill">
-                            <span className="item-pill-index">{itemIndex + 1}.</span>
-                            {item.product_name} × {getItemQuantityDetails(
-                              item,
-                              findProductForItem(products, item),
-                              type
-                            ).inlineLabel}
-                          </span>
-                        ))}
+                      <div className="history-item-summary mobile-history-item-summary">
+                        <span className="history-item-count">{itemSummary.countLabel}</span>
+                        <strong title={itemSummary.previewText}>{itemSummary.previewText}</strong>
+                        {itemSummary.remainingLabel ? (
+                          <span className="history-item-more">{itemSummary.remainingLabel}</span>
+                        ) : null}
                       </div>
                     </div>
                   </div>

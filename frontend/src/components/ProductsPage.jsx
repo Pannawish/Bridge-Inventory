@@ -1184,19 +1184,19 @@ function ProductsPage({
                     #
                   </span>
                   <span className="supplier-directory-column" role="columnheader">
-                    Product Name
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    SKU
+                    Product
                   </span>
                   <span className="supplier-directory-column" role="columnheader">
                     Category
                   </span>
                   <span className="supplier-directory-column" role="columnheader">
-                    Total Units
+                    Stock
                   </span>
                   <span className="supplier-directory-column" role="columnheader">
-                    Avg Price
+                    Avg Cost
+                  </span>
+                  <span className="supplier-directory-column" role="columnheader">
+                    Setup
                   </span>
                 </div>
 
@@ -1215,35 +1215,69 @@ function ProductsPage({
                       </span>
 
                       <span className="supplier-directory-cell" role="cell">
-                        <span className="supplier-directory-cell-label">Product Name</span>
-                        <strong className="supplier-directory-cell-value">
-                          {getProductDisplayName(product)}
-                        </strong>
-                      </span>
-
-                      <span className="supplier-directory-cell" role="cell">
-                        <span className="supplier-directory-cell-label">SKU</span>
-                        <span className="supplier-directory-cell-value">{product.sku || "—"}</span>
+                        <span className="supplier-directory-cell-label">Product</span>
+                        <span className="directory-entity">
+                          <strong className="supplier-directory-cell-value directory-primary-text">
+                            {getProductDisplayName(product)}
+                          </strong>
+                          <span className="directory-secondary-text">
+                            {product.sku ? `SKU ${product.sku}` : "SKU not set"}
+                          </span>
+                          <span className="directory-chip-row">
+                            <span className="directory-chip">{getProductBaseUnit(product)} base</span>
+                            <span className="directory-chip subtle">
+                              {product.subNames.length} aliases
+                            </span>
+                          </span>
+                        </span>
                       </span>
 
                       <span className="supplier-directory-cell" role="cell">
                         <span className="supplier-directory-cell-label">Category</span>
-                        <span className="supplier-directory-cell-value">
-                          {categoryLabel || "—"}
+                        <span className="directory-entity">
+                          <strong className="supplier-directory-cell-value directory-primary-text">
+                            {categoryLabel || "Unassigned"}
+                          </strong>
+                          <span className="directory-secondary-text">
+                            {product.detail || "No product detail"}
+                          </span>
                         </span>
                       </span>
 
                       <span className="supplier-directory-cell" role="cell">
-                        <span className="supplier-directory-cell-label">Total Units</span>
-                        <span className="supplier-directory-cell-value">
-                          {formatStockQuantity(metrics.totalUnits, product)}
+                        <span className="supplier-directory-cell-label">Stock</span>
+                        <span className="directory-entity">
+                          <strong className="supplier-directory-cell-value directory-primary-text">
+                            {formatStockQuantity(metrics.totalUnits, product)}
+                          </strong>
+                          <span className="directory-secondary-text">
+                            Purchase in {getProductDefaultPurchaseUnit(product)} · Sales in{" "}
+                            {getProductDefaultSalesUnit(product)}
+                          </span>
                         </span>
                       </span>
 
                       <span className="supplier-directory-cell" role="cell">
-                        <span className="supplier-directory-cell-label">Avg Price</span>
-                        <span className="supplier-directory-cell-value">
-                          {formatCurrency(metrics.avgPrice)}
+                        <span className="supplier-directory-cell-label">Avg Cost</span>
+                        <span className="directory-entity">
+                          <strong className="supplier-directory-cell-value directory-primary-text">
+                            {formatCurrency(metrics.avgPrice)}
+                          </strong>
+                          <span className="directory-secondary-text">
+                            Product ID {product.productDisplayId}
+                          </span>
+                        </span>
+                      </span>
+
+                      <span className="supplier-directory-cell" role="cell">
+                        <span className="supplier-directory-cell-label">Setup</span>
+                        <span className="directory-entity">
+                          <strong className="supplier-directory-cell-value directory-primary-text">
+                            {product.unitConversions.length} unit mappings
+                          </strong>
+                          <span className="directory-secondary-text">
+                            {product.pictureUrl ? "Image linked" : "No image linked"}
+                          </span>
                         </span>
                       </span>
                     </button>

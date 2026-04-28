@@ -360,6 +360,16 @@ function CategoryPage({
 
     return assignmentCount;
   }, [categories, products]);
+  const childCategoryCounts = useMemo(() => {
+    const counts = new Map();
+
+    categories.forEach((category) => {
+      const parentId = category.parentId || null;
+      counts.set(parentId, (counts.get(parentId) || 0) + 1);
+    });
+
+    return counts;
+  }, [categories]);
   const parentCategoryOptions = useMemo(() => {
     if (!draftCategory) {
       return [];
@@ -584,13 +594,13 @@ function CategoryPage({
             <>
               <div className="supplier-directory-head category-directory-grid" role="row">
                 <span className="supplier-directory-column" role="columnheader">
-                  Category Name
+                  Category
                 </span>
                 <span className="supplier-directory-column" role="columnheader">
-                  Parent Category
+                  Structure
                 </span>
                 <span className="supplier-directory-column" role="columnheader">
-                  Description
+                  Coverage
                 </span>
               </div>
 
@@ -610,9 +620,9 @@ function CategoryPage({
                     tabIndex={0}
                   >
                     <span className="supplier-directory-cell" role="cell">
-                      <span className="supplier-directory-cell-label">Category Name</span>
+                      <span className="supplier-directory-cell-label">Category</span>
                       <span
-                        className="category-tree-cell"
+                        className="category-tree-cell directory-entity"
                         style={{ paddingInlineStart: `${depth * 20}px` }}
                       >
                         {hasChildren ? (
@@ -636,25 +646,48 @@ function CategoryPage({
                             .
                           </span>
                         )}
-                        <strong className="supplier-directory-cell-value category-tree-name">
-                          {category.name || "Unnamed Category"}
+                        <span className="directory-entity">
+                          <strong className="supplier-directory-cell-value category-tree-name directory-primary-text">
+                            {category.name || "Unnamed Category"}
+                          </strong>
+                          <span className="directory-secondary-text">
+                            {category.description || "No description"}
+                          </span>
+                          <span className="directory-chip-row">
+                            <span className="directory-chip">
+                              {depth === 0 ? "Root" : `Level ${depth + 1}`}
+                            </span>
+                            <span className="directory-chip subtle">
+                              {childCategoryCounts.get(category.id) || 0} subcategories
+                            </span>
+                          </span>
+                        </span>
+                      </span>
+                    </span>
+
+                    <span className="supplier-directory-cell" role="cell">
+                      <span className="supplier-directory-cell-label">Structure</span>
+                      <span className="directory-entity">
+                        <strong className="supplier-directory-cell-value directory-primary-text">
+                          {category.parentId
+                            ? getCategoryPathById(categories, category.parentId) || "—"
+                            : "Root category"}
                         </strong>
+                        <span className="directory-secondary-text">
+                          {hasChildren ? "Expandable branch" : "Leaf category"}
+                        </span>
                       </span>
                     </span>
 
                     <span className="supplier-directory-cell" role="cell">
-                      <span className="supplier-directory-cell-label">Parent Category</span>
-                      <span className="supplier-directory-cell-value">
-                        {category.parentId
-                          ? getCategoryPathById(categories, category.parentId) || "—"
-                          : "Root"}
-                      </span>
-                    </span>
-
-                    <span className="supplier-directory-cell" role="cell">
-                      <span className="supplier-directory-cell-label">Description</span>
-                      <span className="supplier-directory-cell-value">
-                        {category.description || "No description."}
+                      <span className="supplier-directory-cell-label">Coverage</span>
+                      <span className="directory-entity">
+                        <strong className="supplier-directory-cell-value directory-primary-text">
+                          {productAssignments.get(category.id) || 0} assigned products
+                        </strong>
+                        <span className="directory-secondary-text">
+                          {childCategoryCounts.get(category.id) || 0} direct subcategories
+                        </span>
                       </span>
                     </span>
                   </div>

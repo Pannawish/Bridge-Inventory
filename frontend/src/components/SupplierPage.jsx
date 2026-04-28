@@ -168,6 +168,10 @@ function getSelectedValue(list, index) {
   return list?.[index] || "-";
 }
 
+function countFilledValues(list) {
+  return (list || []).filter((value) => `${value ?? ""}`.trim()).length;
+}
+
 function SupplierOptionField({
   label,
   options,
@@ -457,16 +461,16 @@ function SupplierPage({
                     #
                   </span>
                   <span className="supplier-directory-column" role="columnheader">
-                    Supplier Company Name
+                    Supplier
                   </span>
                   <span className="supplier-directory-column" role="columnheader">
-                    Supplier Taxpayer Identification Number
+                    Contact
                   </span>
                   <span className="supplier-directory-column" role="columnheader">
-                    Supplier Email
+                    Location
                   </span>
                   <span className="supplier-directory-column" role="columnheader">
-                    Supplier Tel
+                    Profile
                   </span>
                 </div>
 
@@ -492,34 +496,71 @@ function SupplierPage({
                         </span>
 
                         <span className="supplier-directory-cell" role="cell">
-                          <span className="supplier-directory-cell-label">
-                            Supplier Company Name
-                          </span>
-                          <strong className="supplier-directory-cell-value">
-                            {supplier.companyName || "Unnamed Supplier"}
-                          </strong>
-                        </span>
-
-                        <span className="supplier-directory-cell" role="cell">
-                          <span className="supplier-directory-cell-label">
-                            Supplier Taxpayer Identification Number
-                          </span>
-                          <span className="supplier-directory-cell-value">
-                            {supplier.taxpayerId || "—"}
-                          </span>
-                        </span>
-
-                        <span className="supplier-directory-cell" role="cell">
-                          <span className="supplier-directory-cell-label">Supplier Email</span>
-                          <span className="supplier-directory-cell-value">
-                            {getSelectedValue(supplier.emails, supplier.selectedEmailIndex)}
+                          <span className="supplier-directory-cell-label">Supplier</span>
+                          <span className="directory-entity">
+                            <strong className="supplier-directory-cell-value directory-primary-text">
+                              {supplier.companyName || "Unnamed Supplier"}
+                            </strong>
+                            <span className="directory-secondary-text">
+                              {supplier.taxpayerId
+                                ? `Tax ID ${supplier.taxpayerId}`
+                                : "Tax ID not set"}
+                            </span>
+                            <span className="directory-chip-row">
+                              <span className="directory-chip">
+                                {countFilledValues(supplier.branches)} branches
+                              </span>
+                              <span className="directory-chip subtle">
+                                {countFilledValues(supplier.shippingAddresses)} ship-to points
+                              </span>
+                            </span>
                           </span>
                         </span>
 
                         <span className="supplier-directory-cell" role="cell">
-                          <span className="supplier-directory-cell-label">Supplier Tel</span>
-                          <span className="supplier-directory-cell-value">
-                            {getSelectedValue(supplier.tels, supplier.selectedTelIndex)}
+                          <span className="supplier-directory-cell-label">Contact</span>
+                          <span className="directory-entity">
+                            <strong className="supplier-directory-cell-value directory-primary-text">
+                              {getSelectedValue(supplier.emails, supplier.selectedEmailIndex)}
+                            </strong>
+                            <span className="directory-secondary-text">
+                              {getSelectedValue(supplier.tels, supplier.selectedTelIndex)}
+                            </span>
+                            <span className="directory-chip-row">
+                              <span className="directory-chip">
+                                {countFilledValues(supplier.emails)} emails
+                              </span>
+                              <span className="directory-chip subtle">
+                                {countFilledValues(supplier.tels)} phone lines
+                              </span>
+                            </span>
+                          </span>
+                        </span>
+
+                        <span className="supplier-directory-cell" role="cell">
+                          <span className="supplier-directory-cell-label">Location</span>
+                          <span className="directory-entity">
+                            <strong className="supplier-directory-cell-value directory-primary-text">
+                              {getSelectedValue(supplier.locations, supplier.selectedLocationIndex)}
+                            </strong>
+                            <span className="directory-secondary-text">
+                              {getSelectedValue(
+                                supplier.shippingAddresses,
+                                supplier.selectedShippingAddressIndex
+                              )}
+                            </span>
+                          </span>
+                        </span>
+
+                        <span className="supplier-directory-cell" role="cell">
+                          <span className="supplier-directory-cell-label">Profile</span>
+                          <span className="directory-entity">
+                            <strong className="supplier-directory-cell-value directory-primary-text">
+                              {getSelectedValue(supplier.branches, supplier.selectedBranchIndex)}
+                            </strong>
+                            <span className="directory-secondary-text">
+                              {supplier.remark || supplier.billingNoteDate || "No internal note"}
+                            </span>
                           </span>
                         </span>
                       </button>
