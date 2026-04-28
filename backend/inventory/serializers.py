@@ -9,8 +9,10 @@ from .models import (
     Product,
     ProductUnitConversion,
     Purchase,
+    PurchaseDocument,
     PurchaseItem,
     Sale,
+    SaleDocument,
     SaleItem,
     Supplier,
 )
@@ -62,6 +64,24 @@ def build_file_url(request, file_field):
 
     url = file_field.url
     return request.build_absolute_uri(url) if request else url
+
+
+def build_document_payload(request, document):
+    file_name = document.file.name.split("/")[-1] if document.file else "Attached document"
+    return {
+        "id": document.id,
+        "name": file_name,
+        "url": build_file_url(request, document.file),
+    }
+
+
+def build_legacy_document_payload(request, file_field):
+    file_name = file_field.name.split("/")[-1] if file_field else "Attached document"
+    return {
+        "id": "__legacy_document__",
+        "name": file_name,
+        "url": build_file_url(request, file_field),
+    }
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -366,6 +386,17 @@ class PurchaseItemSerializer(serializers.ModelSerializer):
 class PurchaseSerializer(serializers.ModelSerializer):
     items = PurchaseItemSerializer(many=True, required=False)
     document_url = serializers.SerializerMethodField()
+    documents = serializers.SerializerMethodField()
+    uploaded_documents = serializers.ListField(
+        child=serializers.FileField(),
+        write_only=True,
+        required=False,
+    )
+    remove_document_ids = serializers.ListField(
+        child=serializers.CharField(),
+        write_only=True,
+        required=False,
+    )
     remove_document = serializers.BooleanField(write_only=True, required=False, default=False)
 
     class Meta:
@@ -380,6 +411,9 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "note",
             "document",
             "document_url",
+            "documents",
+            "uploaded_documents",
+            "remove_document_ids",
             "remove_document",
             "vat_mode",
             "total_before_vat",
@@ -400,7 +434,39 @@ class PurchaseSerializer(serializers.ModelSerializer):
         }
 
     def get_document_url(self, purchase):
+        first_document = purchase.documents.first()
+        if first_document:
+            return build_file_url(self.context.get("request"), first_document.file)
+
         return build_file_url(self.context.get("request"), purchase.document)
+
+    def get_documents(self, purchase):
+        request = self.context.get("request")
+        documents = [
+            build_document_payload(request, document)
+            for document in purchase.documents.all()
+        ]
+
+        if purchase.document:
+            documents.insert(0, build_legacy_document_payload(request, purchase.document))
+
+        return documents
+
+    def _add_documents(self, purchase, documents):
+        for document in documents:
+            PurchaseDocument.objects.create(purchase=purchase, file=document)
+
+    def _remove_documents(self, purchase, document_ids):
+        ids = {str(document_id) for document_id in document_ids or []}
+
+        if "__legacy_document__" in ids and purchase.document:
+            purchase.document.delete(save=False)
+            purchase.document = None
+            purchase.save(update_fields=["document", "updated_at"])
+
+        for document in purchase.documents.filter(id__in=ids):
+            document.file.delete(save=False)
+            document.delete()
 
     def _replace_items(self, purchase, items):
         if items is None:
@@ -420,22 +486,43 @@ class PurchaseSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items = validated_data.pop("items", [])
+        legacy_document = validated_data.pop("document", None)
+        uploaded_documents = validated_data.pop("uploaded_documents", [])
+        validated_data.pop("remove_document_ids", None)
         validated_data.pop("remove_document", None)
         with transaction.atomic():
             purchase = Purchase.objects.create(**validated_data)
+            self._add_documents(
+                purchase,
+                [document for document in [legacy_document, *uploaded_documents] if document],
+            )
             self._replace_items(purchase, items)
         return purchase
 
     def update(self, instance, validated_data):
         items = validated_data.pop("items", None)
+        legacy_document = validated_data.pop("document", None)
+        uploaded_documents = validated_data.pop("uploaded_documents", [])
+        remove_document_ids = validated_data.pop("remove_document_ids", [])
         remove_document = validated_data.pop("remove_document", False)
         status_changed = "status" in validated_data
 
         with transaction.atomic():
-            if "document" in validated_data and instance.document:
-                instance.document.delete(save=False)
+            if remove_document:
+                for document in instance.documents.all():
+                    document.file.delete(save=False)
+                    document.delete()
+                if instance.document:
+                    instance.document.delete(save=False)
+                    instance.document = None
 
-            if remove_document and "document" not in validated_data and instance.document:
+            self._remove_documents(instance, remove_document_ids)
+
+            if legacy_document:
+                self._add_documents(instance, [legacy_document])
+            self._add_documents(instance, uploaded_documents)
+
+            if instance.document and instance.documents.exists():
                 instance.document.delete(save=False)
                 instance.document = None
 
@@ -518,6 +605,17 @@ class SaleItemSerializer(serializers.ModelSerializer):
 class SaleSerializer(serializers.ModelSerializer):
     items = SaleItemSerializer(many=True, required=False)
     document_url = serializers.SerializerMethodField()
+    documents = serializers.SerializerMethodField()
+    uploaded_documents = serializers.ListField(
+        child=serializers.FileField(),
+        write_only=True,
+        required=False,
+    )
+    remove_document_ids = serializers.ListField(
+        child=serializers.CharField(),
+        write_only=True,
+        required=False,
+    )
     remove_document = serializers.BooleanField(write_only=True, required=False, default=False)
 
     class Meta:
@@ -533,6 +631,9 @@ class SaleSerializer(serializers.ModelSerializer):
             "note",
             "document",
             "document_url",
+            "documents",
+            "uploaded_documents",
+            "remove_document_ids",
             "remove_document",
             "vat_mode",
             "total_before_vat",
@@ -554,7 +655,39 @@ class SaleSerializer(serializers.ModelSerializer):
         }
 
     def get_document_url(self, sale):
+        first_document = sale.documents.first()
+        if first_document:
+            return build_file_url(self.context.get("request"), first_document.file)
+
         return build_file_url(self.context.get("request"), sale.document)
+
+    def get_documents(self, sale):
+        request = self.context.get("request")
+        documents = [
+            build_document_payload(request, document)
+            for document in sale.documents.all()
+        ]
+
+        if sale.document:
+            documents.insert(0, build_legacy_document_payload(request, sale.document))
+
+        return documents
+
+    def _add_documents(self, sale, documents):
+        for document in documents:
+            SaleDocument.objects.create(sale=sale, file=document)
+
+    def _remove_documents(self, sale, document_ids):
+        ids = {str(document_id) for document_id in document_ids or []}
+
+        if "__legacy_document__" in ids and sale.document:
+            sale.document.delete(save=False)
+            sale.document = None
+            sale.save(update_fields=["document", "updated_at"])
+
+        for document in sale.documents.filter(id__in=ids):
+            document.file.delete(save=False)
+            document.delete()
 
     def _replace_items(self, sale, items):
         if items is None:
@@ -574,22 +707,43 @@ class SaleSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items = validated_data.pop("items", [])
+        legacy_document = validated_data.pop("document", None)
+        uploaded_documents = validated_data.pop("uploaded_documents", [])
+        validated_data.pop("remove_document_ids", None)
         validated_data.pop("remove_document", None)
         with transaction.atomic():
             sale = Sale.objects.create(**validated_data)
+            self._add_documents(
+                sale,
+                [document for document in [legacy_document, *uploaded_documents] if document],
+            )
             self._replace_items(sale, items)
         return sale
 
     def update(self, instance, validated_data):
         items = validated_data.pop("items", None)
+        legacy_document = validated_data.pop("document", None)
+        uploaded_documents = validated_data.pop("uploaded_documents", [])
+        remove_document_ids = validated_data.pop("remove_document_ids", [])
         remove_document = validated_data.pop("remove_document", False)
         status_changed = "status" in validated_data
 
         with transaction.atomic():
-            if "document" in validated_data and instance.document:
-                instance.document.delete(save=False)
+            if remove_document:
+                for document in instance.documents.all():
+                    document.file.delete(save=False)
+                    document.delete()
+                if instance.document:
+                    instance.document.delete(save=False)
+                    instance.document = None
 
-            if remove_document and "document" not in validated_data and instance.document:
+            self._remove_documents(instance, remove_document_ids)
+
+            if legacy_document:
+                self._add_documents(instance, [legacy_document])
+            self._add_documents(instance, uploaded_documents)
+
+            if instance.document and instance.documents.exists():
                 instance.document.delete(save=False)
                 instance.document = None
 

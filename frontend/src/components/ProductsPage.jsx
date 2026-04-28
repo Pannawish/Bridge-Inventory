@@ -426,6 +426,28 @@ function formatStockQuantity(value, product) {
   return `${Number(value || 0).toLocaleString()} ${unit}`;
 }
 
+function getDocumentName(documentUrl = "") {
+  const [path = ""] = `${documentUrl}`.split("?");
+  const name = path.split("/").filter(Boolean).pop();
+  return name ? decodeURIComponent(name) : "Attached document";
+}
+
+function getTransactionDocuments(transaction = {}) {
+  if (Array.isArray(transaction.documents) && transaction.documents.length) {
+    return transaction.documents;
+  }
+
+  return transaction.document_url
+    ? [
+        {
+          id: "__legacy_document__",
+          name: getDocumentName(transaction.document_url),
+          url: transaction.document_url,
+        },
+      ]
+    : [];
+}
+
 function computeItemAmount(item) {
   const qty = Number(item.quantity) || 0;
   const price = Number(item.unit_price ?? item.unit_cost) || 0;
@@ -1364,11 +1386,15 @@ function ProductsPage({
                           </div>
                         ) : null}
                         <div>
-                          <p className="detail-label">Document</p>
-                          {transaction.document_url ? (
-                            <a href={transaction.document_url} target="_blank" rel="noreferrer">
-                              Open document
-                            </a>
+                          <p className="detail-label">Documents</p>
+                          {getTransactionDocuments(transaction).length ? (
+                            <div className="transaction-document-list">
+                              {getTransactionDocuments(transaction).map((document) => (
+                                <a key={document.id} href={document.url} target="_blank" rel="noreferrer">
+                                  {document.name || getDocumentName(document.url)}
+                                </a>
+                              ))}
+                            </div>
                           ) : (
                             <strong>—</strong>
                           )}

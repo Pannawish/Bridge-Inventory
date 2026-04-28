@@ -40,10 +40,22 @@ function buildTransactionFormData(record, fields) {
   formData.append("vat_amount", record.vat_amount ?? 0);
   formData.append("grand_total", record.grand_total ?? record.total_amount ?? 0);
 
+  (record.new_documents || []).forEach((document) => {
+    if (document instanceof File) {
+      formData.append("documents", document);
+    }
+  });
+
   if (record.document instanceof File) {
-    formData.append("document", record.document);
-  } else if (record.remove_document) {
+    formData.append("documents", record.document);
+  }
+
+  if (record.remove_document) {
     formData.append("remove_document", "true");
+  }
+
+  if (record.remove_document_ids?.length) {
+    formData.append("remove_document_ids", JSON.stringify(record.remove_document_ids));
   }
 
   return formData;

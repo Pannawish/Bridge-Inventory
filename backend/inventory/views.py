@@ -89,9 +89,18 @@ def normalize_decimal_fields(data):
 def normalize_request_data(request):
     data = {key: value for key, value in request.data.items()}
 
+    if hasattr(request, "FILES"):
+        uploaded_documents = request.FILES.getlist("documents")
+        if uploaded_documents:
+            data["uploaded_documents"] = uploaded_documents
+
     raw_items = data.get("items")
     if isinstance(raw_items, str):
         data["items"] = json.loads(raw_items or "[]")
+
+    raw_remove_document_ids = data.get("remove_document_ids")
+    if isinstance(raw_remove_document_ids, str):
+        data["remove_document_ids"] = json.loads(raw_remove_document_ids or "[]")
 
     for field in NULL_IF_BLANK_FIELDS:
         if data.get(field) == "":

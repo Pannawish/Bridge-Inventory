@@ -53,7 +53,7 @@ function createInitialForm(referenceNo) {
     payment_received_date: getToday(),
     transaction_date: getToday(),
     note: "",
-    document: null,
+    documents: [],
   };
 }
 
@@ -436,9 +436,9 @@ function SalesForm({
     formData.append("vat_amount", vatSummary.vat);
     formData.append("grand_total", vatSummary.grandTotal);
 
-    if (form.document) {
-      formData.append("document", form.document);
-    }
+    form.documents.forEach((document) => {
+      formData.append("documents", document);
+    });
 
     const filteredItems = items
       .filter((item) => item.product_id && item.quantity && item.unit_price)
@@ -621,13 +621,55 @@ function SalesForm({
             />
           </label>
 
-          <label className="full-width">
-            Document
-            <input
-              type="file"
-              onChange={(event) => updateForm("document", event.target.files?.[0] || null)}
-            />
-          </label>
+          <div className="transaction-document-panel full-width">
+            <div className="transaction-document-panel-header">
+              <div>
+                <strong>Documents</strong>
+                <span>
+                  {form.documents.length
+                    ? `${form.documents.length} selected`
+                    : "No documents selected"}
+                </span>
+              </div>
+              <label className="document-upload-button">
+                Add Files
+                <input
+                  type="file"
+                  multiple
+                  onChange={(event) =>
+                    updateForm("documents", [
+                      ...form.documents,
+                      ...Array.from(event.target.files || []),
+                    ])
+                  }
+                />
+              </label>
+            </div>
+
+            {form.documents.length ? (
+              <div className="transaction-document-list">
+                {form.documents.map((document, index) => (
+                  <span className="transaction-document-row" key={`${document.name}-${index}`}>
+                    <span>{document.name}</span>
+                    <button
+                      className="text-danger-button"
+                      type="button"
+                      onClick={() =>
+                        updateForm(
+                          "documents",
+                          form.documents.filter((_, documentIndex) => documentIndex !== index)
+                        )
+                      }
+                    >
+                      Remove
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="transaction-document-empty">Attach invoices, receipts, or related files.</p>
+            )}
+          </div>
         </div>
 
         <div className="line-items-card">

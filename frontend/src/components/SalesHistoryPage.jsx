@@ -33,6 +33,22 @@ function getDocumentName(documentUrl = "") {
   return name ? decodeURIComponent(name) : "Attached document";
 }
 
+function getTransactionDocuments(sale) {
+  if (Array.isArray(sale.documents) && sale.documents.length) {
+    return sale.documents;
+  }
+
+  return sale.document_url
+    ? [
+        {
+          id: "__legacy_document__",
+          name: getDocumentName(sale.document_url),
+          url: sale.document_url,
+        },
+      ]
+    : [];
+}
+
 function normalize(value) {
   return `${value ?? ""}`.toLowerCase();
 }
@@ -365,7 +381,8 @@ function createEditForm(sale) {
     payment_received_date: paymentReceivedDate,
     transaction_date: sale.transaction_date || getToday(),
     note: sale.note || "",
-    document: null,
+    new_documents: [],
+    remove_document_ids: [],
     remove_document: false,
   };
 }
@@ -454,6 +471,9 @@ function SalesEditForm({
     !["draft", "cancelled"].includes(form.status) && saleStockIssues.length
       ? formatSaleStockIssueMessage(saleStockIssues)
       : "";
+  const visibleDocuments = getTransactionDocuments(sale).filter(
+    (document) => !form.remove_document_ids.includes(document.id)
+  );
 
   function updateForm(key, value) {
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
@@ -720,13 +740,20 @@ function SalesEditForm({
       payment_received_date: form.payment_received_date,
       transaction_date: form.transaction_date,
       note: form.note,
-      document: form.document,
+      new_documents: form.new_documents,
+      remove_document_ids: form.remove_document_ids,
       remove_document: form.remove_document,
+      documents: [
+        ...visibleDocuments,
+        ...form.new_documents.map((document, index) => ({
+          id: `new-document-${index}`,
+          name: document.name,
+          url: "",
+        })),
+      ],
       document_url: form.remove_document
         ? ""
-        : form.document
-          ? URL.createObjectURL(form.document)
-          : sale.document_url,
+        : visibleDocuments[0]?.url || sale.document_url,
       items: saleWithItems.items,
       vat_mode: vatMode,
       total_before_vat: vatSummary.total,
@@ -875,67 +902,104 @@ function SalesEditForm({
             />
           </label>
 
-          <label className="full-width">
-            Document
-            <input
-              type="file"
-              onChange={(event) => {
-                updateForm("document", event.target.files?.[0] || null);
-                updateForm("remove_document", false);
-              }}
-            />
-          </label>
+          <div className="transaction-document-panel full-width">
+            <div className="transaction-document-panel-header">
+              <div>
+                <strong>Documents</strong>
+                <span>
+                  {visibleDocuments.length + form.new_documents.length
+                    ? `${visibleDocuments.length + form.new_documents.length} attached`
+                    : "No documents attached"}
+                </span>
+              </div>
+              <label className="document-upload-button">
+                Add Files
+                <input
+                  type="file"
+                  multiple
+                  onChange={(event) => {
+                    updateForm("new_documents", [
+                      ...form.new_documents,
+                      ...Array.from(event.target.files || []),
+                    ]);
+                    updateForm("remove_document", false);
+                  }}
+                />
+              </label>
+            </div>
 
-          <div className="transaction-document-editor full-width">
-            {form.document ? (
+            {visibleDocuments.length || form.new_documents.length ? (
               <>
-                <div className="transaction-document-meta">
-                  <strong>New document selected</strong>
-                  <span>{form.document.name}</span>
+                <div className="transaction-document-list">
+                  {visibleDocuments.map((document) => (
+                    <span className="transaction-document-row" key={document.id}>
+                      <a href={document.url} target="_blank" rel="noreferrer">
+                        {document.name || getDocumentName(document.url)}
+                      </a>
+                      <button
+                        className="text-danger-button"
+                        type="button"
+                        onClick={() =>
+                          updateForm("remove_document_ids", [
+                            ...form.remove_document_ids,
+                            document.id,
+                          ])
+                        }
+                      >
+                        Delete
+                      </button>
+                    </span>
+                  ))}
+                  {form.new_documents.map((document, index) => (
+                    <span className="transaction-document-row" key={`${document.name}-${index}`}>
+                      <span>{document.name}</span>
+                      <button
+                        className="text-danger-button"
+                        type="button"
+                        onClick={() =>
+                          updateForm(
+                            "new_documents",
+                            form.new_documents.filter((_, documentIndex) => documentIndex !== index)
+                          )
+                        }
+                      >
+                        Remove
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="transaction-document-actions">
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => {
+                      updateForm(
+                        "remove_document_ids",
+                        getTransactionDocuments(sale).map((document) => document.id)
+                      );
+                      updateForm("new_documents", []);
+                    }}
+                  >
+                    Remove All
+                  </button>
+                </div>
+              </>
+            ) : form.remove_document_ids.length ? (
+              <div className="transaction-document-state">
+                <div>
+                  <strong>Documents marked for deletion</strong>
+                  <span>Save this transaction to remove the selected documents.</span>
                 </div>
                 <button
                   className="secondary-button"
                   type="button"
-                  onClick={() => updateForm("document", null)}
-                >
-                  Clear File
-                </button>
-              </>
-            ) : sale.document_url && !form.remove_document ? (
-              <>
-                <div className="transaction-document-meta">
-                  <strong>Current document</strong>
-                  <a href={sale.document_url} target="_blank" rel="noreferrer">
-                    {getDocumentName(sale.document_url)}
-                  </a>
-                </div>
-                <button
-                  className="danger-button"
-                  type="button"
-                  onClick={() => updateForm("remove_document", true)}
-                >
-                  Delete Document
-                </button>
-              </>
-            ) : form.remove_document ? (
-              <>
-                <div className="transaction-document-meta">
-                  <strong>Document marked for deletion</strong>
-                  <span>Save this transaction to remove the attached document.</span>
-                </div>
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => updateForm("remove_document", false)}
+                  onClick={() => updateForm("remove_document_ids", [])}
                 >
                   Undo
                 </button>
-              </>
-            ) : (
-              <div className="transaction-document-meta">
-                <strong>No document attached</strong>
-                <span>Choose a file above to attach one.</span>
               </div>
+            ) : (
+              <p className="transaction-document-empty">Attach invoices, receipts, or related files.</p>
             )}
           </div>
         </div>

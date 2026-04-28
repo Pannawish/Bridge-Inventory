@@ -32,12 +32,20 @@ def purchase_item_id():
     return make_prefixed_id("purchase-item")
 
 
+def purchase_document_id():
+    return make_prefixed_id("purchase-document")
+
+
 def sale_id():
     return make_prefixed_id("sale")
 
 
 def sale_item_id():
     return make_prefixed_id("sale-item")
+
+
+def sale_document_id():
+    return make_prefixed_id("sale-document")
 
 
 def list_default():
@@ -238,6 +246,18 @@ class PurchaseItem(models.Model):
         return self.product_name
 
 
+class PurchaseDocument(TimeStampedModel):
+    id = models.CharField(max_length=80, primary_key=True, default=purchase_document_id)
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name="documents")
+    file = models.FileField(upload_to="documents/purchases/")
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+    def __str__(self):
+        return self.file.name
+
+
 class Sale(TimeStampedModel):
     STATUS_DRAFT = "draft"
     STATUS_PARTIALLY_PACKED = "partially_packed"
@@ -327,3 +347,15 @@ class SaleItem(models.Model):
 
     def __str__(self):
         return self.product_name
+
+
+class SaleDocument(TimeStampedModel):
+    id = models.CharField(max_length=80, primary_key=True, default=sale_document_id)
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="documents")
+    file = models.FileField(upload_to="documents/sales/")
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+    def __str__(self):
+        return self.file.name

@@ -138,6 +138,28 @@ function getCompactItemSummary(items = []) {
   };
 }
 
+function getDocumentName(documentUrl = "") {
+  const [path = ""] = `${documentUrl}`.split("?");
+  const name = path.split("/").filter(Boolean).pop();
+  return name ? decodeURIComponent(name) : "Attached document";
+}
+
+function getTransactionDocuments(row = {}) {
+  if (Array.isArray(row.documents) && row.documents.length) {
+    return row.documents;
+  }
+
+  return row.document_url
+    ? [
+        {
+          id: "__legacy_document__",
+          name: getDocumentName(row.document_url),
+          url: row.document_url,
+        },
+      ]
+    : [];
+}
+
 function TransactionTable({
   rows,
   products = [],
@@ -377,6 +399,7 @@ function TransactionTable({
                 {rows.map((row, rowIndex) => {
                   const salesSummary = type === "sale" ? getVatSummary(row) : null;
                   const itemSummary = getCompactItemSummary(row.items || []);
+                  const documents = getTransactionDocuments(row);
 
                   return (
                     <tr key={`${type}-${row.id}`}>
@@ -453,9 +476,9 @@ function TransactionTable({
                         </>
                       )}
                       <td>
-                        {row.document_url ? (
-                          <a href={row.document_url} target="_blank" rel="noreferrer">
-                            Open
+                        {documents.length ? (
+                          <a href={documents[0].url} target="_blank" rel="noreferrer">
+                            {documents.length === 1 ? "1 doc" : `${documents.length} docs`}
                           </a>
                         ) : (
                           "—"
@@ -481,6 +504,7 @@ function TransactionTable({
             {rows.map((row, rowIndex) => {
               const salesSummary = type === "sale" ? getVatSummary(row) : null;
               const itemSummary = getCompactItemSummary(row.items || []);
+              const documents = getTransactionDocuments(row);
 
               return (
                 <article className="mobile-record-card" key={`mobile-${type}-${row.id}`}>
@@ -560,6 +584,12 @@ function TransactionTable({
                           <span className="history-item-more">{itemSummary.remainingLabel}</span>
                         ) : null}
                       </div>
+                    </div>
+                    <div>
+                      <span>Documents</span>
+                      <strong>
+                        {documents.length ? `${documents.length} attached` : "—"}
+                      </strong>
                     </div>
                   </div>
 
@@ -671,11 +701,15 @@ function TransactionTable({
                 </div>
               ) : null}
               <div>
-                <p className="detail-label">Document</p>
-                {selectedRow.document_url ? (
-                  <a href={selectedRow.document_url} target="_blank" rel="noreferrer">
-                    Open document
-                  </a>
+                <p className="detail-label">Documents</p>
+                {getTransactionDocuments(selectedRow).length ? (
+                  <div className="transaction-document-list">
+                    {getTransactionDocuments(selectedRow).map((document) => (
+                      <a key={document.id} href={document.url} target="_blank" rel="noreferrer">
+                        {document.name || getDocumentName(document.url)}
+                      </a>
+                    ))}
+                  </div>
                 ) : (
                   <strong>—</strong>
                 )}
