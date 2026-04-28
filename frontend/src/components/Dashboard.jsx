@@ -33,6 +33,19 @@ function getFilterLabel(options, value) {
   return options.find((option) => option.value === value)?.label || value;
 }
 
+function StockHeader({ label, fullName }) {
+  return (
+    <th aria-label={fullName}>
+      <span className="dashboard-stock-header-label">
+        {label}
+        <span className="dashboard-stock-header-tooltip" role="tooltip">
+          {fullName}
+        </span>
+      </span>
+    </th>
+  );
+}
+
 function StatCard({ label, value, helper, trend = 0 }) {
   return (
     <article className="stat-card">
@@ -992,26 +1005,26 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
           </div>
         ) : null}
 
-        <div className="table-scroll desktop-table">
+        <div className="table-scroll desktop-table dashboard-stock-table">
           <table>
             <thead>
               <tr>
-                <th>Product</th>
-                <th>Category</th>
-                <th>Health</th>
-                <th>Available</th>
-                <th>Received</th>
-                <th>Committed Sales</th>
-                <th>Pending Sales</th>
-                <th>Oversold</th>
-                <th>Pending PO</th>
-                <th>Delayed PO</th>
-                <th>Avg Daily Demand</th>
-                <th>Safety Stock</th>
-                <th>Reorder Point</th>
-                <th>Days Left</th>
-                <th>Suggested Purchase</th>
-                <th>Stock Value</th>
+                <StockHeader label="Product" fullName="Product name and SKU" />
+                <StockHeader label="Cat." fullName="Category" />
+                <StockHeader label="Health" fullName="Stock health" />
+                <StockHeader label="Avail." fullName="Available stock" />
+                <StockHeader label="Recv." fullName="Received purchase quantity" />
+                <StockHeader label="Comm." fullName="Committed sales quantity" />
+                <StockHeader label="Pending" fullName="Pending sales quantity" />
+                <StockHeader label="Shortage" fullName="Stock shortage quantity" />
+                <StockHeader label="PO" fullName="Pending purchase order quantity" />
+                <StockHeader label="Late PO" fullName="Delayed purchase order quantity" />
+                <StockHeader label="Demand" fullName="Average daily demand" />
+                <StockHeader label="Safety" fullName="Safety stock quantity" />
+                <StockHeader label="Reorder" fullName="Reorder point quantity" />
+                <StockHeader label="Days" fullName="Estimated days left before stockout" />
+                <StockHeader label="Buy" fullName="Suggested purchase quantity" />
+                <StockHeader label="Stock Value" fullName="Current stock value" />
               </tr>
             </thead>
             <tbody>
