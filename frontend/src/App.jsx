@@ -25,6 +25,53 @@ function getCollectionRows(result, fallback = []) {
   return fallback;
 }
 
+function buildTransactionFormData(record, fields) {
+  const formData = new FormData();
+
+  fields.forEach((field) => {
+    if (record[field] !== undefined) {
+      formData.append(field, record[field] ?? "");
+    }
+  });
+
+  formData.append("items", JSON.stringify(record.items || []));
+  formData.append("vat_mode", record.vat_mode || "not_included");
+  formData.append("total_before_vat", record.total_before_vat ?? 0);
+  formData.append("vat_amount", record.vat_amount ?? 0);
+  formData.append("grand_total", record.grand_total ?? record.total_amount ?? 0);
+
+  if (record.document instanceof File) {
+    formData.append("document", record.document);
+  } else if (record.remove_document) {
+    formData.append("remove_document", "true");
+  }
+
+  return formData;
+}
+
+function buildPurchaseUpdatePayload(purchase) {
+  return buildTransactionFormData(purchase, [
+    "reference_no",
+    "supplier_name",
+    "supplier_tax_invoice",
+    "status",
+    "transaction_date",
+    "note",
+  ]);
+}
+
+function buildSaleUpdatePayload(sale) {
+  return buildTransactionFormData(sale, [
+    "reference_no",
+    "customer_name",
+    "status",
+    "payment_timing",
+    "payment_received_date",
+    "transaction_date",
+    "note",
+  ]);
+}
+
 const tabs = [
   {
     id: "dashboard",
@@ -433,7 +480,10 @@ function App() {
     }
 
     try {
-      const savedSale = await api.updateSale(normalizedSale.id, normalizedSale);
+      const savedSale = await api.updateSale(
+        normalizedSale.id,
+        buildSaleUpdatePayload(normalizedSale)
+      );
       setSales((currentRows) =>
         currentRows.map((row) =>
           row.id === normalizedSale.id ? savedSale || normalizedSale : row
@@ -457,7 +507,10 @@ function App() {
     }
 
     try {
-      const savedPurchase = await api.updatePurchase(updatedPurchase.id, updatedPurchase);
+      const savedPurchase = await api.updatePurchase(
+        updatedPurchase.id,
+        buildPurchaseUpdatePayload(updatedPurchase)
+      );
       setPurchases((currentRows) =>
         currentRows.map((row) =>
           row.id === updatedPurchase.id ? savedPurchase || updatedPurchase : row

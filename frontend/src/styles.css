@@ -627,6 +627,46 @@ label textarea:focus,
   padding: 10px 12px;
 }
 
+.transaction-document-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e4ebfb;
+  border-radius: 14px;
+  background: #f8fbff;
+}
+
+.transaction-document-meta {
+  display: grid;
+  gap: 3px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.transaction-document-meta strong,
+.transaction-document-meta span,
+.transaction-document-meta a {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-document-meta strong {
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.transaction-document-meta span,
+.transaction-document-meta a {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .line-items-card {
   width: 100%;
   max-width: 100%;

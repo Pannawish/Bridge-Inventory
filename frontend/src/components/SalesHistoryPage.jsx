@@ -27,6 +27,12 @@ function getToday() {
   return new Date().toISOString().split("T")[0];
 }
 
+function getDocumentName(documentUrl = "") {
+  const [path = ""] = `${documentUrl}`.split("?");
+  const name = path.split("/").filter(Boolean).pop();
+  return name ? decodeURIComponent(name) : "Attached document";
+}
+
 function normalize(value) {
   return `${value ?? ""}`.toLowerCase();
 }
@@ -360,6 +366,7 @@ function createEditForm(sale) {
     transaction_date: sale.transaction_date || getToday(),
     note: sale.note || "",
     document: null,
+    remove_document: false,
   };
 }
 
@@ -713,7 +720,13 @@ function SalesEditForm({
       payment_received_date: form.payment_received_date,
       transaction_date: form.transaction_date,
       note: form.note,
-      document_url: form.document ? URL.createObjectURL(form.document) : sale.document_url,
+      document: form.document,
+      remove_document: form.remove_document,
+      document_url: form.remove_document
+        ? ""
+        : form.document
+          ? URL.createObjectURL(form.document)
+          : sale.document_url,
       items: saleWithItems.items,
       vat_mode: vatMode,
       total_before_vat: vatSummary.total,
@@ -866,9 +879,65 @@ function SalesEditForm({
             Document
             <input
               type="file"
-              onChange={(event) => updateForm("document", event.target.files?.[0] || null)}
+              onChange={(event) => {
+                updateForm("document", event.target.files?.[0] || null);
+                updateForm("remove_document", false);
+              }}
             />
           </label>
+
+          <div className="transaction-document-editor full-width">
+            {form.document ? (
+              <>
+                <div className="transaction-document-meta">
+                  <strong>New document selected</strong>
+                  <span>{form.document.name}</span>
+                </div>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => updateForm("document", null)}
+                >
+                  Clear File
+                </button>
+              </>
+            ) : sale.document_url && !form.remove_document ? (
+              <>
+                <div className="transaction-document-meta">
+                  <strong>Current document</strong>
+                  <a href={sale.document_url} target="_blank" rel="noreferrer">
+                    {getDocumentName(sale.document_url)}
+                  </a>
+                </div>
+                <button
+                  className="danger-button"
+                  type="button"
+                  onClick={() => updateForm("remove_document", true)}
+                >
+                  Delete Document
+                </button>
+              </>
+            ) : form.remove_document ? (
+              <>
+                <div className="transaction-document-meta">
+                  <strong>Document marked for deletion</strong>
+                  <span>Save this transaction to remove the attached document.</span>
+                </div>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => updateForm("remove_document", false)}
+                >
+                  Undo
+                </button>
+              </>
+            ) : (
+              <div className="transaction-document-meta">
+                <strong>No document attached</strong>
+                <span>Choose a file above to attach one.</span>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="line-items-card">

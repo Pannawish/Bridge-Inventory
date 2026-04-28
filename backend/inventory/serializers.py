@@ -366,6 +366,7 @@ class PurchaseItemSerializer(serializers.ModelSerializer):
 class PurchaseSerializer(serializers.ModelSerializer):
     items = PurchaseItemSerializer(many=True, required=False)
     document_url = serializers.SerializerMethodField()
+    remove_document = serializers.BooleanField(write_only=True, required=False, default=False)
 
     class Meta:
         model = Purchase
@@ -379,6 +380,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "note",
             "document",
             "document_url",
+            "remove_document",
             "vat_mode",
             "total_before_vat",
             "vat_amount",
@@ -418,6 +420,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items = validated_data.pop("items", [])
+        validated_data.pop("remove_document", None)
         with transaction.atomic():
             purchase = Purchase.objects.create(**validated_data)
             self._replace_items(purchase, items)
@@ -425,9 +428,17 @@ class PurchaseSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         items = validated_data.pop("items", None)
+        remove_document = validated_data.pop("remove_document", False)
         status_changed = "status" in validated_data
 
         with transaction.atomic():
+            if "document" in validated_data and instance.document:
+                instance.document.delete(save=False)
+
+            if remove_document and "document" not in validated_data and instance.document:
+                instance.document.delete(save=False)
+                instance.document = None
+
             for field, value in validated_data.items():
                 setattr(instance, field, value)
             instance.save()
@@ -507,6 +518,7 @@ class SaleItemSerializer(serializers.ModelSerializer):
 class SaleSerializer(serializers.ModelSerializer):
     items = SaleItemSerializer(many=True, required=False)
     document_url = serializers.SerializerMethodField()
+    remove_document = serializers.BooleanField(write_only=True, required=False, default=False)
 
     class Meta:
         model = Sale
@@ -521,6 +533,7 @@ class SaleSerializer(serializers.ModelSerializer):
             "note",
             "document",
             "document_url",
+            "remove_document",
             "vat_mode",
             "total_before_vat",
             "vat_amount",
@@ -561,6 +574,7 @@ class SaleSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items = validated_data.pop("items", [])
+        validated_data.pop("remove_document", None)
         with transaction.atomic():
             sale = Sale.objects.create(**validated_data)
             self._replace_items(sale, items)
@@ -568,9 +582,17 @@ class SaleSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         items = validated_data.pop("items", None)
+        remove_document = validated_data.pop("remove_document", False)
         status_changed = "status" in validated_data
 
         with transaction.atomic():
+            if "document" in validated_data and instance.document:
+                instance.document.delete(save=False)
+
+            if remove_document and "document" not in validated_data and instance.document:
+                instance.document.delete(save=False)
+                instance.document = None
+
             for field, value in validated_data.items():
                 setattr(instance, field, value)
             instance.save()
