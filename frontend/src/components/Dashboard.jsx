@@ -520,6 +520,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
   const [sortMetric, setSortMetric] = useState("available_stock");
   const [sortOrder, setSortOrder] = useState("low-to-high");
   const [showStockInfo, setShowStockInfo] = useState(false);
+  const [showAllStockRows, setShowAllStockRows] = useState(false);
   const metrics = dashboard.metrics || {};
   const lowStockItems = dashboard.low_stock_items || [];
   const stockReport = dashboard.stock_report || [];
@@ -726,6 +727,8 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
     purchaseFilter !== "all" ? getFilterLabel(purchaseFilterOptions, purchaseFilter) : null,
     stockoutFilter !== "all" ? getFilterLabel(stockoutFilterOptions, stockoutFilter) : null,
   ].filter(Boolean);
+  const shouldShowStockViewAll = filteredRows.length > 5;
+  const isStockTableCompact = shouldShowStockViewAll && !showAllStockRows;
   const clearStockFilters = () => {
     setSearchTerm("");
     setStockFilter("all");
@@ -836,14 +839,25 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
             <p className="eyebrow">Inventory</p>
             <h3>Current Stock Details</h3>
           </div>
-          <button
-            className="secondary-button dashboard-info-button"
-            type="button"
-            onClick={() => setShowStockInfo(true)}
-            aria-label="Show current stock column information"
-          >
-            i
-          </button>
+          <div className="transaction-table-actions">
+            {shouldShowStockViewAll ? (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => setShowAllStockRows((currentValue) => !currentValue)}
+              >
+                {showAllStockRows ? "Show Recent" : "View All"}
+              </button>
+            ) : null}
+            <button
+              className="secondary-button dashboard-info-button"
+              type="button"
+              onClick={() => setShowStockInfo(true)}
+              aria-label="Show current stock column information"
+            >
+              i
+            </button>
+          </div>
         </div>
 
         <p className="inventory-note">
@@ -1003,7 +1017,13 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
           </div>
         ) : null}
 
-        <div className="table-scroll desktop-table dashboard-stock-table">
+        <div
+          className={
+            isStockTableCompact
+              ? "table-scroll desktop-table dashboard-stock-table compact-stock"
+              : "table-scroll desktop-table dashboard-stock-table"
+          }
+        >
           <table>
             <thead>
               <tr>
@@ -1067,7 +1087,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
           </table>
         </div>
 
-        <div className="mobile-stock-list">
+        <div className={isStockTableCompact ? "mobile-stock-list compact-stock" : "mobile-stock-list"}>
           {filteredRows.length === 0 ? (
             <p className="empty-copy">No inventory items match the current search or filter.</p>
           ) : (

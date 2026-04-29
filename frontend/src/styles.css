@@ -1595,9 +1595,30 @@ label textarea:focus,
   overflow-x: auto;
 }
 
+.dashboard-stock-table.compact-stock {
+  max-height: 430px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 36px 4px 0 0;
+}
+
+.dashboard-stock-table.compact-stock th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff;
+}
+
 .mobile-record-list,
 .mobile-stock-list {
   display: none;
+}
+
+.mobile-stock-list.compact-stock {
+  max-height: 560px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding-right: 4px;
 }
 
 table {
