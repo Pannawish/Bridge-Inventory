@@ -3094,6 +3094,27 @@ th {
   background: linear-gradient(90deg, #f59e0b, #dc2626);
 }
 
+.attention-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.attention-pagination span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.attention-pagination .secondary-button {
+  min-height: 34px;
+  padding: 7px 12px;
+}
+
 .trend-summary {
   display: grid;
   gap: 4px;

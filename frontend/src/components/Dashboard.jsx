@@ -7,6 +7,7 @@ import { getStoredSaleItemStatus } from "../saleStatus";
 import { getItemBaseQuantity, getProductBaseUnit } from "../unitConversion";
 
 const SAFETY_STOCK_DAYS = 7;
+const ATTENTION_PAGE_SIZE = 6;
 const COMMITTED_SALE_ITEM_STATUSES = ["packed", "shipped", "delivered"];
 const stockColumnDetails = [
   {
@@ -521,6 +522,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
   const [sortOrder, setSortOrder] = useState("low-to-high");
   const [showStockInfo, setShowStockInfo] = useState(false);
   const [showAllStockRows, setShowAllStockRows] = useState(false);
+  const [attentionPage, setAttentionPage] = useState(0);
   const metrics = dashboard.metrics || {};
   const lowStockItems = dashboard.low_stock_items || [];
   const stockReport = dashboard.stock_report || [];
@@ -554,8 +556,12 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
   const attentionRows = stockRows
     .filter((item) => item.health.label === "Urgent")
     .sort((leftItem, rightItem) => leftItem.available_stock - rightItem.available_stock);
-  const attentionPreviewRows = attentionRows.slice(0, 6);
-  const hiddenAttentionCount = Math.max(0, attentionRows.length - attentionPreviewRows.length);
+  const attentionPageCount = Math.max(1, Math.ceil(attentionRows.length / ATTENTION_PAGE_SIZE));
+  const safeAttentionPage = Math.min(attentionPage, attentionPageCount - 1);
+  const attentionPageRows = attentionRows.slice(
+    safeAttentionPage * ATTENTION_PAGE_SIZE,
+    safeAttentionPage * ATTENTION_PAGE_SIZE + ATTENTION_PAGE_SIZE
+  );
   const strongestStock = Math.max(...attentionRows.map((item) => item.reorder_level || 0), 1);
   const movementRows = [
     {
@@ -780,7 +786,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
             <p className="empty-copy">No low-stock products yet.</p>
           ) : (
             <div className="attention-list">
-              {attentionPreviewRows.map((item) => (
+              {attentionPageRows.map((item) => (
                 <div className="attention-row" key={item.product_id}>
                   <div className="attention-meta">
                     <strong>{item.product_name}</strong>
@@ -802,10 +808,31 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                   </div>
                 </div>
               ))}
-              {hiddenAttentionCount > 0 ? (
-                <p className="dashboard-inline-note">
-                  {formatNumber(hiddenAttentionCount)} more urgent products are shown in the stock table.
-                </p>
+              {attentionPageCount > 1 ? (
+                <div className="attention-pagination" aria-label="Low stock product pages">
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => setAttentionPage(Math.max(0, safeAttentionPage - 1))}
+                    disabled={safeAttentionPage === 0}
+                  >
+                    Previous
+                  </button>
+                  <span>
+                    Page {formatNumber(safeAttentionPage + 1)} of{" "}
+                    {formatNumber(attentionPageCount)}
+                  </span>
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() =>
+                      setAttentionPage(Math.min(attentionPageCount - 1, safeAttentionPage + 1))
+                    }
+                    disabled={safeAttentionPage >= attentionPageCount - 1}
+                  >
+                    Next
+                  </button>
+                </div>
               ) : null}
             </div>
           )}
