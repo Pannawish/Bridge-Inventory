@@ -240,26 +240,8 @@ function createEditItems(quotation) {
   }));
 }
 
-function getCompactItemSummary(items = []) {
-  const previewItems = items.slice(0, 2);
-  const remainingCount = Math.max(0, items.length - previewItems.length);
-  const previewText = previewItems
-    .map((item) => item.product_name || item.productName || item.name || item.sku || "Unnamed item")
-    .join(", ");
-
-  if (!items.length) {
-    return {
-      countLabel: "0 items",
-      previewText: "No line items",
-      remainingLabel: "",
-    };
-  }
-
-  return {
-    countLabel: `${items.length} ${items.length === 1 ? "item" : "items"}`,
-    previewText,
-    remainingLabel: remainingCount > 0 ? `+${remainingCount} more` : "",
-  };
+function getItemCount(items = []) {
+  return items.length.toLocaleString("en-US");
 }
 
 function quotationMatchesQuery(quotation, query) {
@@ -1123,7 +1105,7 @@ function QuotationPage({
               </thead>
               <tbody>
                 {filteredQuotations.map((quotation, index) => {
-                  const itemSummary = getCompactItemSummary(quotation.items || []);
+                  const itemCount = getItemCount(quotation.items || []);
 
                   return (
                     <tr key={quotation.id || quotation.reference_no}>
@@ -1155,12 +1137,8 @@ function QuotationPage({
                         </div>
                       </td>
                       <td>
-                        <div className="history-item-summary">
-                          <span className="history-item-count">{itemSummary.countLabel}</span>
-                          <strong title={itemSummary.previewText}>{itemSummary.previewText}</strong>
-                          {itemSummary.remainingLabel ? (
-                            <span className="history-item-more">{itemSummary.remainingLabel}</span>
-                          ) : null}
+                        <div className="history-item-summary history-item-quantity-only">
+                          <span className="history-item-count">{itemCount}</span>
                         </div>
                       </td>
                       <td>

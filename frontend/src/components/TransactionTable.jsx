@@ -116,26 +116,8 @@ function getItemStatusOptions(editableStatuses, currentStatus) {
   return [currentStatus, ...editableStatuses];
 }
 
-function getCompactItemSummary(items = []) {
-  const previewItems = items.slice(0, 2);
-  const remainingCount = Math.max(0, items.length - previewItems.length);
-  const previewText = previewItems
-    .map((item) => item.product_name || item.productName || item.name || item.sku || "Unnamed item")
-    .join(", ");
-
-  if (!items.length) {
-    return {
-      countLabel: "0 items",
-      previewText: "No line items",
-      remainingLabel: "",
-    };
-  }
-
-  return {
-    countLabel: `${items.length} ${items.length === 1 ? "item" : "items"}`,
-    previewText,
-    remainingLabel: remainingCount > 0 ? `+${remainingCount} more` : "",
-  };
+function getItemCount(items = []) {
+  return items.length.toLocaleString("en-US");
 }
 
 function getDocumentName(documentUrl = "") {
@@ -348,7 +330,7 @@ function TransactionTable({
       ) : (
         <div className={isCompact ? "transaction-table-window compact-history" : "transaction-table-window"}>
           <div className="table-scroll desktop-table">
-            <table>
+            <table className={`transaction-history-table transaction-history-table-${type}`}>
               <colgroup>
                 <col className="history-col-index" />
                 <col className="history-col-reference" />
@@ -396,7 +378,7 @@ function TransactionTable({
               <tbody>
                 {rows.map((row, rowIndex) => {
                   const salesSummary = type === "sale" ? getVatSummary(row) : null;
-                  const itemSummary = getCompactItemSummary(row.items || []);
+                  const itemCount = getItemCount(row.items || []);
                   return (
                     <tr key={`${type}-${row.id}`}>
                       <td className="table-index-cell">{rowIndex + 1}</td>
@@ -441,18 +423,8 @@ function TransactionTable({
                       </td>
                       <td>{row.transaction_date}</td>
                       <td>
-                        <div className="history-item-summary">
-                          <span className="history-item-count">
-                            {itemSummary.countLabel}
-                          </span>
-                          <strong title={itemSummary.previewText}>
-                            {itemSummary.previewText}
-                          </strong>
-                          {itemSummary.remainingLabel ? (
-                            <span className="history-item-more">
-                              {itemSummary.remainingLabel}
-                            </span>
-                          ) : null}
+                        <div className="history-item-summary history-item-quantity-only">
+                          <span className="history-item-count">{itemCount}</span>
                         </div>
                       </td>
                       {type === "sale" ? (
@@ -490,7 +462,7 @@ function TransactionTable({
           <div className="mobile-record-list">
             {rows.map((row, rowIndex) => {
               const salesSummary = type === "sale" ? getVatSummary(row) : null;
-              const itemSummary = getCompactItemSummary(row.items || []);
+              const itemCount = getItemCount(row.items || []);
               const documents = getTransactionDocuments(row);
 
               return (
@@ -564,12 +536,8 @@ function TransactionTable({
                     ) : null}
                     <div className="full-width-mobile">
                       <span>Items</span>
-                      <div className="history-item-summary mobile-history-item-summary">
-                        <span className="history-item-count">{itemSummary.countLabel}</span>
-                        <strong title={itemSummary.previewText}>{itemSummary.previewText}</strong>
-                        {itemSummary.remainingLabel ? (
-                          <span className="history-item-more">{itemSummary.remainingLabel}</span>
-                        ) : null}
+                      <div className="history-item-summary mobile-history-item-summary history-item-quantity-only">
+                        <span className="history-item-count">{itemCount}</span>
                       </div>
                     </div>
                     <div>
