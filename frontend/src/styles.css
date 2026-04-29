@@ -2056,52 +2056,56 @@ th {
 }
 
 .transaction-table-window table {
-  min-width: 1220px;
+  min-width: 940px;
   table-layout: fixed;
 }
 
 .transaction-table-window .transaction-history-table-sale {
-  min-width: 1380px;
+  min-width: 900px;
 }
 
 .transaction-table-window .transaction-history-table-purchase {
-  min-width: 1260px;
+  min-width: 940px;
+}
+
+.transaction-table-window .transaction-history-table-quotation {
+  min-width: 940px;
 }
 
 .history-col-index {
-  width: 56px;
+  width: 52px;
 }
 
 .history-col-reference {
-  width: 150px;
+  width: 132px;
 }
 
 .history-col-party {
-  width: 210px;
+  width: 180px;
 }
 
 .history-col-status {
-  width: 170px;
-}
-
-.history-col-date {
-  width: 130px;
-}
-
-.history-col-items {
-  width: 92px;
-}
-
-.history-col-tax {
-  width: 190px;
-}
-
-.history-col-money {
   width: 150px;
 }
 
+.history-col-date {
+  width: 112px;
+}
+
+.history-col-items {
+  width: 72px;
+}
+
+.history-col-tax {
+  width: 150px;
+}
+
+.history-col-money {
+  width: 132px;
+}
+
 .history-col-action {
-  width: 110px;
+  width: 92px;
 }
 
 .product-col-index {
@@ -2130,7 +2134,7 @@ th {
 
 .transaction-table-window th,
 .transaction-table-window td {
-  padding: 12px 14px;
+  padding: 11px 10px;
   vertical-align: middle;
   font-size: 0.86rem;
   line-height: 1.25;
@@ -2179,14 +2183,10 @@ th {
 
 .transaction-history-table-sale th:nth-child(7),
 .transaction-history-table-sale td:nth-child(7),
-.transaction-history-table-sale th:nth-child(8),
-.transaction-history-table-sale td:nth-child(8),
-.transaction-history-table-sale th:nth-child(9),
-.transaction-history-table-sale td:nth-child(9),
 .transaction-history-table-purchase th:nth-child(8),
 .transaction-history-table-purchase td:nth-child(8),
-.quotation-table-window th:nth-child(7),
-.quotation-table-window td:nth-child(7) {
+.transaction-history-table-quotation th:nth-child(7),
+.transaction-history-table-quotation td:nth-child(7) {
   text-align: right;
 }
 
@@ -2218,36 +2218,36 @@ th {
 }
 
 .quotation-table-window table {
-  min-width: 1160px;
+  min-width: 940px;
   table-layout: fixed;
 }
 
 .quotation-col-index {
-  width: 56px;
+  width: 52px;
 }
 
 .quotation-col-reference {
-  width: 150px;
+  width: 132px;
 }
 
 .quotation-col-party {
-  width: 180px;
-}
-
-.quotation-col-dates {
-  width: 210px;
-}
-
-.quotation-col-items {
-  width: 92px;
-}
-
-.quotation-col-total {
   width: 150px;
 }
 
+.quotation-col-dates {
+  width: 160px;
+}
+
+.quotation-col-items {
+  width: 72px;
+}
+
+.quotation-col-total {
+  width: 128px;
+}
+
 .quotation-col-actions {
-  width: 140px;
+  width: 92px;
 }
 
 .quotation-action-cell {

@@ -338,18 +338,12 @@ function TransactionTable({
                 <col className="history-col-status" />
                 <col className="history-col-date" />
                 <col className="history-col-items" />
-                {type === "sale" ? (
-                  <>
-                    <col className="history-col-money" />
-                    <col className="history-col-money" />
-                    <col className="history-col-money" />
-                  </>
-                ) : (
+                {type === "purchase" ? (
                   <>
                     <col className="history-col-tax" />
-                    <col className="history-col-money" />
                   </>
-                )}
+                ) : null}
+                <col className="history-col-money" />
                 <col className="history-col-action" />
               </colgroup>
               <thead>
@@ -361,11 +355,7 @@ function TransactionTable({
                   <th>Date</th>
                   <th>Items</th>
                   {type === "sale" ? (
-                    <>
-                      <th>Subtotal</th>
-                      <th>VAT (7%)</th>
-                      <th>Grand Total</th>
-                    </>
+                    <th>Grand Total</th>
                   ) : (
                     <>
                       <th>Tax Inv.</th>
@@ -377,7 +367,6 @@ function TransactionTable({
               </thead>
               <tbody>
                 {rows.map((row, rowIndex) => {
-                  const salesSummary = type === "sale" ? getVatSummary(row) : null;
                   const itemCount = getItemCount(row.items || []);
                   return (
                     <tr key={`${type}-${row.id}`}>
@@ -428,13 +417,9 @@ function TransactionTable({
                         </div>
                       </td>
                       {type === "sale" ? (
-                        <>
-                          <td>{formatCurrency(salesSummary.subtotal)}</td>
-                          <td>{formatCurrency(salesSummary.vat)}</td>
-                          <td>
-                            <strong>{formatCurrency(salesSummary.grandTotal)}</strong>
-                          </td>
-                        </>
+                        <td>
+                          <strong>{formatCurrency(getRowGrandTotal(row))}</strong>
+                        </td>
                       ) : (
                         <>
                           <td>{row.supplier_tax_invoice || "—"}</td>
@@ -461,7 +446,6 @@ function TransactionTable({
 
           <div className="mobile-record-list">
             {rows.map((row, rowIndex) => {
-              const salesSummary = type === "sale" ? getVatSummary(row) : null;
               const itemCount = getItemCount(row.items || []);
               const documents = getTransactionDocuments(row);
 
@@ -508,20 +492,10 @@ function TransactionTable({
                       <strong>{row.transaction_date}</strong>
                     </div>
                     {type === "sale" ? (
-                      <>
-                        <div>
-                          <span>Subtotal</span>
-                          <strong>{formatCurrency(salesSummary.subtotal)}</strong>
-                        </div>
-                        <div>
-                          <span>VAT (7%)</span>
-                          <strong>{formatCurrency(salesSummary.vat)}</strong>
-                        </div>
-                        <div>
-                          <span>Grand Total</span>
-                          <strong>{formatCurrency(salesSummary.grandTotal)}</strong>
-                        </div>
-                      </>
+                      <div>
+                        <span>Grand Total</span>
+                        <strong>{formatCurrency(getRowGrandTotal(row))}</strong>
+                      </div>
                     ) : (
                       <div>
                         <span>Supplier's Tax Invoice</span>

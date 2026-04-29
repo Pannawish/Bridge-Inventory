@@ -1079,85 +1079,87 @@ function QuotationPage({
         </div>
 
         {filteredQuotations.length ? (
-          <div className="table-scroll quotation-table-window">
-            <table>
-              <colgroup>
-                <col className="quotation-col-index" />
-                <col className="quotation-col-reference" />
-                <col className="quotation-col-party" />
-                <col className="quotation-col-party" />
-                <col className="quotation-col-dates" />
-                <col className="quotation-col-items" />
-                <col className="quotation-col-total" />
-                <col className="quotation-col-actions" />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th className="table-index-cell">#</th>
-                  <th>Quotation</th>
-                  <th>Customer</th>
-                  <th>Supplier</th>
-                  <th>Dates</th>
-                  <th>Items</th>
-                  <th>Total</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {filteredQuotations.map((quotation, index) => {
-                  const itemCount = getItemCount(quotation.items || []);
+          <div className="transaction-table-window quotation-table-window">
+            <div className="table-scroll">
+              <table className="transaction-history-table transaction-history-table-quotation">
+                <colgroup>
+                  <col className="quotation-col-index" />
+                  <col className="quotation-col-reference" />
+                  <col className="quotation-col-party" />
+                  <col className="quotation-col-party" />
+                  <col className="quotation-col-dates" />
+                  <col className="quotation-col-items" />
+                  <col className="quotation-col-total" />
+                  <col className="quotation-col-actions" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th className="table-index-cell">#</th>
+                    <th>Quotation</th>
+                    <th>Customer</th>
+                    <th>Supplier</th>
+                    <th>Dates</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredQuotations.map((quotation, index) => {
+                    const itemCount = getItemCount(quotation.items || []);
 
-                  return (
-                    <tr key={quotation.id || quotation.reference_no}>
-                      <td className="table-index-cell">{index + 1}</td>
-                      <td>
-                        <div className="transaction-reference-cell">
-                          <strong>{quotation.reference_no || "—"}</strong>
-                          <span className={`quotation-state-pill ${getQuotationState(quotation).toLowerCase()}`}>
-                            {getQuotationState(quotation)}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="cell-stack">
-                          <strong>{quotation.customer_name || "—"}</strong>
-                          <span>Customer</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="cell-stack">
-                          <strong>{quotation.supplier_name || "—"}</strong>
-                          <span>Supplier</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="cell-stack">
-                          <strong>{quotation.quotation_date || "—"}</strong>
-                          <span>Valid until {quotation.valid_until_date || "—"}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="history-item-summary history-item-quantity-only">
-                          <span className="history-item-count">{itemCount}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <strong>{fmt(quotation.grand_total)}</strong>
-                      </td>
-                      <td>
-                        <button
-                          className="table-action-button"
-                          type="button"
-                          onClick={() => setViewingQuotation(quotation)}
-                        >
-                          Detail
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    return (
+                      <tr key={quotation.id || quotation.reference_no}>
+                        <td className="table-index-cell">{index + 1}</td>
+                        <td>
+                          <div className="transaction-reference-cell">
+                            <strong>{quotation.reference_no || "—"}</strong>
+                            <span className={`quotation-state-pill ${getQuotationState(quotation).toLowerCase()}`}>
+                              {getQuotationState(quotation)}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="cell-stack">
+                            <strong>{quotation.customer_name || "—"}</strong>
+                            <span>Customer</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="cell-stack">
+                            <strong>{quotation.supplier_name || "—"}</strong>
+                            <span>Supplier</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="cell-stack">
+                            <strong>{quotation.quotation_date || "—"}</strong>
+                            <span>Valid until {quotation.valid_until_date || "—"}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="history-item-summary history-item-quantity-only">
+                            <span className="history-item-count">{itemCount}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <strong>{fmt(quotation.grand_total)}</strong>
+                        </td>
+                        <td>
+                          <button
+                            className="table-action-button"
+                            type="button"
+                            onClick={() => setViewingQuotation(quotation)}
+                          >
+                            Detail
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
           <p className="empty-copy">No quotations saved yet.</p>
