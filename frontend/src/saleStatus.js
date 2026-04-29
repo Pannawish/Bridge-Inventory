@@ -13,7 +13,7 @@ export const saleStatuses = [
   "cancelled",
 ];
 export const saleItemStatuses = ["pending", "packed", "shipped", "delivered", "cancelled"];
-export const editableSaleItemStatuses = ["pending", "packed", "shipped", "delivered"];
+export const editableSaleItemStatuses = ["pending", "packed", "shipped", "delivered", "cancelled"];
 
 export function getInitialSaleItemStatus(saleStatus = "draft") {
   if (

@@ -241,6 +241,16 @@ function TransactionTable({
   }
 
   function handlePurchaseItemStatusChange(itemIndex, nextStatus) {
+    if (nextStatus === "cancelled") {
+      const confirmed = window.confirm(
+        "Cancel this purchase item? This will remove its received date, exclude it from received stock, and may update the purchase status."
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
     const updatedRow = updatePurchaseItemStatus(selectedRow, itemIndex, nextStatus);
 
     setSelectedRow(updatedRow);
@@ -272,6 +282,16 @@ function TransactionTable({
   }
 
   function handleSaleItemStatusChange(itemIndex, nextStatus) {
+    if (nextStatus === "cancelled") {
+      const confirmed = window.confirm(
+        "Cancel this sales item? This will clear shipped and delivered dates, release its stock commitment, and may update the sale status."
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
     const updatedRow = updateSaleItemStatus(selectedRow, itemIndex, nextStatus);
     const issues = getSaleStockIssues(updatedRow, products, purchases, sales, {
       excludeSaleId: selectedRow.id,
@@ -672,7 +692,7 @@ function TransactionTable({
                       selectedRow.status
                     );
 
-                    return ["pending", "delayed", "received"].map((status) => (
+                    return ["pending", "delayed", "received", "cancelled"].map((status) => (
                       <span
                         key={status}
                         className={`status-badge item-status-badge status-${status}`}
@@ -692,7 +712,7 @@ function TransactionTable({
                       selectedRow.status
                     );
 
-                    return ["pending", "packed", "shipped", "delivered"].map(
+                    return ["pending", "packed", "shipped", "delivered", "cancelled"].map(
                       (status) => (
                         <span
                           key={status}
