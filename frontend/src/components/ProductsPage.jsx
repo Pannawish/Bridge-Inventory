@@ -1077,20 +1077,6 @@ function ProductsPage({
     );
   }
 
-  const allProductMetrics = products.map((product) =>
-    getProductMetrics(product, purchases, sales)
-  );
-  const summary = {
-    totalProducts: products.length,
-    totalUnits: allProductMetrics.reduce((sum, metrics) => sum + metrics.totalUnits, 0),
-    totalValue: products.reduce(
-      (sum, product, index) =>
-        sum + allProductMetrics[index].avgPrice * allProductMetrics[index].totalUnits,
-      0
-    ),
-    outOfStock: allProductMetrics.filter((metrics) => metrics.totalUnits <= 0).length,
-  };
-
   const viewPurchaseHistory = viewingProduct
     ? getPurchaseHistory(viewingProduct)
     : [];
@@ -1106,25 +1092,6 @@ function ProductsPage({
 
   return (
     <div className="stack-layout">
-      <section className="inventory-summary-grid">
-        <article className="inventory-summary-card">
-          <span>Total products</span>
-          <strong>{summary.totalProducts}</strong>
-        </article>
-        <article className="inventory-summary-card">
-          <span>Total stock units</span>
-          <strong>{summary.totalUnits}</strong>
-        </article>
-        <article className="inventory-summary-card">
-          <span>Total inventory value</span>
-          <strong>{formatCurrency(summary.totalValue)}</strong>
-        </article>
-        <article className="inventory-summary-card">
-          <span>Out of stock</span>
-          <strong>{summary.outOfStock}</strong>
-        </article>
-      </section>
-
       <div className="supplier-layout">
         <section className="section-card supplier-directory-card">
           <div className="section-heading supplier-directory-heading">

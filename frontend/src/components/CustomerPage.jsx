@@ -397,43 +397,8 @@ function CustomerPage({
     setDraftCustomer(null);
   }
 
-  const summary = {
-    totalCustomers: customers.length,
-    totalLocations: customers.reduce(
-      (sum, customer) => sum + customer.locations.filter((item) => item.trim()).length,
-      0
-    ),
-    totalEmails: customers.reduce(
-      (sum, customer) => sum + customer.emails.filter((item) => item.trim()).length,
-      0
-    ),
-    totalPhones: customers.reduce(
-      (sum, customer) => sum + customer.tels.filter((item) => item.trim()).length,
-      0
-    ),
-  };
-
   return (
     <div className="stack-layout">
-      <section className="inventory-summary-grid">
-        <article className="inventory-summary-card">
-          <span>Total customers</span>
-          <strong>{summary.totalCustomers}</strong>
-        </article>
-        <article className="inventory-summary-card">
-          <span>Saved locations</span>
-          <strong>{summary.totalLocations}</strong>
-        </article>
-        <article className="inventory-summary-card">
-          <span>Saved emails</span>
-          <strong>{summary.totalEmails}</strong>
-        </article>
-        <article className="inventory-summary-card">
-          <span>Saved telephone numbers</span>
-          <strong>{summary.totalPhones}</strong>
-        </article>
-      </section>
-
       <div className="supplier-layout">
         <section className="section-card supplier-directory-card">
           <div className="section-heading supplier-directory-heading">
