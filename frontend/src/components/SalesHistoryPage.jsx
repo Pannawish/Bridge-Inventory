@@ -1364,6 +1364,23 @@ function SalesHistoryPage({
     );
   }
 
+  if (editingSale) {
+    return (
+      <div className="stack-layout">
+        <SalesEditForm
+          key={editingSale.id}
+          sale={editingSale}
+          products={products}
+          customers={customers}
+          purchases={purchases}
+          sales={sales}
+          onCancel={() => setEditingSale(null)}
+          onSave={handleSave}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="stack-layout">
       <section className="section-card">
@@ -1497,19 +1514,6 @@ function SalesHistoryPage({
           </div>
         ) : null}
       </section>
-
-      {editingSale ? (
-        <SalesEditForm
-          key={editingSale.id}
-          sale={editingSale}
-          products={products}
-          customers={customers}
-          purchases={purchases}
-          sales={sales}
-          onCancel={() => setEditingSale(null)}
-          onSave={handleSave}
-        />
-      ) : null}
 
       <TransactionTable
         rows={filteredSales}

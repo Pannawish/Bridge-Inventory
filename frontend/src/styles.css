@@ -2312,6 +2312,11 @@ th {
   background: #fff2f4;
 }
 
+.quotation-date-value {
+  color: var(--text);
+  font-weight: 400;
+}
+
 .quotation-link-card .section-heading {
   margin-bottom: 0;
 }

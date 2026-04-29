@@ -1364,6 +1364,21 @@ function PurchaseHistoryPage({
     );
   }
 
+  if (editingPurchase) {
+    return (
+      <div className="stack-layout">
+        <PurchaseEditForm
+          key={editingPurchase.id}
+          purchase={editingPurchase}
+          products={products}
+          suppliers={suppliers}
+          onCancel={() => setEditingPurchase(null)}
+          onSave={handleSave}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="stack-layout">
       <section className="section-card">
@@ -1497,17 +1512,6 @@ function PurchaseHistoryPage({
           </div>
         ) : null}
       </section>
-
-      {editingPurchase ? (
-        <PurchaseEditForm
-          key={editingPurchase.id}
-          purchase={editingPurchase}
-          products={products}
-          suppliers={suppliers}
-          onCancel={() => setEditingPurchase(null)}
-          onSave={handleSave}
-        />
-      ) : null}
 
       <TransactionTable
         rows={filteredPurchases}

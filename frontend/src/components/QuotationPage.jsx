@@ -1133,7 +1133,9 @@ function QuotationPage({
                         </td>
                         <td>
                           <div className="cell-stack">
-                            <strong>{quotation.quotation_date || "—"}</strong>
+                            <span className="quotation-date-value">
+                              {quotation.quotation_date || "—"}
+                            </span>
                             <span>Valid until {quotation.valid_until_date || "—"}</span>
                           </div>
                         </td>
