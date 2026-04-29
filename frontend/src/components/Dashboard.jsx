@@ -8,6 +8,87 @@ import { getItemBaseQuantity, getProductBaseUnit } from "../unitConversion";
 
 const SAFETY_STOCK_DAYS = 7;
 const COMMITTED_SALE_ITEM_STATUSES = ["packed", "shipped", "delivered"];
+const stockColumnDetails = [
+  {
+    label: "Product",
+    meaning: "Product name and SKU shown together so each row can be identified.",
+  },
+  {
+    label: "Cat.",
+    meaning: "The product category assigned in the product master.",
+  },
+  {
+    label: "Health",
+    meaning: "Inventory status based on shortage, available stock, reorder point, pending sales, and delayed purchases.",
+    formula:
+      "Urgent when shortage exists, pending sales exceed available plus pending PO, or available stock is at/below reorder point. Watch when stock is near reorder point, has delayed PO, or pending sales.",
+  },
+  {
+    label: "Avail.",
+    meaning: "Stock currently available after committed sales are deducted.",
+    formula: "max(0, received purchase quantity - committed sales quantity)",
+  },
+  {
+    label: "Recv.",
+    meaning: "Total quantity received from purchase items marked Received.",
+    formula: "sum of received purchase item base quantities",
+  },
+  {
+    label: "Comm.",
+    meaning: "Sales quantity already committed to stock.",
+    formula: "sum of sales item base quantities with status Packed, Shipped, or Delivered",
+  },
+  {
+    label: "Pending",
+    meaning: "Sales demand not yet committed to stock.",
+    formula: "sum of sales item base quantities with status Pending",
+  },
+  {
+    label: "Shortage",
+    meaning: "Quantity oversold beyond received stock.",
+    formula: "max(0, committed sales quantity - received purchase quantity)",
+  },
+  {
+    label: "PO",
+    meaning: "Incoming purchase quantity that is still pending.",
+    formula: "sum of purchase item base quantities with status Pending and not delayed",
+  },
+  {
+    label: "Late PO",
+    meaning: "Incoming purchase quantity whose expected delivery date has passed.",
+    formula: "sum of pending purchase item base quantities where expected delivery date is before today",
+  },
+  {
+    label: "Demand",
+    meaning: "Average daily demand from committed sales history.",
+    formula: "sales history quantity / number of days in the sales history date span",
+  },
+  {
+    label: "Safety",
+    meaning: "Buffer stock based on recent demand.",
+    formula: `average daily demand x ${SAFETY_STOCK_DAYS} days, rounded up`,
+  },
+  {
+    label: "Reorder",
+    meaning: "Stock level where the app starts recommending a purchase.",
+    formula: "ceil(average lead-time demand + safety stock), or product reorder level when demand data is unavailable",
+  },
+  {
+    label: "Days",
+    meaning: "Estimated days until available stock runs out.",
+    formula: "floor(available stock / average daily demand), blank when average daily demand is zero",
+  },
+  {
+    label: "Buy",
+    meaning: "Suggested quantity to purchase.",
+    formula: "max(0, reorder point + pending sales + shortage - available stock - pending PO)",
+  },
+  {
+    label: "Stock Value",
+    meaning: "Estimated value of available stock.",
+    formula: "available stock x average unit cost from received purchases",
+  },
+];
 
 function formatCurrency(value) {
   return `฿${Number(value || 0).toLocaleString("en-US", {
@@ -438,6 +519,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
   const [stockoutFilter, setStockoutFilter] = useState("all");
   const [sortMetric, setSortMetric] = useState("available_stock");
   const [sortOrder, setSortOrder] = useState("low-to-high");
+  const [showStockInfo, setShowStockInfo] = useState(false);
   const metrics = dashboard.metrics || {};
   const lowStockItems = dashboard.low_stock_items || [];
   const stockReport = dashboard.stock_report || [];
@@ -754,6 +836,14 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
             <p className="eyebrow">Inventory</p>
             <h3>Current Stock Details</h3>
           </div>
+          <button
+            className="secondary-button dashboard-info-button"
+            type="button"
+            onClick={() => setShowStockInfo(true)}
+            aria-label="Show current stock column information"
+          >
+            i
+          </button>
         </div>
 
         <p className="inventory-note">
@@ -1055,6 +1145,51 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
             ))
           )}
         </div>
+
+        {showStockInfo ? (
+          <div
+            className="modal-backdrop"
+            role="presentation"
+            onClick={() => setShowStockInfo(false)}
+          >
+            <div
+              className="detail-modal dashboard-stock-info-modal section-card"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="stock-info-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Column Reference</p>
+                  <h3 id="stock-info-title">Current Stock Details</h3>
+                </div>
+                <button
+                  className="secondary-button table-action-button"
+                  type="button"
+                  onClick={() => setShowStockInfo(false)}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="stock-info-grid">
+                {stockColumnDetails.map((column) => (
+                  <article className="stock-info-item" key={column.label}>
+                    <strong>{column.label}</strong>
+                    <p>{column.meaning}</p>
+                    {column.formula ? (
+                      <div>
+                        <span>Formula</span>
+                        <code>{column.formula}</code>
+                      </div>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </section>
     </div>
   );
