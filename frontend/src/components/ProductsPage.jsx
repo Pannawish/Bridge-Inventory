@@ -577,6 +577,8 @@ function ProductsPage({
   const [showProductFilters, setShowProductFilters] = useState(false);
   const [productFormError, setProductFormError] = useState("");
   const [skuChangeUnlocked, setSkuChangeUnlocked] = useState(false);
+  const [categoryQuery, setCategoryQuery] = useState("");
+  const [categoryComboboxOpen, setCategoryComboboxOpen] = useState(false);
 
   useEffect(() => {
     const isOpen = !!(viewingProduct || viewingTransaction || draftProduct);
@@ -615,6 +617,17 @@ function ProductsPage({
         .sort((left, right) => left.localeCompare(right)),
     [productsWithMetrics]
   );
+  const filteredProductCategoryOptions = useMemo(() => {
+    const normalizedQuery = categoryQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return productCategoryOptions;
+    }
+
+    return productCategoryOptions.filter((category) =>
+      category.label.toLowerCase().includes(normalizedQuery)
+    );
+  }, [categoryQuery, productCategoryOptions]);
 
   const filteredProductsWithMetrics = useMemo(
     () =>
@@ -696,14 +709,17 @@ function ProductsPage({
 
   function openProductEditor(product) {
     const normalizedProduct = normalizeProduct(product);
+    const categoryId = resolveProductCategoryId(product, categories);
 
     setViewingProduct(null);
     setViewingTransaction(null);
     setProductFormError("");
     setSkuChangeUnlocked(false);
+    setCategoryComboboxOpen(false);
+    setCategoryQuery(getCategoryPathById(categories, categoryId));
     setDraftProduct({
       ...normalizedProduct,
-      categoryId: resolveProductCategoryId(product, categories),
+      categoryId,
     });
   }
 
@@ -711,6 +727,8 @@ function ProductsPage({
     setDraftProduct(null);
     setProductFormError("");
     setSkuChangeUnlocked(false);
+    setCategoryQuery("");
+    setCategoryComboboxOpen(false);
   }
 
   function resetProductFilters() {
@@ -725,6 +743,15 @@ function ProductsPage({
       }
 
       const nextProduct = { ...prev, [key]: value };
+
+      if (key === "categoryId" && !value) {
+        const isExistingProduct = products.some((product) => `${product.id}` === `${prev.id}`);
+
+        return {
+          ...nextProduct,
+          sku: isExistingProduct ? nextProduct.sku : "",
+        };
+      }
 
       if (key === "categoryId" && getCategoryPathSkuCode(categories, value)) {
         const isExistingProduct = products.some((product) => `${product.id}` === `${prev.id}`);
@@ -909,6 +936,32 @@ function ProductsPage({
     setProductFormError("");
   }
 
+  function selectDraftCategory(category) {
+    setCategoryQuery(category.label);
+    setCategoryComboboxOpen(false);
+    updateDraftField("categoryId", category.id);
+  }
+
+  function handleCategoryQueryChange(value) {
+    const exactCategory = productCategoryOptions.find(
+      (category) => category.label.toLowerCase() === value.trim().toLowerCase()
+    );
+
+    setCategoryQuery(value);
+    setCategoryComboboxOpen(true);
+    updateDraftField("categoryId", exactCategory?.id || "");
+  }
+
+  function handleCategoryBlur() {
+    window.setTimeout(() => {
+      setCategoryComboboxOpen(false);
+      setCategoryQuery(
+        productCategoryOptions.find((category) => category.id === draftProduct?.categoryId)
+          ?.label || ""
+      );
+    }, 120);
+  }
+
   function handleUnlockSkuChange() {
     if (!draftProduct) {
       return;
@@ -936,6 +989,8 @@ function ProductsPage({
     setViewingTransaction(null);
     setProductFormError("");
     setSkuChangeUnlocked(false);
+    setCategoryQuery("");
+    setCategoryComboboxOpen(false);
     setDraftProduct(createProduct({ productDisplayId: nextDisplayId }));
   }
 
@@ -1066,6 +1121,8 @@ function ProductsPage({
     }
 
     setDraftProduct(null);
+    setCategoryQuery("");
+    setCategoryComboboxOpen(false);
   }
 
   function getPurchaseHistory(product) {
@@ -2049,23 +2106,59 @@ function ProductsPage({
                   </div>
 
                   <div className="product-editor-grid">
-                    <label>
+                    <label className="supplier-combobox-field">
                       <span className="required-label">Category</span>
-                      <select
-                        value={draftProduct.categoryId || ""}
-                        onChange={(event) => updateDraftField("categoryId", event.target.value)}
-                      >
-                        <option value="">
-                          {productCategoryOptions.length
-                            ? "Select category"
-                            : "Create a category first"}
-                        </option>
-                        {productCategoryOptions.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.label}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="supplier-combobox">
+                        <input
+                          type="search"
+                          value={categoryQuery}
+                          onChange={(event) => handleCategoryQueryChange(event.target.value)}
+                          onFocus={() => setCategoryComboboxOpen(true)}
+                          onBlur={handleCategoryBlur}
+                          placeholder={
+                            productCategoryOptions.length
+                              ? "Search category"
+                              : "Create a category first"
+                          }
+                          autoComplete="off"
+                          aria-expanded={categoryComboboxOpen}
+                          aria-controls="product-editor-category-list"
+                        />
+
+                        {categoryComboboxOpen ? (
+                          <div
+                            className="supplier-combobox-menu"
+                            id="product-editor-category-list"
+                            role="listbox"
+                          >
+                            {filteredProductCategoryOptions.length ? (
+                              filteredProductCategoryOptions.map((category) => (
+                                <button
+                                  key={category.id}
+                                  type="button"
+                                  className={
+                                    category.id === draftProduct.categoryId
+                                      ? "supplier-combobox-option active"
+                                      : "supplier-combobox-option"
+                                  }
+                                  onMouseDown={(event) => {
+                                    event.preventDefault();
+                                    selectDraftCategory(category);
+                                  }}
+                                  role="option"
+                                  aria-selected={category.id === draftProduct.categoryId}
+                                >
+                                  {category.label}
+                                </button>
+                              ))
+                            ) : (
+                              <div className="supplier-combobox-empty">
+                                No category found.
+                              </div>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
                     </label>
 
                     <label>
