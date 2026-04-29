@@ -662,7 +662,6 @@ function CategoryPage({
                           )}
                           <span className="category-tree-main">
                             <strong>{category.name || "Unnamed Category"}</strong>
-                            <span>{category.description || "No description"}</span>
                           </span>
                         </div>
                       </td>
