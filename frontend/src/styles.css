@@ -1288,13 +1288,77 @@ label textarea:focus,
   background: #fff;
 }
 
+.purchase-vat-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .purchase-vat-label {
-  margin: 0 0 10px;
+  margin: 0;
   color: var(--muted);
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.vat-toggle {
+  display: inline-flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.vat-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.vat-toggle-track {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: #e8edf7;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.vat-toggle-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(31, 52, 120, 0.18);
+  transition: transform 0.2s ease;
+}
+
+.vat-toggle input:checked + .vat-toggle-track {
+  border-color: #b6c7ff;
+  background: var(--accent);
+}
+
+.vat-toggle input:checked + .vat-toggle-track::after {
+  transform: translateX(20px);
+}
+
+.vat-toggle input:focus + .vat-toggle-track {
+  box-shadow: 0 0 0 4px rgba(65, 104, 255, 0.10);
+}
+
+.vat-toggle-text {
+  min-width: 24px;
 }
 
 .purchase-vat-options {

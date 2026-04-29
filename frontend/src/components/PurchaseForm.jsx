@@ -16,7 +16,6 @@ const VAT_RATE = 0.07;
 const vatOptions = [
   { value: "included", label: "VAT Included" },
   { value: "not_included", label: "VAT Not Included" },
-  { value: "none", label: "No VAT" },
 ];
 const defaultSupplierOptions = [];
 
@@ -139,6 +138,10 @@ function computeVatSummary(itemTotal, vatMode) {
     vat: 0,
     grandTotal: itemTotal,
   };
+}
+
+function isVatEnabled(vatMode) {
+  return vatMode !== "none";
 }
 
 function createInitialForm(referenceNo, prefill = {}) {
@@ -972,8 +975,23 @@ function PurchaseForm({
         </div>
 
         <section className="purchase-vat-card">
-          <div>
+          <div className="purchase-vat-card-header">
             <p className="purchase-vat-label">VAT Setting</p>
+            <label className="vat-toggle">
+              <input
+                type="checkbox"
+                checked={isVatEnabled(vatMode)}
+                onChange={(event) =>
+                  setVatMode(event.target.checked ? "not_included" : "none")
+                }
+              />
+              <span className="vat-toggle-track" />
+              <span className="vat-toggle-text">
+                {isVatEnabled(vatMode) ? "On" : "Off"}
+              </span>
+            </label>
+          </div>
+          {isVatEnabled(vatMode) ? (
             <div className="purchase-vat-options" role="radiogroup" aria-label="Purchase VAT setting">
               {vatOptions.map((option) => (
                 <label
@@ -991,18 +1009,22 @@ function PurchaseForm({
                 </label>
               ))}
             </div>
-          </div>
+          ) : null}
         </section>
 
         <div className="sales-summary-card">
-          <div className="sales-summary-row">
-            <span>Total</span>
-            <span>{fmt(vatSummary.total)}</span>
-          </div>
-          <div className="sales-summary-row">
-            <span>VAT (7%)</span>
-            <span>{fmt(vatSummary.vat)}</span>
-          </div>
+          {isVatEnabled(vatMode) ? (
+            <>
+              <div className="sales-summary-row">
+                <span>Total</span>
+                <span>{fmt(vatSummary.total)}</span>
+              </div>
+              <div className="sales-summary-row">
+                <span>VAT (7%)</span>
+                <span>{fmt(vatSummary.vat)}</span>
+              </div>
+            </>
+          ) : null}
           <div className="sales-summary-row sales-summary-grand">
             <strong>Grand Total</strong>
             <strong>{fmt(vatSummary.grandTotal)}</strong>
