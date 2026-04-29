@@ -185,6 +185,7 @@ const tabs = [
 
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dashboard, setDashboard] = useState(null);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -325,6 +326,22 @@ function App() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return undefined;
+    }
+
+    if (sidebarOpen) {
+      const previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = previousOverflow;
+      };
+    }
+
+    return undefined;
+  }, [sidebarOpen]);
+
   function showWarning(message) {
     setNotice("");
     setError("");
@@ -371,7 +388,10 @@ function App() {
 
   function handleTabSelect(tabId) {
     setActiveTab(tabId);
+    setSidebarOpen(false);
   }
+
+  const activeTabMeta = tabs.find((tab) => tab.id === activeTab) || tabs[0];
 
   async function handlePurchaseCreateFromHistory(formData) {
     setError("");
@@ -948,8 +968,8 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
+    <div className={sidebarOpen ? "app-shell sidebar-open" : "app-shell"}>
+      <aside className={sidebarOpen ? "sidebar is-open" : "sidebar"}>
         <div className="sidebar-content">
           <div className="sidebar-top">
             <div className="brand-lockup">
@@ -958,6 +978,14 @@ function App() {
                 <h1>Inventory</h1>
               </div>
             </div>
+            <button
+              type="button"
+              className="sidebar-close-button"
+              aria-label="Close menu"
+              onClick={() => setSidebarOpen(false)}
+            >
+              X
+            </button>
           </div>
 
           <nav className="sidebar-nav">
@@ -982,7 +1010,32 @@ function App() {
         </div>
       </aside>
 
+      {sidebarOpen ? (
+        <div
+          className="sidebar-backdrop"
+          role="presentation"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
+
       <main className="main-panel">
+        <header className="mobile-topbar">
+          <button
+            type="button"
+            className="mobile-menu-button"
+            aria-label="Open menu"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+          <div className="mobile-topbar-title">
+            <span className="mobile-topbar-eyebrow">Inventory</span>
+            <strong>{activeTabMeta.label}</strong>
+          </div>
+        </header>
+
         {notice ? (
           <div className="notice-banner">
             <span>{notice}</span>
