@@ -1592,7 +1592,7 @@ label textarea:focus,
 }
 
 .dashboard-stock-table {
-  overflow: visible;
+  overflow-x: auto;
 }
 
 .mobile-record-list,
@@ -1641,21 +1641,21 @@ th {
 }
 
 .dashboard-stock-table table {
-  min-width: 0;
+  min-width: 1720px;
   table-layout: fixed;
 }
 
 .dashboard-stock-table th,
 .dashboard-stock-table td {
-  padding: 9px 6px;
-  font-size: 0.77rem;
-  line-height: 1.22;
+  padding: 11px 10px;
+  font-size: 0.84rem;
+  line-height: 1.28;
   vertical-align: middle;
 }
 
 .dashboard-stock-table th {
   position: relative;
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   letter-spacing: 0.04em;
   cursor: help;
 }
@@ -1713,17 +1713,17 @@ th {
 
 .dashboard-stock-table th:nth-child(1),
 .dashboard-stock-table td:nth-child(1) {
-  width: 13%;
+  width: 190px;
 }
 
 .dashboard-stock-table th:nth-child(2),
 .dashboard-stock-table td:nth-child(2) {
-  width: 8%;
+  width: 150px;
 }
 
 .dashboard-stock-table th:nth-child(3),
 .dashboard-stock-table td:nth-child(3) {
-  width: 7%;
+  width: 110px;
 }
 
 .dashboard-stock-table th:nth-child(4),
@@ -1750,18 +1750,16 @@ th {
 .dashboard-stock-table td:nth-child(14),
 .dashboard-stock-table th:nth-child(15),
 .dashboard-stock-table td:nth-child(15) {
-  width: 5.2%;
+  width: 95px;
 }
 
 .dashboard-stock-table th:nth-child(16),
 .dashboard-stock-table td:nth-child(16) {
-  width: 8%;
+  width: 130px;
 }
 
 .dashboard-stock-table td {
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .dashboard-stock-table .cell-stack {
@@ -1778,15 +1776,15 @@ th {
 }
 
 .dashboard-stock-table .cell-stack span {
-  font-size: 0.68rem;
+  font-size: 0.76rem;
 }
 
 .dashboard-stock-table .status-badge {
   width: 100%;
   justify-content: center;
-  padding: 5px 6px;
+  padding: 6px 8px;
   border-radius: 999px;
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   white-space: nowrap;
 }
 
