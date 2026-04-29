@@ -2201,17 +2201,56 @@ th {
 }
 
 .category-tree-cell {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  display: flex;
   align-items: start;
-  gap: 8px;
   min-width: 0;
+}
+
+.category-tree-guides {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 22px;
+  flex: 0 0 auto;
+  align-self: stretch;
+  min-height: 44px;
+}
+
+.category-tree-guide {
+  position: relative;
+  width: 22px;
+  min-height: 44px;
+}
+
+.category-tree-guide.continues::before,
+.category-tree-guide.connector::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: -12px;
+  bottom: -12px;
+  width: 1px;
+  background: #cad5e8;
+}
+
+.category-tree-guide.connector.last::before {
+  bottom: 22px;
+}
+
+.category-tree-guide.connector::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 21px;
+  width: 16px;
+  height: 1px;
+  background: #cad5e8;
 }
 
 .category-tree-main {
   display: grid;
   gap: 3px;
   min-width: 0;
+  padding-inline-start: 8px;
 }
 
 .category-tree-main strong,
@@ -2235,8 +2274,10 @@ th {
 .category-tree-toggle {
   display: grid;
   place-items: center;
+  flex: 0 0 auto;
   width: 22px;
   height: 22px;
+  margin-top: 10px;
   padding: 0;
   border: 1px solid #d8e0f5;
   border-radius: 6px;

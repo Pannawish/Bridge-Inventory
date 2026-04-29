@@ -320,12 +320,13 @@ function CategoryPage({
     const childMap = getCategoryChildrenMap(categories);
     const rows = [];
 
-    function visit(parentId, depth) {
+    function visit(parentId, depth, ancestorContinuations = []) {
       const children = (childMap.get(parentId) || []).filter((category) =>
         visibleCategoryIds.has(category.id)
       );
 
-      children.forEach((category) => {
+      children.forEach((category, index) => {
+        const isLastSibling = index === children.length - 1;
         const visibleChildren = (childMap.get(category.id) || []).filter((child) =>
           visibleCategoryIds.has(child.id)
         );
@@ -334,10 +335,12 @@ function CategoryPage({
           category,
           depth,
           hasChildren: visibleChildren.length > 0,
+          isLastSibling,
+          ancestorContinuations,
         });
 
         if (!collapsedCategoryIds.has(category.id)) {
-          visit(category.id, depth + 1);
+          visit(category.id, depth + 1, [...ancestorContinuations, !isLastSibling]);
         }
       });
     }
@@ -613,17 +616,34 @@ function CategoryPage({
                 </tr>
               </thead>
               <tbody>
-                {categoryRows.map(({ category, depth, hasChildren }) => {
+                {categoryRows.map(({
+                  category,
+                  depth,
+                  hasChildren,
+                  isLastSibling,
+                  ancestorContinuations,
+                }) => {
                   const directChildCount = childCategoryCounts.get(category.id) || 0;
                   const assignedProductCount = productAssignments.get(category.id) || 0;
 
                   return (
                     <tr key={category.id}>
                       <td>
-                        <div
-                          className="category-tree-cell"
-                          style={{ paddingInlineStart: `${depth * 22}px` }}
-                        >
+                        <div className="category-tree-cell">
+                          <span className="category-tree-guides" aria-hidden="true">
+                            {Array.from({ length: depth }).map((_, level) => {
+                              const isCurrentLevel = level === depth - 1;
+                              const className = isCurrentLevel
+                                ? isLastSibling
+                                  ? "category-tree-guide connector last"
+                                  : "category-tree-guide connector"
+                                : ancestorContinuations[level]
+                                  ? "category-tree-guide continues"
+                                  : "category-tree-guide";
+
+                              return <span className={className} key={level} />;
+                            })}
+                          </span>
                           {hasChildren ? (
                             <button
                               className="category-tree-toggle"
