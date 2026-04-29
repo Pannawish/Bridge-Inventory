@@ -473,17 +473,6 @@ function QuotationForm({
     );
   }
 
-  function resetNewForm(savedQuotation) {
-    const nextReference = getNextQuotationReference(
-      savedQuotation ? [savedQuotation, ...quotations] : quotations
-    );
-
-    lastGeneratedReference.current = nextReference;
-    setForm(createInitialForm(nextReference));
-    setItems([emptyItem()]);
-    setFormError("");
-  }
-
   async function handleSubmit(event) {
     event.preventDefault();
     setFormError("");
@@ -564,7 +553,7 @@ function QuotationForm({
       if (isEditing) {
         onCancel();
       } else {
-        resetNewForm(savedQuotation);
+        onCancel?.();
       }
     } catch (error) {
       setFormError(error.message);
@@ -578,7 +567,7 @@ function QuotationForm({
           <p className="eyebrow">{isEditing ? "Quotation Edit" : "Quotation Entry"}</p>
           <h3>{isEditing ? "Edit Quotation" : "New Quotation"}</h3>
         </div>
-        {isEditing ? (
+        {onCancel ? (
           <button className="secondary-button table-action-button" type="button" onClick={onCancel}>
             Cancel
           </button>
@@ -873,7 +862,7 @@ function QuotationForm({
         </div>
 
         <div className="supplier-modal-actions">
-          {isEditing ? (
+          {onCancel ? (
             <button className="secondary-button" type="button" onClick={onCancel}>
               Cancel
             </button>
@@ -901,6 +890,7 @@ function QuotationPage({
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingQuotation, setEditingQuotation] = useState(null);
+  const [showNewQuotationForm, setShowNewQuotationForm] = useState(false);
   const [conversion, setConversion] = useState(null);
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredQuotations = useMemo(
@@ -953,6 +943,51 @@ function QuotationPage({
 
     setConversion(null);
     return true;
+  }
+
+  async function handleSaveQuotation(quotation) {
+    const saved = await onSaveQuotation?.(quotation);
+
+    if (saved === false) {
+      return false;
+    }
+
+    setShowNewQuotationForm(false);
+    setEditingQuotation(null);
+    return saved;
+  }
+
+  if (showNewQuotationForm) {
+    return (
+      <div className="stack-layout">
+        <QuotationForm
+          key="new-quotation"
+          quotations={quotations}
+          products={products}
+          suppliers={suppliers}
+          customers={customers}
+          onSave={handleSaveQuotation}
+          onCancel={() => setShowNewQuotationForm(false)}
+        />
+      </div>
+    );
+  }
+
+  if (editingQuotation) {
+    return (
+      <div className="stack-layout">
+        <QuotationForm
+          key={editingQuotation.id}
+          quotation={editingQuotation}
+          quotations={quotations}
+          products={products}
+          suppliers={suppliers}
+          customers={customers}
+          onSave={handleSaveQuotation}
+          onCancel={() => setEditingQuotation(null)}
+        />
+      </div>
+    );
   }
 
   if (conversion?.type === "purchase") {
@@ -1012,22 +1047,11 @@ function QuotationPage({
 
   return (
     <div className="stack-layout">
-      <QuotationForm
-        key={editingQuotation?.id || "new-quotation"}
-        quotation={editingQuotation}
-        quotations={quotations}
-        products={products}
-        suppliers={suppliers}
-        customers={customers}
-        onSave={onSaveQuotation}
-        onCancel={() => setEditingQuotation(null)}
-      />
-
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Quotation Records</p>
-            <h3>Saved Quotations</h3>
+            <p className="eyebrow">History Search</p>
+            <h3>Find Quotation Records</h3>
           </div>
         </div>
 
@@ -1045,6 +1069,28 @@ function QuotationPage({
             <span>
               {filteredQuotations.length} of {quotations.length} quotations shown
             </span>
+          </div>
+        </div>
+      </section>
+
+      <section className="section-card">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">History</p>
+            <h3>Quotations</h3>
+          </div>
+          <div className="transaction-table-actions">
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => {
+                setEditingQuotation(null);
+                setConversion(null);
+                setShowNewQuotationForm(true);
+              }}
+            >
+              Create Quotation
+            </button>
           </div>
         </div>
 
@@ -1125,6 +1171,7 @@ function QuotationPage({
                             type="button"
                             onClick={() => {
                               setEditingQuotation(quotation);
+                              setShowNewQuotationForm(false);
                               setConversion(null);
                             }}
                           >
@@ -1135,6 +1182,7 @@ function QuotationPage({
                             type="button"
                             onClick={() => {
                               setEditingQuotation(null);
+                              setShowNewQuotationForm(false);
                               setConversion({ type: "purchase", quotation });
                             }}
                           >
@@ -1145,6 +1193,7 @@ function QuotationPage({
                             type="button"
                             onClick={() => {
                               setEditingQuotation(null);
+                              setShowNewQuotationForm(false);
                               setConversion({ type: "sale", quotation });
                             }}
                           >
