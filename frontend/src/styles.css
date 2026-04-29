@@ -2101,28 +2101,24 @@ th {
 }
 
 .category-tree-table table {
-  min-width: 820px;
+  min-width: 760px;
   table-layout: fixed;
 }
 
 .category-col-name {
-  width: 38%;
-}
-
-.category-col-parent {
-  width: 25%;
+  width: 58%;
 }
 
 .category-col-products {
-  width: 10%;
+  width: 11%;
 }
 
 .category-col-children {
-  width: 12%;
+  width: 13%;
 }
 
 .category-col-action {
-  width: 15%;
+  width: 18%;
 }
 
 .category-tree-table th,
@@ -2209,7 +2205,7 @@ th {
 .category-tree-guides {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 22px;
+  grid-auto-columns: 34px;
   flex: 0 0 auto;
   align-self: stretch;
   min-height: 44px;
@@ -2217,7 +2213,7 @@ th {
 
 .category-tree-guide {
   position: relative;
-  width: 22px;
+  width: 34px;
   min-height: 44px;
 }
 
@@ -2225,7 +2221,7 @@ th {
 .category-tree-guide.connector::before {
   content: "";
   position: absolute;
-  left: 10px;
+  left: 16px;
   top: -12px;
   bottom: -12px;
   width: 1px;
@@ -2239,9 +2235,9 @@ th {
 .category-tree-guide.connector::after {
   content: "";
   position: absolute;
-  left: 10px;
+  left: 16px;
   top: 21px;
-  width: 16px;
+  width: 24px;
   height: 1px;
   background: #cad5e8;
 }
@@ -2250,7 +2246,7 @@ th {
   display: grid;
   gap: 3px;
   min-width: 0;
-  padding-inline-start: 8px;
+  padding-inline-start: 12px;
 }
 
 .category-tree-main strong,

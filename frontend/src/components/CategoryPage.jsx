@@ -601,7 +601,6 @@ function CategoryPage({
             <table>
               <colgroup>
                 <col className="category-col-name" />
-                <col className="category-col-parent" />
                 <col className="category-col-products" />
                 <col className="category-col-children" />
                 <col className="category-col-action" />
@@ -609,7 +608,6 @@ function CategoryPage({
               <thead>
                 <tr>
                   <th>Category</th>
-                  <th>Parent Path</th>
                   <th>Products</th>
                   <th>Subcategories</th>
                   <th>Action</th>
@@ -666,16 +664,6 @@ function CategoryPage({
                             <strong>{category.name || "Unnamed Category"}</strong>
                             <span>{category.description || "No description"}</span>
                           </span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="cell-stack">
-                          <strong>
-                            {category.parentId
-                              ? getCategoryPathById(categories, category.parentId) || "—"
-                              : "Root category"}
-                          </strong>
-                          <span>{depth === 0 ? "Root" : `Level ${depth + 1}`}</span>
                         </div>
                       </td>
                       <td>{assignedProductCount}</td>
