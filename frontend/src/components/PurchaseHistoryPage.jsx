@@ -348,6 +348,7 @@ function createEditForm(purchase) {
   return {
     reference_no: purchase.reference_no || "",
     supplier_name: purchase.supplier_name || "",
+    supplier_tax_invoice: purchase.supplier_tax_invoice || "",
     status: purchase.status || "ordered",
     transaction_date: purchase.transaction_date || getToday(),
     note: purchase.note || "",
@@ -681,6 +682,7 @@ function PurchaseEditForm({
       ...purchase,
       reference_no: form.reference_no,
       supplier_name: supplierName,
+      supplier_tax_invoice: form.supplier_tax_invoice,
       status: form.status,
       transaction_date: form.transaction_date,
       note: form.note,
@@ -738,7 +740,7 @@ function PurchaseEditForm({
           </label>
 
           <label className="supplier-combobox-field">
-            Supplier Name
+            <span className="required-label">Supplier Name</span>
             <div className="supplier-combobox">
               <input
                 value={supplierQuery}
@@ -793,7 +795,18 @@ function PurchaseEditForm({
           </label>
 
           <label>
-            Status
+            Supplier's Tax Invoice
+            <input
+              value={form.supplier_tax_invoice}
+              onChange={(event) =>
+                updateForm("supplier_tax_invoice", event.target.value)
+              }
+              placeholder="Optional supplier tax invoice"
+            />
+          </label>
+
+          <label>
+            <span className="required-label">Status</span>
             <select
               value={form.status}
               onChange={(event) => updateForm("status", event.target.value)}
@@ -811,7 +824,7 @@ function PurchaseEditForm({
           </label>
 
           <label>
-            Transaction Date
+            <span className="required-label">Date</span>
             <input
               type="date"
               value={form.transaction_date}
