@@ -1984,6 +1984,42 @@ th {
   flex: 1;
 }
 
+.product-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.product-filter-toggle span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.74rem;
+  background: var(--accent);
+}
+
+.product-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+  padding: 16px;
+  border: 1px solid #e4ebfb;
+  border-radius: 18px;
+  background: #f8fbff;
+}
+
+.product-filter-reset {
+  min-height: 47px;
+  white-space: nowrap;
+}
+
 .supplier-search-meta {
   margin-bottom: 0;
   white-space: nowrap;
@@ -3730,8 +3766,13 @@ th {
 
   .stock-filter-search-row,
   .stock-filter-panel-top,
-  .stock-filter-groups {
+  .stock-filter-groups,
+  .product-filter-panel {
     grid-template-columns: 1fr;
+  }
+
+  .product-filter-toggle {
+    width: 100%;
   }
 
   .stock-filter-grid,

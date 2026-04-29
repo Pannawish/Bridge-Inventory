@@ -608,6 +608,7 @@ function ProductsPage({
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [showProductFilters, setShowProductFilters] = useState(false);
   const [productFormError, setProductFormError] = useState("");
   const [skuChangeUnlocked, setSkuChangeUnlocked] = useState(false);
 
@@ -705,6 +706,8 @@ function ProductsPage({
             : stockFilter === "no-sales"
               ? "No sales yet"
               : "No received purchases";
+  const activeFilterCount =
+    (categoryFilter === "all" ? 0 : 1) + (stockFilter === "all" ? 0 : 1);
 
   function openProductDetail(product) {
     setViewingProduct(product);
@@ -742,6 +745,11 @@ function ProductsPage({
     setDraftProduct(null);
     setProductFormError("");
     setSkuChangeUnlocked(false);
+  }
+
+  function resetProductFilters() {
+    setCategoryFilter("all");
+    setStockFilter("all");
   }
 
   function updateDraftField(key, value) {
@@ -1119,7 +1127,19 @@ function ProductsPage({
               />
             </label>
 
-            <div className="stock-report-actions">
+            <button
+              className="secondary-button product-filter-toggle"
+              type="button"
+              aria-expanded={showProductFilters}
+              onClick={() => setShowProductFilters((isVisible) => !isVisible)}
+            >
+              Filter
+              {activeFilterCount ? <span>{activeFilterCount}</span> : null}
+            </button>
+          </div>
+
+          {showProductFilters ? (
+            <div className="product-filter-panel">
               <label className="stock-control">
                 <span>Category</span>
                 <select
@@ -1149,8 +1169,17 @@ function ProductsPage({
                   <option value="no-purchases">No received purchases</option>
                 </select>
               </label>
+
+              <button
+                className="secondary-button product-filter-reset"
+                type="button"
+                onClick={resetProductFilters}
+                disabled={!activeFilterCount}
+              >
+                Reset
+              </button>
             </div>
-          </div>
+          ) : null}
 
           <div className="stock-report-summary">
             <span>
