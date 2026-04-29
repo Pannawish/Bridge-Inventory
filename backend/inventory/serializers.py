@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
 from rest_framework import serializers
@@ -11,6 +11,7 @@ from .models import (
     Purchase,
     PurchaseDocument,
     PurchaseItem,
+    Quotation,
     Sale,
     SaleDocument,
     SaleItem,
@@ -30,6 +31,16 @@ def decimal_or_zero(value):
         return Decimal("0")
 
     return Decimal(str(value))
+
+
+def decimal_or_none(value):
+    if value in ("", None):
+        return None
+
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        raise serializers.ValidationError("Enter a valid number.")
 
 
 def resolve_product(product_id=None, sku="", product_name=""):
@@ -758,3 +769,110 @@ class SaleSerializer(serializers.ModelSerializer):
                     instance._prefetched_objects_cache = {}
 
         return instance
+
+
+class QuotationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Quotation
+        fields = [
+            "id",
+            "reference_no",
+            "quotation_date",
+            "valid_until_date",
+            "customer_name",
+            "supplier_name",
+            "vat_mode",
+            "note",
+            "items",
+            "total_before_vat",
+            "vat_amount",
+            "grand_total",
+        ]
+        extra_kwargs = {
+            "id": {"required": False},
+            "reference_no": {"required": False, "allow_blank": True},
+            "valid_until_date": {"required": False, "allow_null": True},
+            "customer_name": {"required": False, "allow_blank": True},
+            "supplier_name": {"required": False, "allow_blank": True},
+            "vat_mode": {"required": False},
+            "note": {"required": False, "allow_blank": True},
+            "items": {"required": False},
+            "total_before_vat": {"required": False},
+            "vat_amount": {"required": False},
+            "grand_total": {"required": False},
+        }
+
+    def validate_items(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Items must be a list.")
+
+        normalized_items = []
+        for index, item in enumerate(value, start=1):
+            if not isinstance(item, dict):
+                raise serializers.ValidationError(f"Item {index} must be an object.")
+
+            product_id = str(item.get("product_id") or item.get("productId") or "").strip()
+            product_name = str(
+                item.get("product_name") or item.get("productName") or item.get("name") or ""
+            ).strip()
+            sku = str(item.get("sku") or item.get("SKU") or "").strip()
+
+            if not (product_id or product_name or sku):
+                raise serializers.ValidationError(f"Item {index} requires a product.")
+
+            quantity = decimal_or_none(item.get("quantity"))
+            if quantity is None or quantity <= 0:
+                raise serializers.ValidationError(f"Item {index} requires a quantity greater than 0.")
+
+            sale_price = decimal_or_none(item.get("sale_price"))
+            if sale_price is None or sale_price < 0:
+                raise serializers.ValidationError(f"Item {index} requires a sale price.")
+
+            cost_price = decimal_or_none(item.get("cost_price"))
+            if cost_price is not None and cost_price < 0:
+                raise serializers.ValidationError(f"Item {index} cost price cannot be negative.")
+
+            raw_discounts = item.get("discounts")
+            if not isinstance(raw_discounts, list):
+                raw_discounts = [item.get("discount", 0)]
+
+            discounts = []
+            for discount in raw_discounts:
+                discount_value = decimal_or_none(discount) or Decimal("0")
+                if discount_value < 0 or discount_value > 100:
+                    raise serializers.ValidationError(
+                        f"Item {index} discounts must be between 0 and 100."
+                    )
+                discounts.append(str(discount_value))
+
+            normalized_item = {
+                **item,
+                "product_id": product_id,
+                "product_name": product_name,
+                "sku": sku,
+                "unit": str(item.get("unit") or "pcs").strip() or "pcs",
+                "quantity": str(quantity),
+                "sale_price": str(sale_price),
+                "cost_price": "" if cost_price is None else str(cost_price),
+                "discounts": discounts or ["0"],
+            }
+            normalized_items.append(normalized_item)
+
+        return normalized_items
+
+    def validate(self, attrs):
+        quotation_date = attrs.get("quotation_date", getattr(self.instance, "quotation_date", None))
+        valid_until_date = attrs.get(
+            "valid_until_date",
+            getattr(self.instance, "valid_until_date", None),
+        )
+
+        if valid_until_date and quotation_date and valid_until_date < quotation_date:
+            raise serializers.ValidationError(
+                {"valid_until_date": "Valid until date cannot be before quotation date."}
+            )
+
+        if self.instance is None and not attrs.get("items"):
+            raise serializers.ValidationError({"items": "Add at least one quotation item."})
+
+        return attrs

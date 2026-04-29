@@ -9,12 +9,13 @@ from rest_framework.decorators import api_view
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
-from .models import Category, Customer, Product, Purchase, Sale, Supplier
+from .models import Category, Customer, Product, Purchase, Quotation, Sale, Supplier
 from .serializers import (
     CategorySerializer,
     CustomerSerializer,
     ProductSerializer,
     PurchaseSerializer,
+    QuotationSerializer,
     SaleSerializer,
     SupplierSerializer,
 )
@@ -38,6 +39,8 @@ DECIMAL_FIELD_PLACES = {
     "grand_total": 2,
     "unit_cost": 2,
     "unit_price": 2,
+    "cost_price": 2,
+    "sale_price": 2,
     "amount": 2,
     "line_total": 2,
     "quantity": 3,
@@ -223,6 +226,11 @@ class SaleViewSet(InventoryModelViewSet):
     serializer_class = SaleSerializer
 
 
+class QuotationViewSet(InventoryModelViewSet):
+    queryset = Quotation.objects.all()
+    serializer_class = QuotationSerializer
+
+
 @api_view(["GET"])
 def api_home(request):
     return Response(
@@ -236,6 +244,7 @@ def api_home(request):
                 "/api/products/",
                 "/api/purchases/",
                 "/api/sales/",
+                "/api/quotations/",
                 "/api/chat/",
             ],
         }

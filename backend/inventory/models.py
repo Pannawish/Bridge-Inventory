@@ -48,6 +48,10 @@ def sale_document_id():
     return make_prefixed_id("sale-document")
 
 
+def quotation_id():
+    return make_prefixed_id("quotation")
+
+
 def list_default():
     return []
 
@@ -359,3 +363,24 @@ class SaleDocument(TimeStampedModel):
 
     def __str__(self):
         return self.file.name
+
+
+class Quotation(TimeStampedModel):
+    id = models.CharField(max_length=80, primary_key=True, default=quotation_id)
+    reference_no = models.CharField(max_length=80, blank=True)
+    quotation_date = models.DateField(default=timezone.localdate)
+    valid_until_date = models.DateField(blank=True, null=True)
+    customer_name = models.CharField(max_length=255, blank=True)
+    supplier_name = models.CharField(max_length=255, blank=True)
+    vat_mode = models.CharField(max_length=40, default="not_included")
+    note = models.TextField(blank=True)
+    items = models.JSONField(default=list_default, blank=True)
+    total_before_vat = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    vat_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    grand_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["-quotation_date", "-created_at"]
+
+    def __str__(self):
+        return self.reference_no or self.id

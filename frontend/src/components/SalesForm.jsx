@@ -44,15 +44,15 @@ function getNextSalesReference(sales = [], date = new Date()) {
   return `${prefix}-${`${nextSerial}`.padStart(3, "0")}`;
 }
 
-function createInitialForm(referenceNo) {
+function createInitialForm(referenceNo, prefill = {}) {
   return {
     reference_no: referenceNo,
-    customer_name: "",
+    customer_name: prefill.customer_name || "",
     status: "draft",
     payment_timing: "instant",
     payment_received_date: getToday(),
-    transaction_date: getToday(),
-    note: "",
+    transaction_date: prefill.transaction_date || prefill.quotation_date || getToday(),
+    note: prefill.note || "",
     documents: [],
   };
 }
@@ -69,6 +69,30 @@ function emptyItem() {
     unit_price: "",
     discounts: [0],
   };
+}
+
+function createInitialItems(prefill = {}) {
+  const sourceItems = Array.isArray(prefill.items) ? prefill.items : [];
+
+  if (!sourceItems.length) {
+    return [emptyItem()];
+  }
+
+  return sourceItems.map((item, index) => ({
+    ...emptyItem(),
+    line_id: `sales-prefill-${Date.now()}-${index}`,
+    product_id: item.product_id || item.productId || "",
+    product_name: item.product_name || item.productName || item.name || "",
+    sku: item.sku || item.SKU || "",
+    unit: item.unit || "pcs",
+    quantity: item.quantity ?? 1,
+    unit_price: item.unit_price ?? item.sale_price ?? "",
+    discounts: Array.isArray(item.discounts)
+      ? item.discounts
+      : Number(item.discount) > 0
+        ? [item.discount]
+        : [0],
+  }));
 }
 
 function computeAmount(item) {
@@ -137,16 +161,17 @@ function SalesForm({
   sales = [],
   onSubmit,
   onCancel = null,
+  prefill = null,
 }) {
   const nextReferenceNo = useMemo(
     () => getNextSalesReference(sales),
     [sales]
   );
   const lastGeneratedReference = useRef(nextReferenceNo);
-  const [form, setForm] = useState(() => createInitialForm(nextReferenceNo));
-  const [items, setItems] = useState([emptyItem()]);
-  const [vatMode, setVatMode] = useState("not_included");
-  const [customerQuery, setCustomerQuery] = useState("");
+  const [form, setForm] = useState(() => createInitialForm(nextReferenceNo, prefill || {}));
+  const [items, setItems] = useState(() => createInitialItems(prefill || {}));
+  const [vatMode, setVatMode] = useState(prefill?.vat_mode || "not_included");
+  const [customerQuery, setCustomerQuery] = useState(prefill?.customer_name || "");
   const [customerOpen, setCustomerOpen] = useState(false);
   const [customerError, setCustomerError] = useState("");
   const [statusError, setStatusError] = useState("");

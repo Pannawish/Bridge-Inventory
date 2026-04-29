@@ -141,16 +141,50 @@ function computeVatSummary(itemTotal, vatMode) {
   };
 }
 
-function createInitialForm(referenceNo) {
+function createInitialForm(referenceNo, prefill = {}) {
   return {
     reference_no: referenceNo,
-    supplier_name: "",
+    supplier_name: prefill.supplier_name || "",
     supplier_tax_invoice: "",
     status: "ordered",
-    transaction_date: today,
-    note: "",
+    transaction_date: prefill.transaction_date || prefill.quotation_date || today,
+    note: prefill.note || "",
     documents: [],
   };
+}
+
+function getProductQuery(productName, sku) {
+  return sku ? `${productName} (${sku})` : productName;
+}
+
+function createInitialItems(prefill = {}) {
+  const sourceItems = Array.isArray(prefill.items) ? prefill.items : [];
+
+  if (!sourceItems.length) {
+    return [emptyItem()];
+  }
+
+  return sourceItems.map((item, index) => {
+    const productName = item.product_name || item.productName || item.name || "";
+    const sku = item.sku || item.SKU || "";
+
+    return {
+      ...emptyItem(),
+      line_id: `purchase-prefill-${Date.now()}-${index}`,
+      product_id: item.product_id || item.productId || "",
+      product_query: getProductQuery(productName, sku),
+      product_name: productName,
+      sku,
+      unit: item.unit || "pcs",
+      quantity: item.quantity ?? 1,
+      unit_cost: item.unit_cost ?? item.cost_price ?? "",
+      discounts: Array.isArray(item.discounts)
+        ? item.discounts
+        : Number(item.discount) > 0
+          ? [item.discount]
+          : [0],
+    };
+  });
 }
 
 function PurchaseForm({
@@ -159,16 +193,17 @@ function PurchaseForm({
   onSubmit,
   purchases = [],
   onCancel = null,
+  prefill = null,
 }) {
   const nextReferenceNo = useMemo(
     () => getNextPurchaseReference(purchases),
     [purchases]
   );
   const lastGeneratedReference = useRef(nextReferenceNo);
-  const [form, setForm] = useState(() => createInitialForm(nextReferenceNo));
-  const [items, setItems] = useState([emptyItem()]);
-  const [vatMode, setVatMode] = useState("not_included");
-  const [supplierQuery, setSupplierQuery] = useState("");
+  const [form, setForm] = useState(() => createInitialForm(nextReferenceNo, prefill || {}));
+  const [items, setItems] = useState(() => createInitialItems(prefill || {}));
+  const [vatMode, setVatMode] = useState(prefill?.vat_mode || "not_included");
+  const [supplierQuery, setSupplierQuery] = useState(prefill?.supplier_name || "");
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [supplierError, setSupplierError] = useState("");
   const [openProductIndex, setOpenProductIndex] = useState(null);

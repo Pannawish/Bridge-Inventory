@@ -1003,6 +1003,19 @@ label textarea:focus,
   background: rgba(255, 255, 255, 0.72);
 }
 
+.quotation-line-item-row {
+  grid-template-columns: 38px minmax(220px, 1.6fr) minmax(90px, 0.65fr) minmax(90px, 0.65fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) minmax(130px, 0.8fr) auto;
+  grid-template-areas:
+    "index product unit qty sale cost amount action"
+    ". discounts discounts discounts discounts discounts discounts discounts";
+  align-items: start;
+  min-width: 1100px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
 .line-item-index {
   grid-area: index;
   display: grid;
@@ -1130,6 +1143,43 @@ label textarea:focus,
 }
 
 .sales-item-remove {
+  grid-area: action;
+  justify-self: end;
+  align-self: end;
+}
+
+.quotation-item-product {
+  grid-area: product;
+}
+
+.quotation-item-unit {
+  grid-area: unit;
+}
+
+.quotation-item-qty {
+  grid-area: qty;
+}
+
+.quotation-item-sale {
+  grid-area: sale;
+}
+
+.quotation-item-cost {
+  grid-area: cost;
+}
+
+.quotation-item-discounts {
+  grid-area: discounts;
+  justify-self: start;
+  width: max-content;
+  max-width: 100%;
+}
+
+.quotation-item-amount {
+  grid-area: amount;
+}
+
+.quotation-item-remove {
   grid-area: action;
   justify-self: end;
   align-self: end;
@@ -1909,6 +1959,69 @@ th {
   top: 0;
   z-index: 1;
   background: #fff;
+}
+
+.quotation-table-window table {
+  min-width: 1040px;
+  table-layout: fixed;
+}
+
+.quotation-col-index {
+  width: 4%;
+}
+
+.quotation-col-reference {
+  width: 11%;
+}
+
+.quotation-col-party {
+  width: 11%;
+}
+
+.quotation-col-dates {
+  width: 14%;
+}
+
+.quotation-col-items {
+  width: 20%;
+}
+
+.quotation-col-total {
+  width: 10%;
+}
+
+.quotation-col-actions {
+  width: 19%;
+}
+
+.quotation-action-cell {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 190px;
+}
+
+.quotation-state-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  min-height: 24px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--success);
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #ecfbf4;
+}
+
+.quotation-state-pill.expired {
+  color: var(--danger);
+  background: #fff2f4;
+}
+
+.quotation-link-card .section-heading {
+  margin-bottom: 0;
 }
 
 .product-table-window tbody tr {
@@ -3399,12 +3512,28 @@ th {
     min-width: 0;
   }
 
+  .quotation-line-item-row {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "index"
+      "product"
+      "unit"
+      "qty"
+      "sale"
+      "cost"
+      "discounts"
+      "amount"
+      "action";
+    min-width: 0;
+  }
+
   .line-item-index {
     margin-top: 0;
     justify-self: start;
   }
 
-  .purchase-item-remove {
+  .purchase-item-remove,
+  .quotation-item-remove {
     width: 100%;
     justify-self: stretch;
   }
@@ -3425,6 +3554,11 @@ th {
   .sales-item-remove {
     width: 100%;
     justify-self: stretch;
+  }
+
+  .quotation-action-cell {
+    grid-template-columns: 1fr;
+    min-width: 0;
   }
 
   .sales-line-item-header {

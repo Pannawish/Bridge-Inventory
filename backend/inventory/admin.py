@@ -7,6 +7,7 @@ from .models import (
     ProductUnitConversion,
     Purchase,
     PurchaseItem,
+    Quotation,
     Sale,
     SaleItem,
     Supplier,
@@ -65,3 +66,16 @@ class SaleAdmin(admin.ModelAdmin):
     list_display = ["reference_no", "customer_name", "status", "transaction_date", "grand_total"]
     search_fields = ["reference_no", "customer_name"]
     inlines = [SaleItemInline]
+
+
+@admin.register(Quotation)
+class QuotationAdmin(admin.ModelAdmin):
+    list_display = [
+        "reference_no",
+        "customer_name",
+        "supplier_name",
+        "quotation_date",
+        "valid_until_date",
+        "grand_total",
+    ]
+    search_fields = ["reference_no", "customer_name", "supplier_name", "note"]

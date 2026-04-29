@@ -112,6 +112,18 @@ export const api = {
       body: { status },
     });
   },
+  getQuotations() {
+    return request("/quotations/");
+  },
+  createQuotation(payload) {
+    return request("/quotations/", { method: "POST", body: payload });
+  },
+  updateQuotation(id, payload) {
+    return request(`/quotations/${id}/`, { method: "PATCH", body: payload });
+  },
+  deleteQuotation(id) {
+    return request(`/quotations/${id}/`, { method: "DELETE" });
+  },
   askChat(question) {
     return request("/chat/", { method: "POST", body: { question } });
   },

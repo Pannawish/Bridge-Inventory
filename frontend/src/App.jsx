@@ -3,12 +3,13 @@ import { api } from "./api";
 import ChatPanel from "./components/ChatPanel";
 import Dashboard from "./components/Dashboard";
 import CustomerPage, { getDefaultCustomers } from "./components/CustomerPage";
-import { mockDashboard, mockPurchases, mockSales } from "./mockData";
+import { mockDashboard, mockPurchases, mockQuotations, mockSales } from "./mockData";
 import PurchaseHistoryPage from "./components/PurchaseHistoryPage";
 import SalesHistoryPage from "./components/SalesHistoryPage";
 import SupplierPage, { getDefaultSuppliers } from "./components/SupplierPage";
 import ProductsPage, { getDefaultProducts } from "./components/ProductsPage";
 import CategoryPage, { getDefaultCategories } from "./components/CategoryPage";
+import QuotationPage from "./components/QuotationPage";
 import { applyPurchaseStatusToItems } from "./purchaseStatus";
 import { applySaleStatusToItems } from "./saleStatus";
 import { formatSaleStockIssueMessage, getSaleStockIssues } from "./saleStock";
@@ -92,6 +93,12 @@ const tabs = [
     description: "Overview, stock health, and daily movement.",
   },
   {
+    id: "quotations",
+    label: "Quotation",
+    shortLabel: "QT",
+    description: "Prepare product quotations before purchase or sales records.",
+  },
+  {
     id: "purchase-history",
     label: "Purchases",
     shortLabel: "PH",
@@ -148,6 +155,8 @@ function App() {
   const [usingMockPurchases, setUsingMockPurchases] = useState(false);
   const [sales, setSales] = useState([]);
   const [usingMockSales, setUsingMockSales] = useState(false);
+  const [quotations, setQuotations] = useState([]);
+  const [usingMockQuotations, setUsingMockQuotations] = useState(false);
   const [usingMockCategories, setUsingMockCategories] = useState(false);
   const [usingMockProducts, setUsingMockProducts] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -174,6 +183,7 @@ function App() {
       api.getProducts(),
       api.getPurchases(),
       api.getSales(),
+      api.getQuotations(),
     ]);
 
     const [
@@ -184,6 +194,7 @@ function App() {
       productResult,
       purchaseResult,
       salesResult,
+      quotationResult,
     ] = results;
     const failures = [];
 
@@ -246,6 +257,16 @@ function App() {
       setSales(mockSales);
       setUsingMockSales(true);
       failures.push("sales");
+    }
+
+    if (quotationResult.status === "fulfilled") {
+      const quotationRows = getCollectionRows(quotationResult.value);
+      setQuotations(quotationRows.length ? quotationRows : mockQuotations);
+      setUsingMockQuotations(!quotationRows.length);
+    } else {
+      setQuotations(mockQuotations);
+      setUsingMockQuotations(true);
+      failures.push("quotations");
     }
 
     if (failures.length) {
@@ -796,6 +817,72 @@ function App() {
     }
   }
 
+  async function handleQuotationSave(nextQuotation) {
+    setError("");
+
+    if (usingMockQuotations) {
+      const resolvedQuotation = {
+        ...nextQuotation,
+        id: nextQuotation.id || `quotation-${Date.now()}`,
+      };
+
+      setQuotations((currentRows) =>
+        currentRows.some((row) => `${row.id}` === `${resolvedQuotation.id}`)
+          ? currentRows.map((row) =>
+              `${row.id}` === `${resolvedQuotation.id}` ? resolvedQuotation : row
+            )
+          : [resolvedQuotation, ...currentRows]
+      );
+      setNotice(`Quotation ${resolvedQuotation.reference_no || resolvedQuotation.id} saved.`);
+      return resolvedQuotation;
+    }
+
+    try {
+      const exists = quotations.some((row) => `${row.id}` === `${nextQuotation.id}`);
+      const savedQuotation = exists
+        ? await api.updateQuotation(nextQuotation.id, nextQuotation)
+        : await api.createQuotation(nextQuotation);
+      const resolvedQuotation = savedQuotation || nextQuotation;
+
+      setQuotations((currentRows) =>
+        currentRows.some((row) => `${row.id}` === `${resolvedQuotation.id}`)
+          ? currentRows.map((row) =>
+              `${row.id}` === `${resolvedQuotation.id}` ? resolvedQuotation : row
+            )
+          : [resolvedQuotation, ...currentRows]
+      );
+      setNotice(`Quotation ${resolvedQuotation.reference_no || resolvedQuotation.id} saved.`);
+      return resolvedQuotation;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
+  async function handleQuotationDelete(deletedQuotation) {
+    setError("");
+
+    if (usingMockQuotations) {
+      setQuotations((currentRows) =>
+        currentRows.filter((row) => row.id !== deletedQuotation.id)
+      );
+      setNotice(`Quotation ${deletedQuotation.reference_no || deletedQuotation.id} deleted.`);
+      return true;
+    }
+
+    try {
+      await api.deleteQuotation(deletedQuotation.id);
+      setQuotations((currentRows) =>
+        currentRows.filter((row) => row.id !== deletedQuotation.id)
+      );
+      setNotice(`Quotation ${deletedQuotation.reference_no || deletedQuotation.id} deleted.`);
+      return true;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
   async function handleAskChat(question) {
     const nextMessages = [...messages, { role: "user", content: question }];
     setMessages(nextMessages);
@@ -895,6 +982,21 @@ function App() {
                 onPurchaseItemStatusChange={handlePurchaseItemStatusChange}
                 onPurchaseUpdate={handlePurchaseUpdate}
                 onPurchaseDelete={handlePurchaseDelete}
+              />
+            ) : null}
+
+            {activeTab === "quotations" ? (
+              <QuotationPage
+                quotations={quotations}
+                products={products}
+                suppliers={suppliers}
+                customers={customers}
+                purchases={purchases}
+                sales={sales}
+                onSaveQuotation={handleQuotationSave}
+                onDeleteQuotation={handleQuotationDelete}
+                onCreatePurchase={handlePurchaseCreateFromHistory}
+                onCreateSale={handleSalesCreateFromHistory}
               />
             ) : null}
 
