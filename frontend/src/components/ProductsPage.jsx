@@ -20,40 +20,9 @@ import {
 } from "../unitConversion";
 
 const VAT_RATE = 0.07;
-const SKU_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
-const SKU_PREFIX_BY_KEYWORD = [
-  ["bolt", "BLT"],
-  ["nut", "NUT"],
-  ["screw", "SCR"],
-  ["pipe", "PIP"],
-  ["pvc", "PVC"],
-  ["cable", "CBL"],
-  ["wire", "WIR"],
-  ["drill", "DRL"],
-  ["bit", "BIT"],
-  ["glove", "GLV"],
-  ["paint", "PNT"],
-  ["chemical", "CHM"],
-  ["electrical", "ELC"],
-  ["marker", "MRK"],
-  ["pen", "PEN"],
-  ["notebook", "NB"],
-  ["stapler", "STP"],
-  ["sticky", "STK"],
-  ["folder", "FLD"],
-];
-const SKU_STOP_WORDS = new Set([
-  "THE",
-  "AND",
-  "FOR",
-  "WITH",
-  "SET",
-  "PCS",
-  "PC",
-  "PACK",
-  "BOX",
-  "CARTON",
-]);
+const SKU_PATTERN = /^\d+$/;
+const CATEGORY_SKU_CODE_WIDTH = 2;
+const PRODUCT_SKU_SERIAL_WIDTH = 4;
 
 function createProduct(overrides = {}) {
   return {
@@ -322,45 +291,42 @@ function isValidSku(value) {
   return SKU_PATTERN.test(value);
 }
 
-function normalizeSkuToken(value) {
-  return `${value ?? ""}`.toUpperCase().replace(/[^A-Z0-9]+/g, "");
-}
-
-function getCategoryLeafName(categoryLabel = "") {
-  const parts = `${categoryLabel}`.split("/").map((part) => part.trim()).filter(Boolean);
-  return parts[parts.length - 1] || "";
-}
-
-function getSkuPrefix(categoryLabel = "", productName = "") {
-  const source = `${categoryLabel} ${productName}`.toLowerCase();
-  const matchedPrefix = SKU_PREFIX_BY_KEYWORD.find(([keyword]) => source.includes(keyword));
-
-  if (matchedPrefix) {
-    return matchedPrefix[1];
+function getCategoryPathIds(categories = [], categoryId = "") {
+  if (!categoryId) {
+    return [];
   }
 
-  const leafName = getCategoryLeafName(categoryLabel) || productName || "PRODUCT";
-  const words = leafName.match(/[a-z0-9]+/gi) || [];
-  const acronym = words.map((word) => word[0]).join("").toUpperCase().slice(0, 3);
+  const categoryLookup = new Map(categories.map((category) => [category.id, category]));
+  const pathIds = [];
+  let currentCategory = categoryLookup.get(categoryId);
+  const visited = new Set();
 
-  return acronym || "PRD";
+  while (currentCategory && !visited.has(currentCategory.id)) {
+    visited.add(currentCategory.id);
+    pathIds.unshift(currentCategory.id);
+    currentCategory = currentCategory.parentId
+      ? categoryLookup.get(currentCategory.parentId)
+      : null;
+  }
+
+  return pathIds;
 }
 
-function getSkuDescriptor(product) {
-  const rawText = [
-    product?.productName,
-    ...(Array.isArray(product?.subNames) ? product.subNames : []),
-    product?.detail,
-  ].join(" ");
-  const rawTokens = rawText.match(/[A-Za-z]*\d+(?:\.\d+)?(?:X\d+(?:\.\d+)?)?[A-Za-z]*|[A-Za-z]+/g) || [];
-  const tokens = rawTokens
-    .map(normalizeSkuToken)
-    .filter((token) => token && !SKU_STOP_WORDS.has(token));
-  const specTokens = tokens.filter((token) => /\d/.test(token)).slice(0, 2);
-  const wordTokens = tokens.filter((token) => !/\d/.test(token)).slice(0, 2);
-  const descriptor = [...specTokens, ...wordTokens].slice(0, 3).join("-");
+function getCategoryPathSkuCode(categories = [], categoryId = "") {
+  return getCategoryPathIds(categories, categoryId)
+    .map((pathCategoryId) => {
+      const category = categories.find((item) => item.id === pathCategoryId);
+      const siblings = categories.filter(
+        (item) => (item.parentId || null) === (category?.parentId || null)
+      );
+      const siblingIndex = Math.max(
+        0,
+        siblings.findIndex((item) => item.id === pathCategoryId)
+      );
 
-  return descriptor || "ITEM";
+      return `${siblingIndex + 1}`.padStart(CATEGORY_SKU_CODE_WIDTH, "0");
+    })
+    .join("");
 }
 
 function getNextSkuSerial(baseSku, products, currentProductId = "") {
@@ -370,7 +336,7 @@ function getNextSkuSerial(baseSku, products, currentProductId = "") {
     }
 
     const sku = normalizeSku(product.sku);
-    const match = sku.match(new RegExp(`^${baseSku}-(\\d{3})$`));
+    const match = sku.match(new RegExp(`^${baseSku}(\\d{${PRODUCT_SKU_SERIAL_WIDTH}})$`));
 
     if (match) {
       serials.add(Number(match[1]));
@@ -384,7 +350,7 @@ function getNextSkuSerial(baseSku, products, currentProductId = "") {
     serial += 1;
   }
 
-  return `${serial}`.padStart(3, "0");
+  return `${serial}`.padStart(PRODUCT_SKU_SERIAL_WIDTH, "0");
 }
 
 function normalizeProduct(product) {
@@ -753,7 +719,29 @@ function ProductsPage({
   }
 
   function updateDraftField(key, value) {
-    setDraftProduct((prev) => (prev ? { ...prev, [key]: value } : prev));
+    setDraftProduct((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const nextProduct = { ...prev, [key]: value };
+
+      if (key === "categoryId" && getCategoryPathSkuCode(categories, value)) {
+        const isExistingProduct = products.some((product) => `${product.id}` === `${prev.id}`);
+        const shouldRegenerateSku = !isExistingProduct || !normalizeSku(nextProduct.sku);
+
+        if (!shouldRegenerateSku) {
+          return nextProduct;
+        }
+
+        return {
+          ...nextProduct,
+          sku: generateStructuredSku(nextProduct),
+        };
+      }
+
+      return nextProduct;
+    });
     setProductFormError("");
   }
 
@@ -901,13 +889,15 @@ function ProductsPage({
   }
 
   function generateStructuredSku(product) {
-    const categoryLabel = getCategoryPathById(categories, product.categoryId) || product.category;
-    const prefix = getSkuPrefix(categoryLabel, product.productName);
-    const descriptor = getSkuDescriptor(product);
-    const baseSku = normalizeSku(`${prefix}-${descriptor}`);
+    const baseSku = getCategoryPathSkuCode(categories, product.categoryId);
+
+    if (!baseSku) {
+      return "";
+    }
+
     const serial = getNextSkuSerial(baseSku, products, product.id);
 
-    return `${baseSku}-${serial}`;
+    return `${baseSku}${serial}`;
   }
 
   function handleGenerateSku() {
@@ -954,20 +944,39 @@ function ProductsPage({
       return;
     }
 
-    const normalizedDraft = normalizeProduct(draftProduct);
+    let normalizedDraft = normalizeProduct(draftProduct);
     const categoryLabel = getCategoryPathById(categories, normalizedDraft.categoryId);
     const existingProduct = getExistingProduct(normalizedDraft);
     const existingProductHasHistory = productHasTransactionHistory(existingProduct);
+
+    if (!normalizedDraft.categoryId) {
+      setProductFormError("Select a category for this product.");
+      return;
+    }
+
+    if (!productCategoryOptions.some((category) => category.id === normalizedDraft.categoryId)) {
+      setProductFormError("Select an existing category for this product.");
+      return;
+    }
+
+    if (!normalizedDraft.sku) {
+      normalizedDraft = {
+        ...normalizedDraft,
+        sku: generateStructuredSku(normalizedDraft),
+      };
+    }
+
     const skuChanged =
       existingProduct && normalizeSku(existingProduct.sku) !== normalizedDraft.sku;
+    const hasUnchangedExistingSku = Boolean(existingProduct && !skuChanged);
 
     if (!normalizedDraft.sku) {
       setProductFormError("SKU is required for every product.");
       return;
     }
 
-    if (!isValidSku(normalizedDraft.sku)) {
-      setProductFormError("SKU can only use A-Z, 0-9, and single hyphens between parts.");
+    if (!isValidSku(normalizedDraft.sku) && !hasUnchangedExistingSku) {
+      setProductFormError("SKU must be numeric. Use Generate to create one from the category path.");
       return;
     }
 
@@ -987,16 +996,6 @@ function ProductsPage({
 
     if (existingProductHasHistory && skuChanged && !skuChangeUnlocked) {
       setProductFormError("SKU is locked because this product has purchase or sales history.");
-      return;
-    }
-
-    if (!normalizedDraft.categoryId) {
-      setProductFormError("Select a category for this product.");
-      return;
-    }
-
-    if (!productCategoryOptions.some((category) => category.id === normalizedDraft.categoryId)) {
-      setProductFormError("Select an existing category for this product.");
       return;
     }
 
@@ -1832,10 +1831,12 @@ function ProductsPage({
                           onChange={(event) => updateDraftField("sku", event.target.value)}
                           onBlur={() => {
                             if (!isSkuLocked) {
-                              updateDraftField("sku", normalizeSku(draftProduct.sku));
+                              updateDraftField("sku", `${draftProduct.sku ?? ""}`.trim());
                             }
                           }}
-                          placeholder="e.g. PVC-PIPE-20MM-4M-001"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="e.g. 0102030001"
                           disabled={isSkuLocked}
                         />
                         <button
@@ -1859,7 +1860,7 @@ function ProductsPage({
                       <span className="field-helper-text">
                         {isSkuLocked
                           ? "Locked because this product has purchase or sales history."
-                          : "Required and unique. Use A-Z, 0-9, and hyphens only."}
+                          : "Required and unique. Generate uses category path codes plus a 4-digit serial."}
                       </span>
                     </label>
 

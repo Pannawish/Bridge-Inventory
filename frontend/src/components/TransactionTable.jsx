@@ -572,7 +572,7 @@ function TransactionTable({
           onClick={closeSelectedRow}
         >
           <div
-            className="detail-modal section-card"
+            className={`detail-modal transaction-detail-modal transaction-detail-modal-${type} section-card`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="transaction-detail-title"
@@ -727,7 +727,7 @@ function TransactionTable({
               ) : null}
               <div className="table-scroll">
                 {type === "sale" ? (
-                  <table>
+                  <table className="detail-item-table detail-item-table-sale">
                     <thead>
                       <tr>
                         <th className="table-index-cell">#</th>
@@ -823,7 +823,7 @@ function TransactionTable({
                     </tbody>
                   </table>
                 ) : (
-                  <table>
+                  <table className="detail-item-table detail-item-table-purchase">
                     <thead>
                       <tr>
                         <th className="table-index-cell">#</th>

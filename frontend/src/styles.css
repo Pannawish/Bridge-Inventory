@@ -3618,6 +3618,184 @@ th {
   background: #fff;
 }
 
+.transaction-detail-modal {
+  width: min(1420px, calc(100vw - 32px));
+}
+
+.transaction-detail-modal .table-scroll {
+  overflow-x: visible;
+}
+
+.detail-item-table {
+  min-width: 0;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.detail-item-table th,
+.detail-item-table td {
+  padding: 9px 6px;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  vertical-align: middle;
+}
+
+.detail-item-table th {
+  font-size: 0.64rem;
+  letter-spacing: 0.03em;
+}
+
+.detail-item-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detail-item-table .status-select,
+.detail-item-table .received-date-input,
+.detail-item-table .table-action-button {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 7px;
+  border-radius: 10px;
+  font-size: 0.74rem;
+}
+
+.detail-item-table .purchase-item-status-control {
+  min-width: 0;
+}
+
+.detail-item-table .tx-discount-label {
+  max-width: 100%;
+}
+
+.detail-item-table-sale th:nth-child(1),
+.detail-item-table-sale td:nth-child(1),
+.detail-item-table-purchase th:nth-child(1),
+.detail-item-table-purchase td:nth-child(1) {
+  width: 3.2%;
+}
+
+.detail-item-table-sale th:nth-child(2),
+.detail-item-table-sale td:nth-child(2) {
+  width: 18%;
+}
+
+.detail-item-table-sale th:nth-child(3),
+.detail-item-table-sale td:nth-child(3) {
+  width: 13%;
+}
+
+.detail-item-table-sale th:nth-child(4),
+.detail-item-table-sale td:nth-child(4),
+.detail-item-table-sale th:nth-child(5),
+.detail-item-table-sale td:nth-child(5) {
+  width: 11%;
+}
+
+.detail-item-table-sale th:nth-child(6),
+.detail-item-table-sale td:nth-child(6),
+.detail-item-table-sale th:nth-child(7),
+.detail-item-table-sale td:nth-child(7),
+.detail-item-table-sale th:nth-child(8),
+.detail-item-table-sale td:nth-child(8) {
+  width: 9%;
+}
+
+.detail-item-table-sale th:nth-child(9),
+.detail-item-table-sale td:nth-child(9),
+.detail-item-table-sale th:nth-child(10),
+.detail-item-table-sale td:nth-child(10) {
+  width: 8%;
+}
+
+.detail-item-table-purchase th:nth-child(2),
+.detail-item-table-purchase td:nth-child(2) {
+  width: 12%;
+}
+
+.detail-item-table-purchase th:nth-child(3),
+.detail-item-table-purchase td:nth-child(3),
+.detail-item-table-purchase th:nth-child(5),
+.detail-item-table-purchase td:nth-child(5),
+.detail-item-table-purchase th:nth-child(8),
+.detail-item-table-purchase td:nth-child(8),
+.detail-item-table-purchase th:nth-child(11),
+.detail-item-table-purchase td:nth-child(11) {
+  width: 6%;
+}
+
+.detail-item-table-purchase th:nth-child(4),
+.detail-item-table-purchase td:nth-child(4),
+.detail-item-table-purchase th:nth-child(7),
+.detail-item-table-purchase td:nth-child(7) {
+  width: 8%;
+}
+
+.detail-item-table-purchase th:nth-child(6),
+.detail-item-table-purchase td:nth-child(6) {
+  width: 9%;
+}
+
+.detail-item-table-purchase th:nth-child(9),
+.detail-item-table-purchase td:nth-child(9),
+.detail-item-table-purchase th:nth-child(10),
+.detail-item-table-purchase td:nth-child(10),
+.detail-item-table-purchase th:nth-child(12),
+.detail-item-table-purchase td:nth-child(12),
+.detail-item-table-purchase th:nth-child(13),
+.detail-item-table-purchase td:nth-child(13) {
+  width: 7%;
+}
+
+@media (max-width: 1439px) {
+  .transaction-detail-modal {
+    width: min(900px, calc(100vw - 32px));
+  }
+
+  .transaction-detail-modal .table-scroll {
+    overflow-x: auto;
+  }
+
+  .detail-item-table {
+    table-layout: auto;
+  }
+
+  .detail-item-table-sale {
+    min-width: 1120px;
+  }
+
+  .detail-item-table-purchase {
+    min-width: 1420px;
+  }
+
+  .detail-item-table th,
+  .detail-item-table td {
+    padding: 12px 10px;
+    font-size: 0.86rem;
+  }
+
+  .detail-item-table th {
+    font-size: 0.78rem;
+  }
+
+  .detail-item-table .status-select,
+  .detail-item-table .received-date-input {
+    min-width: 142px;
+    padding: 9px 12px;
+    font-size: 0.78rem;
+  }
+
+  .detail-item-table .table-action-button {
+    min-width: 126px;
+    padding: 8px 14px;
+    font-size: 0.78rem;
+  }
+
+  .detail-item-table .purchase-item-status-control {
+    min-width: 142px;
+  }
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
