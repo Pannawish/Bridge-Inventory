@@ -118,11 +118,8 @@ function getFilterLabel(options, value) {
 function StockHeader({ label, fullName }) {
   return (
     <th aria-label={fullName}>
-      <span className="dashboard-stock-header-label">
+      <span className="dashboard-stock-header-label" title={fullName}>
         {label}
-        <span className="dashboard-stock-header-tooltip" role="tooltip">
-          {fullName}
-        </span>
       </span>
     </th>
   );
@@ -1048,7 +1045,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
           className={
             isStockTableCompact
               ? "table-scroll desktop-table dashboard-stock-table compact-stock"
-              : "table-scroll desktop-table dashboard-stock-table"
+              : "table-scroll desktop-table dashboard-stock-table expanded-stock"
           }
         >
           <table>
