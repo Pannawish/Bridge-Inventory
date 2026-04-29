@@ -26,6 +26,47 @@ function getCollectionRows(result, fallback = []) {
   return fallback;
 }
 
+function isMockQuotationId(quotationId) {
+  return mockQuotations.some((quotation) => `${quotation.id}` === `${quotationId}`);
+}
+
+function removeMockQuotationId(quotation) {
+  if (!isMockQuotationId(quotation?.id)) {
+    return quotation;
+  }
+
+  const { id, ...quotationPayload } = quotation;
+  return quotationPayload;
+}
+
+function mergeSavedQuotation(currentRows, sourceQuotation, savedQuotation, wasUpdate) {
+  if (wasUpdate) {
+    return currentRows.map((row) =>
+      `${row.id}` === `${savedQuotation.id}` ? savedQuotation : row
+    );
+  }
+
+  const shouldKeepSourceQuotation = isMockQuotationId(sourceQuotation?.id);
+
+  return [
+    savedQuotation,
+    ...currentRows.filter(
+      (row) =>
+        (shouldKeepSourceQuotation || `${row.id}` !== `${sourceQuotation.id}`) &&
+        `${row.id}` !== `${savedQuotation.id}`
+    ),
+  ];
+}
+
+function mergeQuotationRowsWithMocks(quotationRows = []) {
+  const realIds = new Set(quotationRows.map((quotation) => `${quotation.id}`));
+  const visibleMocks = mockQuotations.filter(
+    (quotation) => !realIds.has(`${quotation.id}`)
+  );
+
+  return [...quotationRows, ...visibleMocks];
+}
+
 function buildTransactionFormData(record, fields) {
   const formData = new FormData();
 
@@ -261,8 +302,8 @@ function App() {
 
     if (quotationResult.status === "fulfilled") {
       const quotationRows = getCollectionRows(quotationResult.value);
-      setQuotations(quotationRows.length ? quotationRows : mockQuotations);
-      setUsingMockQuotations(!quotationRows.length);
+      setQuotations(mergeQuotationRowsWithMocks(quotationRows));
+      setUsingMockQuotations(false);
     } else {
       setQuotations(mockQuotations);
       setUsingMockQuotations(true);
@@ -838,18 +879,18 @@ function App() {
     }
 
     try {
-      const exists = quotations.some((row) => `${row.id}` === `${nextQuotation.id}`);
+      const isMockQuotation = isMockQuotationId(nextQuotation.id);
+      const exists =
+        nextQuotation.id &&
+        !isMockQuotation &&
+        quotations.some((row) => `${row.id}` === `${nextQuotation.id}`);
       const savedQuotation = exists
         ? await api.updateQuotation(nextQuotation.id, nextQuotation)
-        : await api.createQuotation(nextQuotation);
+        : await api.createQuotation(removeMockQuotationId(nextQuotation));
       const resolvedQuotation = savedQuotation || nextQuotation;
 
       setQuotations((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${resolvedQuotation.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${resolvedQuotation.id}` ? resolvedQuotation : row
-            )
-          : [resolvedQuotation, ...currentRows]
+        mergeSavedQuotation(currentRows, nextQuotation, resolvedQuotation, exists)
       );
       setNotice(`Quotation ${resolvedQuotation.reference_no || resolvedQuotation.id} saved.`);
       return resolvedQuotation;
@@ -862,7 +903,7 @@ function App() {
   async function handleQuotationDelete(deletedQuotation) {
     setError("");
 
-    if (usingMockQuotations) {
+    if (usingMockQuotations || isMockQuotationId(deletedQuotation.id)) {
       setQuotations((currentRows) =>
         currentRows.filter((row) => row.id !== deletedQuotation.id)
       );

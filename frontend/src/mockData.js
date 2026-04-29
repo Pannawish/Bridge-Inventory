@@ -208,7 +208,7 @@ export const mockPurchases = [
         id: 301,
         product_name: "Whiteboard Marker",
         sku: "WBM-001",
-        expected_delivery_date: "2026-04-30",
+        expected_delivery_date: "2026-04-29",
         item_status: "pending",
         received_date: "",
         quantity: 25,
@@ -217,7 +217,7 @@ export const mockPurchases = [
       {
         id: 302,
         product_name: "File Folder",
-        expected_delivery_date: "2026-04-30",
+        expected_delivery_date: "2026-04-29",
         item_status: "pending",
         received_date: "",
         quantity: 30,

@@ -5,6 +5,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils import timezone
 
 from inventory.models import (
     Category,
@@ -504,6 +505,7 @@ class Command(BaseCommand):
     def seed_purchases(self, rng, suppliers, products):
         Purchase.objects.filter(reference_no__startswith="PO-69").delete()
         start_date = date(2026, 1, 6)
+        latest_transaction_date = timezone.localdate()
         purchase_statuses = (
             [Purchase.STATUS_RECEIVED] * 34
             + [Purchase.STATUS_PARTIALLY_RECEIVED] * 10
@@ -513,8 +515,13 @@ class Command(BaseCommand):
         )
         vat_modes = ["not_included", "included", "none", "not_included", "not_included"]
         purchases = []
+        day_span = max(1, (latest_transaction_date - start_date).days)
         for index, status in enumerate(purchase_statuses, start=1):
-            transaction_date = start_date + timedelta(days=index * 2 + rng.randint(0, 2))
+            day_offset = round((index - 1) * day_span / max(1, len(purchase_statuses) - 1))
+            transaction_date = min(
+                latest_transaction_date,
+                start_date + timedelta(days=day_offset),
+            )
             supplier = suppliers[index % len(suppliers)]
             vat_mode = vat_modes[index % len(vat_modes)]
             ref = reference("PO", transaction_date, index)
@@ -529,10 +536,20 @@ class Command(BaseCommand):
                 unit_cost = money(product._seed_cost * conversion.factor_to_base * decimal(rng.uniform(0.92, 1.08)))
                 discounts = self.discounts(rng)
                 amount = line_amount(quantity, unit_cost, discounts)
-                expected_date = transaction_date + timedelta(days=rng.choice([2, 3, 5, 7, 10, 14, 21]))
+                expected_offset = rng.choice([2, 3, 5, 7, 10, 14, 21])
+                expected_date = min(
+                    latest_transaction_date,
+                    transaction_date + timedelta(days=expected_offset),
+                )
                 if status == Purchase.STATUS_RECEIVED:
                     item_status = PurchaseItem.ITEM_RECEIVED
-                    received_date = expected_date + timedelta(days=rng.choice([-1, 0, 1, 2]))
+                    received_date = max(
+                        transaction_date,
+                        min(
+                            latest_transaction_date,
+                            expected_date + timedelta(days=rng.choice([-1, 0, 1, 2])),
+                        ),
+                    )
                 elif status == Purchase.STATUS_PARTIALLY_RECEIVED:
                     item_status = PurchaseItem.ITEM_RECEIVED if line_index <= max(1, item_count // 2) else PurchaseItem.ITEM_PENDING
                     received_date = expected_date if item_status == PurchaseItem.ITEM_RECEIVED else None
