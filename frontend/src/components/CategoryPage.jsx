@@ -623,6 +623,7 @@ function CategoryPage({
                 }) => {
                   const directChildCount = childCategoryCounts.get(category.id) || 0;
                   const assignedProductCount = productAssignments.get(category.id) || 0;
+                  const isExpanded = hasChildren && !collapsedCategoryIds.has(category.id);
 
                   return (
                     <tr key={category.id}>
@@ -635,7 +636,7 @@ function CategoryPage({
                                 ? isLastSibling
                                   ? "category-tree-guide connector last"
                                   : "category-tree-guide connector"
-                                : ancestorContinuations[level]
+                                : ancestorContinuations[level + 1]
                                   ? "category-tree-guide continues"
                                   : "category-tree-guide";
 
@@ -644,7 +645,11 @@ function CategoryPage({
                           </span>
                           {hasChildren ? (
                             <button
-                              className="category-tree-toggle"
+                              className={
+                                isExpanded
+                                  ? "category-tree-toggle has-visible-children"
+                                  : "category-tree-toggle"
+                              }
                               type="button"
                               aria-label={
                                 collapsedCategoryIds.has(category.id)

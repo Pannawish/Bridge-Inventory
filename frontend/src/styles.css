@@ -2103,6 +2103,8 @@ th {
 .category-tree-table table {
   min-width: 760px;
   table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .category-col-name {
@@ -2129,7 +2131,7 @@ th {
 }
 
 .category-tree-table tbody tr {
-  height: 52px;
+  height: 66px;
 }
 
 .category-tree-table tbody tr:hover {
@@ -2197,49 +2199,61 @@ th {
 }
 
 .category-tree-cell {
-  display: flex;
+  --category-tree-step: 60px;
+  --category-tree-node-size: 22px;
+  display: grid;
+  grid-template-columns: max-content var(--category-tree-node-size) minmax(0, 1fr);
   align-items: center;
   min-width: 0;
+  min-height: 66px;
+}
+
+.category-tree-table td:first-child {
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .category-tree-guides {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 34px;
-  flex: 0 0 auto;
+  grid-auto-columns: var(--category-tree-step);
   align-self: stretch;
-  min-height: 34px;
+  min-height: 66px;
 }
 
 .category-tree-guide {
   position: relative;
-  width: 34px;
-  min-height: 34px;
+  width: var(--category-tree-step);
+  min-height: 66px;
 }
 
 .category-tree-guide.continues::before,
 .category-tree-guide.connector::before {
   content: "";
   position: absolute;
-  left: 16px;
-  top: -16px;
-  bottom: -16px;
+  left: calc(var(--category-tree-node-size) / 2);
+  top: -3px;
+  bottom: -3px;
+  z-index: 1;
   width: 1px;
   background: #cad5e8;
+  transform: translateX(-0.5px);
 }
 
 .category-tree-guide.connector.last::before {
-  bottom: 17px;
+  bottom: calc(50% - 0.5px);
 }
 
 .category-tree-guide.connector::after {
   content: "";
   position: absolute;
-  left: 16px;
-  top: 16px;
-  width: 24px;
+  left: calc(var(--category-tree-node-size) / 2);
+  top: 50%;
+  z-index: 1;
+  width: var(--category-tree-step);
   height: 1px;
   background: #cad5e8;
+  transform: translateY(-0.5px);
 }
 
 .category-tree-main {
@@ -2268,11 +2282,12 @@ th {
 }
 
 .category-tree-toggle {
+  position: relative;
   display: grid;
   place-items: center;
-  flex: 0 0 auto;
   width: 22px;
   height: 22px;
+  justify-self: center;
   padding: 0;
   border: 1px solid #d8e0f5;
   border-radius: 6px;
@@ -2281,6 +2296,18 @@ th {
   font-weight: 800;
   background: #fff;
   cursor: pointer;
+}
+
+.category-tree-toggle.has-visible-children::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  z-index: 1;
+  width: 1px;
+  height: 26px;
+  background: #cad5e8;
+  transform: translateX(-0.5px);
 }
 
 .category-tree-toggle.placeholder {
