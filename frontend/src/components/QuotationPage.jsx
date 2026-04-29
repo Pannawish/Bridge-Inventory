@@ -889,6 +889,7 @@ function QuotationPage({
   onCreateSale,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewingQuotation, setViewingQuotation] = useState(null);
   const [editingQuotation, setEditingQuotation] = useState(null);
   const [showNewQuotationForm, setShowNewQuotationForm] = useState(false);
   const [conversion, setConversion] = useState(null);
@@ -918,6 +919,7 @@ function QuotationPage({
       return;
     }
 
+    setViewingQuotation((current) => (current?.id === quotation.id ? null : current));
     setEditingQuotation((currentQuotation) =>
       currentQuotation?.id === quotation.id ? null : currentQuotation
     );
@@ -1165,48 +1167,13 @@ function QuotationPage({
                         <strong>{fmt(quotation.grand_total)}</strong>
                       </td>
                       <td>
-                        <div className="quotation-action-cell">
-                          <button
-                            className="table-action-button"
-                            type="button"
-                            onClick={() => {
-                              setEditingQuotation(quotation);
-                              setShowNewQuotationForm(false);
-                              setConversion(null);
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="table-action-button"
-                            type="button"
-                            onClick={() => {
-                              setEditingQuotation(null);
-                              setShowNewQuotationForm(false);
-                              setConversion({ type: "purchase", quotation });
-                            }}
-                          >
-                            Purchase
-                          </button>
-                          <button
-                            className="table-action-button"
-                            type="button"
-                            onClick={() => {
-                              setEditingQuotation(null);
-                              setShowNewQuotationForm(false);
-                              setConversion({ type: "sale", quotation });
-                            }}
-                          >
-                            Sale
-                          </button>
-                          <button
-                            className="danger-button table-action-button"
-                            type="button"
-                            onClick={() => handleDelete(quotation)}
-                          >
-                            Delete
-                          </button>
-                        </div>
+                        <button
+                          className="table-action-button"
+                          type="button"
+                          onClick={() => setViewingQuotation(quotation)}
+                        >
+                          Detail
+                        </button>
                       </td>
                     </tr>
                   );
@@ -1218,6 +1185,189 @@ function QuotationPage({
           <p className="empty-copy">No quotations saved yet.</p>
         )}
       </section>
+
+      {viewingQuotation ? (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={() => setViewingQuotation(null)}
+        >
+          <div
+            className="detail-modal section-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="quotation-detail-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Quotation Detail</p>
+                <h3 id="quotation-detail-title">{viewingQuotation.reference_no}</h3>
+              </div>
+              <div className="transaction-detail-actions">
+                <button
+                  className="edit-button table-action-button"
+                  type="button"
+                  onClick={() => {
+                    setViewingQuotation(null);
+                    setEditingQuotation(viewingQuotation);
+                    setShowNewQuotationForm(false);
+                    setConversion(null);
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  className="table-action-button"
+                  type="button"
+                  onClick={() => {
+                    setViewingQuotation(null);
+                    setEditingQuotation(null);
+                    setShowNewQuotationForm(false);
+                    setConversion({ type: "purchase", quotation: viewingQuotation });
+                  }}
+                >
+                  Purchase
+                </button>
+                <button
+                  className="table-action-button"
+                  type="button"
+                  onClick={() => {
+                    setViewingQuotation(null);
+                    setEditingQuotation(null);
+                    setShowNewQuotationForm(false);
+                    setConversion({ type: "sale", quotation: viewingQuotation });
+                  }}
+                >
+                  Sale
+                </button>
+                <button
+                  className="secondary-button table-action-button"
+                  type="button"
+                  onClick={() => setViewingQuotation(null)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div className="detail-grid">
+              <div>
+                <p className="detail-label">Customer</p>
+                <strong>{viewingQuotation.customer_name || "—"}</strong>
+              </div>
+              <div>
+                <p className="detail-label">Supplier</p>
+                <strong>{viewingQuotation.supplier_name || "—"}</strong>
+              </div>
+              <div>
+                <p className="detail-label">Quotation Date</p>
+                <strong>{viewingQuotation.quotation_date || "—"}</strong>
+              </div>
+              <div>
+                <p className="detail-label">Valid Until</p>
+                <strong>{viewingQuotation.valid_until_date || "—"}</strong>
+              </div>
+              <div>
+                <p className="detail-label">Status</p>
+                <strong>
+                  <span className={`quotation-state-pill ${getQuotationState(viewingQuotation).toLowerCase()}`}>
+                    {getQuotationState(viewingQuotation)}
+                  </span>
+                </strong>
+              </div>
+              <div className="full-width">
+                <p className="detail-label">Note</p>
+                <strong>{viewingQuotation.note || "—"}</strong>
+              </div>
+            </div>
+
+            <div className="detail-items">
+              <p className="detail-label">Items</p>
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th className="table-index-cell">#</th>
+                      <th>Product</th>
+                      <th>SKU</th>
+                      <th>Qty</th>
+                      <th>Unit</th>
+                      <th>Sale Price</th>
+                      <th>Cost Price</th>
+                      <th>Discounts</th>
+                      <th>Sale Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(viewingQuotation.items || []).map((item, index) => {
+                      const discounts = normalizeDiscounts(item);
+                      const activeDiscounts = discounts.filter((d) => Number(d) > 0);
+                      const discountLabel = activeDiscounts.length
+                        ? activeDiscounts.map((d) => `${Number(d)}%`).join(" → ")
+                        : "—";
+
+                      return (
+                        <tr key={item.line_id || index}>
+                          <td className="table-index-cell">{index + 1}</td>
+                          <td>{item.product_name || "—"}</td>
+                          <td>{item.sku || "—"}</td>
+                          <td>{item.quantity ?? "—"}</td>
+                          <td>{item.unit || "—"}</td>
+                          <td>{item.sale_price !== "" && item.sale_price != null ? fmt(item.sale_price) : "—"}</td>
+                          <td>{item.cost_price !== "" && item.cost_price != null ? fmt(item.cost_price) : "—"}</td>
+                          <td><span className="tx-discount-label">{discountLabel}</span></td>
+                          <td>{fmt(computeAmount(item, "sale_price"))}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {(() => {
+              const itemTotal = (viewingQuotation.items || []).reduce(
+                (sum, item) => sum + computeAmount(item, "sale_price"),
+                0
+              );
+              const vatSummary = computeVatSummary(itemTotal, viewingQuotation.vat_mode);
+              const showVat = isVatEnabled(viewingQuotation.vat_mode);
+
+              return (
+                <div className="tx-sales-summary">
+                  {showVat ? (
+                    <>
+                      <div className="tx-summary-row">
+                        <span>Total</span>
+                        <span>{fmt(vatSummary.total)}</span>
+                      </div>
+                      <div className="tx-summary-row">
+                        <span>VAT (7%)</span>
+                        <span>{fmt(vatSummary.vat)}</span>
+                      </div>
+                    </>
+                  ) : null}
+                  <div className="tx-summary-row tx-summary-grand">
+                    <strong>Grand Total</strong>
+                    <strong>{fmt(vatSummary.grandTotal)}</strong>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="transaction-detail-footer">
+              <button
+                className="danger-button"
+                type="button"
+                onClick={() => handleDelete(viewingQuotation)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
