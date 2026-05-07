@@ -870,7 +870,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                 type="button"
                 onClick={() => setShowAllStockRows((currentValue) => !currentValue)}
               >
-                {showAllStockRows ? "Show Recent" : "View All"}
+                {showAllStockRows ? "Show Recent" : "View More"}
               </button>
             ) : null}
             <button

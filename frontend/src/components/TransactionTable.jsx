@@ -339,7 +339,7 @@ function TransactionTable({
               type="button"
               onClick={() => setShowAllRows((currentValue) => !currentValue)}
             >
-              {showAllRows ? "Show Recent" : "View All"}
+              {showAllRows ? "Show Recent" : "View More"}
             </button>
           ) : null}
         </div>
