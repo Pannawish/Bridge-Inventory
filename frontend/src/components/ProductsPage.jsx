@@ -1241,7 +1241,7 @@ function ProductsPage({
         {filteredProductsWithMetrics.length === 0 ? (
           <p className="empty-copy">No products match the current search or filters.</p>
         ) : (
-          <div className="transaction-table-window product-table-window">
+          <div className="transaction-table-window product-table-window compact-history">
             <div className="table-scroll">
               <table className="transaction-history-table">
                 <thead>

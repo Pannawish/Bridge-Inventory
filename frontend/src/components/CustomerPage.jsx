@@ -501,7 +501,7 @@ function CustomerPage({
         {filteredCustomers.length === 0 ? (
           <p className="empty-copy">No customers match the current search.</p>
         ) : (
-          <div className="transaction-table-window partner-table-window">
+          <div className="transaction-table-window partner-table-window compact-history">
             <div className="table-scroll">
               <table className="transaction-history-table">
                 <colgroup>
