@@ -471,140 +471,107 @@ function SupplierPage({
         ) : null}
       </section>
 
-      <section className="section-card supplier-directory-card">
-          <div className="section-heading supplier-directory-heading">
-            <div>
-              <p className="eyebrow">Supplier Directory</p>
-              <h3>Supplier List</h3>
-            </div>
+      <section className="section-card">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">History</p>
+            <h3>Suppliers</h3>
+          </div>
+          <div className="transaction-table-actions">
             <button className="primary-button" type="button" onClick={handleCreateSupplier}>
               New Supplier
             </button>
           </div>
+        </div>
 
-          <p className="inventory-note">
-            Store supplier contact and billing details here.
-          </p>
-
-          <div className="supplier-directory-table" role="table" aria-label="Supplier list">
-            {filteredSuppliers.length === 0 ? (
-              <p className="empty-copy">No suppliers match the current search.</p>
-            ) : (
-              <>
-                <div className="supplier-directory-head" role="row">
-                  <span className="supplier-directory-column supplier-directory-index" role="columnheader">
-                    #
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Supplier
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Contact
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Location
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Profile
-                  </span>
-                </div>
-
-                <div className="supplier-directory-body" role="rowgroup">
+        {filteredSuppliers.length === 0 ? (
+          <p className="empty-copy">No suppliers match the current search.</p>
+        ) : (
+          <div className="transaction-table-window partner-table-window">
+            <div className="table-scroll">
+              <table className="transaction-history-table">
+                <colgroup>
+                  <col className="history-col-index" />
+                  <col className="partner-col-name" />
+                  <col className="partner-col-contact" />
+                  <col className="partner-col-location" />
+                  <col className="partner-col-profile" />
+                  <col className="history-col-action" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th className="table-index-cell">#</th>
+                    <th>Supplier</th>
+                    <th>Contact</th>
+                    <th>Location</th>
+                    <th>Profile</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
                   {filteredSuppliers.map((supplier, index) => {
                     const isActive = supplier.id === selectedSupplierId;
 
                     return (
-                      <button
+                      <tr
                         key={supplier.id}
-                        type="button"
-                        className={
-                          isActive
-                            ? "supplier-directory-row active"
-                            : "supplier-directory-row"
-                        }
-                        onClick={() => openSupplierEditor(supplier)}
-                        role="row"
+                        className={isActive ? "partner-table-row active" : "partner-table-row"}
                       >
-                        <span className="supplier-directory-cell supplier-directory-index" role="cell">
-                          <span className="supplier-directory-cell-label">#</span>
-                          <strong className="supplier-directory-cell-value">{index + 1}</strong>
-                        </span>
-
-                        <span className="supplier-directory-cell" role="cell">
-                          <span className="supplier-directory-cell-label">Supplier</span>
-                          <span className="directory-entity">
-                            <strong className="supplier-directory-cell-value directory-primary-text">
-                              {supplier.companyName || "Unnamed Supplier"}
-                            </strong>
-                            <span className="directory-secondary-text">
-                              {supplier.taxpayerId
-                                ? `Tax ID ${supplier.taxpayerId}`
-                                : "Tax ID not set"}
+                        <td className="table-index-cell">{index + 1}</td>
+                        <td>
+                          <div className="transaction-reference-cell">
+                            <strong>{supplier.companyName || "Unnamed Supplier"}</strong>
+                            <span>
+                              {supplier.taxpayerId ? `Tax ID ${supplier.taxpayerId}` : "Tax ID not set"}
                             </span>
-                            <span className="directory-chip-row">
-                              <span className="directory-chip">
-                                {countFilledValues(supplier.branches)} branches
-                              </span>
-                              <span className="directory-chip subtle">
-                                {countFilledValues(supplier.shippingAddresses)} ship-to points
-                              </span>
-                            </span>
-                          </span>
-                        </span>
-
-                        <span className="supplier-directory-cell" role="cell">
-                          <span className="supplier-directory-cell-label">Contact</span>
-                          <span className="directory-entity">
-                            <strong className="supplier-directory-cell-value directory-primary-text">
+                          </div>
+                        </td>
+                        <td>
+                          <div className="cell-stack">
+                            <strong>
                               {getSelectedValue(supplier.emails, supplier.selectedEmailIndex)}
                             </strong>
-                            <span className="directory-secondary-text">
-                              {getSelectedValue(supplier.tels, supplier.selectedTelIndex)}
-                            </span>
-                            <span className="directory-chip-row">
-                              <span className="directory-chip">
-                                {countFilledValues(supplier.emails)} emails
-                              </span>
-                              <span className="directory-chip subtle">
-                                {countFilledValues(supplier.tels)} phone lines
-                              </span>
-                            </span>
-                          </span>
-                        </span>
-
-                        <span className="supplier-directory-cell" role="cell">
-                          <span className="supplier-directory-cell-label">Location</span>
-                          <span className="directory-entity">
-                            <strong className="supplier-directory-cell-value directory-primary-text">
+                            <span>{getSelectedValue(supplier.tels, supplier.selectedTelIndex)}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="cell-stack">
+                            <strong>
                               {getSelectedValue(supplier.locations, supplier.selectedLocationIndex)}
                             </strong>
-                            <span className="directory-secondary-text">
+                            <span>
                               {getSelectedValue(
                                 supplier.shippingAddresses,
                                 supplier.selectedShippingAddressIndex
                               )}
                             </span>
-                          </span>
-                        </span>
-
-                        <span className="supplier-directory-cell" role="cell">
-                          <span className="supplier-directory-cell-label">Profile</span>
-                          <span className="directory-entity">
-                            <strong className="supplier-directory-cell-value directory-primary-text">
+                          </div>
+                        </td>
+                        <td>
+                          <div className="cell-stack">
+                            <strong>
                               {getSelectedValue(supplier.branches, supplier.selectedBranchIndex)}
                             </strong>
-                            <span className="directory-secondary-text">
-                              {supplier.remark || supplier.billingNoteDate || "No internal note"}
-                            </span>
-                          </span>
-                        </span>
-                      </button>
+                            <span>{supplier.remark || supplier.billingNoteDate || "No internal note"}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <button
+                            className="table-action-button"
+                            type="button"
+                            onClick={() => openSupplierEditor(supplier)}
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
                     );
                   })}
-                </div>
-              </>
-            )}
+                </tbody>
+              </table>
+            </div>
           </div>
+        )}
       </section>
 
       {draftSupplier ? (

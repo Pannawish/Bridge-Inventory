@@ -1225,26 +1225,25 @@ function ProductsPage({
         ) : null}
       </section>
 
-      <section className="section-card supplier-directory-card">
-          <div className="section-heading supplier-directory-heading">
-            <div>
-              <p className="eyebrow">Product Directory</p>
-              <h3>Product List</h3>
-            </div>
+      <section className="section-card">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">History</p>
+            <h3>Products</h3>
+          </div>
+          <div className="transaction-table-actions">
             <button className="primary-button" type="button" onClick={handleCreateProduct}>
               New Product
             </button>
           </div>
+        </div>
 
-          <p className="inventory-note">
-            Click a product to view its purchase and sales history.
-          </p>
-
-          <div className="table-scroll transaction-table-window product-table-window">
-            {filteredProductsWithMetrics.length === 0 ? (
-              <p className="empty-copy">No products match the current search or filters.</p>
-            ) : (
-              <table>
+        {filteredProductsWithMetrics.length === 0 ? (
+          <p className="empty-copy">No products match the current search or filters.</p>
+        ) : (
+          <div className="transaction-table-window product-table-window">
+            <div className="table-scroll">
+              <table className="transaction-history-table">
                 <thead>
                   <tr>
                     <th className="product-col-index">#</th>
@@ -1299,8 +1298,9 @@ function ProductsPage({
                   ))}
                 </tbody>
               </table>
-            )}
+            </div>
           </div>
+        )}
       </section>
 
       {(viewingProduct || viewingTransaction) ? (

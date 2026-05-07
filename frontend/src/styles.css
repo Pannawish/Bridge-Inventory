@@ -2370,6 +2370,30 @@ th {
   height: 66px;
 }
 
+.partner-table-window table {
+  min-width: 1080px;
+}
+
+.partner-col-name {
+  width: 240px;
+}
+
+.partner-col-contact {
+  width: 220px;
+}
+
+.partner-col-location {
+  width: 240px;
+}
+
+.partner-col-profile {
+  width: 220px;
+}
+
+.partner-table-row.active {
+  background: var(--accent-soft);
+}
+
 .product-table-window .cell-stack,
 .product-table-window .transaction-reference-cell {
   gap: 3px;

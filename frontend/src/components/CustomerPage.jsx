@@ -485,140 +485,107 @@ function CustomerPage({
         ) : null}
       </section>
 
-      <section className="section-card supplier-directory-card">
-          <div className="section-heading supplier-directory-heading">
-            <div>
-              <p className="eyebrow">Customer Directory</p>
-              <h3>Customer List</h3>
-            </div>
+      <section className="section-card">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">History</p>
+            <h3>Customers</h3>
+          </div>
+          <div className="transaction-table-actions">
             <button className="primary-button" type="button" onClick={handleCreateCustomer}>
               New Customer
             </button>
           </div>
+        </div>
 
-          <p className="inventory-note">
-            Store customer contact and billing details here.
-          </p>
-
-          <div className="supplier-directory-table" role="table" aria-label="Customer list">
-            {filteredCustomers.length === 0 ? (
-              <p className="empty-copy">No customers match the current search.</p>
-            ) : (
-              <>
-                <div className="supplier-directory-head" role="row">
-                  <span className="supplier-directory-column supplier-directory-index" role="columnheader">
-                    #
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Customer
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Contact
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Location
-                  </span>
-                  <span className="supplier-directory-column" role="columnheader">
-                    Profile
-                  </span>
-                </div>
-
-                <div className="supplier-directory-body" role="rowgroup">
+        {filteredCustomers.length === 0 ? (
+          <p className="empty-copy">No customers match the current search.</p>
+        ) : (
+          <div className="transaction-table-window partner-table-window">
+            <div className="table-scroll">
+              <table className="transaction-history-table">
+                <colgroup>
+                  <col className="history-col-index" />
+                  <col className="partner-col-name" />
+                  <col className="partner-col-contact" />
+                  <col className="partner-col-location" />
+                  <col className="partner-col-profile" />
+                  <col className="history-col-action" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th className="table-index-cell">#</th>
+                    <th>Customer</th>
+                    <th>Contact</th>
+                    <th>Location</th>
+                    <th>Profile</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
                   {filteredCustomers.map((customer, index) => {
                     const isActive = customer.id === selectedCustomerId;
 
                     return (
-                      <button
+                      <tr
                         key={customer.id}
-                        type="button"
-                        className={
-                          isActive
-                            ? "supplier-directory-row active"
-                            : "supplier-directory-row"
-                        }
-                        onClick={() => openCustomerEditor(customer)}
-                        role="row"
+                        className={isActive ? "partner-table-row active" : "partner-table-row"}
                       >
-                        <span className="supplier-directory-cell supplier-directory-index" role="cell">
-                          <span className="supplier-directory-cell-label">#</span>
-                          <strong className="supplier-directory-cell-value">{index + 1}</strong>
-                        </span>
-
-                        <span className="supplier-directory-cell" role="cell">
-                          <span className="supplier-directory-cell-label">Customer</span>
-                          <span className="directory-entity">
-                            <strong className="supplier-directory-cell-value directory-primary-text">
-                              {customer.companyName || "Unnamed Customer"}
-                            </strong>
-                            <span className="directory-secondary-text">
-                              {customer.taxpayerId
-                                ? `Tax ID ${customer.taxpayerId}`
-                                : "Tax ID not set"}
+                        <td className="table-index-cell">{index + 1}</td>
+                        <td>
+                          <div className="transaction-reference-cell">
+                            <strong>{customer.companyName || "Unnamed Customer"}</strong>
+                            <span>
+                              {customer.taxpayerId ? `Tax ID ${customer.taxpayerId}` : "Tax ID not set"}
                             </span>
-                            <span className="directory-chip-row">
-                              <span className="directory-chip">
-                                {countFilledValues(customer.branches)} branches
-                              </span>
-                              <span className="directory-chip subtle">
-                                {countFilledValues(customer.shippingAddresses)} ship-to points
-                              </span>
-                            </span>
-                          </span>
-                        </span>
-
-                        <span className="supplier-directory-cell" role="cell">
-                          <span className="supplier-directory-cell-label">Contact</span>
-                          <span className="directory-entity">
-                            <strong className="supplier-directory-cell-value directory-primary-text">
+                          </div>
+                        </td>
+                        <td>
+                          <div className="cell-stack">
+                            <strong>
                               {getSelectedValue(customer.emails, customer.selectedEmailIndex)}
                             </strong>
-                            <span className="directory-secondary-text">
-                              {getSelectedValue(customer.tels, customer.selectedTelIndex)}
-                            </span>
-                            <span className="directory-chip-row">
-                              <span className="directory-chip">
-                                {countFilledValues(customer.emails)} emails
-                              </span>
-                              <span className="directory-chip subtle">
-                                {countFilledValues(customer.tels)} phone lines
-                              </span>
-                            </span>
-                          </span>
-                        </span>
-
-                        <span className="supplier-directory-cell" role="cell">
-                          <span className="supplier-directory-cell-label">Location</span>
-                          <span className="directory-entity">
-                            <strong className="supplier-directory-cell-value directory-primary-text">
+                            <span>{getSelectedValue(customer.tels, customer.selectedTelIndex)}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="cell-stack">
+                            <strong>
                               {getSelectedValue(customer.locations, customer.selectedLocationIndex)}
                             </strong>
-                            <span className="directory-secondary-text">
+                            <span>
                               {getSelectedValue(
                                 customer.shippingAddresses,
                                 customer.selectedShippingAddressIndex
                               )}
                             </span>
-                          </span>
-                        </span>
-
-                        <span className="supplier-directory-cell" role="cell">
-                          <span className="supplier-directory-cell-label">Profile</span>
-                          <span className="directory-entity">
-                            <strong className="supplier-directory-cell-value directory-primary-text">
+                          </div>
+                        </td>
+                        <td>
+                          <div className="cell-stack">
+                            <strong>
                               {getSelectedValue(customer.branches, customer.selectedBranchIndex)}
                             </strong>
-                            <span className="directory-secondary-text">
-                              {customer.remark || customer.billingNoteDate || "No internal note"}
-                            </span>
-                          </span>
-                        </span>
-                      </button>
+                            <span>{customer.remark || customer.billingNoteDate || "No internal note"}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <button
+                            className="table-action-button"
+                            type="button"
+                            onClick={() => openCustomerEditor(customer)}
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
                     );
                   })}
-                </div>
-              </>
-            )}
+                </tbody>
+              </table>
+            </div>
           </div>
+        )}
       </section>
 
       {draftCustomer ? (
