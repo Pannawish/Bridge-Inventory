@@ -1257,6 +1257,11 @@ function PurchaseHistoryPage({
   const [editingPurchase, setEditingPurchase] = useState(null);
   const [showNewPurchaseForm, setShowNewPurchaseForm] = useState(false);
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const activeFilterCount =
+    (selectedSupplier ? 1 : 0) +
+    (selectedStatuses.length === statusOptions.length ? 0 : 1) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
   const supplierOptions = useMemo(
     () => buildSupplierFilterOptions(purchases, suppliers),
     [purchases, suppliers]
@@ -1408,11 +1413,13 @@ function PurchaseHistoryPage({
 
         <div className="history-filter-actions">
           <button
-            className="secondary-button"
+            className="secondary-button product-filter-toggle"
             type="button"
+            aria-expanded={filterOpen}
             onClick={() => setFilterOpen((currentValue) => !currentValue)}
           >
             Filter
+            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
           </button>
           <button className="secondary-button" type="button" onClick={resetFilters}>
             Reset Filter

@@ -238,6 +238,8 @@ function CustomerPage({
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [draftCustomer, setDraftCustomer] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [profileFilter, setProfileFilter] = useState("all");
 
   useEffect(() => {
     if (typeof document === "undefined" || !draftCustomer) {
@@ -259,23 +261,48 @@ function CustomerPage({
   }, [selectedCustomerId, customers]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const activeFilterCount = profileFilter === "all" ? 0 : 1;
   const filteredCustomers = useMemo(
     () =>
       customers.filter((customer) => {
-        if (!normalizedSearch) {
-          return true;
-        }
-
-        return (
+        const matchesSearch =
+          !normalizedSearch ||
           customer.companyName.toLowerCase().includes(normalizedSearch) ||
           customer.taxpayerId.toLowerCase().includes(normalizedSearch) ||
           customer.locations.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
           customer.emails.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
-          customer.tels.some((item) => item.toLowerCase().includes(normalizedSearch))
-        );
+          customer.tels.some((item) => item.toLowerCase().includes(normalizedSearch));
+
+        if (!matchesSearch) {
+          return false;
+        }
+
+        if (profileFilter === "missing-tax-id") {
+          return !customer.taxpayerId.trim();
+        }
+
+        if (profileFilter === "has-email") {
+          return countFilledValues(customer.emails) > 0;
+        }
+
+        if (profileFilter === "has-phone") {
+          return countFilledValues(customer.tels) > 0;
+        }
+
+        if (profileFilter === "has-note") {
+          return Boolean(customer.remark.trim() || customer.billingNoteDate.trim());
+        }
+
+        return true;
       }),
-    [normalizedSearch, customers]
+    [normalizedSearch, profileFilter, customers]
   );
+
+  function resetFilters() {
+    setSearchTerm("");
+    setProfileFilter("all");
+    setFilterOpen(false);
+  }
 
   function openCustomerEditor(customer) {
     setSelectedCustomerId(customer.id);
@@ -399,11 +426,69 @@ function CustomerPage({
 
   return (
     <div className="stack-layout">
-      <div className="supplier-layout">
-        <section className="section-card supplier-directory-card">
+      <section className="section-card">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Customers</p>
+            <h3>Find Customers</h3>
+          </div>
+        </div>
+
+        <div className="supplier-directory-toolbar">
+          <label className="stock-search supplier-search">
+            <span className="stock-search-icon">S</span>
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search customer, taxpayer ID, location, email, or tel"
+            />
+          </label>
+          <div className="stock-report-summary supplier-search-meta">
+            <span>{filteredCustomers.length} of {customers.length} customers shown</span>
+          </div>
+        </div>
+
+        <div className="history-filter-actions">
+          <button
+            className="secondary-button product-filter-toggle"
+            type="button"
+            aria-expanded={filterOpen}
+            onClick={() => setFilterOpen((currentValue) => !currentValue)}
+          >
+            Filter
+            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
+          </button>
+          <button className="secondary-button" type="button" onClick={resetFilters}>
+            Reset Filter
+          </button>
+        </div>
+
+        {filterOpen ? (
+          <div className="history-filter-panel">
+            <div className="history-filter-grid">
+              <label className="history-filter-field">
+                <span className="history-filter-title">Customer Profile</span>
+                <select
+                  value={profileFilter}
+                  onChange={(event) => setProfileFilter(event.target.value)}
+                >
+                  <option value="all">All customers</option>
+                  <option value="missing-tax-id">Missing tax ID</option>
+                  <option value="has-email">Has email</option>
+                  <option value="has-phone">Has phone</option>
+                  <option value="has-note">Has internal note</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="section-card supplier-directory-card">
           <div className="section-heading supplier-directory-heading">
             <div>
-              <p className="eyebrow">Customers</p>
+              <p className="eyebrow">Customer Directory</p>
               <h3>Customer List</h3>
             </div>
             <button className="primary-button" type="button" onClick={handleCreateCustomer}>
@@ -414,21 +499,6 @@ function CustomerPage({
           <p className="inventory-note">
             Store customer contact and billing details here.
           </p>
-
-          <div className="supplier-directory-toolbar">
-            <label className="stock-search supplier-search">
-              <span className="stock-search-icon">S</span>
-              <input
-                type="search"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search customer, taxpayer ID, location, email, or tel"
-              />
-            </label>
-            <div className="stock-report-summary supplier-search-meta">
-              <span>{filteredCustomers.length} customers shown</span>
-            </div>
-          </div>
 
           <div className="supplier-directory-table" role="table" aria-label="Customer list">
             {filteredCustomers.length === 0 ? (
@@ -549,8 +619,7 @@ function CustomerPage({
               </>
             )}
           </div>
-        </section>
-      </div>
+      </section>
 
       {draftCustomer ? (
         <div className="modal-backdrop">

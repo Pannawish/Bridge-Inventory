@@ -237,6 +237,22 @@ function hasCategoryChildren(categories, categoryId) {
   return categories.some((category) => category.parentId === categoryId);
 }
 
+function getCategoryDepth(categories, categoryId) {
+  let depth = 0;
+  let currentParentId =
+    categories.find((category) => category.id === categoryId)?.parentId || null;
+  const visited = new Set();
+
+  while (currentParentId && !visited.has(currentParentId)) {
+    visited.add(currentParentId);
+    depth += 1;
+    currentParentId =
+      categories.find((category) => category.id === currentParentId)?.parentId || null;
+  }
+
+  return depth;
+}
+
 function isDescendantCategory(categories, categoryId, potentialParentId) {
   let currentParentId = potentialParentId;
 
@@ -260,6 +276,9 @@ function CategoryPage({
 }) {
   const [draftCategory, setDraftCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [levelFilter, setLevelFilter] = useState("all");
+  const [usageFilter, setUsageFilter] = useState("all");
   const [parentCategoryInput, setParentCategoryInput] = useState("");
   const [isParentCategoryMenuOpen, setIsParentCategoryMenuOpen] = useState(false);
   const [formError, setFormError] = useState("");
@@ -279,21 +298,80 @@ function CategoryPage({
   }, [draftCategory]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filteredCategories = useMemo(() => {
-    if (!normalizedSearch) {
-      return categories;
-    }
+  const productAssignments = useMemo(() => {
+    const assignmentCount = new Map();
 
+    products.forEach((product) => {
+      const categoryId = getAssignedCategoryId(product, categories);
+
+      if (!categoryId) {
+        return;
+      }
+
+      assignmentCount.set(categoryId, (assignmentCount.get(categoryId) || 0) + 1);
+    });
+
+    return assignmentCount;
+  }, [categories, products]);
+  const childCategoryCounts = useMemo(() => {
+    const counts = new Map();
+
+    categories.forEach((category) => {
+      const parentId = category.parentId || null;
+      counts.set(parentId, (counts.get(parentId) || 0) + 1);
+    });
+
+    return counts;
+  }, [categories]);
+  const activeFilterCount =
+    (levelFilter === "all" ? 0 : 1) + (usageFilter === "all" ? 0 : 1);
+  const filteredCategories = useMemo(() => {
     const matchingIds = new Set(
       categories
         .filter((category) => {
           const path = getCategoryPathById(categories, category.id).toLowerCase();
-
-          return (
+          const directChildCount = childCategoryCounts.get(category.id) || 0;
+          const assignedProductCount = productAssignments.get(category.id) || 0;
+          const depth = getCategoryDepth(categories, category.id);
+          const matchesSearch =
+            !normalizedSearch ||
             category.name.toLowerCase().includes(normalizedSearch) ||
             category.description.toLowerCase().includes(normalizedSearch) ||
-            path.includes(normalizedSearch)
-          );
+            path.includes(normalizedSearch);
+
+          if (!matchesSearch) {
+            return false;
+          }
+
+          if (levelFilter === "root" && category.parentId) {
+            return false;
+          }
+
+          if (levelFilter === "subcategory" && !category.parentId) {
+            return false;
+          }
+
+          if (levelFilter === "deep" && depth < 2) {
+            return false;
+          }
+
+          if (usageFilter === "assigned" && assignedProductCount === 0) {
+            return false;
+          }
+
+          if (usageFilter === "unassigned" && assignedProductCount > 0) {
+            return false;
+          }
+
+          if (usageFilter === "has-children" && directChildCount === 0) {
+            return false;
+          }
+
+          if (usageFilter === "leaf" && directChildCount > 0) {
+            return false;
+          }
+
+          return true;
         })
         .map((category) => category.id)
     );
@@ -311,7 +389,14 @@ function CategoryPage({
     });
 
     return categories.filter((category) => visibleIds.has(category.id));
-  }, [categories, normalizedSearch]);
+  }, [
+    categories,
+    childCategoryCounts,
+    levelFilter,
+    normalizedSearch,
+    productAssignments,
+    usageFilter,
+  ]);
   const visibleCategoryIds = useMemo(
     () => new Set(filteredCategories.map((category) => category.id)),
     [filteredCategories]
@@ -348,31 +433,6 @@ function CategoryPage({
     visit(null, 0);
     return rows;
   }, [categories, collapsedCategoryIds, visibleCategoryIds]);
-  const productAssignments = useMemo(() => {
-    const assignmentCount = new Map();
-
-    products.forEach((product) => {
-      const categoryId = getAssignedCategoryId(product, categories);
-
-      if (!categoryId) {
-        return;
-      }
-
-      assignmentCount.set(categoryId, (assignmentCount.get(categoryId) || 0) + 1);
-    });
-
-    return assignmentCount;
-  }, [categories, products]);
-  const childCategoryCounts = useMemo(() => {
-    const counts = new Map();
-
-    categories.forEach((category) => {
-      const parentId = category.parentId || null;
-      counts.set(parentId, (counts.get(parentId) || 0) + 1);
-    });
-
-    return counts;
-  }, [categories]);
   const parentCategoryOptions = useMemo(() => {
     if (!draftCategory) {
       return [];
@@ -479,6 +539,13 @@ function CategoryPage({
     }
   }
 
+  function resetFilters() {
+    setSearchTerm("");
+    setLevelFilter("all");
+    setUsageFilter("all");
+    setFilterOpen(false);
+  }
+
   async function handleSaveCategory(event) {
     event.preventDefault();
 
@@ -568,15 +635,12 @@ function CategoryPage({
 
   return (
     <div className="stack-layout">
-      <section className="section-card supplier-directory-card">
-        <div className="section-heading supplier-directory-heading">
+      <section className="section-card">
+        <div className="section-heading">
           <div>
             <p className="eyebrow">Category</p>
-            <h3>Category List</h3>
+            <h3>Find Categories</h3>
           </div>
-          <button className="primary-button" type="button" onClick={() => openCategoryEditor()}>
-            New Category
-          </button>
         </div>
 
         <div className="supplier-directory-toolbar">
@@ -590,8 +654,68 @@ function CategoryPage({
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
-            <span>{filteredCategories.length} categories shown</span>
+            <span>{filteredCategories.length} of {categories.length} categories shown</span>
           </div>
+        </div>
+
+        <div className="history-filter-actions">
+          <button
+            className="secondary-button product-filter-toggle"
+            type="button"
+            aria-expanded={filterOpen}
+            onClick={() => setFilterOpen((currentValue) => !currentValue)}
+          >
+            Filter
+            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
+          </button>
+          <button className="secondary-button" type="button" onClick={resetFilters}>
+            Reset Filter
+          </button>
+        </div>
+
+        {filterOpen ? (
+          <div className="history-filter-panel">
+            <div className="history-filter-grid">
+              <label className="history-filter-field">
+                <span className="history-filter-title">Category Level</span>
+                <select
+                  value={levelFilter}
+                  onChange={(event) => setLevelFilter(event.target.value)}
+                >
+                  <option value="all">All levels</option>
+                  <option value="root">Root categories</option>
+                  <option value="subcategory">Subcategories</option>
+                  <option value="deep">Deep nested categories</option>
+                </select>
+              </label>
+
+              <label className="history-filter-field">
+                <span className="history-filter-title">Category Use</span>
+                <select
+                  value={usageFilter}
+                  onChange={(event) => setUsageFilter(event.target.value)}
+                >
+                  <option value="all">All categories</option>
+                  <option value="assigned">Assigned to products</option>
+                  <option value="unassigned">No assigned products</option>
+                  <option value="has-children">Has subcategories</option>
+                  <option value="leaf">Leaf categories</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="section-card supplier-directory-card">
+        <div className="section-heading supplier-directory-heading">
+          <div>
+            <p className="eyebrow">Category Directory</p>
+            <h3>Category List</h3>
+          </div>
+          <button className="primary-button" type="button" onClick={() => openCategoryEditor()}>
+            New Category
+          </button>
         </div>
 
         <div className="table-scroll category-tree-table">

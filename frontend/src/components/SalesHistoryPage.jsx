@@ -1256,6 +1256,11 @@ function SalesHistoryPage({
   const [editingSale, setEditingSale] = useState(null);
   const [showNewSaleForm, setShowNewSaleForm] = useState(false);
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const activeFilterCount =
+    (selectedCustomer ? 1 : 0) +
+    (selectedStatuses.length === statusOptions.length ? 0 : 1) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
   const customerOptions = useMemo(
     () => buildCustomerFilterOptions(sales, customers),
     [customers, sales]
@@ -1410,11 +1415,13 @@ function SalesHistoryPage({
 
         <div className="history-filter-actions">
           <button
-            className="secondary-button"
+            className="secondary-button product-filter-toggle"
             type="button"
+            aria-expanded={filterOpen}
             onClick={() => setFilterOpen((currentValue) => !currentValue)}
           >
             Filter
+            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
           </button>
           <button className="secondary-button" type="button" onClick={resetFilters}>
             Reset Filter

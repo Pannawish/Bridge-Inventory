@@ -286,6 +286,44 @@ function getQuotationState(quotation) {
   return "Valid";
 }
 
+function quotationMatchesDateRange(quotationDate, dateFrom, dateTo) {
+  if (!dateFrom && !dateTo) {
+    return true;
+  }
+
+  if (!quotationDate) {
+    return false;
+  }
+
+  if (dateFrom && quotationDate < dateFrom) {
+    return false;
+  }
+
+  if (dateTo && quotationDate > dateTo) {
+    return false;
+  }
+
+  return true;
+}
+
+function getQuotationPartnerOptions(quotations, key, partners = []) {
+  const optionMap = new Map();
+
+  normalizePartnerOptions(partners).forEach((partner) => {
+    optionMap.set(partner.companyName.toLowerCase(), partner.companyName);
+  });
+
+  quotations.forEach((quotation) => {
+    const companyName = `${quotation[key] ?? ""}`.trim();
+
+    if (companyName) {
+      optionMap.set(companyName.toLowerCase(), companyName);
+    }
+  });
+
+  return [...optionMap.values()].sort((left, right) => left.localeCompare(right));
+}
+
 function buildPurchasePrefill(quotation) {
   return {
     supplier_name: quotation.supplier_name || "",
@@ -871,20 +909,88 @@ function QuotationPage({
   onCreateSale,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState("");
+  const [selectedSupplier, setSelectedSupplier] = useState("");
+  const [stateFilter, setStateFilter] = useState("all");
+  const [vatFilter, setVatFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [viewingQuotation, setViewingQuotation] = useState(null);
   const [editingQuotation, setEditingQuotation] = useState(null);
   const [showNewQuotationForm, setShowNewQuotationForm] = useState(false);
   const [conversion, setConversion] = useState(null);
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const customerOptions = useMemo(
+    () => getQuotationPartnerOptions(quotations, "customer_name", customers),
+    [customers, quotations]
+  );
+  const supplierOptions = useMemo(
+    () => getQuotationPartnerOptions(quotations, "supplier_name", suppliers),
+    [quotations, suppliers]
+  );
+  const activeFilterCount =
+    (selectedCustomer ? 1 : 0) +
+    (selectedSupplier ? 1 : 0) +
+    (stateFilter === "all" ? 0 : 1) +
+    (vatFilter === "all" ? 0 : 1) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
   const filteredQuotations = useMemo(
     () =>
       quotations
-        .filter((quotation) =>
-          normalizedSearch ? quotationMatchesQuery(quotation, normalizedSearch) : true
-        )
+        .filter((quotation) => {
+          const matchesSearch = normalizedSearch
+            ? quotationMatchesQuery(quotation, normalizedSearch)
+            : true;
+          const matchesCustomer = selectedCustomer
+            ? quotation.customer_name === selectedCustomer
+            : true;
+          const matchesSupplier = selectedSupplier
+            ? quotation.supplier_name === selectedSupplier
+            : true;
+          const matchesState =
+            stateFilter === "all" ||
+            getQuotationState(quotation).toLowerCase() === stateFilter;
+          const matchesVat = vatFilter === "all" || quotation.vat_mode === vatFilter;
+          const matchesDateRange = quotationMatchesDateRange(
+            quotation.quotation_date,
+            dateFrom,
+            dateTo
+          );
+
+          return (
+            matchesSearch &&
+            matchesCustomer &&
+            matchesSupplier &&
+            matchesState &&
+            matchesVat &&
+            matchesDateRange
+          );
+        })
         .sort(sortRecentQuotations),
-    [normalizedSearch, quotations]
+    [
+      dateFrom,
+      dateTo,
+      normalizedSearch,
+      quotations,
+      selectedCustomer,
+      selectedSupplier,
+      stateFilter,
+      vatFilter,
+    ]
   );
+
+  function resetFilters() {
+    setSearchTerm("");
+    setSelectedCustomer("");
+    setSelectedSupplier("");
+    setStateFilter("all");
+    setVatFilter("all");
+    setDateFrom("");
+    setDateTo("");
+    setFilterOpen(false);
+  }
 
   async function handleDelete(quotation) {
     const confirmed = window.confirm(
@@ -1055,6 +1161,100 @@ function QuotationPage({
             </span>
           </div>
         </div>
+
+        <div className="history-filter-actions">
+          <button
+            className="secondary-button product-filter-toggle"
+            type="button"
+            aria-expanded={filterOpen}
+            onClick={() => setFilterOpen((currentValue) => !currentValue)}
+          >
+            Filter
+            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
+          </button>
+          <button className="secondary-button" type="button" onClick={resetFilters}>
+            Reset Filter
+          </button>
+        </div>
+
+        {filterOpen ? (
+          <div className="history-filter-panel">
+            <div className="history-filter-grid">
+              <label className="history-filter-field">
+                <span className="history-filter-title">Customer</span>
+                <select
+                  value={selectedCustomer}
+                  onChange={(event) => setSelectedCustomer(event.target.value)}
+                >
+                  <option value="">All customers</option>
+                  {customerOptions.map((customerName) => (
+                    <option key={customerName} value={customerName}>
+                      {customerName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="history-filter-field">
+                <span className="history-filter-title">Supplier</span>
+                <select
+                  value={selectedSupplier}
+                  onChange={(event) => setSelectedSupplier(event.target.value)}
+                >
+                  <option value="">All suppliers</option>
+                  {supplierOptions.map((supplierName) => (
+                    <option key={supplierName} value={supplierName}>
+                      {supplierName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="history-filter-field">
+                <span className="history-filter-title">State</span>
+                <select
+                  value={stateFilter}
+                  onChange={(event) => setStateFilter(event.target.value)}
+                >
+                  <option value="all">All states</option>
+                  <option value="valid">Valid</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </label>
+
+              <label className="history-filter-field">
+                <span className="history-filter-title">VAT</span>
+                <select
+                  value={vatFilter}
+                  onChange={(event) => setVatFilter(event.target.value)}
+                >
+                  <option value="all">All VAT settings</option>
+                  <option value="included">VAT included</option>
+                  <option value="not_included">VAT not included</option>
+                  <option value="none">No VAT</option>
+                </select>
+              </label>
+
+              <label className="history-filter-field">
+                <span className="history-filter-title">Date From</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(event) => setDateFrom(event.target.value)}
+                />
+              </label>
+
+              <label className="history-filter-field">
+                <span className="history-filter-title">Date To</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(event) => setDateTo(event.target.value)}
+                />
+              </label>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section className="section-card">

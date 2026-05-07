@@ -673,18 +673,6 @@ function ProductsPage({
       }),
     [categoryFilter, normalizedSearch, productsWithMetrics, stockFilter]
   );
-  const stockFilterLabel =
-    stockFilter === "all"
-      ? "All inventory states"
-      : stockFilter === "in-stock"
-        ? "In stock"
-        : stockFilter === "out-of-stock"
-          ? "Out of stock"
-          : stockFilter === "selling"
-            ? "Has sales"
-            : stockFilter === "no-sales"
-              ? "No sales yet"
-              : "No received purchases";
   const activeFilterCount =
     (categoryFilter === "all" ? 0 : 1) + (stockFilter === "all" ? 0 : 1);
 
@@ -1156,48 +1144,55 @@ function ProductsPage({
 
   return (
     <div className="stack-layout">
-      <div className="supplier-layout">
-        <section className="section-card supplier-directory-card">
-          <div className="section-heading supplier-directory-heading">
-            <div>
-              <p className="eyebrow">Products</p>
-              <h3>Product List</h3>
-            </div>
-            <button className="primary-button" type="button" onClick={handleCreateProduct}>
-              New Product
-            </button>
+      <section className="section-card">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Products</p>
+            <h3>Find Products</h3>
           </div>
+        </div>
 
-          <p className="inventory-note">
-            Click a product to view its purchase and sales history.
-          </p>
-
-          <div className="supplier-directory-toolbar">
-            <label className="stock-search supplier-search">
-              <span className="stock-search-icon">S</span>
-              <input
-                type="search"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search by main name, subname, category, SKU, or ID"
-              />
-            </label>
-
-            <button
-              className="secondary-button product-filter-toggle"
-              type="button"
-              aria-expanded={showProductFilters}
-              onClick={() => setShowProductFilters((isVisible) => !isVisible)}
-            >
-              Filter
-              {activeFilterCount ? <span>{activeFilterCount}</span> : null}
-            </button>
+        <div className="supplier-directory-toolbar">
+          <label className="stock-search supplier-search">
+            <span className="stock-search-icon">S</span>
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search by main name, subname, category, SKU, or ID"
+            />
+          </label>
+          <div className="stock-report-summary supplier-search-meta">
+            <span>
+              {filteredProductsWithMetrics.length} of {productsWithMetrics.length} products shown
+            </span>
           </div>
+        </div>
 
-          {showProductFilters ? (
-            <div className="product-filter-panel">
-              <label className="stock-control">
-                <span>Category</span>
+        <div className="history-filter-actions">
+          <button
+            className="secondary-button product-filter-toggle"
+            type="button"
+            aria-expanded={showProductFilters}
+            onClick={() => setShowProductFilters((isVisible) => !isVisible)}
+          >
+            Filter
+            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={resetProductFilters}
+          >
+            Reset Filter
+          </button>
+        </div>
+
+        {showProductFilters ? (
+          <div className="history-filter-panel">
+            <div className="history-filter-grid">
+              <label className="history-filter-field">
+                <span className="history-filter-title">Category</span>
                 <select
                   value={categoryFilter}
                   onChange={(event) => setCategoryFilter(event.target.value)}
@@ -1211,8 +1206,8 @@ function ProductsPage({
                 </select>
               </label>
 
-              <label className="stock-control">
-                <span>Inventory</span>
+              <label className="history-filter-field">
+                <span className="history-filter-title">Inventory</span>
                 <select
                   value={stockFilter}
                   onChange={(event) => setStockFilter(event.target.value)}
@@ -1225,28 +1220,25 @@ function ProductsPage({
                   <option value="no-purchases">No received purchases</option>
                 </select>
               </label>
-
-              <button
-                className="secondary-button product-filter-reset"
-                type="button"
-                onClick={resetProductFilters}
-                disabled={!activeFilterCount}
-              >
-                Reset
-              </button>
             </div>
-          ) : null}
-
-          <div className="stock-report-summary">
-            <span>
-              {filteredProductsWithMetrics.length} of {productsWithMetrics.length} products shown
-            </span>
-            <span>
-              {categoryFilter === "all" ? "All categories" : categoryFilter}
-              {" · "}
-              {stockFilterLabel}
-            </span>
           </div>
+        ) : null}
+      </section>
+
+      <section className="section-card supplier-directory-card">
+          <div className="section-heading supplier-directory-heading">
+            <div>
+              <p className="eyebrow">Product Directory</p>
+              <h3>Product List</h3>
+            </div>
+            <button className="primary-button" type="button" onClick={handleCreateProduct}>
+              New Product
+            </button>
+          </div>
+
+          <p className="inventory-note">
+            Click a product to view its purchase and sales history.
+          </p>
 
           <div className="table-scroll transaction-table-window product-table-window">
             {filteredProductsWithMetrics.length === 0 ? (
@@ -1309,8 +1301,7 @@ function ProductsPage({
               </table>
             )}
           </div>
-        </section>
-      </div>
+      </section>
 
       {(viewingProduct || viewingTransaction) ? (
         <div className="modal-backdrop">
