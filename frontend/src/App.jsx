@@ -972,12 +972,7 @@ function App() {
       <aside className={sidebarOpen ? "sidebar is-open" : "sidebar"}>
         <div className="sidebar-content">
           <div className="sidebar-top">
-            <div className="brand-lockup">
-              <div className="brand-mark">IM</div>
-              <div>
-                <h1>Inventory</h1>
-              </div>
-            </div>
+            <h1>Inventory</h1>
             <button
               type="button"
               className="sidebar-close-button"
@@ -996,7 +991,6 @@ function App() {
                 className={tab.id === activeTab ? "sidebar-nav-button active" : "sidebar-nav-button"}
                 onClick={() => handleTabSelect(tab.id)}
               >
-                <span className="sidebar-nav-icon">{tab.shortLabel}</span>
                 <span className="sidebar-nav-text">{tab.label}</span>
               </button>
             ))}
