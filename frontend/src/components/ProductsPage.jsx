@@ -575,6 +575,7 @@ function ProductsPage({
   const [stockFilter, setStockFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [showProductFilters, setShowProductFilters] = useState(false);
+  const [showAllRows, setShowAllRows] = useState(false);
   const [productFormError, setProductFormError] = useState("");
   const [skuChangeUnlocked, setSkuChangeUnlocked] = useState(false);
   const [categoryQuery, setCategoryQuery] = useState("");
@@ -675,6 +676,9 @@ function ProductsPage({
   );
   const activeFilterCount =
     (categoryFilter === "all" ? 0 : 1) + (stockFilter === "all" ? 0 : 1);
+  const compactRows = 5;
+  const shouldShowViewAll = filteredProductsWithMetrics.length > compactRows;
+  const isCompact = shouldShowViewAll && !showAllRows;
 
   function openProductDetail(product) {
     setViewingProduct(product);
@@ -1235,14 +1239,29 @@ function ProductsPage({
             <button className="primary-button" type="button" onClick={handleCreateProduct}>
               New Product
             </button>
+            {shouldShowViewAll ? (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => setShowAllRows((currentValue) => !currentValue)}
+              >
+                {showAllRows ? "Show Recent" : "View All"}
+              </button>
+            ) : null}
           </div>
         </div>
 
         {filteredProductsWithMetrics.length === 0 ? (
           <p className="empty-copy">No products match the current search or filters.</p>
         ) : (
-          <div className="transaction-table-window product-table-window compact-history">
-            <div className="table-scroll">
+          <div
+            className={
+              isCompact
+                ? "transaction-table-window product-table-window compact-history"
+                : "transaction-table-window product-table-window"
+            }
+          >
+            <div className="table-scroll desktop-table">
               <table className="transaction-history-table">
                 <thead>
                   <tr>
@@ -1298,6 +1317,49 @@ function ProductsPage({
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            <div className="mobile-record-list">
+              {filteredProductsWithMetrics.map(({ product, metrics, categoryLabel }, index) => (
+                <article className="mobile-record-card" key={`mobile-product-${product.id}`}>
+                  <div className="mobile-record-header">
+                    <div className="mobile-record-title">
+                      <span className="mobile-record-index">{index + 1}</span>
+                      <div className="cell-stack">
+                        <strong>{getProductDisplayName(product)}</strong>
+                        <span>{product.sku ? `SKU ${product.sku}` : "SKU not set"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mobile-record-grid">
+                    <div>
+                      <span>Category</span>
+                      <strong>{categoryLabel || "Unassigned"}</strong>
+                    </div>
+                    <div>
+                      <span>Stock</span>
+                      <strong>{formatStockQuantity(metrics.totalUnits, product)}</strong>
+                    </div>
+                    <div>
+                      <span>Avg Cost</span>
+                      <strong>{formatCurrency(metrics.avgPrice)}</strong>
+                    </div>
+                    <div>
+                      <span>ID</span>
+                      <strong>{product.productDisplayId}</strong>
+                    </div>
+                  </div>
+
+                  <button
+                    className="secondary-button table-action-button mobile-record-button"
+                    type="button"
+                    onClick={() => openProductDetail(product)}
+                  >
+                    View
+                  </button>
+                </article>
+              ))}
             </div>
           </div>
         )}

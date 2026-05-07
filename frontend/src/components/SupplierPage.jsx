@@ -226,6 +226,7 @@ function SupplierPage({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [profileFilter, setProfileFilter] = useState("all");
+  const [showAllRows, setShowAllRows] = useState(false);
 
   useEffect(() => {
     if (typeof document === "undefined" || !draftSupplier) {
@@ -248,6 +249,7 @@ function SupplierPage({
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const activeFilterCount = profileFilter === "all" ? 0 : 1;
+  const compactRows = 5;
   const filteredSuppliers = useMemo(
     () =>
       suppliers.filter((supplier) => {
@@ -283,6 +285,8 @@ function SupplierPage({
       }),
     [normalizedSearch, profileFilter, suppliers]
   );
+  const shouldShowViewAll = filteredSuppliers.length > compactRows;
+  const isCompact = shouldShowViewAll && !showAllRows;
 
   function resetFilters() {
     setSearchTerm("");
@@ -481,14 +485,29 @@ function SupplierPage({
             <button className="primary-button" type="button" onClick={handleCreateSupplier}>
               New Supplier
             </button>
+            {shouldShowViewAll ? (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => setShowAllRows((currentValue) => !currentValue)}
+              >
+                {showAllRows ? "Show Recent" : "View All"}
+              </button>
+            ) : null}
           </div>
         </div>
 
         {filteredSuppliers.length === 0 ? (
           <p className="empty-copy">No suppliers match the current search.</p>
         ) : (
-          <div className="transaction-table-window partner-table-window compact-history">
-            <div className="table-scroll">
+          <div
+            className={
+              isCompact
+                ? "transaction-table-window partner-table-window compact-history"
+                : "transaction-table-window partner-table-window"
+            }
+          >
+            <div className="table-scroll desktop-table">
               <table className="transaction-history-table">
                 <colgroup>
                   <col className="history-col-index" />
@@ -569,6 +588,51 @@ function SupplierPage({
                   })}
                 </tbody>
               </table>
+            </div>
+
+            <div className="mobile-record-list">
+              {filteredSuppliers.map((supplier, index) => (
+                <article className="mobile-record-card" key={`mobile-supplier-${supplier.id}`}>
+                  <div className="mobile-record-header">
+                    <div className="mobile-record-title">
+                      <span className="mobile-record-index">{index + 1}</span>
+                      <div className="cell-stack">
+                        <strong>{supplier.companyName || "Unnamed Supplier"}</strong>
+                        <span>
+                          {supplier.taxpayerId ? `Tax ID ${supplier.taxpayerId}` : "Tax ID not set"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mobile-record-grid">
+                    <div>
+                      <span>Email</span>
+                      <strong>{getSelectedValue(supplier.emails, supplier.selectedEmailIndex)}</strong>
+                    </div>
+                    <div>
+                      <span>Phone</span>
+                      <strong>{getSelectedValue(supplier.tels, supplier.selectedTelIndex)}</strong>
+                    </div>
+                    <div>
+                      <span>Location</span>
+                      <strong>{getSelectedValue(supplier.locations, supplier.selectedLocationIndex)}</strong>
+                    </div>
+                    <div>
+                      <span>Branch</span>
+                      <strong>{getSelectedValue(supplier.branches, supplier.selectedBranchIndex)}</strong>
+                    </div>
+                  </div>
+
+                  <button
+                    className="secondary-button table-action-button mobile-record-button"
+                    type="button"
+                    onClick={() => openSupplierEditor(supplier)}
+                  >
+                    View
+                  </button>
+                </article>
+              ))}
             </div>
           </div>
         )}

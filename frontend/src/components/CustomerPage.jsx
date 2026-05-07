@@ -240,6 +240,7 @@ function CustomerPage({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [profileFilter, setProfileFilter] = useState("all");
+  const [showAllRows, setShowAllRows] = useState(false);
 
   useEffect(() => {
     if (typeof document === "undefined" || !draftCustomer) {
@@ -262,6 +263,7 @@ function CustomerPage({
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const activeFilterCount = profileFilter === "all" ? 0 : 1;
+  const compactRows = 5;
   const filteredCustomers = useMemo(
     () =>
       customers.filter((customer) => {
@@ -297,6 +299,8 @@ function CustomerPage({
       }),
     [normalizedSearch, profileFilter, customers]
   );
+  const shouldShowViewAll = filteredCustomers.length > compactRows;
+  const isCompact = shouldShowViewAll && !showAllRows;
 
   function resetFilters() {
     setSearchTerm("");
@@ -495,14 +499,29 @@ function CustomerPage({
             <button className="primary-button" type="button" onClick={handleCreateCustomer}>
               New Customer
             </button>
+            {shouldShowViewAll ? (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => setShowAllRows((currentValue) => !currentValue)}
+              >
+                {showAllRows ? "Show Recent" : "View All"}
+              </button>
+            ) : null}
           </div>
         </div>
 
         {filteredCustomers.length === 0 ? (
           <p className="empty-copy">No customers match the current search.</p>
         ) : (
-          <div className="transaction-table-window partner-table-window compact-history">
-            <div className="table-scroll">
+          <div
+            className={
+              isCompact
+                ? "transaction-table-window partner-table-window compact-history"
+                : "transaction-table-window partner-table-window"
+            }
+          >
+            <div className="table-scroll desktop-table">
               <table className="transaction-history-table">
                 <colgroup>
                   <col className="history-col-index" />
@@ -583,6 +602,51 @@ function CustomerPage({
                   })}
                 </tbody>
               </table>
+            </div>
+
+            <div className="mobile-record-list">
+              {filteredCustomers.map((customer, index) => (
+                <article className="mobile-record-card" key={`mobile-customer-${customer.id}`}>
+                  <div className="mobile-record-header">
+                    <div className="mobile-record-title">
+                      <span className="mobile-record-index">{index + 1}</span>
+                      <div className="cell-stack">
+                        <strong>{customer.companyName || "Unnamed Customer"}</strong>
+                        <span>
+                          {customer.taxpayerId ? `Tax ID ${customer.taxpayerId}` : "Tax ID not set"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mobile-record-grid">
+                    <div>
+                      <span>Email</span>
+                      <strong>{getSelectedValue(customer.emails, customer.selectedEmailIndex)}</strong>
+                    </div>
+                    <div>
+                      <span>Phone</span>
+                      <strong>{getSelectedValue(customer.tels, customer.selectedTelIndex)}</strong>
+                    </div>
+                    <div>
+                      <span>Location</span>
+                      <strong>{getSelectedValue(customer.locations, customer.selectedLocationIndex)}</strong>
+                    </div>
+                    <div>
+                      <span>Branch</span>
+                      <strong>{getSelectedValue(customer.branches, customer.selectedBranchIndex)}</strong>
+                    </div>
+                  </div>
+
+                  <button
+                    className="secondary-button table-action-button mobile-record-button"
+                    type="button"
+                    onClick={() => openCustomerEditor(customer)}
+                  >
+                    View
+                  </button>
+                </article>
+              ))}
             </div>
           </div>
         )}
