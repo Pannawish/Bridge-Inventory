@@ -1,18 +1,18 @@
 :root {
-  --bg: #f7f7f7;
-  --bg-accent: #f1f1f1;
+  --bg: #f3f5fa;
+  --bg-accent: #eef2ff;
   --panel: #ffffff;
-  --panel-muted: #f8f9fa;
-  --line: #d8dadd;
-  --line-strong: #b8bcc2;
-  --text: #1f2933;
-  --muted: #6b7280;
+  --panel-muted: #f8faff;
+  --line: #ecf0f7;
+  --line-strong: #dfe5f0;
+  --text: #1a2238;
+  --muted: #7b8499;
   --accent: #714b67;
   --accent-deep: #5f3f56;
   --accent-soft: #f3eef2;
-  --success: #21875b;
-  --danger: #c44a5b;
-  --warning: #a87912;
+  --success: #1ea672;
+  --danger: #d94b63;
+  --warning: #d4a72c;
   --shadow: none;
   --shadow-soft: none;
 }
@@ -817,8 +817,8 @@ label textarea:focus,
 .line-item-row input:focus,
 .line-item-row select:focus,
 .status-select:focus {
-  border-color: #b6c7ff;
-  box-shadow: 0 0 0 4px rgba(65, 104, 255, 0.10);
+  border-color: #c9b6c3;
+  box-shadow: 0 0 0 4px rgba(113, 75, 103, 0.10);
 }
 
 .full-width {
@@ -1335,8 +1335,8 @@ label textarea:focus,
 }
 
 .sales-discount-input:focus {
-  border-color: #b6c7ff;
-  box-shadow: 0 0 0 4px rgba(65, 104, 255, 0.10);
+  border-color: #c9b6c3;
+  box-shadow: 0 0 0 4px rgba(113, 75, 103, 0.10);
   outline: none;
 }
 
@@ -1462,7 +1462,7 @@ label textarea:focus,
 }
 
 .vat-toggle input:checked + .vat-toggle-track {
-  border-color: #b6c7ff;
+  border-color: #c9b6c3;
   background: var(--accent);
 }
 
@@ -1471,7 +1471,7 @@ label textarea:focus,
 }
 
 .vat-toggle input:focus + .vat-toggle-track {
-  box-shadow: 0 0 0 4px rgba(65, 104, 255, 0.10);
+  box-shadow: 0 0 0 4px rgba(113, 75, 103, 0.10);
 }
 
 .vat-toggle-text {
@@ -1507,7 +1507,7 @@ label textarea:focus,
 }
 
 .purchase-vat-option.active {
-  border-color: #b6c7ff;
+  border-color: #c9b6c3;
   color: var(--accent-deep);
   background: var(--accent-soft);
 }
@@ -2884,8 +2884,8 @@ th {
 }
 
 .supplier-option-edit-row input:focus {
-  border-color: #b6c7ff;
-  box-shadow: 0 0 0 4px rgba(65, 104, 255, 0.10);
+  border-color: #c9b6c3;
+  box-shadow: 0 0 0 4px rgba(113, 75, 103, 0.10);
 }
 
 .supplier-option-edit-actions {
@@ -3332,8 +3332,8 @@ th {
 .chat-bubble.user {
   justify-self: end;
   color: #fff;
-  background: linear-gradient(135deg, #4168ff, #2746c7);
-  box-shadow: 0 4px 14px rgba(65, 104, 255, 0.18);
+  background: var(--accent);
+  box-shadow: none;
 }
 
 .chat-bubble.assistant {
@@ -3366,8 +3366,8 @@ th {
 
 .primary-button {
   color: #fff;
-  background: linear-gradient(135deg, #4168ff, #2746c7);
-  box-shadow: 0 4px 12px rgba(65, 104, 255, 0.18);
+  background: var(--accent);
+  box-shadow: none;
 }
 
 .secondary-button,
@@ -3942,8 +3942,8 @@ th {
 }
 
 .purchase-tax-invoice-input:focus {
-  border-color: #b6c7ff;
-  box-shadow: 0 0 0 4px rgba(65, 104, 255, 0.10);
+  border-color: #c9b6c3;
+  box-shadow: 0 0 0 4px rgba(113, 75, 103, 0.10);
 }
 
 .detail-items {

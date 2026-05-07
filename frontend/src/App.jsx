@@ -998,7 +998,7 @@ function App() {
 
           <div className="sidebar-support">
             <button className="secondary-button sidebar-refresh-button" onClick={loadData} type="button">
-              Refresh Data
+              Refresh Page
             </button>
           </div>
         </div>
