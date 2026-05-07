@@ -919,6 +919,7 @@ function QuotationPage({
   const [viewingQuotation, setViewingQuotation] = useState(null);
   const [editingQuotation, setEditingQuotation] = useState(null);
   const [showNewQuotationForm, setShowNewQuotationForm] = useState(false);
+  const [showAllRows, setShowAllRows] = useState(false);
   const [conversion, setConversion] = useState(null);
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const customerOptions = useMemo(
@@ -980,7 +981,9 @@ function QuotationPage({
       vatFilter,
     ]
   );
-
+  const compactRows = 5;
+  const shouldShowViewAll = filteredQuotations.length > compactRows;
+  const isCompact = shouldShowViewAll && !showAllRows;
   function resetFilters() {
     setSearchTerm("");
     setSelectedCustomer("");
@@ -1275,12 +1278,27 @@ function QuotationPage({
             >
               Create Quotation
             </button>
+            {shouldShowViewAll ? (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => setShowAllRows((currentValue) => !currentValue)}
+              >
+                {showAllRows ? "Show Recent" : "View All"}
+              </button>
+            ) : null}
           </div>
         </div>
 
         {filteredQuotations.length ? (
-          <div className="transaction-table-window quotation-table-window">
-            <div className="table-scroll">
+          <div
+            className={
+              isCompact
+                ? "transaction-table-window quotation-table-window compact-history"
+                : "transaction-table-window quotation-table-window"
+            }
+          >
+            <div className="table-scroll desktop-table">
               <table className="transaction-history-table transaction-history-table-quotation">
                 <colgroup>
                   <col className="quotation-col-index" />
@@ -1362,10 +1380,67 @@ function QuotationPage({
                 </tbody>
               </table>
             </div>
+
+            <div className="mobile-record-list">
+              {filteredQuotations.map((quotation, index) => {
+                const itemCount = getItemCount(quotation.items || []);
+
+                return (
+                  <article className="mobile-record-card" key={`mobile-quotation-${quotation.id || quotation.reference_no}`}>
+                    <div className="mobile-record-header">
+                      <div className="mobile-record-title">
+                        <span className="mobile-record-index">{index + 1}</span>
+                        <div className="cell-stack">
+                          <strong>{quotation.reference_no || "—"}</strong>
+                          <span>{quotation.customer_name || "—"}</span>
+                        </div>
+                      </div>
+                      <span className={`quotation-state-pill ${getQuotationState(quotation).toLowerCase()}`}>
+                        {getQuotationState(quotation)}
+                      </span>
+                    </div>
+
+                    <div className="mobile-record-grid">
+                      <div>
+                        <span>Supplier</span>
+                        <strong>{quotation.supplier_name || "—"}</strong>
+                      </div>
+                      <div>
+                        <span>Date</span>
+                        <strong>{quotation.quotation_date || "—"}</strong>
+                      </div>
+                      <div>
+                        <span>Valid Until</span>
+                        <strong>{quotation.valid_until_date || "—"}</strong>
+                      </div>
+                      <div>
+                        <span>Total</span>
+                        <strong>{fmt(quotation.grand_total)}</strong>
+                      </div>
+                      <div className="full-width-mobile">
+                        <span>Items</span>
+                        <div className="history-item-summary mobile-history-item-summary history-item-quantity-only">
+                          <span className="history-item-count">{itemCount}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      className="secondary-button table-action-button mobile-record-button"
+                      type="button"
+                      onClick={() => setViewingQuotation(quotation)}
+                    >
+                      Detail
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         ) : (
           <p className="empty-copy">No quotations saved yet.</p>
         )}
+
       </section>
 
       {viewingQuotation ? (
