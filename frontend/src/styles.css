@@ -2894,7 +2894,7 @@ th {
 }
 
 .supplier-modal {
-  width: min(980px, 100%);
+  width: min(1180px, calc(100vw - 40px));
 }
 
 .product-editor-modal {
@@ -2902,7 +2902,7 @@ th {
 }
 
 .contact-editor-modal {
-  width: min(1040px, 100%);
+  width: min(1180px, calc(100vw - 40px));
 }
 
 .supplier-modal-header {
@@ -2914,6 +2914,13 @@ th {
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 0 -28px -26px;
+  padding: 18px 28px;
+  border-top: 1px solid var(--line);
+  background: #fff;
 }
 
 .supplier-modal-actions .danger-button {
@@ -2981,39 +2988,55 @@ th {
 
 .contact-editor-layout {
   display: grid;
-  gap: 18px;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "identity"
+    "contact"
+    "operations";
+  gap: 24px;
+  align-items: start;
 }
 
 .contact-editor-section {
   display: grid;
-  gap: 16px;
-  padding: 18px;
-  border: 1px solid #e8edf8;
-  border-radius: 22px;
-  background:
-    linear-gradient(135deg, rgba(250, 252, 255, 0.94), rgba(255, 255, 255, 0.98)),
-    #fff;
+  gap: 24px;
+  min-width: 0;
+  padding: 28px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.contact-editor-section:nth-child(1) {
+  grid-area: identity;
+}
+
+.contact-editor-section:nth-child(2) {
+  grid-area: contact;
+}
+
+.contact-editor-section:nth-child(3) {
+  grid-area: operations;
 }
 
 .contact-editor-section-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #eef2fb;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
 }
 
 .contact-editor-section-heading h4 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.22rem;
   line-height: 1.2;
 }
 
 .contact-editor-section-heading span {
   flex: 0 0 auto;
   padding: 6px 10px;
-  border-radius: 999px;
+  border-radius: 4px;
   color: #185a53;
   font-size: 0.76rem;
   font-weight: 500;
@@ -3022,8 +3045,50 @@ th {
 
 .contact-editor-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+}
+
+.contact-editor-section:first-child .contact-editor-grid,
+.contact-editor-section:last-child .contact-editor-grid {
+  grid-template-columns: 1fr;
+}
+
+.contact-editor-modal .form-layout {
+  gap: 26px;
+}
+
+.contact-editor-modal label {
+  gap: 11px;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.contact-editor-modal label input,
+.contact-editor-modal label select,
+.contact-editor-modal label textarea,
+.contact-editor-modal .supplier-option-edit-row input,
+.contact-editor-modal .supplier-option-field select {
+  min-height: 50px;
+  font-size: 1rem;
+}
+
+.contact-editor-modal label textarea {
+  min-height: 150px;
+}
+
+.contact-editor-modal .supplier-option-field {
+  gap: 14px;
+}
+
+.contact-editor-modal .supplier-option-edit-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.contact-editor-modal .supplier-option-edit-actions {
+  align-items: stretch;
 }
 
 .attention-list {
@@ -4011,6 +4076,19 @@ th {
     grid-template-columns: 1fr;
   }
 
+  .contact-editor-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "identity"
+      "contact"
+      "operations";
+  }
+
+  .contact-editor-section:first-child .contact-editor-grid,
+  .contact-editor-section:last-child .contact-editor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .sales-summary-card {
     max-width: 100%;
     width: min(380px, 100%);
@@ -4074,6 +4152,8 @@ th {
   .product-editor-grid,
   .product-editor-unit-grid,
   .contact-editor-grid,
+  .contact-editor-section:first-child .contact-editor-grid,
+  .contact-editor-section:last-child .contact-editor-grid,
   .detail-grid,
   .line-item-row,
   .sales-line-item-row {
