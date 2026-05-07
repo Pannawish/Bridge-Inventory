@@ -1,20 +1,20 @@
 :root {
-  --bg: #f3f5fa;
-  --bg-accent: #eef2ff;
+  --bg: #f7f7f7;
+  --bg-accent: #f1f1f1;
   --panel: #ffffff;
-  --panel-muted: #f8faff;
-  --line: #ecf0f7;
-  --line-strong: #dfe5f0;
-  --text: #1a2238;
-  --muted: #7b8499;
-  --accent: #3358ff;
-  --accent-deep: #2746c7;
-  --accent-soft: #eef3ff;
-  --success: #1ea672;
-  --danger: #d94b63;
-  --warning: #d4a72c;
-  --shadow: 0 4px 24px rgba(31, 52, 120, 0.05);
-  --shadow-soft: 0 2px 12px rgba(31, 52, 120, 0.04);
+  --panel-muted: #f8f9fa;
+  --line: #d8dadd;
+  --line-strong: #b8bcc2;
+  --text: #1f2933;
+  --muted: #6b7280;
+  --accent: #714b67;
+  --accent-deep: #5f3f56;
+  --accent-soft: #f3eef2;
+  --success: #21875b;
+  --danger: #c44a5b;
+  --warning: #a87912;
+  --shadow: none;
+  --shadow-soft: none;
 }
 
 * {
@@ -33,7 +33,7 @@ body {
   margin: 0;
   font-family: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: var(--text);
-  background: #f3f5fa;
+  background: var(--bg);
 }
 
 button,
@@ -4292,4 +4292,171 @@ th {
     font-size: 0.9rem;
     padding: 10px 14px;
   }
+}
+
+/* Odoo-inspired professional skin: flatter, squarer, and less decorative. */
+.main-panel {
+  background: var(--bg);
+}
+
+.section-card,
+.dashboard-page .section-card,
+.dashboard-kpi-card,
+.trend-card,
+.stat-card,
+.inventory-summary-card,
+.line-items-card,
+.purchase-vat-card,
+.sales-summary-card,
+.tx-sales-summary,
+.contact-editor-section,
+.detail-modal,
+.mobile-record-card,
+.mobile-stock-card,
+.chat-bubble,
+.stock-filter-panel,
+.stock-filter-group,
+.history-filter-panel,
+.product-filter-panel,
+.transaction-document-panel,
+.transaction-document-row,
+.supplier-combobox-menu,
+.dashboard-stock-info-modal,
+.attention-detail-panel,
+.product-detail-media,
+.quotation-link-card {
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+
+.section-card,
+.dashboard-page .section-card,
+.dashboard-kpi-card,
+.trend-card,
+.stat-card,
+.inventory-summary-card,
+.mobile-record-card,
+.mobile-stock-card,
+.detail-modal {
+  border: 1px solid var(--line);
+}
+
+.primary-button,
+.secondary-button,
+.edit-button,
+.danger-button,
+.prompt-chip,
+.table-action-button,
+.icon-button,
+.sidebar-close-button,
+.mobile-menu-button,
+.document-upload-button,
+.sales-discount-add,
+.sales-discount-remove,
+.text-danger-button,
+.category-tree-toggle,
+.stock-reset-button,
+.product-filter-toggle,
+.sidebar-refresh-button {
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+
+.primary-button {
+  background: var(--accent) !important;
+}
+
+.secondary-button,
+.prompt-chip,
+.table-action-button {
+  color: var(--accent-deep);
+  background: var(--accent-soft);
+}
+
+.primary-button:hover,
+.secondary-button:hover,
+.edit-button:hover,
+.danger-button:hover,
+.prompt-chip:hover,
+.icon-button:hover,
+.table-action-button:hover {
+  transform: none;
+}
+
+label input,
+label select,
+label textarea,
+.chat-form textarea,
+.line-item-row input,
+.line-item-row select,
+.status-select,
+.sales-discount-input,
+.purchase-tax-invoice-input,
+.received-date-input,
+.supplier-option-edit-row input,
+.stock-search,
+.search-shell,
+.topbar-action-cluster {
+  border-radius: 4px !important;
+}
+
+label input:focus,
+label select:focus,
+label textarea:focus,
+.chat-form textarea:focus,
+.line-item-row input:focus,
+.line-item-row select:focus,
+.status-select:focus,
+.sales-discount-input:focus,
+.purchase-tax-invoice-input:focus,
+.received-date-input:focus,
+.supplier-option-edit-row input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(113, 75, 103, 0.14) !important;
+}
+
+.stock-search-icon,
+.search-icon,
+.filter-button,
+.trend-pill,
+.directory-chip,
+.stock-filter-chips span,
+.product-filter-toggle span,
+.history-filter-option,
+.status-badge,
+.item-status-badge,
+.quotation-state-pill,
+.history-item-count,
+.mobile-record-index,
+.line-item-index,
+.purchase-vat-option,
+.vat-toggle-track,
+.attention-page-indicator,
+.pagination-pill {
+  border-radius: 4px !important;
+}
+
+.sidebar-nav-button {
+  border-radius: 4px;
+}
+
+.sidebar-nav-button.active {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.topbar,
+.section-heading {
+  border-radius: 0;
+}
+
+.transaction-table-window th,
+.dashboard-stock-table th,
+.category-tree-table th {
+  background: #f8f9fa;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+
+.chat-bubble.user {
+  background: var(--accent) !important;
 }
