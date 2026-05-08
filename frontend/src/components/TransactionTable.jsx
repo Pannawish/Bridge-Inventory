@@ -956,17 +956,22 @@ function TransactionTable({
 
             {(() => {
               const { subtotal, vat, grandTotal } = getVatSummary(selectedRow);
+              const showVat = selectedRow.vat_mode !== "none";
 
               return (
                 <div className="tx-sales-summary">
-                  <div className="tx-summary-row">
-                    <span>{type === "purchase" ? "Total" : "Subtotal"}</span>
-                    <span>{formatCurrency(subtotal)}</span>
-                  </div>
-                  <div className="tx-summary-row">
-                    <span>VAT (7%)</span>
-                    <span>{formatCurrency(vat)}</span>
-                  </div>
+                  {showVat ? (
+                    <>
+                      <div className="tx-summary-row">
+                        <span>{type === "purchase" ? "Total" : "Subtotal"}</span>
+                        <span>{formatCurrency(subtotal)}</span>
+                      </div>
+                      <div className="tx-summary-row">
+                        <span>VAT (7%)</span>
+                        <span>{formatCurrency(vat)}</span>
+                      </div>
+                    </>
+                  ) : null}
                   <div className="tx-summary-row tx-summary-grand">
                     <strong>Grand Total</strong>
                     <strong>{formatCurrency(grandTotal)}</strong>

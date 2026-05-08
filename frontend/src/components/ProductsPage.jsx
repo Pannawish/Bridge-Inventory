@@ -1409,6 +1409,7 @@ function ProductsPage({
                   const isPurchase = viewingTransaction.type === "purchase";
                   const transaction = viewingTransaction.data;
                   const summary = computeVatSummary(transaction.items || [], transaction.vat_mode);
+                  const showVat = transaction.vat_mode !== "none";
 
                   return (
                     <>
@@ -1600,14 +1601,18 @@ function ProductsPage({
                       </div>
 
                       <div className="tx-sales-summary">
-                        <div className="tx-summary-row">
-                          <span>{isPurchase ? "Total" : "Subtotal"}</span>
-                          <span>{formatCurrency(summary.subtotal)}</span>
-                        </div>
-                        <div className="tx-summary-row">
-                          <span>VAT (7%)</span>
-                          <span>{formatCurrency(summary.vat)}</span>
-                        </div>
+                        {showVat ? (
+                          <>
+                            <div className="tx-summary-row">
+                              <span>{isPurchase ? "Total" : "Subtotal"}</span>
+                              <span>{formatCurrency(summary.subtotal)}</span>
+                            </div>
+                            <div className="tx-summary-row">
+                              <span>VAT (7%)</span>
+                              <span>{formatCurrency(summary.vat)}</span>
+                            </div>
+                          </>
+                        ) : null}
                         <div className="tx-summary-row tx-summary-grand">
                           <strong>Grand Total</strong>
                           <strong>{formatCurrency(summary.grandTotal)}</strong>
