@@ -30,7 +30,7 @@ NULL_IF_BLANK_FIELDS = {
     "lead_time_days",
     "shipped_date",
     "delivered_date",
-    "payment_received_date",
+    "payment_date",
 }
 
 DECIMAL_FIELD_PLACES = {

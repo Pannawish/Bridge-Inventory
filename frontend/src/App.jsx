@@ -110,6 +110,9 @@ function buildPurchaseUpdatePayload(purchase) {
     "supplier_tax_invoice",
     "status",
     "transaction_date",
+    "payment_term_type",
+    "payment_term_days",
+    "payment_date",
     "note",
   ]);
 }
@@ -119,8 +122,9 @@ function buildSaleUpdatePayload(sale) {
     "reference_no",
     "customer_name",
     "status",
-    "payment_timing",
-    "payment_received_date",
+    "payment_term_type",
+    "payment_term_days",
+    "payment_date",
     "transaction_date",
     "note",
   ]);

@@ -643,12 +643,20 @@ function TransactionTable({
                 <p className="detail-label">Transaction Date</p>
                 <strong>{selectedRow.transaction_date || "—"}</strong>
               </div>
-              {type === "sale" ? (
-                <div>
-                  <p className="detail-label">Payment Receive Date</p>
-                  <strong>{selectedRow.payment_received_date || "—"}</strong>
-                </div>
-              ) : null}
+              <div>
+                <p className="detail-label">Payment Term</p>
+                <strong>
+                  {selectedRow.payment_term_type === "credit"
+                    ? `Credit (${selectedRow.payment_term_days || "—"})`
+                    : selectedRow.payment_term_type === "debit"
+                      ? "Debit"
+                      : "—"}
+                </strong>
+              </div>
+              <div>
+                <p className="detail-label">Payment Date</p>
+                <strong>{selectedRow.payment_date || "—"}</strong>
+              </div>
               <div>
                 <p className="detail-label">Documents</p>
                 {getTransactionDocuments(selectedRow).length ? (

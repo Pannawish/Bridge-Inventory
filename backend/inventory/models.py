@@ -98,7 +98,8 @@ class BusinessPartner(TimeStampedModel):
     shipping_addresses = models.JSONField(default=list_default, blank=True)
     selected_shipping_address_index = models.PositiveIntegerField(default=0)
     remark = models.TextField(blank=True)
-    billing_note_date = models.TextField(blank=True)
+    term_type = models.CharField(max_length=20, blank=True, default="")
+    billing_note_date = models.CharField(max_length=40, blank=True, default="")
 
     class Meta:
         abstract = True
@@ -190,6 +191,9 @@ class Purchase(TimeStampedModel):
     supplier_tax_invoice = models.CharField(max_length=120, blank=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_ORDERED)
     transaction_date = models.DateField(default=timezone.localdate)
+    payment_term_type = models.CharField(max_length=20, blank=True, default="")
+    payment_term_days = models.CharField(max_length=20, blank=True, default="")
+    payment_date = models.DateField(blank=True, null=True)
     note = models.TextField(blank=True)
     document = models.FileField(upload_to="documents/purchases/", blank=True, null=True)
     vat_mode = models.CharField(max_length=40, default="not_included")
@@ -287,8 +291,9 @@ class Sale(TimeStampedModel):
     reference_no = models.CharField(max_length=80, blank=True)
     customer_name = models.CharField(max_length=255)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_DRAFT)
-    payment_timing = models.CharField(max_length=40, default="instant")
-    payment_received_date = models.DateField(blank=True, null=True)
+    payment_term_type = models.CharField(max_length=20, blank=True, default="")
+    payment_term_days = models.CharField(max_length=20, blank=True, default="")
+    payment_date = models.DateField(blank=True, null=True)
     transaction_date = models.DateField(default=timezone.localdate)
     note = models.TextField(blank=True)
     document = models.FileField(upload_to="documents/sales/", blank=True, null=True)

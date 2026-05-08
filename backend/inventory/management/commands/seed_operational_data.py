@@ -271,7 +271,8 @@ class Command(BaseCommand):
                 "shipping_addresses": [f"Receiving dock, {location}"],
                 "selected_shipping_address_index": 0,
                 "remark": remark,
-                "billing_note_date": ["Invoice date", "Every Friday", "25th of each month", "On delivery"][idx % 4],
+                "term_type": ["credit", "debit", "credit", "credit"][idx % 4],
+                "billing_note_date": ["30 days", "", "60 days", "90 days"][idx % 4],
             }
             if supplier:
                 for field, value in defaults.items():
@@ -320,7 +321,8 @@ class Command(BaseCommand):
                 "shipping_addresses": [f"{location} receiving counter", f"{location} storage room"],
                 "selected_shipping_address_index": idx % 2,
                 "remark": remark,
-                "billing_note_date": ["Same day", "Month end", "15th of each month", "Before event"][idx % 4],
+                "term_type": ["debit", "credit", "credit", "credit"][idx % 4],
+                "billing_note_date": ["", "30 days", "60 days", "90 days"][idx % 4],
             }
             if customer:
                 for field, value in defaults.items():
@@ -574,12 +576,24 @@ class Command(BaseCommand):
                     }
                 )
             total_before_vat, vat_amount, grand_total = transaction_totals(line_amounts, vat_mode)
+            payment_term_type = supplier.term_type or ""
+            payment_term_days = supplier.billing_note_date if payment_term_type == "credit" else ""
+            if payment_term_type == "debit":
+                payment_date = transaction_date
+            elif payment_term_type == "credit":
+                days_value = "".join(c for c in payment_term_days if c.isdigit())
+                payment_date = transaction_date + timedelta(days=int(days_value)) if days_value else None
+            else:
+                payment_date = None
             purchase = Purchase.objects.create(
                 reference_no=ref,
                 supplier_name=supplier.company_name,
                 supplier_tax_invoice=supplier_tax_invoice,
                 status=status,
                 transaction_date=transaction_date,
+                payment_term_type=payment_term_type,
+                payment_term_days=payment_term_days,
+                payment_date=payment_date,
                 note=self.purchase_note(status, supplier.company_name, index),
                 vat_mode=vat_mode,
                 total_before_vat=total_before_vat,
@@ -661,8 +675,15 @@ class Command(BaseCommand):
             customer = customers[index % len(customers)]
             ref = reference("TI", transaction_date, index)
             vat_mode = vat_modes[index % len(vat_modes)]
-            payment_timing = "later" if index % 3 == 0 or customer.billing_note_date != "Same day" else "instant"
-            payment_received_date = transaction_date if payment_timing == "instant" else transaction_date + timedelta(days=rng.choice([7, 14, 21, 30, 45]))
+            payment_term_type = customer.term_type or ""
+            payment_term_days = customer.billing_note_date if payment_term_type == "credit" else ""
+            if payment_term_type == "debit":
+                payment_date = transaction_date
+            elif payment_term_type == "credit":
+                days_value = "".join(c for c in payment_term_days if c.isdigit())
+                payment_date = transaction_date + timedelta(days=int(days_value)) if days_value else None
+            else:
+                payment_date = None
             item_count = rng.choice([1, 2, 2, 3, 3, 4])
             selected_products = rng.sample(products, item_count)
             statuses = self.sale_item_statuses(status, item_count)
@@ -703,8 +724,9 @@ class Command(BaseCommand):
                 reference_no=ref,
                 customer_name=customer.company_name,
                 status=status,
-                payment_timing=payment_timing,
-                payment_received_date=payment_received_date,
+                payment_term_type=payment_term_type,
+                payment_term_days=payment_term_days,
+                payment_date=payment_date,
                 transaction_date=transaction_date,
                 note=self.sale_note(status, customer.company_name, index),
                 vat_mode=vat_mode,

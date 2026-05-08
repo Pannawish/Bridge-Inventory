@@ -128,6 +128,7 @@ class BusinessPartnerSerializer(serializers.ModelSerializer):
         source="selected_shipping_address_index",
         required=False,
     )
+    termType = serializers.CharField(source="term_type", required=False, allow_blank=True)
     billingNoteDate = serializers.CharField(source="billing_note_date", required=False, allow_blank=True)
 
     def validate_locations(self, value):
@@ -164,6 +165,7 @@ class SupplierSerializer(BusinessPartnerSerializer):
             "shippingAddresses",
             "selectedShippingAddressIndex",
             "remark",
+            "termType",
             "billingNoteDate",
         ]
         extra_kwargs = {
@@ -190,6 +192,7 @@ class CustomerSerializer(BusinessPartnerSerializer):
             "shippingAddresses",
             "selectedShippingAddressIndex",
             "remark",
+            "termType",
             "billingNoteDate",
         ]
         extra_kwargs = {
@@ -419,6 +422,9 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "supplier_tax_invoice",
             "status",
             "transaction_date",
+            "payment_term_type",
+            "payment_term_days",
+            "payment_date",
             "note",
             "document",
             "document_url",
@@ -436,6 +442,9 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "id": {"required": False},
             "reference_no": {"required": False, "allow_blank": True},
             "supplier_tax_invoice": {"required": False, "allow_blank": True},
+            "payment_term_type": {"required": False, "allow_blank": True},
+            "payment_term_days": {"required": False, "allow_blank": True},
+            "payment_date": {"required": False, "allow_null": True},
             "note": {"required": False, "allow_blank": True},
             "document": {"required": False, "allow_null": True, "write_only": True},
             "vat_mode": {"required": False},
@@ -636,8 +645,9 @@ class SaleSerializer(serializers.ModelSerializer):
             "reference_no",
             "customer_name",
             "status",
-            "payment_timing",
-            "payment_received_date",
+            "payment_term_type",
+            "payment_term_days",
+            "payment_date",
             "transaction_date",
             "note",
             "document",
@@ -655,8 +665,9 @@ class SaleSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "id": {"required": False},
             "reference_no": {"required": False, "allow_blank": True},
-            "payment_timing": {"required": False},
-            "payment_received_date": {"required": False, "allow_null": True},
+            "payment_term_type": {"required": False, "allow_blank": True},
+            "payment_term_days": {"required": False, "allow_blank": True},
+            "payment_date": {"required": False, "allow_null": True},
             "note": {"required": False, "allow_blank": True},
             "document": {"required": False, "allow_null": True, "write_only": True},
             "vat_mode": {"required": False},

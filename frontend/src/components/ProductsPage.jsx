@@ -1433,12 +1433,20 @@ function ProductsPage({
                           <p className="detail-label">Transaction Date</p>
                           <strong>{transaction.transaction_date || "—"}</strong>
                         </div>
-                        {!isPurchase ? (
-                          <div>
-                            <p className="detail-label">Payment Receive Date</p>
-                            <strong>{transaction.payment_received_date || "—"}</strong>
-                          </div>
-                        ) : null}
+                        <div>
+                          <p className="detail-label">Payment Term</p>
+                          <strong>
+                            {transaction.payment_term_type === "credit"
+                              ? `Credit (${transaction.payment_term_days || "—"})`
+                              : transaction.payment_term_type === "debit"
+                                ? "Debit"
+                                : "—"}
+                          </strong>
+                        </div>
+                        <div>
+                          <p className="detail-label">Payment Date</p>
+                          <strong>{transaction.payment_date || "—"}</strong>
+                        </div>
                         <div>
                           <p className="detail-label">Documents</p>
                           {getTransactionDocuments(transaction).length ? (

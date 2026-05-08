@@ -26,6 +26,19 @@ function getToday() {
   return new Date().toISOString().split("T")[0];
 }
 
+function computePaymentDate(transactionDate, termType, termDays) {
+  if (!transactionDate || !termType) return "";
+  if (termType === "debit") return transactionDate;
+  if (termType === "credit") {
+    const days = parseInt(termDays) || 0;
+    if (!days) return "";
+    const date = new Date(`${transactionDate}T00:00:00`);
+    date.setDate(date.getDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+  return "";
+}
+
 function getDocumentName(documentUrl = "") {
   const [path = ""] = `${documentUrl}`.split("?");
   const name = path.split("/").filter(Boolean).pop();
@@ -58,7 +71,9 @@ function saleMatchesQuery(sale, query) {
     sale.customer_name,
     sale.status,
     sale.transaction_date,
-    sale.payment_received_date,
+    sale.payment_date,
+    sale.payment_term_type,
+    sale.payment_term_days,
     sale.note,
     ...(sale.items || []).flatMap((item) => [
       item.product_name,
@@ -368,20 +383,12 @@ function createEditItems(sale, products) {
 }
 
 function createEditForm(sale) {
-  const paymentTiming =
-    sale.payment_timing ||
-    (sale.payment_received_date && sale.payment_received_date !== sale.transaction_date
-      ? "later"
-      : "instant");
-  const paymentReceivedDate =
-    sale.payment_received_date || (paymentTiming === "instant" ? getToday() : "");
-
   return {
     reference_no: sale.reference_no || "",
     customer_name: sale.customer_name || "",
     status: sale.status || "draft",
-    payment_timing: paymentTiming,
-    payment_received_date: paymentReceivedDate,
+    payment_term_type: sale.payment_term_type || "",
+    payment_term_days: sale.payment_term_days || "",
     transaction_date: sale.transaction_date || getToday(),
     note: sale.note || "",
     new_documents: [],
@@ -507,20 +514,6 @@ function SalesEditForm({
     updateForm("status", nextStatus);
   }
 
-  function handlePaymentTimingChange(event) {
-    const nextTiming = event.target.value;
-
-    setForm((currentForm) => ({
-      ...currentForm,
-      payment_timing: nextTiming,
-      payment_received_date:
-        nextTiming === "instant"
-          ? getToday()
-          : currentForm.payment_timing === "instant"
-            ? ""
-            : currentForm.payment_received_date,
-    }));
-  }
 
   function selectCustomer(customer) {
     setForm((currentForm) => ({
@@ -739,8 +732,9 @@ function SalesEditForm({
       reference_no: form.reference_no,
       customer_name: customerName,
       status: getSaleStatusFromItems(saleWithItems),
-      payment_timing: form.payment_timing,
-      payment_received_date: form.payment_received_date,
+      payment_term_type: form.payment_term_type,
+      payment_term_days: form.payment_term_type === "credit" ? form.payment_term_days : "",
+      payment_date: computePaymentDate(form.transaction_date, form.payment_term_type, form.payment_term_days),
       transaction_date: form.transaction_date,
       note: form.note,
       new_documents: form.new_documents,
@@ -877,22 +871,46 @@ function SalesEditForm({
           </label>
 
           <label>
-            Money Receive
-            <select value={form.payment_timing} onChange={handlePaymentTimingChange}>
-              <option value="instant">Instantly</option>
-              <option value="later">Later</option>
+            Payment Term
+            <select
+              value={form.payment_term_type}
+              onChange={(event) => {
+                const next = event.target.value;
+                setForm((f) => ({
+                  ...f,
+                  payment_term_type: next,
+                  payment_term_days: next === "debit" ? "" : f.payment_term_days,
+                }));
+              }}
+            >
+              <option value="">— Select payment term —</option>
+              <option value="debit">Debit</option>
+              <option value="credit">Credit</option>
             </select>
           </label>
 
+          {form.payment_term_type === "credit" && (
+            <label>
+              Credit Term
+              <select
+                value={form.payment_term_days}
+                onChange={(event) => updateForm("payment_term_days", event.target.value)}
+              >
+                <option value="">— Select credit term —</option>
+                <option value="30 days">30 days</option>
+                <option value="60 days">60 days</option>
+                <option value="90 days">90 days</option>
+              </select>
+            </label>
+          )}
+
           <label>
-            Money Receive Date
+            Payment Date
             <input
               type="date"
-              value={form.payment_received_date}
-              min={getToday()}
-              onChange={(event) => updateForm("payment_received_date", event.target.value)}
-              disabled={form.payment_timing === "instant"}
-              required={form.payment_timing === "later"}
+              value={computePaymentDate(form.transaction_date, form.payment_term_type, form.payment_term_days)}
+              readOnly
+              placeholder="Set payment term above"
             />
           </label>
 
