@@ -16,6 +16,7 @@ function createCustomer(overrides = {}) {
     shippingAddresses: [""],
     selectedShippingAddressIndex: 0,
     remark: "",
+    termType: "",
     billingNoteDate: "",
     ...overrides,
   };
@@ -40,7 +41,8 @@ const defaultCustomers = [
     ],
     selectedShippingAddressIndex: 0,
     remark: "Regular bulk customer for notebooks and pens.",
-    billingNoteDate: "Invoice note issued every Friday after delivery confirmation.",
+    termType: "credit",
+    billingNoteDate: "30 days",
   }),
   createCustomer({
     id: "customer-2",
@@ -57,7 +59,8 @@ const defaultCustomers = [
     shippingAddresses: ["15 University Avenue, Bangkok 10330"],
     selectedShippingAddressIndex: 0,
     remark: "Often requests event supplies on short notice.",
-    billingNoteDate: "Billing note should mention event name and delivery date.",
+    termType: "debit",
+    billingNoteDate: "",
   }),
   createCustomer({
     id: "customer-3",
@@ -74,7 +77,8 @@ const defaultCustomers = [
     shippingAddresses: ["1 University Library Road, Bangkok 10330"],
     selectedShippingAddressIndex: 0,
     remark: "Commonly orders file folders, markers, and shelf labels.",
-    billingNoteDate: "Reference the librarian approval code in every billing note.",
+    termType: "credit",
+    billingNoteDate: "60 days",
   }),
   createCustomer({
     id: "customer-4",
@@ -91,7 +95,8 @@ const defaultCustomers = [
     shippingAddresses: ["88 University Avenue, Pathum Wan, Bangkok 10330"],
     selectedShippingAddressIndex: 0,
     remark: "Needs organized document packs before semester enrollment season.",
-    billingNoteDate: "Split billing note by enrollment campaign when requested.",
+    termType: "debit",
+    billingNoteDate: "",
   }),
   createCustomer({
     id: "customer-5",
@@ -108,7 +113,8 @@ const defaultCustomers = [
     shippingAddresses: ["27 Studio Lane, Bangkok 10330"],
     selectedShippingAddressIndex: 0,
     remark: "Often buys markers, binders, and presentation supplies in mixed units.",
-    billingNoteDate: "Include project code and recipient name.",
+    termType: "credit",
+    billingNoteDate: "30 days",
   }),
   createCustomer({
     id: "customer-6",
@@ -125,7 +131,8 @@ const defaultCustomers = [
     shippingAddresses: ["12 Advancement Building, Bangkok 10330"],
     selectedShippingAddressIndex: 0,
     remark: "Event-driven orders that often change close to delivery.",
-    billingNoteDate: "Billing note must match event approval memo date.",
+    termType: "credit",
+    billingNoteDate: "60 days",
   }),
 ];
 
@@ -174,6 +181,7 @@ function normalizeCustomer(customer) {
       customer.selectedShippingAddressIndex
     ),
     remark: `${customer.remark ?? ""}`,
+    termType: customer.termType ?? "",
     billingNoteDate: `${customer.billingNoteDate ?? ""}`,
   };
 }
@@ -831,14 +839,38 @@ function CustomerPage({
                     </label>
 
                     <label>
-                      Billing Note Date
-                      <textarea
-                        rows="4"
-                        value={draftCustomer.billingNoteDate}
-                        onChange={(event) => updateTextField("billingNoteDate", event.target.value)}
-                        placeholder="Billing note date or billing instruction text"
-                      />
+                      Payment Term
+                      <select
+                        value={draftCustomer.termType}
+                        onChange={(event) => {
+                          const next = event.target.value;
+                          updateDraftCustomer((c) => ({
+                            ...c,
+                            termType: next,
+                            billingNoteDate: next === "debit" ? "" : c.billingNoteDate,
+                          }));
+                        }}
+                      >
+                        <option value="">— Select payment term —</option>
+                        <option value="debit">Debit</option>
+                        <option value="credit">Credit</option>
+                      </select>
                     </label>
+
+                    {draftCustomer.termType === "credit" && (
+                      <label>
+                        Credit Term
+                        <select
+                          value={draftCustomer.billingNoteDate}
+                          onChange={(event) => updateTextField("billingNoteDate", event.target.value)}
+                        >
+                          <option value="">— Select credit term —</option>
+                          <option value="30 days">30 days</option>
+                          <option value="60 days">60 days</option>
+                          <option value="90 days">90 days</option>
+                        </select>
+                      </label>
+                    )}
                   </div>
                 </section>
               </div>

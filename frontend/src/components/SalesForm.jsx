@@ -48,11 +48,11 @@ function createInitialForm(referenceNo, prefill = {}) {
     reference_no: referenceNo,
     customer_name: prefill.customer_name || "",
     status: "draft",
-    payment_timing: "instant",
-    payment_received_date: getToday(),
     transaction_date: prefill.transaction_date || prefill.quotation_date || getToday(),
     note: prefill.note || "",
     documents: [],
+    payment_term_type: prefill.payment_term_type || "",
+    payment_term_days: prefill.payment_term_days || "",
   };
 }
 
@@ -137,6 +137,19 @@ function computeVatSummary(itemTotal, vatMode) {
 
 function isVatEnabled(vatMode) {
   return vatMode !== "none";
+}
+
+function computePaymentDate(transactionDate, termType, termDays) {
+  if (!transactionDate || !termType) return "";
+  if (termType === "debit") return transactionDate;
+  if (termType === "credit") {
+    const days = parseInt(termDays) || 0;
+    if (!days) return "";
+    const date = new Date(`${transactionDate}T00:00:00`);
+    date.setDate(date.getDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+  return "";
 }
 
 function getProductName(product) {
@@ -284,21 +297,6 @@ function SalesForm({
     updateForm("status", nextStatus);
   }
 
-  function handlePaymentTimingChange(event) {
-    const nextTiming = event.target.value;
-
-    setForm((currentForm) => ({
-      ...currentForm,
-      payment_timing: nextTiming,
-      payment_received_date:
-        nextTiming === "instant"
-          ? getToday()
-          : currentForm.payment_timing === "instant"
-            ? ""
-            : currentForm.payment_received_date,
-    }));
-  }
-
   function updateItem(itemIndex, key, value) {
     setItems((current) =>
       current.map((item, i) => (i === itemIndex ? { ...item, [key]: value } : item))
@@ -411,9 +409,13 @@ function SalesForm({
   }
 
   function selectCustomer(customer) {
+    const termType = customer.termType || "";
+    const termDays = termType === "credit" ? (customer.billingNoteDate || "") : "";
     setForm((currentForm) => ({
       ...currentForm,
       customer_name: customer.companyName,
+      payment_term_type: termType,
+      payment_term_days: termDays,
     }));
     setCustomerQuery(customer.companyName);
     setCustomerError("");
@@ -457,9 +459,11 @@ function SalesForm({
     formData.append("customer_name", customerName);
     formData.append("status", requestedStatus);
     formData.append("transaction_date", form.transaction_date);
-    formData.append("payment_received_date", form.payment_received_date);
     formData.append("note", form.note);
     formData.append("vat_mode", vatMode);
+    formData.append("payment_term_type", form.payment_term_type);
+    formData.append("payment_term_days", form.payment_term_type === "credit" ? form.payment_term_days : "");
+    formData.append("payment_date", paymentDate);
     formData.append("total_before_vat", vatSummary.total);
     formData.append("vat_amount", vatSummary.vat);
     formData.append("grand_total", vatSummary.grandTotal);
@@ -513,6 +517,7 @@ function SalesForm({
 
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
   const vatSummary = computeVatSummary(itemTotal, vatMode);
+  const paymentDate = computePaymentDate(form.transaction_date, form.payment_term_type, form.payment_term_days);
 
   return (
     <section className="section-card">
@@ -595,6 +600,42 @@ function SalesForm({
           </label>
 
           <label>
+            Payment Term
+            <select
+              value={form.payment_term_type}
+              onChange={(event) => {
+                const next = event.target.value;
+                setForm((f) => ({
+                  ...f,
+                  payment_term_type: next,
+                  payment_term_days: next === "debit" ? "" : f.payment_term_days,
+                }));
+              }}
+            >
+              <option value="">— Select payment term —</option>
+              <option value="debit">Debit</option>
+              <option value="credit">Credit</option>
+            </select>
+          </label>
+
+          {form.payment_term_type === "credit" && (
+            <label>
+              Credit Term
+              <select
+                value={form.payment_term_days}
+                onChange={(event) =>
+                  setForm((f) => ({ ...f, payment_term_days: event.target.value }))
+                }
+              >
+                <option value="">— Select credit term —</option>
+                <option value="30 days">30 days</option>
+                <option value="60 days">60 days</option>
+                <option value="90 days">90 days</option>
+              </select>
+            </label>
+          )}
+
+          <label>
             <span className="required-label">Status</span>
             <select
               value={form.status}
@@ -621,24 +662,12 @@ function SalesForm({
           </label>
 
           <label>
-            <span className="required-label">Money Receive</span>
-            <select value={form.payment_timing} onChange={handlePaymentTimingChange}>
-              <option value="instant">Instantly</option>
-              <option value="later">Later</option>
-            </select>
-          </label>
-
-          <label>
-            <span className={form.payment_timing === "later" ? "required-label" : undefined}>
-              Money Receive Date
-            </span>
+            Payment Date
             <input
               type="date"
-              value={form.payment_received_date}
-              min={getToday()}
-              onChange={(event) => updateForm("payment_received_date", event.target.value)}
-              disabled={form.payment_timing === "instant"}
-              required={form.payment_timing === "later"}
+              value={paymentDate}
+              readOnly
+              placeholder="Set payment term above"
             />
           </label>
 

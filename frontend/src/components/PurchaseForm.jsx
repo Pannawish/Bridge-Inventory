@@ -144,6 +144,19 @@ function isVatEnabled(vatMode) {
   return vatMode !== "none";
 }
 
+function computePaymentDate(transactionDate, termType, termDays) {
+  if (!transactionDate || !termType) return "";
+  if (termType === "debit") return transactionDate;
+  if (termType === "credit") {
+    const days = parseInt(termDays) || 0;
+    if (!days) return "";
+    const date = new Date(`${transactionDate}T00:00:00`);
+    date.setDate(date.getDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+  return "";
+}
+
 function createInitialForm(referenceNo, prefill = {}) {
   return {
     reference_no: referenceNo,
@@ -153,6 +166,8 @@ function createInitialForm(referenceNo, prefill = {}) {
     transaction_date: prefill.transaction_date || prefill.quotation_date || today,
     note: prefill.note || "",
     documents: [],
+    payment_term_type: prefill.payment_term_type || "",
+    payment_term_days: prefill.payment_term_days || "",
   };
 }
 
@@ -420,9 +435,13 @@ function PurchaseForm({
   }
 
   function selectSupplier(supplier) {
+    const termType = supplier.termType || "";
+    const termDays = termType === "credit" ? (supplier.billingNoteDate || "") : "";
     setForm((currentForm) => ({
       ...currentForm,
       supplier_name: supplier.companyName,
+      payment_term_type: termType,
+      payment_term_days: termDays,
     }));
     setSupplierQuery(supplier.companyName);
     setSupplierError("");
@@ -521,6 +540,9 @@ function PurchaseForm({
     formData.append("transaction_date", form.transaction_date);
     formData.append("note", form.note);
     formData.append("vat_mode", vatMode);
+    formData.append("payment_term_type", form.payment_term_type);
+    formData.append("payment_term_days", form.payment_term_type === "credit" ? form.payment_term_days : "");
+    formData.append("payment_date", paymentDate);
     formData.append("total_before_vat", vatSummary.total);
     formData.append("vat_amount", vatSummary.vat);
     formData.append("grand_total", vatSummary.grandTotal);
@@ -549,6 +571,7 @@ function PurchaseForm({
 
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
   const vatSummary = computeVatSummary(itemTotal, vatMode);
+  const paymentDate = computePaymentDate(form.transaction_date, form.payment_term_type, form.payment_term_days);
 
   return (
     <section className="section-card">
@@ -631,6 +654,42 @@ function PurchaseForm({
           </label>
 
           <label>
+            Payment Term
+            <select
+              value={form.payment_term_type}
+              onChange={(event) => {
+                const next = event.target.value;
+                setForm((f) => ({
+                  ...f,
+                  payment_term_type: next,
+                  payment_term_days: next === "debit" ? "" : f.payment_term_days,
+                }));
+              }}
+            >
+              <option value="">— Select payment term —</option>
+              <option value="debit">Debit</option>
+              <option value="credit">Credit</option>
+            </select>
+          </label>
+
+          {form.payment_term_type === "credit" && (
+            <label>
+              Credit Term
+              <select
+                value={form.payment_term_days}
+                onChange={(event) =>
+                  setForm((f) => ({ ...f, payment_term_days: event.target.value }))
+                }
+              >
+                <option value="">— Select credit term —</option>
+                <option value="30 days">30 days</option>
+                <option value="60 days">60 days</option>
+                <option value="90 days">90 days</option>
+              </select>
+            </label>
+          )}
+
+          <label>
             Supplier's Tax Invoice
             <input
               value={form.supplier_tax_invoice}
@@ -667,6 +726,16 @@ function PurchaseForm({
               onChange={(event) =>
                 setForm({ ...form, transaction_date: event.target.value })
               }
+            />
+          </label>
+
+          <label>
+            Payment Date
+            <input
+              type="date"
+              value={paymentDate}
+              readOnly
+              placeholder="Set payment term above"
             />
           </label>
 

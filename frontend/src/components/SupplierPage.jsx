@@ -16,6 +16,7 @@ function createSupplier(overrides = {}) {
     shippingAddresses: [""],
     selectedShippingAddressIndex: 0,
     remark: "",
+    termType: "",
     billingNoteDate: "",
     ...overrides,
   };
@@ -40,7 +41,8 @@ const defaultSuppliers = [
     ],
     selectedShippingAddressIndex: 0,
     remark: "Primary supplier for stationery and semester opening stock.",
-    billingNoteDate: "Billing note received every Friday after supplier delivery confirmation.",
+    termType: "credit",
+    billingNoteDate: "30 days",
   }),
   createSupplier({
     id: "supplier-2",
@@ -57,7 +59,8 @@ const defaultSuppliers = [
     shippingAddresses: ["144 Rangsit-Nakhon Nayok Road, Thanyaburi, Pathum Thani 12110"],
     selectedShippingAddressIndex: 0,
     remark: "Handles whiteboard tools and teaching accessories.",
-    billingNoteDate: "Billing note should include PO reference and expected delivery date.",
+    termType: "credit",
+    billingNoteDate: "60 days",
   }),
   createSupplier({
     id: "supplier-3",
@@ -77,7 +80,8 @@ const defaultSuppliers = [
     ],
     selectedShippingAddressIndex: 1,
     remark: "Best source for bulk paper goods and notebook cartons.",
-    billingNoteDate: "Monthly summary billing note every last working day.",
+    termType: "debit",
+    billingNoteDate: "",
   }),
   createSupplier({
     id: "supplier-4",
@@ -94,7 +98,8 @@ const defaultSuppliers = [
     shippingAddresses: ["401 Rama III Road, Yannawa, Bangkok 10120"],
     selectedShippingAddressIndex: 0,
     remark: "Used for binders, file folders, and archive accessories.",
-    billingNoteDate: "Attach delivery slip number to every billing note.",
+    termType: "credit",
+    billingNoteDate: "30 days",
   }),
   createSupplier({
     id: "supplier-5",
@@ -111,7 +116,8 @@ const defaultSuppliers = [
     shippingAddresses: ["199 Huay Kaew Road, Mueang Chiang Mai 50200"],
     selectedShippingAddressIndex: 0,
     remark: "Backup supplier for classroom consumables and urgent replenishment.",
-    billingNoteDate: "Billing note only after quality check passes.",
+    termType: "debit",
+    billingNoteDate: "",
   }),
 ];
 
@@ -160,6 +166,7 @@ function normalizeSupplier(supplier) {
       supplier.selectedShippingAddressIndex
     ),
     remark: `${supplier.remark ?? ""}`,
+    termType: supplier.termType ?? "",
     billingNoteDate: `${supplier.billingNoteDate ?? ""}`,
   };
 }
@@ -817,14 +824,38 @@ function SupplierPage({
                     </label>
 
                     <label>
-                      Billing Note Date
-                      <textarea
-                        rows="4"
-                        value={draftSupplier.billingNoteDate}
-                        onChange={(event) => updateTextField("billingNoteDate", event.target.value)}
-                        placeholder="Billing note date or billing instruction text"
-                      />
+                      Payment Term
+                      <select
+                        value={draftSupplier.termType}
+                        onChange={(event) => {
+                          const next = event.target.value;
+                          updateDraftSupplier((s) => ({
+                            ...s,
+                            termType: next,
+                            billingNoteDate: next === "debit" ? "" : s.billingNoteDate,
+                          }));
+                        }}
+                      >
+                        <option value="">— Select payment term —</option>
+                        <option value="debit">Debit</option>
+                        <option value="credit">Credit</option>
+                      </select>
                     </label>
+
+                    {draftSupplier.termType === "credit" && (
+                      <label>
+                        Credit Term
+                        <select
+                          value={draftSupplier.billingNoteDate}
+                          onChange={(event) => updateTextField("billingNoteDate", event.target.value)}
+                        >
+                          <option value="">— Select credit term —</option>
+                          <option value="30 days">30 days</option>
+                          <option value="60 days">60 days</option>
+                          <option value="90 days">90 days</option>
+                        </select>
+                      </label>
+                    )}
                   </div>
                 </section>
               </div>
