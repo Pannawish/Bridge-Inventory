@@ -215,214 +215,189 @@ function CreateBillingNoteModal({
   }
 
   return (
-    <div className="modal-backdrop">
-      <div
-        className="detail-modal supplier-modal contact-editor-modal section-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="bn-create-title"
-      >
-        <div className="section-heading supplier-modal-header">
-          <div>
-            <p className="eyebrow">Billing Note</p>
-            <h3 id="bn-create-title">Create Billing Note</h3>
-          </div>
-          <button
-            type="button"
-            className="icon-button subtle"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            X
-          </button>
+    <section className="section-card" aria-labelledby="bn-create-title">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Billing Note</p>
+          <h3 id="bn-create-title">Create Billing Note</h3>
+        </div>
+        <button
+          className="secondary-button table-action-button"
+          type="button"
+          onClick={onClose}
+        >
+          Cancel
+        </button>
+      </div>
+
+      <form className="form-layout" onSubmit={handleSubmit}>
+        <div className="form-grid">
+          <label>
+            Customer
+            <select
+              value={customerName}
+              onChange={(event) => {
+                setCustomerName(event.target.value);
+                setSelectedSaleIds(new Set());
+                setError("");
+              }}
+            >
+              <option value="">— Select customer —</option>
+              {customerOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Billing Note Date
+            <input
+              type="date"
+              value={billingNoteDate}
+              onChange={(event) => setBillingNoteDate(event.target.value)}
+            />
+          </label>
+
+          <label>
+            Expected Payment Date
+            <input
+              type="date"
+              value={expectedPaymentDate}
+              onChange={(event) => setExpectedPaymentDate(event.target.value)}
+            />
+          </label>
+
+          <label>
+            Bank Reference
+            <input
+              value={bankReference}
+              onChange={(event) => setBankReference(event.target.value)}
+              placeholder="Optional"
+            />
+          </label>
+
+          <label className="full-width">
+            Note
+            <textarea
+              rows="2"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Optional note"
+            />
+          </label>
         </div>
 
-        <form className="form-layout" onSubmit={handleSubmit}>
-          <div className="contact-editor-layout">
-            <section className="contact-editor-section">
-              <div className="contact-editor-section-heading">
-                <div>
-                  <p className="eyebrow">Step 1</p>
-                  <h4>Customer & Dates</h4>
-                </div>
-                <span>Header</span>
-              </div>
-
-              <div className="contact-editor-grid">
-                <label>
-                  Customer
-                  <select
-                    value={customerName}
-                    onChange={(event) => {
-                      setCustomerName(event.target.value);
-                      setSelectedSaleIds(new Set());
-                      setError("");
-                    }}
-                  >
-                    <option value="">— Select customer —</option>
-                    {customerOptions.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label>
-                  Billing Note Date
-                  <input
-                    type="date"
-                    value={billingNoteDate}
-                    onChange={(event) => setBillingNoteDate(event.target.value)}
-                  />
-                </label>
-
-                <label>
-                  Expected Payment Date
-                  <input
-                    type="date"
-                    value={expectedPaymentDate}
-                    onChange={(event) => setExpectedPaymentDate(event.target.value)}
-                  />
-                </label>
-
-                <label>
-                  Bank Reference
-                  <input
-                    value={bankReference}
-                    onChange={(event) => setBankReference(event.target.value)}
-                    placeholder="Optional"
-                  />
-                </label>
-
-                <label className="full-width">
-                  Note
-                  <textarea
-                    rows="2"
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                    placeholder="Optional note"
-                  />
-                </label>
-              </div>
-            </section>
-
-            <section className="contact-editor-section">
-              <div className="contact-editor-section-heading">
-                <div>
-                  <p className="eyebrow">Step 2</p>
-                  <h4>Choose Sales Orders</h4>
-                </div>
-                <span>{selectedSaleIds.size} selected</span>
-              </div>
-
-              {customerName ? (
-                eligibleSales.length === 0 ? (
-                  <p className="empty-copy">
-                    No eligible sales for this customer. (Sales must be shipped/delivered and not in another active billing note.)
-                  </p>
-                ) : (
-                  <>
-                    <div className="history-filter-actions">
-                      <button
-                        className="secondary-button"
-                        type="button"
-                        onClick={selectAll}
-                      >
-                        Select All
-                      </button>
-                      <button
-                        className="secondary-button"
-                        type="button"
-                        onClick={clearAll}
-                      >
-                        Clear
-                      </button>
-                    </div>
-
-                    <div className="transaction-table-window">
-                      <div className="table-scroll desktop-table">
-                        <table className="transaction-history-table">
-                          <thead>
-                            <tr>
-                              <th />
-                              <th>Reference</th>
-                              <th>Date</th>
-                              <th>Status</th>
-                              <th>Payment Term</th>
-                              <th>Payment Due</th>
-                              <th>Amount</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {eligibleSales.map((sale) => {
-                              const checked = selectedSaleIds.has(sale.id);
-                              return (
-                                <tr
-                                  key={sale.id}
-                                  className={checked ? "partner-table-row active" : "partner-table-row"}
-                                >
-                                  <td>
-                                    <input
-                                      type="checkbox"
-                                      checked={checked}
-                                      onChange={() => toggleSale(sale.id)}
-                                    />
-                                  </td>
-                                  <td>{sale.reference_no || sale.id}</td>
-                                  <td>{formatDate(sale.transaction_date)}</td>
-                                  <td>
-                                    <span className={`status-badge status-${sale.status}`}>
-                                      {sale.status?.replace(/_/g, " ")}
-                                    </span>
-                                  </td>
-                                  <td>
-                                    {sale.payment_term_type === "credit"
-                                      ? `Credit (${sale.payment_term_days || ""})`
-                                      : sale.payment_term_type === "debit"
-                                        ? "Debit"
-                                        : "—"}
-                                  </td>
-                                  <td>{formatDate(sale.payment_date)}</td>
-                                  <td>{fmt(sale.grand_total)}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </>
-                )
-              ) : (
-                <p className="empty-copy">Select a customer to see eligible sales.</p>
-              )}
-            </section>
-
-            <section className="contact-editor-section">
-              <div className="contact-editor-section-heading">
-                <div>
-                  <p className="eyebrow">Summary</p>
-                  <h4>Total Amount</h4>
-                </div>
-                <span>{fmt(totalAmount)}</span>
-              </div>
-            </section>
+        <div className="line-items-header">
+          <div>
+            <p className="eyebrow">Step 2</p>
+            <h4>Choose Sales Orders</h4>
           </div>
+          <span>{selectedSaleIds.size} selected</span>
+        </div>
 
-          {error ? <div className="error-banner">{error}</div> : null}
+        {customerName ? (
+          eligibleSales.length === 0 ? (
+            <p className="empty-copy">
+              No eligible sales for this customer. (Sales must be shipped/delivered and not in another active billing note.)
+            </p>
+          ) : (
+            <>
+              <div className="history-filter-actions">
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={selectAll}
+                >
+                  Select All
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={clearAll}
+                >
+                  Clear
+                </button>
+              </div>
 
-          <div className="supplier-modal-actions">
-            <button className="secondary-button" type="button" onClick={onClose}>
-              Cancel
-            </button>
-            <button className="primary-button" type="submit">
-              Create Billing Note
-            </button>
+              <div className="transaction-table-window">
+                <div className="table-scroll desktop-table">
+                  <table className="transaction-history-table partner-line-table">
+                    <thead>
+                      <tr>
+                        <th />
+                        <th>Reference</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Payment Term</th>
+                        <th>Payment Due</th>
+                        <th>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {eligibleSales.map((sale) => {
+                        const checked = selectedSaleIds.has(sale.id);
+                        return (
+                          <tr
+                            key={sale.id}
+                            className={checked ? "partner-table-row active" : "partner-table-row"}
+                          >
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleSale(sale.id)}
+                              />
+                            </td>
+                            <td>{sale.reference_no || sale.id}</td>
+                            <td>{formatDate(sale.transaction_date)}</td>
+                            <td>
+                              <span className={`status-badge status-${sale.status}`}>
+                                {sale.status?.replace(/_/g, " ")}
+                              </span>
+                            </td>
+                            <td>
+                              {sale.payment_term_type === "credit"
+                                ? `Credit (${sale.payment_term_days || ""})`
+                                : sale.payment_term_type === "debit"
+                                  ? "Debit"
+                                  : "—"}
+                            </td>
+                            <td>{formatDate(sale.payment_date)}</td>
+                            <td>{fmt(sale.grand_total)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )
+        ) : (
+          <p className="empty-copy">Select a customer to see eligible sales.</p>
+        )}
+
+        <div className="sales-summary-card">
+          <div className="sales-summary-row sales-summary-grand">
+            <strong>Total Amount</strong>
+            <strong>{fmt(totalAmount)}</strong>
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        {error ? <div className="error-banner">{error}</div> : null}
+
+        <div className="supplier-modal-actions">
+          <button className="secondary-button" type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="primary-button" type="submit">
+            Create Billing Note
+          </button>
+        </div>
+      </form>
+    </section>
   );
 }
 
@@ -524,233 +499,223 @@ function BillingNoteDetailModal({
   const isCancelled = draft.status === "cancelled";
 
   return (
-    <div className="modal-backdrop">
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <div
-        className="detail-modal supplier-modal contact-editor-modal section-card"
+        className="detail-modal transaction-detail-modal section-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby="bn-detail-title"
+        onClick={(event) => event.stopPropagation()}
       >
-        <div className="section-heading supplier-modal-header">
+        <div className="section-heading">
           <div>
             <p className="eyebrow">Billing Note</p>
             <h3 id="bn-detail-title">{draft.reference_no || draft.id}</h3>
           </div>
-          <button
-            type="button"
-            className="icon-button subtle"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            X
-          </button>
+          <div className="section-heading-actions">
+            <StatusPill status={draft.status} />
+            <button
+              type="button"
+              className="icon-button subtle"
+              aria-label="Close"
+              onClick={onClose}
+            >
+              X
+            </button>
+          </div>
         </div>
 
         <form className="form-layout" onSubmit={handleSave}>
-          <div className="contact-editor-layout">
-            <section className="contact-editor-section">
-              <div className="contact-editor-section-heading">
-                <div>
-                  <p className="eyebrow">Header</p>
-                  <h4>Customer & Dates</h4>
-                </div>
-                <StatusPill status={draft.status} />
-              </div>
+        <div className="form-grid">
+          <label>
+            Reference No.
+            <input
+              value={draft.reference_no || ""}
+              onChange={(event) => updateField("reference_no", event.target.value)}
+            />
+          </label>
 
-              <div className="contact-editor-grid">
-                <label>
-                  Reference No.
-                  <input
-                    value={draft.reference_no || ""}
-                    onChange={(event) => updateField("reference_no", event.target.value)}
-                  />
-                </label>
+          <label>
+            Customer
+            <input value={draft.customer_name || ""} disabled />
+          </label>
 
-                <label>
-                  Customer
-                  <input value={draft.customer_name || ""} disabled />
-                </label>
+          <label>
+            Billing Note Date
+            <input
+              type="date"
+              value={draft.billing_note_date || ""}
+              onChange={(event) =>
+                updateField("billing_note_date", event.target.value)
+              }
+            />
+          </label>
 
-                <label>
-                  Billing Note Date
-                  <input
-                    type="date"
-                    value={draft.billing_note_date || ""}
-                    onChange={(event) =>
-                      updateField("billing_note_date", event.target.value)
-                    }
-                  />
-                </label>
+          <label>
+            Expected Payment Date
+            <input
+              type="date"
+              value={draft.expected_payment_date || ""}
+              onChange={(event) =>
+                updateField("expected_payment_date", event.target.value)
+              }
+            />
+          </label>
 
-                <label>
-                  Expected Payment Date
-                  <input
-                    type="date"
-                    value={draft.expected_payment_date || ""}
-                    onChange={(event) =>
-                      updateField("expected_payment_date", event.target.value)
-                    }
-                  />
-                </label>
+          <label>
+            Actual Payment Date
+            <input
+              type="date"
+              value={draft.actual_payment_date || ""}
+              readOnly
+            />
+          </label>
 
-                <label>
-                  Actual Payment Date
-                  <input
-                    type="date"
-                    value={draft.actual_payment_date || ""}
-                    readOnly
-                  />
-                </label>
+          <label>
+            Bank Reference
+            <input
+              value={draft.bank_reference || ""}
+              onChange={(event) =>
+                updateField("bank_reference", event.target.value)
+              }
+            />
+          </label>
 
-                <label>
-                  Bank Reference
-                  <input
-                    value={draft.bank_reference || ""}
-                    onChange={(event) =>
-                      updateField("bank_reference", event.target.value)
-                    }
-                  />
-                </label>
+          <label className="full-width">
+            Note
+            <textarea
+              rows="2"
+              value={draft.note || ""}
+              onChange={(event) => updateField("note", event.target.value)}
+            />
+          </label>
+        </div>
 
-                <label className="full-width">
-                  Note
-                  <textarea
-                    rows="2"
-                    value={draft.note || ""}
-                    onChange={(event) => updateField("note", event.target.value)}
-                  />
-                </label>
-              </div>
-            </section>
-
-            <section className="contact-editor-section">
-              <div className="contact-editor-section-heading">
-                <div>
-                  <p className="eyebrow">Sales Orders</p>
-                  <h4>Receive Payment</h4>
-                </div>
-                <span>
-                  {(draft.lines || []).filter((line) => line.received).length} /{" "}
-                  {(draft.lines || []).length} received
-                </span>
-              </div>
-
-              {!isCancelled && (draft.lines || []).length > 0 ? (
-                <div className="history-filter-actions">
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={markAllReceived}
-                  >
-                    Mark All Received
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={clearAllReceived}
-                  >
-                    Clear All
-                  </button>
-                </div>
-              ) : null}
-
-              <div className="transaction-table-window">
-                <div className="table-scroll desktop-table">
-                  <table className="transaction-history-table">
-                    <thead>
-                      <tr>
-                        <th>Received?</th>
-                        <th>Reference</th>
-                        <th>Sale Date</th>
-                        <th>Payment Term</th>
-                        <th>Payment Due</th>
-                        <th>Received Date</th>
-                        <th>Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(draft.lines || []).map((line) => (
-                        <tr
-                          key={line.id}
-                          className={line.received ? "partner-table-row active" : "partner-table-row"}
-                        >
-                          <td>
-                            <input
-                              type="checkbox"
-                              checked={line.received}
-                              disabled={isCancelled}
-                              onChange={() => toggleLineReceived(line.id)}
-                            />
-                          </td>
-                          <td>{line.sale_reference_no || line.sale}</td>
-                          <td>{formatDate(line.sale_transaction_date)}</td>
-                          <td>
-                            {line.sale_payment_term_type === "credit"
-                              ? `Credit (${line.sale_payment_term_days || ""})`
-                              : line.sale_payment_term_type === "debit"
-                                ? "Debit"
-                                : "—"}
-                          </td>
-                          <td>{formatDate(line.sale_payment_date)}</td>
-                          <td>
-                            {line.received ? (
-                              <input
-                                type="date"
-                                value={line.received_date || ""}
-                                onChange={(event) =>
-                                  updateLineReceivedDate(line.id, event.target.value)
-                                }
-                                disabled={isCancelled}
-                              />
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                          <td>{fmt(line.amount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td colSpan="6" style={{ textAlign: "right" }}>
-                          <strong>Total</strong>
-                        </td>
-                        <td>
-                          <strong>{fmt(draft.total_amount)}</strong>
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
-            </section>
+        <div className="line-items-header">
+          <div>
+            <p className="eyebrow">Sales Orders</p>
+            <h4>Receive Payment</h4>
           </div>
+          <span>
+            {(draft.lines || []).filter((line) => line.received).length} /{" "}
+            {(draft.lines || []).length} received
+          </span>
+        </div>
 
-          <div className="supplier-modal-actions">
+        {!isCancelled && (draft.lines || []).length > 0 ? (
+          <div className="history-filter-actions">
             <button
               type="button"
-              className="danger-button"
-              onClick={() => onDelete(draft)}
+              className="secondary-button"
+              onClick={markAllReceived}
             >
-              Delete
+              Mark All Received
             </button>
-            {!isCancelled ? (
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={handleCancelBN}
-              >
-                Cancel Billing Note
-              </button>
-            ) : null}
-            <button type="button" className="secondary-button" onClick={onClose}>
-              Close
-            </button>
-            <button type="submit" className="primary-button">
-              Save
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={clearAllReceived}
+            >
+              Clear All
             </button>
           </div>
-        </form>
+        ) : null}
+
+        <div className="transaction-table-window">
+          <div className="table-scroll partner-line-scroll desktop-table">
+            <table className="transaction-history-table partner-line-table">
+              <thead>
+                <tr>
+                  <th>Received?</th>
+                  <th>Reference</th>
+                  <th>Sale Date</th>
+                  <th>Payment Term</th>
+                  <th>Payment Due</th>
+                  <th>Received Date</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(draft.lines || []).map((line) => (
+                  <tr
+                    key={line.id}
+                    className={line.received ? "partner-table-row active" : "partner-table-row"}
+                  >
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={line.received}
+                        disabled={isCancelled}
+                        onChange={() => toggleLineReceived(line.id)}
+                      />
+                    </td>
+                    <td>{line.sale_reference_no || line.sale}</td>
+                    <td>{formatDate(line.sale_transaction_date)}</td>
+                    <td>
+                      {line.sale_payment_term_type === "credit"
+                        ? `Credit (${line.sale_payment_term_days || ""})`
+                        : line.sale_payment_term_type === "debit"
+                          ? "Debit"
+                          : "—"}
+                    </td>
+                    <td>{formatDate(line.sale_payment_date)}</td>
+                    <td>
+                      {line.received ? (
+                        <input
+                          type="date"
+                          value={line.received_date || ""}
+                          onChange={(event) =>
+                            updateLineReceivedDate(line.id, event.target.value)
+                          }
+                          disabled={isCancelled}
+                        />
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>{fmt(line.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan="6" style={{ textAlign: "right" }}>
+                    <strong>Total</strong>
+                  </td>
+                  <td>
+                    <strong>{fmt(draft.total_amount)}</strong>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <div className="supplier-modal-actions">
+          <button
+            type="button"
+            className="danger-button"
+            onClick={() => onDelete(draft)}
+          >
+            Delete
+          </button>
+          {!isCancelled ? (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleCancelBN}
+            >
+              Cancel Billing Note
+            </button>
+          ) : null}
+          <button type="button" className="secondary-button" onClick={onClose}>
+            Close
+          </button>
+          <button type="submit" className="primary-button">
+            Save
+          </button>
+        </div>
+      </form>
       </div>
     </div>
   );
@@ -843,6 +808,20 @@ function BillingNotePage({
     if (ok !== false) {
       setActiveBillingNote(null);
     }
+  }
+
+  if (creating) {
+    return (
+      <div className="stack-layout">
+        <CreateBillingNoteModal
+          customers={customers}
+          sales={sales}
+          billingNotes={billingNotes}
+          onClose={() => setCreating(false)}
+          onCreate={handleCreate}
+        />
+      </div>
+    );
   }
 
   return (
@@ -1086,18 +1065,9 @@ function BillingNotePage({
         )}
       </section>
 
-      {creating ? (
-        <CreateBillingNoteModal
-          customers={customers}
-          sales={sales}
-          billingNotes={billingNotes}
-          onClose={() => setCreating(false)}
-          onCreate={handleCreate}
-        />
-      ) : null}
-
       {activeBillingNote ? (
         <BillingNoteDetailModal
+          key={activeBillingNote.id}
           billingNote={activeBillingNote}
           onClose={() => setActiveBillingNote(null)}
           onSave={handleSave}

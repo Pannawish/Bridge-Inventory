@@ -761,6 +761,12 @@ textarea {
   margin-bottom: 20px;
 }
 
+.section-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .section-heading h3 {
   font-size: 1.4rem;
   line-height: 1.2;
@@ -2116,6 +2122,10 @@ th {
 .transaction-table-window table {
   min-width: 940px;
   table-layout: fixed;
+}
+
+.transaction-table-window table.partner-line-table {
+  min-width: 1280px;
 }
 
 .transaction-table-window .transaction-history-table-sale {
@@ -3791,6 +3801,10 @@ th {
 
 .transaction-detail-modal .table-scroll {
   overflow-x: visible;
+}
+
+.transaction-detail-modal .table-scroll.partner-line-scroll {
+  overflow-x: auto;
 }
 
 .detail-item-table {

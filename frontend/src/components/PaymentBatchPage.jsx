@@ -216,214 +216,189 @@ function CreatePaymentBatchModal({
   }
 
   return (
-    <div className="modal-backdrop">
-      <div
-        className="detail-modal supplier-modal contact-editor-modal section-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="pb-create-title"
-      >
-        <div className="section-heading supplier-modal-header">
-          <div>
-            <p className="eyebrow">Payment Batch</p>
-            <h3 id="pb-create-title">Create Payment Batch</h3>
-          </div>
-          <button
-            type="button"
-            className="icon-button subtle"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            X
-          </button>
+    <section className="section-card" aria-labelledby="pb-create-title">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Payment Batch</p>
+          <h3 id="pb-create-title">Create Payment Batch</h3>
+        </div>
+        <button
+          className="secondary-button table-action-button"
+          type="button"
+          onClick={onClose}
+        >
+          Cancel
+        </button>
+      </div>
+
+      <form className="form-layout" onSubmit={handleSubmit}>
+        <div className="form-grid">
+          <label>
+            Supplier
+            <select
+              value={supplierName}
+              onChange={(event) => {
+                setSupplierName(event.target.value);
+                setSelectedPurchaseIds(new Set());
+                setError("");
+              }}
+            >
+              <option value="">— Select supplier —</option>
+              {supplierOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Batch Date
+            <input
+              type="date"
+              value={batchDate}
+              onChange={(event) => setBatchDate(event.target.value)}
+            />
+          </label>
+
+          <label>
+            Planned Payment Date
+            <input
+              type="date"
+              value={plannedPaymentDate}
+              onChange={(event) => setPlannedPaymentDate(event.target.value)}
+            />
+          </label>
+
+          <label>
+            Bank Reference
+            <input
+              value={bankReference}
+              onChange={(event) => setBankReference(event.target.value)}
+              placeholder="Optional"
+            />
+          </label>
+
+          <label className="full-width">
+            Note
+            <textarea
+              rows="2"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Optional note"
+            />
+          </label>
         </div>
 
-        <form className="form-layout" onSubmit={handleSubmit}>
-          <div className="contact-editor-layout">
-            <section className="contact-editor-section">
-              <div className="contact-editor-section-heading">
-                <div>
-                  <p className="eyebrow">Step 1</p>
-                  <h4>Supplier & Dates</h4>
-                </div>
-                <span>Header</span>
-              </div>
-
-              <div className="contact-editor-grid">
-                <label>
-                  Supplier
-                  <select
-                    value={supplierName}
-                    onChange={(event) => {
-                      setSupplierName(event.target.value);
-                      setSelectedPurchaseIds(new Set());
-                      setError("");
-                    }}
-                  >
-                    <option value="">— Select supplier —</option>
-                    {supplierOptions.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label>
-                  Batch Date
-                  <input
-                    type="date"
-                    value={batchDate}
-                    onChange={(event) => setBatchDate(event.target.value)}
-                  />
-                </label>
-
-                <label>
-                  Planned Payment Date
-                  <input
-                    type="date"
-                    value={plannedPaymentDate}
-                    onChange={(event) => setPlannedPaymentDate(event.target.value)}
-                  />
-                </label>
-
-                <label>
-                  Bank Reference
-                  <input
-                    value={bankReference}
-                    onChange={(event) => setBankReference(event.target.value)}
-                    placeholder="Optional"
-                  />
-                </label>
-
-                <label className="full-width">
-                  Note
-                  <textarea
-                    rows="2"
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                    placeholder="Optional note"
-                  />
-                </label>
-              </div>
-            </section>
-
-            <section className="contact-editor-section">
-              <div className="contact-editor-section-heading">
-                <div>
-                  <p className="eyebrow">Step 2</p>
-                  <h4>Choose Purchase Orders</h4>
-                </div>
-                <span>{selectedPurchaseIds.size} selected</span>
-              </div>
-
-              {supplierName ? (
-                eligiblePurchases.length === 0 ? (
-                  <p className="empty-copy">
-                    No eligible purchases for this supplier. (POs must be received and not in another active payment batch.)
-                  </p>
-                ) : (
-                  <>
-                    <div className="history-filter-actions">
-                      <button
-                        className="secondary-button"
-                        type="button"
-                        onClick={selectAll}
-                      >
-                        Select All
-                      </button>
-                      <button
-                        className="secondary-button"
-                        type="button"
-                        onClick={clearAll}
-                      >
-                        Clear
-                      </button>
-                    </div>
-
-                    <div className="transaction-table-window">
-                      <div className="table-scroll desktop-table">
-                        <table className="transaction-history-table">
-                          <thead>
-                            <tr>
-                              <th />
-                              <th>Reference</th>
-                              <th>Date</th>
-                              <th>Status</th>
-                              <th>Payment Term</th>
-                              <th>Payment Due</th>
-                              <th>Amount</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {eligiblePurchases.map((purchase) => {
-                              const checked = selectedPurchaseIds.has(purchase.id);
-                              return (
-                                <tr
-                                  key={purchase.id}
-                                  className={checked ? "partner-table-row active" : "partner-table-row"}
-                                >
-                                  <td>
-                                    <input
-                                      type="checkbox"
-                                      checked={checked}
-                                      onChange={() => togglePurchase(purchase.id)}
-                                    />
-                                  </td>
-                                  <td>{purchase.reference_no || purchase.id}</td>
-                                  <td>{formatDate(purchase.transaction_date)}</td>
-                                  <td>
-                                    <span className={`status-badge status-${purchase.status}`}>
-                                      {purchase.status?.replace(/_/g, " ")}
-                                    </span>
-                                  </td>
-                                  <td>
-                                    {purchase.payment_term_type === "credit"
-                                      ? `Credit (${purchase.payment_term_days || ""})`
-                                      : purchase.payment_term_type === "debit"
-                                        ? "Debit"
-                                        : "—"}
-                                  </td>
-                                  <td>{formatDate(purchase.payment_date)}</td>
-                                  <td>{fmt(purchase.grand_total)}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </>
-                )
-              ) : (
-                <p className="empty-copy">Select a supplier to see eligible purchases.</p>
-              )}
-            </section>
-
-            <section className="contact-editor-section">
-              <div className="contact-editor-section-heading">
-                <div>
-                  <p className="eyebrow">Summary</p>
-                  <h4>Total Amount</h4>
-                </div>
-                <span>{fmt(totalAmount)}</span>
-              </div>
-            </section>
+        <div className="line-items-header">
+          <div>
+            <p className="eyebrow">Step 2</p>
+            <h4>Choose Purchase Orders</h4>
           </div>
+          <span>{selectedPurchaseIds.size} selected</span>
+        </div>
 
-          {error ? <div className="error-banner">{error}</div> : null}
+        {supplierName ? (
+          eligiblePurchases.length === 0 ? (
+            <p className="empty-copy">
+              No eligible purchases for this supplier. (POs must be received and not in another active payment batch.)
+            </p>
+          ) : (
+            <>
+              <div className="history-filter-actions">
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={selectAll}
+                >
+                  Select All
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={clearAll}
+                >
+                  Clear
+                </button>
+              </div>
 
-          <div className="supplier-modal-actions">
-            <button className="secondary-button" type="button" onClick={onClose}>
-              Cancel
-            </button>
-            <button className="primary-button" type="submit">
-              Create Payment Batch
-            </button>
+              <div className="transaction-table-window">
+                <div className="table-scroll desktop-table">
+                  <table className="transaction-history-table partner-line-table">
+                    <thead>
+                      <tr>
+                        <th />
+                        <th>Reference</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Payment Term</th>
+                        <th>Payment Due</th>
+                        <th>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {eligiblePurchases.map((purchase) => {
+                        const checked = selectedPurchaseIds.has(purchase.id);
+                        return (
+                          <tr
+                            key={purchase.id}
+                            className={checked ? "partner-table-row active" : "partner-table-row"}
+                          >
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => togglePurchase(purchase.id)}
+                              />
+                            </td>
+                            <td>{purchase.reference_no || purchase.id}</td>
+                            <td>{formatDate(purchase.transaction_date)}</td>
+                            <td>
+                              <span className={`status-badge status-${purchase.status}`}>
+                                {purchase.status?.replace(/_/g, " ")}
+                              </span>
+                            </td>
+                            <td>
+                              {purchase.payment_term_type === "credit"
+                                ? `Credit (${purchase.payment_term_days || ""})`
+                                : purchase.payment_term_type === "debit"
+                                  ? "Debit"
+                                  : "—"}
+                            </td>
+                            <td>{formatDate(purchase.payment_date)}</td>
+                            <td>{fmt(purchase.grand_total)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )
+        ) : (
+          <p className="empty-copy">Select a supplier to see eligible purchases.</p>
+        )}
+
+        <div className="sales-summary-card">
+          <div className="sales-summary-row sales-summary-grand">
+            <strong>Total Amount</strong>
+            <strong>{fmt(totalAmount)}</strong>
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        {error ? <div className="error-banner">{error}</div> : null}
+
+        <div className="supplier-modal-actions">
+          <button className="secondary-button" type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="primary-button" type="submit">
+            Create Payment Batch
+          </button>
+        </div>
+      </form>
+    </section>
   );
 }
 
@@ -523,231 +498,221 @@ function PaymentBatchDetailModal({
   const isCancelled = draft.status === "cancelled";
 
   return (
-    <div className="modal-backdrop">
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <div
-        className="detail-modal supplier-modal contact-editor-modal section-card"
+        className="detail-modal transaction-detail-modal section-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby="pb-detail-title"
+        onClick={(event) => event.stopPropagation()}
       >
-        <div className="section-heading supplier-modal-header">
+        <div className="section-heading">
           <div>
             <p className="eyebrow">Payment Batch</p>
             <h3 id="pb-detail-title">{draft.reference_no || draft.id}</h3>
           </div>
-          <button
-            type="button"
-            className="icon-button subtle"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            X
-          </button>
+          <div className="section-heading-actions">
+            <StatusPill status={draft.status} />
+            <button
+              type="button"
+              className="icon-button subtle"
+              aria-label="Close"
+              onClick={onClose}
+            >
+              X
+            </button>
+          </div>
         </div>
 
         <form className="form-layout" onSubmit={handleSave}>
-          <div className="contact-editor-layout">
-            <section className="contact-editor-section">
-              <div className="contact-editor-section-heading">
-                <div>
-                  <p className="eyebrow">Header</p>
-                  <h4>Supplier & Dates</h4>
-                </div>
-                <StatusPill status={draft.status} />
-              </div>
+        <div className="form-grid">
+          <label>
+            Reference No.
+            <input
+              value={draft.reference_no || ""}
+              onChange={(event) => updateField("reference_no", event.target.value)}
+            />
+          </label>
 
-              <div className="contact-editor-grid">
-                <label>
-                  Reference No.
-                  <input
-                    value={draft.reference_no || ""}
-                    onChange={(event) => updateField("reference_no", event.target.value)}
-                  />
-                </label>
+          <label>
+            Supplier
+            <input value={draft.supplier_name || ""} disabled />
+          </label>
 
-                <label>
-                  Supplier
-                  <input value={draft.supplier_name || ""} disabled />
-                </label>
+          <label>
+            Batch Date
+            <input
+              type="date"
+              value={draft.batch_date || ""}
+              onChange={(event) => updateField("batch_date", event.target.value)}
+            />
+          </label>
 
-                <label>
-                  Batch Date
-                  <input
-                    type="date"
-                    value={draft.batch_date || ""}
-                    onChange={(event) => updateField("batch_date", event.target.value)}
-                  />
-                </label>
+          <label>
+            Planned Payment Date
+            <input
+              type="date"
+              value={draft.planned_payment_date || ""}
+              onChange={(event) =>
+                updateField("planned_payment_date", event.target.value)
+              }
+            />
+          </label>
 
-                <label>
-                  Planned Payment Date
-                  <input
-                    type="date"
-                    value={draft.planned_payment_date || ""}
-                    onChange={(event) =>
-                      updateField("planned_payment_date", event.target.value)
-                    }
-                  />
-                </label>
+          <label>
+            Actual Payment Date
+            <input
+              type="date"
+              value={draft.actual_payment_date || ""}
+              readOnly
+            />
+          </label>
 
-                <label>
-                  Actual Payment Date
-                  <input
-                    type="date"
-                    value={draft.actual_payment_date || ""}
-                    readOnly
-                  />
-                </label>
+          <label>
+            Bank Reference
+            <input
+              value={draft.bank_reference || ""}
+              onChange={(event) =>
+                updateField("bank_reference", event.target.value)
+              }
+            />
+          </label>
 
-                <label>
-                  Bank Reference
-                  <input
-                    value={draft.bank_reference || ""}
-                    onChange={(event) =>
-                      updateField("bank_reference", event.target.value)
-                    }
-                  />
-                </label>
+          <label className="full-width">
+            Note
+            <textarea
+              rows="2"
+              value={draft.note || ""}
+              onChange={(event) => updateField("note", event.target.value)}
+            />
+          </label>
+        </div>
 
-                <label className="full-width">
-                  Note
-                  <textarea
-                    rows="2"
-                    value={draft.note || ""}
-                    onChange={(event) => updateField("note", event.target.value)}
-                  />
-                </label>
-              </div>
-            </section>
-
-            <section className="contact-editor-section">
-              <div className="contact-editor-section-heading">
-                <div>
-                  <p className="eyebrow">Purchase Orders</p>
-                  <h4>Mark as Paid</h4>
-                </div>
-                <span>
-                  {(draft.lines || []).filter((line) => line.paid).length} /{" "}
-                  {(draft.lines || []).length} paid
-                </span>
-              </div>
-
-              {!isCancelled && (draft.lines || []).length > 0 ? (
-                <div className="history-filter-actions">
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={markAllPaid}
-                  >
-                    Mark All Paid
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={clearAllPaid}
-                  >
-                    Clear All
-                  </button>
-                </div>
-              ) : null}
-
-              <div className="transaction-table-window">
-                <div className="table-scroll desktop-table">
-                  <table className="transaction-history-table">
-                    <thead>
-                      <tr>
-                        <th>Paid?</th>
-                        <th>Reference</th>
-                        <th>PO Date</th>
-                        <th>Payment Term</th>
-                        <th>Payment Due</th>
-                        <th>Paid Date</th>
-                        <th>Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(draft.lines || []).map((line) => (
-                        <tr
-                          key={line.id}
-                          className={line.paid ? "partner-table-row active" : "partner-table-row"}
-                        >
-                          <td>
-                            <input
-                              type="checkbox"
-                              checked={line.paid}
-                              disabled={isCancelled}
-                              onChange={() => toggleLinePaid(line.id)}
-                            />
-                          </td>
-                          <td>{line.purchase_reference_no || line.purchase}</td>
-                          <td>{formatDate(line.purchase_transaction_date)}</td>
-                          <td>
-                            {line.purchase_payment_term_type === "credit"
-                              ? `Credit (${line.purchase_payment_term_days || ""})`
-                              : line.purchase_payment_term_type === "debit"
-                                ? "Debit"
-                                : "—"}
-                          </td>
-                          <td>{formatDate(line.purchase_payment_date)}</td>
-                          <td>
-                            {line.paid ? (
-                              <input
-                                type="date"
-                                value={line.paid_date || ""}
-                                onChange={(event) =>
-                                  updateLinePaidDate(line.id, event.target.value)
-                                }
-                                disabled={isCancelled}
-                              />
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                          <td>{fmt(line.amount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td colSpan="6" style={{ textAlign: "right" }}>
-                          <strong>Total</strong>
-                        </td>
-                        <td>
-                          <strong>{fmt(draft.total_amount)}</strong>
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
-            </section>
+        <div className="line-items-header">
+          <div>
+            <p className="eyebrow">Purchase Orders</p>
+            <h4>Mark as Paid</h4>
           </div>
+          <span>
+            {(draft.lines || []).filter((line) => line.paid).length} /{" "}
+            {(draft.lines || []).length} paid
+          </span>
+        </div>
 
-          <div className="supplier-modal-actions">
+        {!isCancelled && (draft.lines || []).length > 0 ? (
+          <div className="history-filter-actions">
             <button
               type="button"
-              className="danger-button"
-              onClick={() => onDelete(draft)}
+              className="secondary-button"
+              onClick={markAllPaid}
             >
-              Delete
+              Mark All Paid
             </button>
-            {!isCancelled ? (
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={handleCancelBatch}
-              >
-                Cancel Payment Batch
-              </button>
-            ) : null}
-            <button type="button" className="secondary-button" onClick={onClose}>
-              Close
-            </button>
-            <button type="submit" className="primary-button">
-              Save
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={clearAllPaid}
+            >
+              Clear All
             </button>
           </div>
-        </form>
+        ) : null}
+
+        <div className="transaction-table-window">
+          <div className="table-scroll partner-line-scroll desktop-table">
+            <table className="transaction-history-table partner-line-table">
+              <thead>
+                <tr>
+                  <th>Paid?</th>
+                  <th>Reference</th>
+                  <th>PO Date</th>
+                  <th>Payment Term</th>
+                  <th>Payment Due</th>
+                  <th>Paid Date</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(draft.lines || []).map((line) => (
+                  <tr
+                    key={line.id}
+                    className={line.paid ? "partner-table-row active" : "partner-table-row"}
+                  >
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={line.paid}
+                        disabled={isCancelled}
+                        onChange={() => toggleLinePaid(line.id)}
+                      />
+                    </td>
+                    <td>{line.purchase_reference_no || line.purchase}</td>
+                    <td>{formatDate(line.purchase_transaction_date)}</td>
+                    <td>
+                      {line.purchase_payment_term_type === "credit"
+                        ? `Credit (${line.purchase_payment_term_days || ""})`
+                        : line.purchase_payment_term_type === "debit"
+                          ? "Debit"
+                          : "—"}
+                    </td>
+                    <td>{formatDate(line.purchase_payment_date)}</td>
+                    <td>
+                      {line.paid ? (
+                        <input
+                          type="date"
+                          value={line.paid_date || ""}
+                          onChange={(event) =>
+                            updateLinePaidDate(line.id, event.target.value)
+                          }
+                          disabled={isCancelled}
+                        />
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>{fmt(line.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan="6" style={{ textAlign: "right" }}>
+                    <strong>Total</strong>
+                  </td>
+                  <td>
+                    <strong>{fmt(draft.total_amount)}</strong>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <div className="supplier-modal-actions">
+          <button
+            type="button"
+            className="danger-button"
+            onClick={() => onDelete(draft)}
+          >
+            Delete
+          </button>
+          {!isCancelled ? (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleCancelBatch}
+            >
+              Cancel Payment Batch
+            </button>
+          ) : null}
+          <button type="button" className="secondary-button" onClick={onClose}>
+            Close
+          </button>
+          <button type="submit" className="primary-button">
+            Save
+          </button>
+        </div>
+      </form>
       </div>
     </div>
   );
@@ -841,6 +806,20 @@ function PaymentBatchPage({
     if (ok !== false) {
       setActiveBatch(null);
     }
+  }
+
+  if (creating) {
+    return (
+      <div className="stack-layout">
+        <CreatePaymentBatchModal
+          suppliers={suppliers}
+          purchases={purchases}
+          paymentBatches={paymentBatches}
+          onClose={() => setCreating(false)}
+          onCreate={handleCreate}
+        />
+      </div>
+    );
   }
 
   return (
@@ -1084,18 +1063,9 @@ function PaymentBatchPage({
         )}
       </section>
 
-      {creating ? (
-        <CreatePaymentBatchModal
-          suppliers={suppliers}
-          purchases={purchases}
-          paymentBatches={paymentBatches}
-          onClose={() => setCreating(false)}
-          onCreate={handleCreate}
-        />
-      ) : null}
-
       {activeBatch ? (
         <PaymentBatchDetailModal
+          key={activeBatch.id}
           paymentBatch={activeBatch}
           onClose={() => setActiveBatch(null)}
           onSave={handleSave}
