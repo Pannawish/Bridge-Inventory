@@ -1,10 +1,50 @@
 from decimal import Decimal
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
+from rest_framework.test import APITestCase
 
 from .models import Product, Purchase, PurchaseItem, Sale, SaleItem
 from .serializers import SaleSerializer
+
+
+@override_settings(INVENTORY_DEFAULT_PAGE_SIZE=2, INVENTORY_MAX_PAGE_SIZE=3)
+class InventoryPaginationTests(APITestCase):
+    def setUp(self):
+        for index in range(5):
+            Product.objects.create(
+                product_display_id=1000 + index,
+                sku=f"PAGE-{index}",
+                product_name=f"Pagination Product {index}",
+            )
+
+    def test_list_without_page_query_keeps_array_response(self):
+        response = self.client.get("/api/products/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertEqual(len(response.data), 5)
+
+    def test_page_query_returns_paginated_response(self):
+        response = self.client.get("/api/products/", {"page": 2})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 5)
+        self.assertEqual(response.data["page"], 2)
+        self.assertEqual(response.data["page_size"], 2)
+        self.assertEqual(response.data["total_pages"], 3)
+        self.assertEqual(
+            [item["sku"] for item in response.data["results"]],
+            ["PAGE-2", "PAGE-3"],
+        )
+
+    def test_requested_page_size_is_capped(self):
+        response = self.client.get("/api/products/", {"page": 1, "page_size": 10})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["page_size"], 3)
+        self.assertEqual(response.data["total_pages"], 2)
+        self.assertEqual(len(response.data["results"]), 3)
 
 
 class SaleStockValidationTests(TestCase):

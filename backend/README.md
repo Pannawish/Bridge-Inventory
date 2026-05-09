@@ -59,6 +59,13 @@ python manage.py runserver 127.0.0.1:8000
 python manage.py test inventory
 ```
 
+## API Pagination
+
+List endpoints stay unpaginated unless the request asks for pagination. Use
+`?page=1`, `?page=1&page_size=25`, `?page=1&pageSize=25`, or `?page=1&limit=25`.
+The response includes `count`, `next`, `previous`, `page`, `page_size`,
+`total_pages`, and `results`.
+
 API home:
 
 ```text

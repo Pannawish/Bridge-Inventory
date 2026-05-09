@@ -8,6 +8,14 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+
+def env_int(name, default):
+    try:
+        return int(os.getenv(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-this-development-secret")
 DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
 if not DEBUG and SECRET_KEY == "change-this-development-secret":
@@ -113,6 +121,8 @@ CORS_ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 INVENTORY_REQUIRE_AUTH = os.getenv("INVENTORY_REQUIRE_AUTH", "False").lower() == "true"
+INVENTORY_DEFAULT_PAGE_SIZE = env_int("INVENTORY_DEFAULT_PAGE_SIZE", 25)
+INVENTORY_MAX_PAGE_SIZE = env_int("INVENTORY_MAX_PAGE_SIZE", 100)
 
 REST_FRAMEWORK = {
     "COERCE_DECIMAL_TO_STRING": False,
@@ -122,7 +132,7 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.FormParser",
         "rest_framework.parsers.MultiPartParser",
     ],
-    "DEFAULT_PAGINATION_CLASS": None,
+    "DEFAULT_PAGINATION_CLASS": "inventory.pagination.InventoryPagination",
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated"
         if INVENTORY_REQUIRE_AUTH
