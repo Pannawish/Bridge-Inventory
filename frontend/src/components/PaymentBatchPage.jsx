@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatMoney as fmt } from "../format";
+import PaginationControls from "./PaginationControls";
 
 const STATUS_LABELS = {
   draft: "Draft",
@@ -728,8 +729,11 @@ function PaymentBatchDetailModal({
 
 function PaymentBatchPage({
   paymentBatches = [],
+  allPaymentBatches = paymentBatches,
   suppliers = [],
   purchases = [],
+  pagination = null,
+  onPageRequest,
   onCreatePaymentBatch,
   onUpdatePaymentBatch,
   onDeletePaymentBatch,
@@ -744,7 +748,12 @@ function PaymentBatchPage({
   const [activeBatch, setActiveBatch] = useState(null);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const isServerPaginated = Boolean(pagination && onPageRequest);
   const filtered = useMemo(() => {
+    if (isServerPaginated) {
+      return paymentBatches;
+    }
+
     return paymentBatches.filter((batch) => {
       if (normalizedSearch && !batchMatchesQuery(batch, normalizedSearch)) {
         return false;
@@ -757,18 +766,19 @@ function PaymentBatchPage({
       }
       return true;
     });
-  }, [paymentBatches, normalizedSearch, statusFilter, dateFrom, dateTo]);
+  }, [dateFrom, dateTo, isServerPaginated, normalizedSearch, paymentBatches, statusFilter]);
 
   const compactRows = 5;
-  const shouldShowViewAll = filtered.length > compactRows;
+  const shouldShowViewAll = !isServerPaginated && filtered.length > compactRows;
   const isCompact = shouldShowViewAll && !showAllRows;
+  const totalPaymentBatchCount = pagination?.count ?? paymentBatches.length;
 
   const summary = useMemo(() => {
     const today = getToday();
     let outstanding = 0;
     let overdue = 0;
     let paid = 0;
-    paymentBatches.forEach((batch) => {
+    allPaymentBatches.forEach((batch) => {
       if (batch.status === "paid") {
         paid += Number(batch.total_amount) || 0;
       } else if (batch.status !== "cancelled") {
@@ -779,7 +789,7 @@ function PaymentBatchPage({
       }
     });
     return { outstanding, overdue, paid };
-  }, [paymentBatches]);
+  }, [allPaymentBatches]);
 
   const activeFilterCount =
     (statusFilter !== "all" ? 1 : 0) + (dateFrom || dateTo ? 1 : 0);
@@ -791,6 +801,28 @@ function PaymentBatchPage({
     setDateTo("");
     setFilterOpen(false);
   }
+
+  function getPageRequestParams(page = 1) {
+    return {
+      page,
+      search: searchTerm,
+      status: statusFilter === "all" ? "" : statusFilter,
+      dateFrom,
+      dateTo,
+    };
+  }
+
+  useEffect(() => {
+    if (!isServerPaginated) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      onPageRequest(getPageRequestParams(1));
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [dateFrom, dateTo, isServerPaginated, onPageRequest, searchTerm, statusFilter]);
 
   async function handleCreate(payload) {
     const saved = await onCreatePaymentBatch?.(payload);
@@ -822,7 +854,7 @@ function PaymentBatchPage({
         <CreatePaymentBatchModal
           suppliers={suppliers}
           purchases={purchases}
-          paymentBatches={paymentBatches}
+          paymentBatches={allPaymentBatches}
           onClose={() => setCreating(false)}
           onCreate={handleCreate}
         />
@@ -879,7 +911,9 @@ function PaymentBatchPage({
           </label>
           <div className="stock-report-summary supplier-search-meta">
             <span>
-              {filtered.length} of {paymentBatches.length} shown
+              {isServerPaginated
+                ? `${filtered.length} on this page of ${totalPaymentBatchCount} shown`
+                : `${filtered.length} of ${paymentBatches.length} shown`}
             </span>
           </div>
         </div>
@@ -1069,6 +1103,11 @@ function PaymentBatchPage({
             </div>
           </div>
         )}
+        <PaginationControls
+          pagination={pagination}
+          itemLabel="payment batches"
+          onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
+        />
       </section>
 
       {activeBatch ? (

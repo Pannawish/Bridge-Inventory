@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import PaginationControls from "./PaginationControls";
 import SalesForm from "./SalesForm";
 import TransactionTable from "./TransactionTable";
 import {
@@ -1238,9 +1239,12 @@ function SalesEditForm({
 
 function SalesHistoryPage({
   sales,
+  allSales = sales,
   products = [],
   purchases = [],
+  pagination = null,
   customers = defaultCustomerOptions,
+  onPageRequest,
   onCreateSale,
   onSaleStatusChange,
   onSaleUpdate,
@@ -1258,14 +1262,16 @@ function SalesHistoryPage({
   const [editingSale, setEditingSale] = useState(null);
   const [showNewSaleForm, setShowNewSaleForm] = useState(false);
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const isServerPaginated = Boolean(pagination && onPageRequest);
+  const selectedStatusKey = selectedStatuses.join(",");
   const activeFilterCount =
     (selectedCustomer ? 1 : 0) +
     (selectedStatuses.length === statusOptions.length ? 0 : 1) +
     (dateFrom ? 1 : 0) +
     (dateTo ? 1 : 0);
   const customerOptions = useMemo(
-    () => buildCustomerFilterOptions(sales, customers),
-    [customers, sales]
+    () => buildCustomerFilterOptions(allSales, customers),
+    [allSales, customers]
   );
   const filteredCustomerOptions = useMemo(() => {
     const normalizedQuery = customerFilterQuery.trim().toLowerCase();
@@ -1280,6 +1286,10 @@ function SalesHistoryPage({
   }, [customerFilterQuery, customerOptions]);
 
   const filteredSales = useMemo(() => {
+    if (isServerPaginated) {
+      return [...sales].sort(sortRecentTransactions);
+    }
+
     return sales.filter((sale) => {
       const matchesSearch = normalizedSearch
         ? saleMatchesQuery(sale, normalizedSearch)
@@ -1296,7 +1306,52 @@ function SalesHistoryPage({
 
       return matchesSearch && matchesStatus && matchesCustomer && matchesDateRange;
     }).sort(sortRecentTransactions);
-  }, [dateFrom, dateTo, normalizedSearch, sales, selectedCustomer, selectedStatuses]);
+  }, [
+    dateFrom,
+    dateTo,
+    isServerPaginated,
+    normalizedSearch,
+    sales,
+    selectedCustomer,
+    selectedStatuses,
+  ]);
+  const totalSalesCount = pagination?.count ?? sales.length;
+
+  function getPageRequestParams(page = 1) {
+    return {
+      page,
+      search: searchTerm,
+      statuses:
+        selectedStatuses.length === statusOptions.length
+          ? ""
+          : selectedStatuses.length
+            ? selectedStatuses
+            : "__none__",
+      customer: selectedCustomer,
+      dateFrom,
+      dateTo,
+    };
+  }
+
+  useEffect(() => {
+    if (!isServerPaginated) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      onPageRequest(getPageRequestParams(1));
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    dateFrom,
+    dateTo,
+    isServerPaginated,
+    onPageRequest,
+    searchTerm,
+    selectedCustomer,
+    selectedStatusKey,
+  ]);
 
   function selectCustomerFilter(customer) {
     setSelectedCustomer(customer.companyName);
@@ -1363,7 +1418,7 @@ function SalesHistoryPage({
           products={products}
           customers={customers}
           purchases={purchases}
-          sales={sales}
+          sales={allSales}
           onSubmit={handleCreateSale}
           onCancel={() => setShowNewSaleForm(false)}
         />
@@ -1380,7 +1435,7 @@ function SalesHistoryPage({
           products={products}
           customers={customers}
           purchases={purchases}
-          sales={sales}
+          sales={allSales}
           onCancel={() => setEditingSale(null)}
           onSave={handleSave}
         />
@@ -1410,7 +1465,9 @@ function SalesHistoryPage({
           </label>
           <div className="stock-report-summary supplier-search-meta">
             <span>
-              {filteredSales.length} of {sales.length} sales shown
+              {isServerPaginated
+                ? `${filteredSales.length} on this page of ${totalSalesCount} sales`
+                : `${filteredSales.length} of ${sales.length} sales shown`}
             </span>
           </div>
         </div>
@@ -1528,15 +1585,15 @@ function SalesHistoryPage({
         rows={filteredSales}
         products={products}
         purchases={purchases}
-        sales={sales}
+        sales={allSales}
         type="sale"
         onSaleStatusChange={onSaleStatusChange}
         onSaleUpdate={onSaleUpdate}
         onWarning={onWarning}
         onEditRow={setEditingSale}
         onDeleteRow={handleDelete}
-        compactRows={5}
-        enableViewAll
+        compactRows={isServerPaginated ? 0 : 5}
+        enableViewAll={!isServerPaginated}
         headerActions={
           <button
             className="primary-button"
@@ -1549,6 +1606,11 @@ function SalesHistoryPage({
             New Sale
           </button>
         }
+      />
+      <PaginationControls
+        pagination={pagination}
+        itemLabel="sales"
+        onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
       />
     </div>
   );

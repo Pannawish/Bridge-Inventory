@@ -66,6 +66,10 @@ List endpoints stay unpaginated unless the request asks for pagination. Use
 The response includes `count`, `next`, `previous`, `page`, `page_size`,
 `total_pages`, and `results`.
 
+Purchases, sales, billing notes, and payment batches also support `search`,
+`status`, `date_from`, and `date_to`. Purchases/payment batches support
+`supplier`; sales/billing notes support `customer`.
+
 API home:
 
 ```text

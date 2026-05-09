@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatMoney as fmt } from "../format";
+import PaginationControls from "./PaginationControls";
 
 const STATUS_LABELS = {
   draft: "Draft",
@@ -730,8 +731,11 @@ function BillingNoteDetailModal({
 
 function BillingNotePage({
   billingNotes = [],
+  allBillingNotes = billingNotes,
   customers = [],
   sales = [],
+  pagination = null,
+  onPageRequest,
   onCreateBillingNote,
   onUpdateBillingNote,
   onDeleteBillingNote,
@@ -746,7 +750,12 @@ function BillingNotePage({
   const [activeBillingNote, setActiveBillingNote] = useState(null);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const isServerPaginated = Boolean(pagination && onPageRequest);
   const filtered = useMemo(() => {
+    if (isServerPaginated) {
+      return billingNotes;
+    }
+
     return billingNotes.filter((note) => {
       if (normalizedSearch && !billingNoteMatchesQuery(note, normalizedSearch)) {
         return false;
@@ -759,18 +768,19 @@ function BillingNotePage({
       }
       return true;
     });
-  }, [billingNotes, normalizedSearch, statusFilter, dateFrom, dateTo]);
+  }, [billingNotes, dateFrom, dateTo, isServerPaginated, normalizedSearch, statusFilter]);
 
   const compactRows = 5;
-  const shouldShowViewAll = filtered.length > compactRows;
+  const shouldShowViewAll = !isServerPaginated && filtered.length > compactRows;
   const isCompact = shouldShowViewAll && !showAllRows;
+  const totalBillingNoteCount = pagination?.count ?? billingNotes.length;
 
   const summary = useMemo(() => {
     const today = getToday();
     let outstanding = 0;
     let overdue = 0;
     let received = 0;
-    billingNotes.forEach((note) => {
+    allBillingNotes.forEach((note) => {
       if (note.status === "fully_received") {
         received += Number(note.total_amount) || 0;
       } else if (note.status !== "cancelled") {
@@ -781,7 +791,7 @@ function BillingNotePage({
       }
     });
     return { outstanding, overdue, received };
-  }, [billingNotes]);
+  }, [allBillingNotes]);
 
   const activeFilterCount = (statusFilter !== "all" ? 1 : 0) + (dateFrom || dateTo ? 1 : 0);
 
@@ -792,6 +802,28 @@ function BillingNotePage({
     setDateTo("");
     setFilterOpen(false);
   }
+
+  function getPageRequestParams(page = 1) {
+    return {
+      page,
+      search: searchTerm,
+      status: statusFilter === "all" ? "" : statusFilter,
+      dateFrom,
+      dateTo,
+    };
+  }
+
+  useEffect(() => {
+    if (!isServerPaginated) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      onPageRequest(getPageRequestParams(1));
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [dateFrom, dateTo, isServerPaginated, onPageRequest, searchTerm, statusFilter]);
 
   async function handleCreate(payload) {
     const saved = await onCreateBillingNote?.(payload);
@@ -823,7 +855,7 @@ function BillingNotePage({
         <CreateBillingNoteModal
           customers={customers}
           sales={sales}
-          billingNotes={billingNotes}
+          billingNotes={allBillingNotes}
           onClose={() => setCreating(false)}
           onCreate={handleCreate}
         />
@@ -880,7 +912,9 @@ function BillingNotePage({
           </label>
           <div className="stock-report-summary supplier-search-meta">
             <span>
-              {filtered.length} of {billingNotes.length} shown
+              {isServerPaginated
+                ? `${filtered.length} on this page of ${totalBillingNoteCount} shown`
+                : `${filtered.length} of ${billingNotes.length} shown`}
             </span>
           </div>
         </div>
@@ -1070,6 +1104,11 @@ function BillingNotePage({
             </div>
           </div>
         )}
+        <PaginationControls
+          pagination={pagination}
+          itemLabel="billing notes"
+          onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
+        />
       </section>
 
       {activeBillingNote ? (

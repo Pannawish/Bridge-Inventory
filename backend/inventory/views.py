@@ -3,7 +3,7 @@ import logging
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.db import IntegrityError
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, Q
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -146,6 +146,48 @@ def normalize_request_data(request):
 class InventoryModelViewSet(viewsets.ModelViewSet):
     parser_classes = [JSONParser, FormParser, MultiPartParser]
     lookup_value_regex = "[^/]+"
+    search_fields = ()
+    date_filter_field = None
+    party_filter_field = None
+    party_filter_param = None
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        params = self.request.query_params
+
+        search_query = (params.get("search") or params.get("q") or "").strip()
+        if search_query and self.search_fields:
+            search_filter = Q()
+            for field in self.search_fields:
+                search_filter |= Q(**{f"{field}__icontains": search_query})
+            queryset = queryset.filter(search_filter).distinct()
+
+        statuses = [
+            value.strip()
+            for value in (params.get("status") or params.get("statuses") or "").split(",")
+            if value.strip()
+        ]
+        if statuses and hasattr(queryset.model, "status"):
+            queryset = queryset.filter(status__in=statuses)
+
+        party_value = (
+            params.get(self.party_filter_param or "")
+            or params.get(self.party_filter_field or "")
+            or ""
+        ).strip()
+        if party_value and self.party_filter_field:
+            queryset = queryset.filter(**{f"{self.party_filter_field}__iexact": party_value})
+
+        if self.date_filter_field:
+            date_from = (params.get("date_from") or params.get("from") or "").strip()
+            date_to = (params.get("date_to") or params.get("to") or "").strip()
+
+            if date_from:
+                queryset = queryset.filter(**{f"{self.date_filter_field}__gte": date_from})
+            if date_to:
+                queryset = queryset.filter(**{f"{self.date_filter_field}__lte": date_to})
+
+        return queryset
 
     def create(self, request, *args, **kwargs):
         try:
@@ -232,16 +274,48 @@ class CustomerViewSet(InventoryModelViewSet):
 class ProductViewSet(InventoryModelViewSet):
     queryset = Product.objects.select_related("category").prefetch_related("unit_conversions")
     serializer_class = ProductSerializer
+    search_fields = (
+        "product_name",
+        "sku",
+        "category__name",
+        "category_name",
+        "detail",
+    )
 
 
 class PurchaseViewSet(InventoryModelViewSet):
     queryset = Purchase.objects.prefetch_related("items__product", "documents")
     serializer_class = PurchaseSerializer
+    search_fields = (
+        "reference_no",
+        "supplier_name",
+        "supplier_tax_invoice",
+        "status",
+        "transaction_date",
+        "note",
+        "items__product_name",
+        "items__sku",
+    )
+    date_filter_field = "transaction_date"
+    party_filter_field = "supplier_name"
+    party_filter_param = "supplier"
 
 
 class SaleViewSet(InventoryModelViewSet):
     queryset = Sale.objects.prefetch_related("items__product", "documents")
     serializer_class = SaleSerializer
+    search_fields = (
+        "reference_no",
+        "customer_name",
+        "status",
+        "transaction_date",
+        "note",
+        "items__product_name",
+        "items__sku",
+    )
+    date_filter_field = "transaction_date"
+    party_filter_field = "customer_name"
+    party_filter_param = "customer"
 
 
 class QuotationViewSet(InventoryModelViewSet):
@@ -252,11 +326,39 @@ class QuotationViewSet(InventoryModelViewSet):
 class BillingNoteViewSet(InventoryModelViewSet):
     queryset = BillingNote.objects.prefetch_related("lines__sale")
     serializer_class = BillingNoteSerializer
+    search_fields = (
+        "reference_no",
+        "customer_name",
+        "status",
+        "billing_note_date",
+        "expected_payment_date",
+        "actual_payment_date",
+        "bank_reference",
+        "note",
+        "lines__sale__reference_no",
+    )
+    date_filter_field = "billing_note_date"
+    party_filter_field = "customer_name"
+    party_filter_param = "customer"
 
 
 class PaymentBatchViewSet(InventoryModelViewSet):
     queryset = PaymentBatch.objects.prefetch_related("lines__purchase")
     serializer_class = PaymentBatchSerializer
+    search_fields = (
+        "reference_no",
+        "supplier_name",
+        "status",
+        "batch_date",
+        "planned_payment_date",
+        "actual_payment_date",
+        "bank_reference",
+        "note",
+        "lines__purchase__reference_no",
+    )
+    date_filter_field = "batch_date"
+    party_filter_field = "supplier_name"
+    party_filter_param = "supplier"
 
 
 @api_view(["GET"])

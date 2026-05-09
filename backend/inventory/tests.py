@@ -46,6 +46,36 @@ class InventoryPaginationTests(APITestCase):
         self.assertEqual(response.data["total_pages"], 2)
         self.assertEqual(len(response.data["results"]), 3)
 
+    def test_purchase_filters_apply_before_pagination(self):
+        Purchase.objects.create(
+            reference_no="PO-SEARCH-1",
+            supplier_name="Alpha Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date="2026-05-01",
+        )
+        Purchase.objects.create(
+            reference_no="PO-SEARCH-2",
+            supplier_name="Beta Supplier",
+            status=Purchase.STATUS_ORDERED,
+            transaction_date="2026-06-01",
+        )
+
+        response = self.client.get(
+            "/api/purchases/",
+            {
+                "page": 1,
+                "page_size": 10,
+                "search": "alpha",
+                "status": Purchase.STATUS_RECEIVED,
+                "date_from": "2026-05-01",
+                "date_to": "2026-05-31",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["reference_no"], "PO-SEARCH-1")
+
 
 class SaleStockValidationTests(TestCase):
     def setUp(self):

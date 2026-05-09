@@ -1,11 +1,38 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
 
+function buildQueryString(params = {}) {
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      const joinedValue = value
+        .filter((item) => item !== undefined && item !== null && item !== "")
+        .join(",");
+      if (joinedValue) {
+        query.set(key, joinedValue);
+      }
+      return;
+    }
+
+    query.set(key, value);
+  });
+
+  return query.toString();
+}
+
 async function request(path, options = {}) {
+  const { params, ...requestOptions } = options;
+  const queryString = buildQueryString(params);
+  const url = `${API_BASE_URL}${path}${queryString ? `?${queryString}` : ""}`;
   const config = {
     method: "GET",
-    ...options,
+    ...requestOptions,
     headers: {
-      ...(options.headers || {}),
+      ...(requestOptions.headers || {}),
     },
   };
 
@@ -14,7 +41,7 @@ async function request(path, options = {}) {
     config.body = JSON.stringify(config.body);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, config);
+  const response = await fetch(url, config);
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -28,8 +55,8 @@ export const api = {
   getDashboard() {
     return request("/dashboard/");
   },
-  getSuppliers() {
-    return request("/suppliers/");
+  getSuppliers(params) {
+    return request("/suppliers/", { params });
   },
   createSupplier(payload) {
     return request("/suppliers/", { method: "POST", body: payload });
@@ -40,8 +67,8 @@ export const api = {
   deleteSupplier(id) {
     return request(`/suppliers/${id}/`, { method: "DELETE" });
   },
-  getCustomers() {
-    return request("/customers/");
+  getCustomers(params) {
+    return request("/customers/", { params });
   },
   createCustomer(payload) {
     return request("/customers/", { method: "POST", body: payload });
@@ -52,8 +79,8 @@ export const api = {
   deleteCustomer(id) {
     return request(`/customers/${id}/`, { method: "DELETE" });
   },
-  getCategories() {
-    return request("/categories/");
+  getCategories(params) {
+    return request("/categories/", { params });
   },
   createCategory(payload) {
     return request("/categories/", { method: "POST", body: payload });
@@ -64,8 +91,8 @@ export const api = {
   deleteCategory(id) {
     return request(`/categories/${id}/`, { method: "DELETE" });
   },
-  getProducts() {
-    return request("/products/");
+  getProducts(params) {
+    return request("/products/", { params });
   },
   createProduct(payload) {
     return request("/products/", { method: "POST", body: payload });
@@ -76,8 +103,8 @@ export const api = {
   deleteProduct(id) {
     return request(`/products/${id}/`, { method: "DELETE" });
   },
-  getPurchases() {
-    return request("/purchases/");
+  getPurchases(params) {
+    return request("/purchases/", { params });
   },
   createPurchase(formData) {
     return request("/purchases/", { method: "POST", body: formData });
@@ -94,8 +121,8 @@ export const api = {
       body: { status },
     });
   },
-  getSales() {
-    return request("/sales/");
+  getSales(params) {
+    return request("/sales/", { params });
   },
   createSale(formData) {
     return request("/sales/", { method: "POST", body: formData });
@@ -112,8 +139,8 @@ export const api = {
       body: { status },
     });
   },
-  getQuotations() {
-    return request("/quotations/");
+  getQuotations(params) {
+    return request("/quotations/", { params });
   },
   createQuotation(payload) {
     return request("/quotations/", { method: "POST", body: payload });
@@ -124,8 +151,8 @@ export const api = {
   deleteQuotation(id) {
     return request(`/quotations/${id}/`, { method: "DELETE" });
   },
-  getBillingNotes() {
-    return request("/billing-notes/");
+  getBillingNotes(params) {
+    return request("/billing-notes/", { params });
   },
   createBillingNote(payload) {
     return request("/billing-notes/", { method: "POST", body: payload });
@@ -136,8 +163,8 @@ export const api = {
   deleteBillingNote(id) {
     return request(`/billing-notes/${id}/`, { method: "DELETE" });
   },
-  getPaymentBatches() {
-    return request("/payment-batches/");
+  getPaymentBatches(params) {
+    return request("/payment-batches/", { params });
   },
   createPaymentBatch(payload) {
     return request("/payment-batches/", { method: "POST", body: payload });

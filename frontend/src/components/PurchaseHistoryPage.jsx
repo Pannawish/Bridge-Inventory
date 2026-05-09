@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PurchaseForm from "./PurchaseForm";
+import PaginationControls from "./PaginationControls";
 import TransactionTable from "./TransactionTable";
 import {
   formatStatusLabel,
@@ -1237,6 +1238,9 @@ function PurchaseHistoryPage({
   products,
   suppliers = defaultSupplierOptions,
   purchases,
+  allPurchases = purchases,
+  pagination = null,
+  onPageRequest,
   onCreatePurchase,
   onPurchaseStatusChange,
   onPurchaseItemStatusChange,
@@ -1254,14 +1258,16 @@ function PurchaseHistoryPage({
   const [editingPurchase, setEditingPurchase] = useState(null);
   const [showNewPurchaseForm, setShowNewPurchaseForm] = useState(false);
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const isServerPaginated = Boolean(pagination && onPageRequest);
+  const selectedStatusKey = selectedStatuses.join(",");
   const activeFilterCount =
     (selectedSupplier ? 1 : 0) +
     (selectedStatuses.length === statusOptions.length ? 0 : 1) +
     (dateFrom ? 1 : 0) +
     (dateTo ? 1 : 0);
   const supplierOptions = useMemo(
-    () => buildSupplierFilterOptions(purchases, suppliers),
-    [purchases, suppliers]
+    () => buildSupplierFilterOptions(allPurchases, suppliers),
+    [allPurchases, suppliers]
   );
   const filteredSupplierOptions = useMemo(() => {
     const normalizedQuery = supplierFilterQuery.trim().toLowerCase();
@@ -1276,6 +1282,10 @@ function PurchaseHistoryPage({
   }, [supplierFilterQuery, supplierOptions]);
 
   const filteredPurchases = useMemo(() => {
+    if (isServerPaginated) {
+      return [...purchases].sort(sortRecentTransactions);
+    }
+
     return purchases.filter((purchase) => {
       const matchesSearch = normalizedSearch
         ? purchaseMatchesQuery(purchase, normalizedSearch)
@@ -1292,7 +1302,52 @@ function PurchaseHistoryPage({
 
       return matchesSearch && matchesStatus && matchesSupplier && matchesDateRange;
     }).sort(sortRecentTransactions);
-  }, [dateFrom, dateTo, normalizedSearch, purchases, selectedStatuses, selectedSupplier]);
+  }, [
+    dateFrom,
+    dateTo,
+    isServerPaginated,
+    normalizedSearch,
+    purchases,
+    selectedStatuses,
+    selectedSupplier,
+  ]);
+  const totalPurchaseCount = pagination?.count ?? purchases.length;
+
+  function getPageRequestParams(page = 1) {
+    return {
+      page,
+      search: searchTerm,
+      statuses:
+        selectedStatuses.length === statusOptions.length
+          ? ""
+          : selectedStatuses.length
+            ? selectedStatuses
+            : "__none__",
+      supplier: selectedSupplier,
+      dateFrom,
+      dateTo,
+    };
+  }
+
+  useEffect(() => {
+    if (!isServerPaginated) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      onPageRequest(getPageRequestParams(1));
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    dateFrom,
+    dateTo,
+    isServerPaginated,
+    onPageRequest,
+    searchTerm,
+    selectedStatusKey,
+    selectedSupplier,
+  ]);
 
   function selectSupplierFilter(supplier) {
     setSelectedSupplier(supplier.companyName);
@@ -1358,7 +1413,7 @@ function PurchaseHistoryPage({
         <PurchaseForm
           products={products}
           suppliers={suppliers}
-          purchases={purchases}
+          purchases={allPurchases}
           onSubmit={handleCreatePurchase}
           onCancel={() => setShowNewPurchaseForm(false)}
         />
@@ -1403,7 +1458,9 @@ function PurchaseHistoryPage({
           </label>
           <div className="stock-report-summary supplier-search-meta">
             <span>
-              {filteredPurchases.length} of {purchases.length} purchases shown
+              {isServerPaginated
+                ? `${filteredPurchases.length} on this page of ${totalPurchaseCount} purchases`
+                : `${filteredPurchases.length} of ${purchases.length} purchases shown`}
             </span>
           </div>
         </div>
@@ -1525,8 +1582,8 @@ function PurchaseHistoryPage({
         onPurchaseItemStatusChange={onPurchaseItemStatusChange}
         onEditRow={setEditingPurchase}
         onDeleteRow={handleDelete}
-        compactRows={5}
-        enableViewAll
+        compactRows={isServerPaginated ? 0 : 5}
+        enableViewAll={!isServerPaginated}
         headerActions={
           <button
             className="primary-button"
@@ -1539,6 +1596,11 @@ function PurchaseHistoryPage({
             New Purchase
           </button>
         }
+      />
+      <PaginationControls
+        pagination={pagination}
+        itemLabel="purchases"
+        onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
       />
     </div>
   );

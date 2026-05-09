@@ -3335,6 +3335,29 @@ th {
   padding: 7px 12px;
 }
 
+.list-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.list-pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.list-pagination .secondary-button {
+  min-height: 34px;
+  padding: 7px 12px;
+}
+
 .trend-summary {
   display: grid;
   gap: 4px;
