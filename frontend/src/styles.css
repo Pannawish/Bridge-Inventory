@@ -3255,6 +3255,23 @@ th {
   background: #eef1f5;
 }
 
+.status-issued,
+.status-scheduled {
+  color: var(--accent-deep);
+  background: #eef3ff;
+}
+
+.status-partially_paid {
+  color: #8f6900;
+  background: #fff7dc;
+}
+
+.status-paid,
+.status-fully_received {
+  color: #0f5a3d;
+  background: #e9fbf2;
+}
+
 .item-pill-list {
   display: flex;
   flex-wrap: wrap;

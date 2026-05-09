@@ -124,6 +124,30 @@ export const api = {
   deleteQuotation(id) {
     return request(`/quotations/${id}/`, { method: "DELETE" });
   },
+  getBillingNotes() {
+    return request("/billing-notes/");
+  },
+  createBillingNote(payload) {
+    return request("/billing-notes/", { method: "POST", body: payload });
+  },
+  updateBillingNote(id, payload) {
+    return request(`/billing-notes/${id}/`, { method: "PATCH", body: payload });
+  },
+  deleteBillingNote(id) {
+    return request(`/billing-notes/${id}/`, { method: "DELETE" });
+  },
+  getPaymentBatches() {
+    return request("/payment-batches/");
+  },
+  createPaymentBatch(payload) {
+    return request("/payment-batches/", { method: "POST", body: payload });
+  },
+  updatePaymentBatch(id, payload) {
+    return request(`/payment-batches/${id}/`, { method: "PATCH", body: payload });
+  },
+  deletePaymentBatch(id) {
+    return request(`/payment-batches/${id}/`, { method: "DELETE" });
+  },
   askChat(question) {
     return request("/chat/", { method: "POST", body: { question } });
   },

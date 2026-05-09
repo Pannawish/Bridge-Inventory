@@ -3,13 +3,22 @@ import { api } from "./api";
 import ChatPanel from "./components/ChatPanel";
 import Dashboard from "./components/Dashboard";
 import CustomerPage, { getDefaultCustomers } from "./components/CustomerPage";
-import { mockDashboard, mockPurchases, mockQuotations, mockSales } from "./mockData";
+import {
+  mockBillingNotes,
+  mockDashboard,
+  mockPaymentBatches,
+  mockPurchases,
+  mockQuotations,
+  mockSales,
+} from "./mockData";
 import PurchaseHistoryPage from "./components/PurchaseHistoryPage";
 import SalesHistoryPage from "./components/SalesHistoryPage";
 import SupplierPage, { getDefaultSuppliers } from "./components/SupplierPage";
 import ProductsPage, { getDefaultProducts } from "./components/ProductsPage";
 import CategoryPage, { getDefaultCategories } from "./components/CategoryPage";
 import QuotationPage from "./components/QuotationPage";
+import BillingNotePage from "./components/BillingNotePage";
+import PaymentBatchPage from "./components/PaymentBatchPage";
 import { applyPurchaseStatusToItems } from "./purchaseStatus";
 import { applySaleStatusToItems } from "./saleStatus";
 import { formatSaleStockIssueMessage, getSaleStockIssues } from "./saleStock";
@@ -156,6 +165,18 @@ const tabs = [
     description: "Search and review sales records.",
   },
   {
+    id: "billing-notes",
+    label: "Billing Notes",
+    shortLabel: "BN",
+    description: "Track money the business expects to receive from customers.",
+  },
+  {
+    id: "payment-batches",
+    label: "Payment Batches",
+    shortLabel: "PB",
+    description: "Track money the business needs to pay to suppliers.",
+  },
+  {
     id: "suppliers",
     label: "Supplier",
     shortLabel: "SP",
@@ -205,6 +226,10 @@ function App() {
   const [usingMockQuotations, setUsingMockQuotations] = useState(false);
   const [usingMockCategories, setUsingMockCategories] = useState(false);
   const [usingMockProducts, setUsingMockProducts] = useState(false);
+  const [billingNotes, setBillingNotes] = useState([]);
+  const [usingMockBillingNotes, setUsingMockBillingNotes] = useState(false);
+  const [paymentBatches, setPaymentBatches] = useState([]);
+  const [usingMockPaymentBatches, setUsingMockPaymentBatches] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -230,6 +255,8 @@ function App() {
       api.getPurchases(),
       api.getSales(),
       api.getQuotations(),
+      api.getBillingNotes(),
+      api.getPaymentBatches(),
     ]);
 
     const [
@@ -241,6 +268,8 @@ function App() {
       purchaseResult,
       salesResult,
       quotationResult,
+      billingNoteResult,
+      paymentBatchResult,
     ] = results;
     const failures = [];
 
@@ -313,6 +342,24 @@ function App() {
       setQuotations(mockQuotations);
       setUsingMockQuotations(true);
       failures.push("quotations");
+    }
+
+    if (billingNoteResult.status === "fulfilled") {
+      setBillingNotes(getCollectionRows(billingNoteResult.value));
+      setUsingMockBillingNotes(false);
+    } else {
+      setBillingNotes(mockBillingNotes);
+      setUsingMockBillingNotes(true);
+      failures.push("billing-notes");
+    }
+
+    if (paymentBatchResult.status === "fulfilled") {
+      setPaymentBatches(getCollectionRows(paymentBatchResult.value));
+      setUsingMockPaymentBatches(false);
+    } else {
+      setPaymentBatches(mockPaymentBatches);
+      setUsingMockPaymentBatches(true);
+      failures.push("payment-batches");
     }
 
     if (failures.length) {
@@ -948,6 +995,186 @@ function App() {
     }
   }
 
+  function buildBillingNotePayload(billingNote) {
+    return {
+      reference_no: billingNote.reference_no || "",
+      customer_name: billingNote.customer_name || "",
+      billing_note_date: billingNote.billing_note_date || null,
+      expected_payment_date: billingNote.expected_payment_date || null,
+      actual_payment_date: billingNote.actual_payment_date || null,
+      status: billingNote.status || "issued",
+      bank_reference: billingNote.bank_reference || "",
+      note: billingNote.note || "",
+      lines: (billingNote.lines || []).map((line) => ({
+        sale: line.sale,
+        received: !!line.received,
+        received_date: line.received_date || null,
+        amount: line.amount,
+      })),
+    };
+  }
+
+  function buildPaymentBatchPayload(paymentBatch) {
+    return {
+      reference_no: paymentBatch.reference_no || "",
+      supplier_name: paymentBatch.supplier_name || "",
+      batch_date: paymentBatch.batch_date || null,
+      planned_payment_date: paymentBatch.planned_payment_date || null,
+      actual_payment_date: paymentBatch.actual_payment_date || null,
+      status: paymentBatch.status || "scheduled",
+      bank_reference: paymentBatch.bank_reference || "",
+      note: paymentBatch.note || "",
+      lines: (paymentBatch.lines || []).map((line) => ({
+        purchase: line.purchase,
+        paid: !!line.paid,
+        paid_date: line.paid_date || null,
+        amount: line.amount,
+      })),
+    };
+  }
+
+  async function handleBillingNoteCreate(nextBillingNote) {
+    setError("");
+
+    if (usingMockBillingNotes) {
+      const resolved = {
+        ...nextBillingNote,
+        id: nextBillingNote.id || `billing-note-mock-${Date.now()}`,
+      };
+      setBillingNotes((rows) => [resolved, ...rows]);
+      setNotice(`Billing note ${resolved.reference_no || resolved.id} created.`);
+      return resolved;
+    }
+
+    try {
+      const saved = await api.createBillingNote(buildBillingNotePayload(nextBillingNote));
+      setBillingNotes((rows) => [saved, ...rows]);
+      setNotice(`Billing note ${saved.reference_no || saved.id} created.`);
+      return saved;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
+  async function handleBillingNoteUpdate(updated) {
+    setError("");
+
+    if (usingMockBillingNotes) {
+      setBillingNotes((rows) =>
+        rows.map((row) => (row.id === updated.id ? updated : row))
+      );
+      setNotice(`Billing note ${updated.reference_no || updated.id} updated.`);
+      return updated;
+    }
+
+    try {
+      const saved = await api.updateBillingNote(
+        updated.id,
+        buildBillingNotePayload(updated)
+      );
+      setBillingNotes((rows) =>
+        rows.map((row) => (row.id === updated.id ? saved : row))
+      );
+      setNotice(`Billing note ${saved.reference_no || saved.id} updated.`);
+      return saved;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
+  async function handleBillingNoteDelete(deleted) {
+    setError("");
+
+    if (usingMockBillingNotes) {
+      setBillingNotes((rows) => rows.filter((row) => row.id !== deleted.id));
+      setNotice(`Billing note ${deleted.reference_no || deleted.id} deleted.`);
+      return true;
+    }
+
+    try {
+      await api.deleteBillingNote(deleted.id);
+      setBillingNotes((rows) => rows.filter((row) => row.id !== deleted.id));
+      setNotice(`Billing note ${deleted.reference_no || deleted.id} deleted.`);
+      return true;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
+  async function handlePaymentBatchCreate(nextBatch) {
+    setError("");
+
+    if (usingMockPaymentBatches) {
+      const resolved = {
+        ...nextBatch,
+        id: nextBatch.id || `payment-batch-mock-${Date.now()}`,
+      };
+      setPaymentBatches((rows) => [resolved, ...rows]);
+      setNotice(`Payment batch ${resolved.reference_no || resolved.id} created.`);
+      return resolved;
+    }
+
+    try {
+      const saved = await api.createPaymentBatch(buildPaymentBatchPayload(nextBatch));
+      setPaymentBatches((rows) => [saved, ...rows]);
+      setNotice(`Payment batch ${saved.reference_no || saved.id} created.`);
+      return saved;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
+  async function handlePaymentBatchUpdate(updated) {
+    setError("");
+
+    if (usingMockPaymentBatches) {
+      setPaymentBatches((rows) =>
+        rows.map((row) => (row.id === updated.id ? updated : row))
+      );
+      setNotice(`Payment batch ${updated.reference_no || updated.id} updated.`);
+      return updated;
+    }
+
+    try {
+      const saved = await api.updatePaymentBatch(
+        updated.id,
+        buildPaymentBatchPayload(updated)
+      );
+      setPaymentBatches((rows) =>
+        rows.map((row) => (row.id === updated.id ? saved : row))
+      );
+      setNotice(`Payment batch ${saved.reference_no || saved.id} updated.`);
+      return saved;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
+  async function handlePaymentBatchDelete(deleted) {
+    setError("");
+
+    if (usingMockPaymentBatches) {
+      setPaymentBatches((rows) => rows.filter((row) => row.id !== deleted.id));
+      setNotice(`Payment batch ${deleted.reference_no || deleted.id} deleted.`);
+      return true;
+    }
+
+    try {
+      await api.deletePaymentBatch(deleted.id);
+      setPaymentBatches((rows) => rows.filter((row) => row.id !== deleted.id));
+      setNotice(`Payment batch ${deleted.reference_no || deleted.id} deleted.`);
+      return true;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
   async function handleAskChat(question) {
     const nextMessages = [...messages, { role: "user", content: question }];
     setMessages(nextMessages);
@@ -1103,6 +1330,28 @@ function App() {
                 onSaleUpdate={handleSaleUpdate}
                 onSaleDelete={handleSaleDelete}
                 onWarning={showWarning}
+              />
+            ) : null}
+
+            {activeTab === "billing-notes" ? (
+              <BillingNotePage
+                billingNotes={billingNotes}
+                customers={customers}
+                sales={sales}
+                onCreateBillingNote={handleBillingNoteCreate}
+                onUpdateBillingNote={handleBillingNoteUpdate}
+                onDeleteBillingNote={handleBillingNoteDelete}
+              />
+            ) : null}
+
+            {activeTab === "payment-batches" ? (
+              <PaymentBatchPage
+                paymentBatches={paymentBatches}
+                suppliers={suppliers}
+                purchases={purchases}
+                onCreatePaymentBatch={handlePaymentBatchCreate}
+                onUpdatePaymentBatch={handlePaymentBatchUpdate}
+                onDeletePaymentBatch={handlePaymentBatchDelete}
               />
             ) : null}
 

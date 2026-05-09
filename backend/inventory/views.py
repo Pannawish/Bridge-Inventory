@@ -9,10 +9,22 @@ from rest_framework.decorators import api_view
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
-from .models import Category, Customer, Product, Purchase, Quotation, Sale, Supplier
+from .models import (
+    BillingNote,
+    Category,
+    Customer,
+    PaymentBatch,
+    Product,
+    Purchase,
+    Quotation,
+    Sale,
+    Supplier,
+)
 from .serializers import (
+    BillingNoteSerializer,
     CategorySerializer,
     CustomerSerializer,
+    PaymentBatchSerializer,
     ProductSerializer,
     PurchaseSerializer,
     QuotationSerializer,
@@ -31,6 +43,12 @@ NULL_IF_BLANK_FIELDS = {
     "shipped_date",
     "delivered_date",
     "payment_date",
+    "expected_payment_date",
+    "actual_payment_date",
+    "planned_payment_date",
+    "paid_date",
+    "billing_note_date",
+    "batch_date",
 }
 
 DECIMAL_FIELD_PLACES = {
@@ -231,6 +249,16 @@ class QuotationViewSet(InventoryModelViewSet):
     serializer_class = QuotationSerializer
 
 
+class BillingNoteViewSet(InventoryModelViewSet):
+    queryset = BillingNote.objects.prefetch_related("lines__sale")
+    serializer_class = BillingNoteSerializer
+
+
+class PaymentBatchViewSet(InventoryModelViewSet):
+    queryset = PaymentBatch.objects.prefetch_related("lines__purchase")
+    serializer_class = PaymentBatchSerializer
+
+
 @api_view(["GET"])
 def api_home(request):
     return Response(
@@ -245,6 +273,8 @@ def api_home(request):
                 "/api/purchases/",
                 "/api/sales/",
                 "/api/quotations/",
+                "/api/billing-notes/",
+                "/api/payment-batches/",
                 "/api/chat/",
             ],
         }

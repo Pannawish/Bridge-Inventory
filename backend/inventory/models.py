@@ -52,6 +52,22 @@ def quotation_id():
     return make_prefixed_id("quotation")
 
 
+def billing_note_id():
+    return make_prefixed_id("billing-note")
+
+
+def billing_note_line_id():
+    return make_prefixed_id("billing-note-line")
+
+
+def payment_batch_id():
+    return make_prefixed_id("payment-batch")
+
+
+def payment_batch_line_id():
+    return make_prefixed_id("payment-batch-line")
+
+
 def list_default():
     return []
 
@@ -389,3 +405,115 @@ class Quotation(TimeStampedModel):
 
     def __str__(self):
         return self.reference_no or self.id
+
+
+class BillingNote(TimeStampedModel):
+    STATUS_DRAFT = "draft"
+    STATUS_ISSUED = "issued"
+    STATUS_PARTIALLY_RECEIVED = "partially_received"
+    STATUS_FULLY_RECEIVED = "fully_received"
+    STATUS_CANCELLED = "cancelled"
+
+    STATUS_CHOICES = [
+        (STATUS_DRAFT, "Draft"),
+        (STATUS_ISSUED, "Issued"),
+        (STATUS_PARTIALLY_RECEIVED, "Partially received"),
+        (STATUS_FULLY_RECEIVED, "Fully received"),
+        (STATUS_CANCELLED, "Cancelled"),
+    ]
+
+    id = models.CharField(max_length=80, primary_key=True, default=billing_note_id)
+    reference_no = models.CharField(max_length=80, blank=True)
+    customer_name = models.CharField(max_length=255)
+    billing_note_date = models.DateField(default=timezone.localdate)
+    expected_payment_date = models.DateField(blank=True, null=True)
+    actual_payment_date = models.DateField(blank=True, null=True)
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_ISSUED)
+    bank_reference = models.CharField(max_length=120, blank=True)
+    note = models.TextField(blank=True)
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["-billing_note_date", "-created_at"]
+
+    def __str__(self):
+        return self.reference_no or self.id
+
+
+class BillingNoteLine(models.Model):
+    id = models.CharField(max_length=80, primary_key=True, default=billing_note_line_id)
+    billing_note = models.ForeignKey(
+        BillingNote,
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    sale = models.ForeignKey(
+        Sale,
+        on_delete=models.PROTECT,
+        related_name="billing_note_lines",
+    )
+    received = models.BooleanField(default=False)
+    received_date = models.DateField(blank=True, null=True)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"{self.billing_note_id} / {self.sale_id}"
+
+
+class PaymentBatch(TimeStampedModel):
+    STATUS_DRAFT = "draft"
+    STATUS_SCHEDULED = "scheduled"
+    STATUS_PARTIALLY_PAID = "partially_paid"
+    STATUS_PAID = "paid"
+    STATUS_CANCELLED = "cancelled"
+
+    STATUS_CHOICES = [
+        (STATUS_DRAFT, "Draft"),
+        (STATUS_SCHEDULED, "Scheduled"),
+        (STATUS_PARTIALLY_PAID, "Partially paid"),
+        (STATUS_PAID, "Paid"),
+        (STATUS_CANCELLED, "Cancelled"),
+    ]
+
+    id = models.CharField(max_length=80, primary_key=True, default=payment_batch_id)
+    reference_no = models.CharField(max_length=80, blank=True)
+    supplier_name = models.CharField(max_length=255)
+    batch_date = models.DateField(default=timezone.localdate)
+    planned_payment_date = models.DateField(blank=True, null=True)
+    actual_payment_date = models.DateField(blank=True, null=True)
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_SCHEDULED)
+    bank_reference = models.CharField(max_length=120, blank=True)
+    note = models.TextField(blank=True)
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["-batch_date", "-created_at"]
+
+    def __str__(self):
+        return self.reference_no or self.id
+
+
+class PaymentBatchLine(models.Model):
+    id = models.CharField(max_length=80, primary_key=True, default=payment_batch_line_id)
+    payment_batch = models.ForeignKey(
+        PaymentBatch,
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    purchase = models.ForeignKey(
+        Purchase,
+        on_delete=models.PROTECT,
+        related_name="payment_batch_lines",
+    )
+    paid = models.BooleanField(default=False)
+    paid_date = models.DateField(blank=True, null=True)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"{self.payment_batch_id} / {self.purchase_id}"
