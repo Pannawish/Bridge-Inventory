@@ -91,6 +91,33 @@ const stockColumnDetails = [
     formula: "available stock x average unit cost from received purchases",
   },
 ];
+const stockInfoGroups = [
+  {
+    title: "Product Context",
+    description: "Identifiers and classification used to read each stock row.",
+    columns: ["Product", "Cat.", "Health"],
+  },
+  {
+    title: "Stock Position",
+    description: "What is on hand, already committed, or currently short.",
+    columns: ["Avail.", "Recv.", "Comm.", "Pending", "Shortage"],
+  },
+  {
+    title: "Purchase Pipeline",
+    description: "Incoming purchase quantities and supplier delivery timing.",
+    columns: ["PO", "Late PO"],
+  },
+  {
+    title: "Planning Signals",
+    description: "Demand, reorder planning, suggested purchase, and value estimates.",
+    columns: ["Demand", "Safety", "Reorder", "Days", "Buy", "Stock Value"],
+  },
+].map((group) => ({
+  ...group,
+  columns: group.columns
+    .map((label) => stockColumnDetails.find((column) => column.label === label))
+    .filter(Boolean),
+}));
 
 function formatCurrency(value) {
   return `฿${Number(value || 0).toLocaleString("en-US", {
@@ -1218,18 +1245,42 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                 </button>
               </div>
 
-              <div className="stock-info-grid">
-                {stockColumnDetails.map((column) => (
-                  <article className="stock-info-item" key={column.label}>
-                    <strong>{column.label}</strong>
-                    <p>{column.meaning}</p>
-                    {column.formula ? (
-                      <div>
-                        <span>Formula</span>
-                        <code>{column.formula}</code>
-                      </div>
-                    ) : null}
-                  </article>
+              <p className="stock-info-summary">
+                These definitions explain how each current stock column is calculated from
+                purchase orders, sales orders, product setup, and reorder rules.
+              </p>
+
+              <div className="stock-info-groups">
+                {stockInfoGroups.map((group) => (
+                  <section className="stock-info-group" key={group.title}>
+                    <div className="stock-info-group-heading">
+                      <h4>{group.title}</h4>
+                      <p>{group.description}</p>
+                    </div>
+
+                    <div className="stock-info-table-wrap">
+                      <table className="stock-info-table">
+                        <thead>
+                          <tr>
+                            <th>Column</th>
+                            <th>Description</th>
+                            <th>Formula</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.columns.map((column) => (
+                            <tr key={column.label}>
+                              <td>
+                                <strong>{column.label}</strong>
+                              </td>
+                              <td>{column.meaning}</td>
+                              <td>{column.formula || "Reference only"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
                 ))}
               </div>
             </div>
