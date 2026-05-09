@@ -1,14 +1,68 @@
 import json
+import re
 from decimal import Decimal
 
 from django.conf import settings
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
+from django.utils.dateparse import parse_date
 from django.utils import timezone
 
-from .models import Product, Purchase, PurchaseItem, Sale, SaleItem
+from .models import (
+    BillingNote,
+    Customer,
+    PaymentBatch,
+    Product,
+    Purchase,
+    PurchaseItem,
+    Quotation,
+    Sale,
+    SaleItem,
+    Supplier,
+)
 
 
 SALE_STOCK_DEDUCTED_STATUSES = {"packed", "shipped", "delivered"}
+CHAT_STOP_WORDS = {
+    "about",
+    "are",
+    "assistant",
+    "batch",
+    "batches",
+    "billing",
+    "detail",
+    "details",
+    "date",
+    "between",
+    "from",
+    "for",
+    "inventory",
+    "interval",
+    "item",
+    "items",
+    "latest",
+    "note",
+    "notes",
+    "please",
+    "product",
+    "products",
+    "purchase",
+    "purchases",
+    "payment",
+    "show",
+    "sale",
+    "sales",
+    "stock",
+    "summarize",
+    "summary",
+    "tell",
+    "the",
+    "this",
+    "to",
+    "transaction",
+    "transactions",
+    "what",
+    "which",
+}
 
 
 def as_number(value):
@@ -139,6 +193,206 @@ def serialize_light_sale(sale, request=None):
     return SaleSerializer(sale, context={"request": request}).data
 
 
+def get_query_terms(question):
+    normalized = re.sub(r"\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b", " ", question or "")
+    normalized = re.sub(r"[^0-9a-zA-Zก-๙_-]+", " ", normalized).lower()
+    terms = [
+        term
+        for term in normalized.split()
+        if len(term) >= 3 and term not in CHAT_STOP_WORDS
+    ]
+    return terms[:8]
+
+
+def get_date_interval(question):
+    raw_dates = re.findall(r"\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b", question or "")
+    dates = []
+    for raw_date in raw_dates[:2]:
+        parsed_date = parse_date(raw_date.replace("/", "-"))
+        if parsed_date:
+            dates.append(parsed_date)
+
+    if not dates:
+        return None
+
+    start_date = dates[0]
+    end_date = dates[1] if len(dates) > 1 else dates[0]
+    if end_date < start_date:
+        start_date, end_date = end_date, start_date
+    return {"start": start_date, "end": end_date}
+
+
+def filter_by_date_interval(queryset, date_field, date_interval):
+    if not date_interval:
+        return queryset
+    return queryset.filter(
+        **{
+            f"{date_field}__gte": date_interval["start"],
+            f"{date_field}__lte": date_interval["end"],
+        }
+    )
+
+
+def get_matching_partner_names(question, model):
+    question_text = (question or "").lower()
+    names = []
+    for name in model.objects.values_list("company_name", flat=True):
+        normalized_name = (name or "").strip()
+        if normalized_name and normalized_name.lower() in question_text:
+            names.append(normalized_name)
+    return names
+
+
+def build_text_query(terms, fields):
+    query = Q()
+    for term in terms:
+        for field in fields:
+            query |= Q(**{f"{field}__icontains": term})
+    return query
+
+
+def limited_unique_rows(primary_rows, fallback_rows, limit=8):
+    rows = []
+    seen = set()
+    for row in list(primary_rows) + list(fallback_rows):
+        key = getattr(row, "id", None)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(row)
+        if len(rows) >= limit:
+            break
+    return rows
+
+
+def serialize_purchase_for_chat(purchase):
+    return {
+        "id": purchase.id,
+        "reference_no": purchase.reference_no,
+        "supplier_name": purchase.supplier_name,
+        "status": purchase.status,
+        "transaction_date": purchase.transaction_date,
+        "payment_term": {
+            "type": purchase.payment_term_type,
+            "days": purchase.payment_term_days,
+            "date": purchase.payment_date,
+        },
+        "grand_total": as_number(purchase.grand_total),
+        "note": purchase.note,
+        "items": [
+            {
+                "product_name": item.product_name,
+                "sku": item.sku,
+                "status": item.item_status,
+                "quantity": as_number(item.quantity),
+                "unit": item.unit,
+                "base_quantity": as_number(item.base_quantity),
+                "base_unit": item.base_unit,
+                "expected_delivery_date": item.expected_delivery_date,
+                "received_date": item.received_date,
+                "amount": as_number(item.amount),
+            }
+            for item in purchase.items.all()
+        ],
+    }
+
+
+def serialize_sale_for_chat(sale):
+    return {
+        "id": sale.id,
+        "reference_no": sale.reference_no,
+        "customer_name": sale.customer_name,
+        "status": sale.status,
+        "transaction_date": sale.transaction_date,
+        "payment_term": {
+            "type": sale.payment_term_type,
+            "days": sale.payment_term_days,
+            "date": sale.payment_date,
+        },
+        "grand_total": as_number(sale.grand_total),
+        "note": sale.note,
+        "items": [
+            {
+                "product_name": item.product_name,
+                "sku": item.sku,
+                "status": item.item_status,
+                "quantity": as_number(item.quantity),
+                "unit": item.unit,
+                "base_quantity": as_number(item.base_quantity),
+                "base_unit": item.base_unit,
+                "shipped_date": item.shipped_date,
+                "delivered_date": item.delivered_date,
+                "amount": as_number(item.amount),
+            }
+            for item in sale.items.all()
+        ],
+    }
+
+
+def serialize_billing_note_for_chat(note):
+    return {
+        "id": note.id,
+        "reference_no": note.reference_no,
+        "customer_name": note.customer_name,
+        "billing_note_date": note.billing_note_date,
+        "expected_payment_date": note.expected_payment_date,
+        "actual_payment_date": note.actual_payment_date,
+        "status": note.status,
+        "bank_reference": note.bank_reference,
+        "total_amount": as_number(note.total_amount),
+        "note": note.note,
+        "lines": [
+            {
+                "sale_reference_no": line.sale.reference_no,
+                "sale_status": line.sale.status,
+                "received": line.received,
+                "received_date": line.received_date,
+                "amount": as_number(line.amount),
+            }
+            for line in note.lines.all()
+        ],
+    }
+
+
+def serialize_payment_batch_for_chat(batch):
+    return {
+        "id": batch.id,
+        "reference_no": batch.reference_no,
+        "supplier_name": batch.supplier_name,
+        "batch_date": batch.batch_date,
+        "planned_payment_date": batch.planned_payment_date,
+        "actual_payment_date": batch.actual_payment_date,
+        "status": batch.status,
+        "bank_reference": batch.bank_reference,
+        "total_amount": as_number(batch.total_amount),
+        "note": batch.note,
+        "lines": [
+            {
+                "purchase_reference_no": line.purchase.reference_no,
+                "purchase_status": line.purchase.status,
+                "paid": line.paid,
+                "paid_date": line.paid_date,
+                "amount": as_number(line.amount),
+            }
+            for line in batch.lines.all()
+        ],
+    }
+
+
+def serialize_quotation_for_chat(quotation):
+    return {
+        "id": quotation.id,
+        "reference_no": quotation.reference_no,
+        "quotation_date": quotation.quotation_date,
+        "valid_until_date": quotation.valid_until_date,
+        "customer_name": quotation.customer_name,
+        "supplier_name": quotation.supplier_name,
+        "grand_total": as_number(quotation.grand_total),
+        "note": quotation.note,
+        "items": quotation.items[:8] if isinstance(quotation.items, list) else quotation.items,
+    }
+
+
 def build_dashboard_summary(request=None):
     stock_report = build_stock_report()
     low_stock_items = [
@@ -202,71 +456,412 @@ def build_dashboard_summary(request=None):
     }
 
 
-def build_local_chat_answer(question):
-    stock_report = build_stock_report()
-    low_stock = [
-        row for row in stock_report if Decimal(str(row["available_stock"])) <= Decimal(str(row["reorder_level"]))
-    ]
-    question_text = question.lower()
+def build_ai_inventory_context(question, request=None):
+    terms = get_query_terms(question)
+    date_interval = get_date_interval(question)
+    matching_customer_names = get_matching_partner_names(question, Customer)
+    matching_supplier_names = get_matching_partner_names(question, Supplier)
+    dashboard_summary = build_dashboard_summary(request)
+    stock_report = dashboard_summary["stock_report"]
 
-    if "low" in question_text or "restock" in question_text or "stock" in question_text:
+    product_query = build_text_query(terms, ["sku", "product_name", "category_name"])
+    matching_products = Product.objects.filter(product_query) if terms else Product.objects.none()
+    matching_product_ids = list(matching_products.values_list("id", flat=True)[:20])
+
+    matching_stock_rows = [
+        row
+        for row in stock_report
+        if row["product_id"] in matching_product_ids
+        or any(
+            term in f"{row['product_name']} {row['sku']} {row['category']}".lower()
+            for term in terms
+        )
+    ][:12]
+    low_stock_rows = [
+        row
+        for row in stock_report
+        if Decimal(str(row["reorder_level"])) > 0
+        and Decimal(str(row["available_stock"])) <= Decimal(str(row["reorder_level"]))
+    ][:12]
+
+    purchases = Purchase.objects.prefetch_related(
+        Prefetch("items", queryset=PurchaseItem.objects.select_related("product")),
+        "documents",
+    )
+    sales = Sale.objects.prefetch_related(
+        Prefetch("items", queryset=SaleItem.objects.select_related("product")),
+        "documents",
+    )
+    purchase_query = (
+        Q(supplier_name__in=matching_supplier_names)
+        if matching_supplier_names
+        else build_text_query(terms, ["reference_no", "supplier_name", "supplier_tax_invoice", "note"])
+    )
+    sale_query = (
+        Q(customer_name__in=matching_customer_names)
+        if matching_customer_names
+        else build_text_query(terms, ["reference_no", "customer_name", "note"])
+    )
+    if matching_customer_names or matching_supplier_names:
+        quotation_query = Q()
+        if matching_customer_names:
+            quotation_query |= Q(customer_name__in=matching_customer_names)
+        if matching_supplier_names:
+            quotation_query |= Q(supplier_name__in=matching_supplier_names)
+    else:
+        quotation_query = build_text_query(terms, ["reference_no", "customer_name", "supplier_name", "note"])
+    billing_query = (
+        Q(customer_name__in=matching_customer_names)
+        if matching_customer_names
+        else build_text_query(terms, ["reference_no", "customer_name", "bank_reference", "note"])
+    )
+    payment_query = (
+        Q(supplier_name__in=matching_supplier_names)
+        if matching_supplier_names
+        else build_text_query(terms, ["reference_no", "supplier_name", "bank_reference", "note"])
+    )
+
+    if matching_product_ids and not matching_customer_names and not matching_supplier_names:
+        purchase_query |= Q(items__product_id__in=matching_product_ids) | Q(items__sku__in=[row["sku"] for row in matching_stock_rows])
+        sale_query |= Q(items__product_id__in=matching_product_ids) | Q(items__sku__in=[row["sku"] for row in matching_stock_rows])
+
+    date_filtered_purchases = filter_by_date_interval(purchases, "transaction_date", date_interval)
+    date_filtered_sales = filter_by_date_interval(sales, "transaction_date", date_interval)
+    matched_purchases = (
+        date_filtered_purchases.filter(purchase_query).distinct()
+        if terms
+        else (date_filtered_purchases if date_interval else Purchase.objects.none())
+    )
+    matched_sales = (
+        date_filtered_sales.filter(sale_query).distinct()
+        if terms
+        else (date_filtered_sales if date_interval else Sale.objects.none())
+    )
+    recent_purchases = date_filtered_purchases.order_by("-transaction_date", "-created_at")[:8]
+    recent_sales = date_filtered_sales.order_by("-transaction_date", "-created_at")[:8]
+
+    quotations = Quotation.objects.all()
+    billing_notes = BillingNote.objects.prefetch_related("lines__sale")
+    payment_batches = PaymentBatch.objects.prefetch_related("lines__purchase")
+
+    date_filtered_quotations = filter_by_date_interval(quotations, "quotation_date", date_interval)
+    date_filtered_billing_notes = filter_by_date_interval(billing_notes, "billing_note_date", date_interval)
+    date_filtered_payment_batches = filter_by_date_interval(payment_batches, "batch_date", date_interval)
+    matched_quotations = (
+        date_filtered_quotations.filter(quotation_query).distinct()
+        if terms
+        else (date_filtered_quotations if date_interval else Quotation.objects.none())
+    )
+    matched_billing_notes = (
+        date_filtered_billing_notes.filter(billing_query).distinct()
+        if terms
+        else (date_filtered_billing_notes if date_interval else BillingNote.objects.none())
+    )
+    matched_payment_batches = (
+        date_filtered_payment_batches.filter(payment_query).distinct()
+        if terms
+        else (date_filtered_payment_batches if date_interval else PaymentBatch.objects.none())
+    )
+    has_query_filter = bool(terms or date_interval or matching_customer_names or matching_supplier_names)
+    purchase_fallback = [] if has_query_filter else recent_purchases
+    sale_fallback = [] if has_query_filter else recent_sales
+    quotation_fallback = (
+        []
+        if has_query_filter
+        else date_filtered_quotations.order_by("-quotation_date", "-created_at")[:6]
+    )
+    billing_note_fallback = (
+        []
+        if has_query_filter
+        else date_filtered_billing_notes.order_by("-billing_note_date", "-created_at")[:6]
+    )
+    payment_batch_fallback = (
+        []
+        if has_query_filter
+        else date_filtered_payment_batches.order_by("-batch_date", "-created_at")[:6]
+    )
+    purchase_rows = [
+        serialize_purchase_for_chat(purchase)
+        for purchase in limited_unique_rows(matched_purchases, purchase_fallback, limit=8)
+    ]
+    sale_rows = [
+        serialize_sale_for_chat(sale)
+        for sale in limited_unique_rows(matched_sales, sale_fallback, limit=8)
+    ]
+    quotation_rows = [
+        serialize_quotation_for_chat(quotation)
+        for quotation in limited_unique_rows(matched_quotations, quotation_fallback, limit=6)
+    ]
+    billing_note_rows = [
+        serialize_billing_note_for_chat(note)
+        for note in limited_unique_rows(matched_billing_notes, billing_note_fallback, limit=6)
+    ]
+    payment_batch_rows = [
+        serialize_payment_batch_for_chat(batch)
+        for batch in limited_unique_rows(matched_payment_batches, payment_batch_fallback, limit=6)
+    ]
+
+    return {
+        "query_terms": terms,
+        "matched_customers": matching_customer_names,
+        "matched_suppliers": matching_supplier_names,
+        "today": timezone.localdate(),
+        "date_interval": date_interval,
+        "match_counts": {
+            "products": matching_products.count() if terms else 0,
+            "purchases": matched_purchases.count() if terms else 0,
+            "sales": matched_sales.count() if terms else 0,
+            "quotations": matched_quotations.count() if terms else 0,
+            "billing_notes": matched_billing_notes.count() if terms else 0,
+            "payment_batches": matched_payment_batches.count() if terms else 0,
+        },
+        "dashboard_metrics": dashboard_summary["metrics"],
+        "stock": {
+            "matching_rows": matching_stock_rows,
+            "low_stock_rows": low_stock_rows,
+        },
+        "products": [
+            {
+                "id": product.id,
+                "sku": product.sku,
+                "product_name": product.product_name,
+                "category": product.category_name,
+                "stock_base_unit": product.stock_base_unit,
+                "reorder_level": as_number(product.reorder_level),
+                "detail": product.detail,
+            }
+            for product in limited_unique_rows(matching_products[:12], Product.objects.all()[:8], limit=12)
+        ],
+        "summaries": {
+            "purchases": summarize_model_rows(matched_purchases, "grand_total", purchase_rows),
+            "sales": summarize_model_rows(matched_sales, "grand_total", sale_rows),
+            "quotations": summarize_model_rows(matched_quotations, "grand_total", quotation_rows),
+            "billing_notes": summarize_model_rows(matched_billing_notes, "total_amount", billing_note_rows),
+            "payment_batches": summarize_model_rows(matched_payment_batches, "total_amount", payment_batch_rows),
+        },
+        "purchases": purchase_rows,
+        "sales": sale_rows,
+        "quotations": quotation_rows,
+        "billing_notes": billing_note_rows,
+        "payment_batches": payment_batch_rows,
+    }
+
+
+def format_transaction_line(row, party_key):
+    return (
+        f"{row['reference_no'] or row['id']}: {row[party_key]}, {row['status']}, "
+        f"total {row.get('grand_total', row.get('total_amount'))}."
+    )
+
+
+def summarize_money_rows(rows, amount_key="grand_total"):
+    rows = list(rows)
+    active_rows = [row for row in rows if row.get("status") != "cancelled"]
+    return {
+        "count": len(rows),
+        "active_count": len(active_rows),
+        "cancelled_count": len(rows) - len(active_rows),
+        "total": as_number(sum(Decimal(str(row.get(amount_key) or 0)) for row in rows)),
+        "active_total": as_number(sum(Decimal(str(row.get(amount_key) or 0)) for row in active_rows)),
+    }
+
+
+def summarize_model_rows(queryset, amount_attr="grand_total", fallback_rows=None):
+    rows = list(queryset)
+    if not rows and fallback_rows is not None:
+        return summarize_money_rows(fallback_rows, amount_key=amount_attr)
+
+    active_rows = [row for row in rows if getattr(row, "status", "") != "cancelled"]
+    return {
+        "count": len(rows),
+        "active_count": len(active_rows),
+        "cancelled_count": len(rows) - len(active_rows),
+        "total": as_number(sum(getattr(row, amount_attr, Decimal("0")) or Decimal("0") for row in rows)),
+        "active_total": as_number(
+            sum(getattr(row, amount_attr, Decimal("0")) or Decimal("0") for row in active_rows)
+        ),
+    }
+
+
+def date_interval_label(date_interval):
+    if not date_interval:
+        return ""
+    start = date_interval["start"].isoformat()
+    end = date_interval["end"].isoformat()
+    return start if start == end else f"{start} to {end}"
+
+
+def build_transaction_summary_answer(label, rows, party_key, date_interval=None, summary=None):
+    if not rows:
+        scope = f" for {date_interval_label(date_interval)}" if date_interval else ""
+        return f"No {label.lower()} records were found{scope}."
+
+    summary = summary or summarize_money_rows(rows)
+    scope = f" for {date_interval_label(date_interval)}" if date_interval else ""
+    lines = " ".join(format_transaction_line(row, party_key) for row in rows[:5])
+    return (
+        f"{label} summary{scope}: {summary['count']} records, "
+        f"{summary['active_count']} active, total {summary['total']}, "
+        f"active total {summary['active_total']}. {lines}"
+    )
+
+
+def get_reference_prefix(terms):
+    for term in terms:
+        upper_term = term.upper()
+        for prefix in ["PO", "TI", "BN", "PMT", "QT"]:
+            if upper_term.startswith(f"{prefix}-"):
+                return prefix
+    return ""
+
+
+def matched_rows(context, key):
+    count = context["match_counts"].get(key, 0)
+    return context[key][:count] if count else []
+
+
+def build_local_chat_answer(question, context=None):
+    context = context or build_ai_inventory_context(question)
+    low_stock = context["stock"]["low_stock_rows"]
+    matching_stock = context["stock"]["matching_rows"]
+    question_text = question.lower()
+    reference_like = any("-" in term and any(char.isdigit() for char in term) for term in context["query_terms"])
+    reference_prefix = get_reference_prefix(context["query_terms"])
+
+    if "low" in question_text or "restock" in question_text:
         if not low_stock:
             return "No low-stock products were found from the current inventory data."
+        lines = [
+            (
+                f"{row['product_name']} has {row['available_stock']} {row['unit']} available, "
+                f"reorder level {row['reorder_level']}, suggested restock {row['recommended_restock']}."
+            )
+            for row in low_stock[:5]
+        ]
+        return "Products needing attention: " + " ".join(lines)
 
+    if matching_stock and any(word in question_text for word in ["product", "sku", "stock", "restock", "reorder"]):
+        lines = [
+            (
+                f"{row['product_name']} ({row['sku']}) has {row['available_stock']} "
+                f"{row['unit']} available, reorder level {row['reorder_level']}, "
+                f"suggested restock {row['recommended_restock']}."
+            )
+            for row in matching_stock[:5]
+        ]
+        return "Matching stock details: " + " ".join(lines)
+
+    if "stock" in question_text:
+        if not low_stock:
+            return "No low-stock products were found from the current inventory data."
         lines = [
             f"{row['product_name']} has {row['available_stock']} {row['unit']} available."
             for row in low_stock[:5]
         ]
         return "Products needing attention: " + " ".join(lines)
 
-    if "sale" in question_text:
-        recent_sales = Sale.objects.order_by("-transaction_date", "-created_at")[:5]
-        if not recent_sales:
-            return "No sales transactions are stored yet."
+    if reference_like:
+        if reference_prefix == "PO" and matched_rows(context, "purchases"):
+            return "Purchase summary: " + " ".join(
+                format_transaction_line(purchase, "supplier_name")
+                for purchase in matched_rows(context, "purchases")[:5]
+            )
+        if reference_prefix == "TI" and matched_rows(context, "sales"):
+            return "Sales summary: " + " ".join(
+                format_transaction_line(sale, "customer_name")
+                for sale in matched_rows(context, "sales")[:5]
+            )
+        if reference_prefix == "BN" and matched_rows(context, "billing_notes"):
+            return "Billing note summary: " + " ".join(
+                f"{note['reference_no'] or note['id']}: {note['customer_name']}, {note['status']}, total {note['total_amount']}."
+                for note in matched_rows(context, "billing_notes")[:5]
+            )
+        if reference_prefix == "PMT" and matched_rows(context, "payment_batches"):
+            return "Payment batch summary: " + " ".join(
+                f"{batch['reference_no'] or batch['id']}: {batch['supplier_name']}, {batch['status']}, total {batch['total_amount']}."
+                for batch in matched_rows(context, "payment_batches")[:5]
+            )
+        if reference_prefix == "QT" and matched_rows(context, "quotations"):
+            return "Quotation summary: " + " ".join(
+                f"{quotation['reference_no'] or quotation['id']}: {quotation['customer_name'] or quotation['supplier_name']}, total {quotation['grand_total']}."
+                for quotation in matched_rows(context, "quotations")[:5]
+            )
+        if matched_rows(context, "purchases"):
+            return "Purchase summary: " + " ".join(
+                format_transaction_line(purchase, "supplier_name")
+                for purchase in matched_rows(context, "purchases")[:5]
+            )
+        if matched_rows(context, "sales"):
+            return "Sales summary: " + " ".join(
+                format_transaction_line(sale, "customer_name")
+                for sale in matched_rows(context, "sales")[:5]
+            )
+        if matched_rows(context, "billing_notes"):
+            return "Billing note summary: " + " ".join(
+                f"{note['reference_no'] or note['id']}: {note['customer_name']}, {note['status']}, total {note['total_amount']}."
+                for note in matched_rows(context, "billing_notes")[:5]
+            )
+        if matched_rows(context, "payment_batches"):
+            return "Payment batch summary: " + " ".join(
+                f"{batch['reference_no'] or batch['id']}: {batch['supplier_name']}, {batch['status']}, total {batch['total_amount']}."
+                for batch in matched_rows(context, "payment_batches")[:5]
+            )
+        return "I could not find a matching reference number in the current inventory data."
 
-        lines = [
-            f"{sale.reference_no or sale.id}: {sale.customer_name}, {sale.status}, total {as_number(sale.grand_total)}."
-            for sale in recent_sales
-        ]
-        return "Latest sales: " + " ".join(lines)
+    if "sale" in question_text:
+        if not context["sales"]:
+            return "No sales transactions are stored yet."
+        return build_transaction_summary_answer(
+            "Sales",
+            context["sales"],
+            "customer_name",
+            context["date_interval"],
+            context["summaries"]["sales"],
+        )
 
     if "purchase" in question_text:
-        recent_purchases = Purchase.objects.order_by("-transaction_date", "-created_at")[:5]
-        if not recent_purchases:
+        if not context["purchases"]:
             return "No purchase transactions are stored yet."
+        return build_transaction_summary_answer(
+            "Purchase",
+            context["purchases"],
+            "supplier_name",
+            context["date_interval"],
+            context["summaries"]["purchases"],
+        )
 
-        lines = [
-            f"{purchase.reference_no or purchase.id}: {purchase.supplier_name}, {purchase.status}, total {as_number(purchase.grand_total)}."
-            for purchase in recent_purchases
-        ]
-        return "Latest purchases: " + " ".join(lines)
+    if "billing" in question_text:
+        if not context["billing_notes"]:
+            return "No billing notes are stored yet."
+        return "Billing note summary: " + " ".join(
+            f"{note['reference_no'] or note['id']}: {note['customer_name']}, {note['status']}, total {note['total_amount']}."
+            for note in context["billing_notes"][:5]
+        )
+
+    if "payment" in question_text or "paid" in question_text:
+        if not context["payment_batches"]:
+            return "No payment batches are stored yet."
+        return "Payment batch summary: " + " ".join(
+            f"{batch['reference_no'] or batch['id']}: {batch['supplier_name']}, {batch['status']}, total {batch['total_amount']}."
+            for batch in context["payment_batches"][:5]
+        )
 
     return (
-        "I can summarize low stock, restock needs, recent sales, and recent purchases. "
-        "Try asking which products need restocking."
+        "I can summarize stock, restock needs, products, sales, purchases, quotations, "
+        "billing notes, and payment batches. Include a reference number, SKU, product, "
+        "customer, or supplier name for a more specific answer."
     )
 
 
 def answer_inventory_question(question, request=None):
+    context = build_ai_inventory_context(question, request)
     if not settings.OPENAI_API_KEY:
         return {
-            "answer": build_local_chat_answer(question),
+            "answer": build_local_chat_answer(question, context),
             "used_model": "local-summary",
         }
 
     from openai import OpenAI
-
-    context = build_dashboard_summary(request)
-    context["products"] = [
-        {
-            "id": product.id,
-            "sku": product.sku,
-            "product_name": product.product_name,
-            "category": product.category_name,
-            "stock_base_unit": product.stock_base_unit,
-        }
-        for product in Product.objects.all()[:50]
-    ]
 
     client = OpenAI(api_key=settings.OPENAI_API_KEY)
     response = client.responses.create(
