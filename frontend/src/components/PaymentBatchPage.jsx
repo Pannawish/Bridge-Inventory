@@ -122,7 +122,6 @@ function StatusPill({ status }) {
 }
 
 function CreatePaymentBatchModal({
-  suppliers,
   purchases,
   paymentBatches,
   onClose,
@@ -137,14 +136,14 @@ function CreatePaymentBatchModal({
   const [error, setError] = useState("");
 
   const supplierOptions = useMemo(() => {
-    const fromSuppliers = suppliers
-      .map((supplier) => `${supplier.companyName ?? ""}`.trim())
-      .filter(Boolean);
-    const fromPurchases = purchases
-      .map((purchase) => `${purchase.supplier_name ?? ""}`.trim())
-      .filter(Boolean);
-    return Array.from(new Set([...fromSuppliers, ...fromPurchases])).sort();
-  }, [suppliers, purchases]);
+    const set = new Set(
+      purchases
+        .filter((purchase) => isPurchaseAvailableForPaymentBatch(purchase, paymentBatches))
+        .map((purchase) => `${purchase.supplier_name ?? ""}`.trim())
+        .filter(Boolean)
+    );
+    return Array.from(set).sort();
+  }, [purchases, paymentBatches]);
 
   const eligiblePurchases = useMemo(() => {
     if (!supplierName) return [];
@@ -216,7 +215,7 @@ function CreatePaymentBatchModal({
   }
 
   return (
-    <section className="section-card" aria-labelledby="pb-create-title">
+    <section className="section-card payment-batch-create-card" aria-labelledby="pb-create-title">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Payment Batch</p>
@@ -322,9 +321,18 @@ function CreatePaymentBatchModal({
                 </button>
               </div>
 
-              <div className="transaction-table-window">
-                <div className="table-scroll desktop-table">
-                  <table className="transaction-history-table partner-line-table">
+              <div className="transaction-table-window payment-batch-create-table-window">
+                <div className="table-scroll payment-batch-create-scroll">
+                  <table className="transaction-history-table partner-line-table payment-batch-create-table">
+                    <colgroup>
+                      <col className="payment-batch-select-col" />
+                      <col className="payment-batch-reference-col" />
+                      <col className="payment-batch-date-col" />
+                      <col className="payment-batch-status-col" />
+                      <col className="payment-batch-term-col" />
+                      <col className="payment-batch-date-col" />
+                      <col className="payment-batch-amount-col" />
+                    </colgroup>
                     <thead>
                       <tr>
                         <th />
