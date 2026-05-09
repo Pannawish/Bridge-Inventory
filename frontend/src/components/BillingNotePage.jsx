@@ -120,7 +120,6 @@ function StatusPill({ status }) {
 }
 
 function CreateBillingNoteModal({
-  customers,
   sales,
   billingNotes,
   onClose,
@@ -135,15 +134,14 @@ function CreateBillingNoteModal({
   const [error, setError] = useState("");
 
   const customerOptions = useMemo(() => {
-    const fromCustomers = customers
-      .map((customer) => `${customer.companyName ?? ""}`.trim())
-      .filter(Boolean);
-    const fromSales = sales
-      .map((sale) => `${sale.customer_name ?? ""}`.trim())
-      .filter(Boolean);
-    const set = new Set([...fromCustomers, ...fromSales]);
+    const set = new Set(
+      sales
+        .filter((sale) => isSaleAvailableForBillingNote(sale, billingNotes))
+        .map((sale) => `${sale.customer_name ?? ""}`.trim())
+        .filter(Boolean)
+    );
     return Array.from(set).sort();
-  }, [customers, sales]);
+  }, [sales, billingNotes]);
 
   const eligibleSales = useMemo(() => {
     if (!customerName) return [];
@@ -215,7 +213,7 @@ function CreateBillingNoteModal({
   }
 
   return (
-    <section className="section-card" aria-labelledby="bn-create-title">
+    <section className="section-card billing-note-create-card" aria-labelledby="bn-create-title">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Billing Note</p>
@@ -321,9 +319,18 @@ function CreateBillingNoteModal({
                 </button>
               </div>
 
-              <div className="transaction-table-window">
-                <div className="table-scroll desktop-table">
-                  <table className="transaction-history-table partner-line-table">
+              <div className="transaction-table-window billing-note-create-table-window">
+                <div className="table-scroll billing-note-create-scroll">
+                  <table className="transaction-history-table partner-line-table billing-note-create-table">
+                    <colgroup>
+                      <col className="billing-note-select-col" />
+                      <col className="billing-note-reference-col" />
+                      <col className="billing-note-date-col" />
+                      <col className="billing-note-status-col" />
+                      <col className="billing-note-term-col" />
+                      <col className="billing-note-date-col" />
+                      <col className="billing-note-amount-col" />
+                    </colgroup>
                     <thead>
                       <tr>
                         <th />
