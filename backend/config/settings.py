@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 
@@ -9,6 +10,9 @@ load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-this-development-secret")
 DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
+if not DEBUG and SECRET_KEY == "change-this-development-secret":
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG=False.")
+
 ALLOWED_HOSTS = [
     host.strip()
     for host in os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
@@ -108,6 +112,7 @@ CORS_ALLOWED_ORIGINS = [
     ).split(",")
     if origin.strip()
 ]
+INVENTORY_REQUIRE_AUTH = os.getenv("INVENTORY_REQUIRE_AUTH", "False").lower() == "true"
 
 REST_FRAMEWORK = {
     "COERCE_DECIMAL_TO_STRING": False,
@@ -118,6 +123,11 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.MultiPartParser",
     ],
     "DEFAULT_PAGINATION_CLASS": None,
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated"
+        if INVENTORY_REQUIRE_AUTH
+        else "rest_framework.permissions.AllowAny"
+    ],
 }
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")

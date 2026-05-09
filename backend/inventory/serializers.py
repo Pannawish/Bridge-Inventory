@@ -280,7 +280,12 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_current_stock(self, product):
         from .services import get_available_stock_by_product_id
 
-        return get_available_stock_by_product_id().get(product.id, Decimal("0"))
+        stock_by_product_id = self.context.get("current_stock_by_product_id")
+        if stock_by_product_id is None:
+            stock_by_product_id = get_available_stock_by_product_id()
+            self.context["current_stock_by_product_id"] = stock_by_product_id
+
+        return stock_by_product_id.get(product.id, Decimal("0"))
 
     def validate_previousSkus(self, value):
         return clean_list(value)
@@ -730,6 +735,33 @@ class SaleSerializer(serializers.ModelSerializer):
         from .services import apply_sale_status_to_items
 
         apply_sale_status_to_items(sale)
+
+    def validate(self, attrs):
+        from .services import get_sale_stock_issues
+
+        sale_status = attrs.get("status", getattr(self.instance, "status", Sale.STATUS_DRAFT))
+        items = attrs.get("items")
+        if items is None and self.instance is not None:
+            items = list(self.instance.items.select_related("product"))
+
+        issues = get_sale_stock_issues(
+            items or [],
+            sale_status,
+            exclude_sale_id=getattr(self.instance, "id", None),
+        )
+        if issues:
+            details = "; ".join(
+                (
+                    f"{issue['product']} needs {issue['requested']} {issue['unit']}, "
+                    f"available {issue['available']} {issue['unit']}"
+                ).strip()
+                for issue in issues
+            )
+            raise serializers.ValidationError(
+                {"items": f"Insufficient stock for this sale. {details}."}
+            )
+
+        return attrs
 
     def create(self, validated_data):
         items = validated_data.pop("items", [])

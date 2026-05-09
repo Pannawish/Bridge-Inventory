@@ -82,7 +82,8 @@ def get_product_label(product):
     return product.product_name if product else ""
 
 
-def get_available_stock_by_product_id():
+def get_available_stock_by_product_id(product_ids=None, exclude_sale_id=None):
+    product_ids = {product_id for product_id in product_ids or [] if product_id}
     received = {}
     committed = {}
 
@@ -90,6 +91,9 @@ def get_available_stock_by_product_id():
         item_status=PurchaseItem.ITEM_RECEIVED,
         product_id__isnull=False,
     )
+    if product_ids:
+        purchase_items = purchase_items.filter(product_id__in=product_ids)
+
     for item in purchase_items:
         received[item.product_id] = received.get(item.product_id, Decimal("0")) + item.base_quantity
 
@@ -97,17 +101,102 @@ def get_available_stock_by_product_id():
         item_status__in=SALE_STOCK_DEDUCTED_STATUSES,
         product_id__isnull=False,
     )
+    if product_ids:
+        sale_items = sale_items.filter(product_id__in=product_ids)
+    if exclude_sale_id:
+        sale_items = sale_items.exclude(sale_id=exclude_sale_id)
+
     for item in sale_items:
         committed[item.product_id] = committed.get(item.product_id, Decimal("0")) + item.base_quantity
 
+    products = Product.objects.all()
+    if product_ids:
+        products = products.filter(id__in=product_ids)
+
     stock = {}
-    for product in Product.objects.all():
+    for product in products:
         stock[product.id] = max(
             Decimal("0"),
             received.get(product.id, Decimal("0")) - committed.get(product.id, Decimal("0")),
         )
 
     return stock
+
+
+def get_sale_item_product_id(item):
+    if isinstance(item, dict):
+        product = item.get("product")
+        return getattr(product, "id", None) if product else None
+
+    return item.product_id
+
+
+def get_sale_item_base_quantity(item):
+    if isinstance(item, dict):
+        return Decimal(str(item.get("base_quantity") or item.get("quantity") or 0))
+
+    return item.base_quantity
+
+
+def get_sale_item_status(item, sale_status):
+    if sale_status in {Sale.STATUS_PACKED, Sale.STATUS_SHIPPED, Sale.STATUS_DELIVERED}:
+        return get_sale_item_status_for_transaction_status(sale_status)
+
+    if sale_status in {
+        Sale.STATUS_PARTIALLY_PACKED,
+        Sale.STATUS_PARTIALLY_SHIPPED,
+        Sale.STATUS_PARTIALLY_DELIVERED,
+    }:
+        if isinstance(item, dict):
+            return item.get("item_status") or SaleItem.ITEM_PENDING
+
+        return item.item_status
+
+    return SaleItem.ITEM_CANCELLED if sale_status == Sale.STATUS_CANCELLED else SaleItem.ITEM_PENDING
+
+
+def get_sale_stock_issues(items, sale_status, exclude_sale_id=None):
+    requested_by_product_id = {}
+
+    for item in items or []:
+        item_status = get_sale_item_status(item, sale_status)
+        if item_status not in SALE_STOCK_DEDUCTED_STATUSES:
+            continue
+
+        product_id = get_sale_item_product_id(item)
+        if not product_id:
+            continue
+
+        requested_by_product_id[product_id] = (
+            requested_by_product_id.get(product_id, Decimal("0"))
+            + get_sale_item_base_quantity(item)
+        )
+
+    if not requested_by_product_id:
+        return []
+
+    available_stock = get_available_stock_by_product_id(
+        product_ids=requested_by_product_id.keys(),
+        exclude_sale_id=exclude_sale_id,
+    )
+    products = Product.objects.in_bulk(requested_by_product_id.keys())
+    issues = []
+    for product_id, requested_quantity in requested_by_product_id.items():
+        available_quantity = available_stock.get(product_id, Decimal("0"))
+        if requested_quantity <= available_quantity:
+            continue
+
+        product = products.get(product_id)
+        issues.append(
+            {
+                "product": get_product_label(product) or product_id,
+                "requested": as_number(requested_quantity),
+                "available": as_number(available_quantity),
+                "unit": product.stock_base_unit if product else "",
+            }
+        )
+
+    return issues
 
 
 def apply_purchase_status_to_items(purchase):

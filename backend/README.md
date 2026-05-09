@@ -13,6 +13,7 @@ COLLATE utf8mb4_unicode_ci;
 
 CREATE USER 'inventory_user'@'localhost' IDENTIFIED BY 'inventory_password';
 GRANT ALL PRIVILEGES ON inventory_db.* TO 'inventory_user'@'localhost';
+GRANT ALL PRIVILEGES ON test_inventory_db.* TO 'inventory_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
@@ -26,6 +27,10 @@ cp .env.example .env
 ```
 
 Then edit `.env` if your MySQL credentials are different.
+
+For production, set `DJANGO_DEBUG=False`, replace `DJANGO_SECRET_KEY`, set
+`DJANGO_ALLOWED_HOSTS`, and enable `INVENTORY_REQUIRE_AUTH=True` after adding a
+login/auth flow for users.
 
 ## 3. Install Dependencies
 
@@ -46,6 +51,12 @@ python manage.py migrate
 
 ```bash
 python manage.py runserver 127.0.0.1:8000
+```
+
+## 6. Run Tests
+
+```bash
+python manage.py test inventory
 ```
 
 API home:
