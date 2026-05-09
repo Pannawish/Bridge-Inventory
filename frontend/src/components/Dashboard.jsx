@@ -5,6 +5,7 @@ import {
 } from "../purchaseStatus";
 import { getStoredSaleItemStatus } from "../saleStatus";
 import { getItemBaseQuantity, getProductBaseUnit } from "../unitConversion";
+import { getCategoryLeafLabel } from "./CategoryPage";
 
 const SAFETY_STOCK_DAYS = 7;
 const ATTENTION_PAGE_SIZE = 6;
@@ -1085,7 +1086,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                         <span>{item.sku}</span>
                       </div>
                     </td>
-                    <td>{item.category || "-"}</td>
+                    <td>{getCategoryLeafLabel(item.category) || "-"}</td>
                     <td>
                       <span className={`status-badge health-badge ${item.health.tone}`}>
                         {item.health.label}
@@ -1130,7 +1131,7 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
                 <div className="mobile-stock-grid">
                   <div>
                     <span>Category</span>
-                    <strong>{item.category || "-"}</strong>
+                    <strong>{getCategoryLeafLabel(item.category) || "-"}</strong>
                   </div>
                   <div>
                     <span>Available</span>

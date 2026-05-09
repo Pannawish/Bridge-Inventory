@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  getCategoryLeafLabel,
   getCategoryOptions,
   getCategoryPathById,
   resolveLegacyCategoryId,
@@ -1285,7 +1286,7 @@ function ProductsPage({
                       </td>
                       <td>
                         <div className="cell-stack">
-                          <strong>{categoryLabel || "Unassigned"}</strong>
+                          <strong>{getCategoryLeafLabel(categoryLabel) || "Unassigned"}</strong>
                           <span>{product.detail || "No product detail"}</span>
                         </div>
                       </td>
@@ -1335,7 +1336,7 @@ function ProductsPage({
                   <div className="mobile-record-grid">
                     <div>
                       <span>Category</span>
-                      <strong>{categoryLabel || "Unassigned"}</strong>
+                      <strong>{getCategoryLeafLabel(categoryLabel) || "Unassigned"}</strong>
                     </div>
                     <div>
                       <span>Stock</span>

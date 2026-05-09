@@ -179,6 +179,14 @@ export function getCategoryPathById(categories, categoryId) {
   return pathParts.join(" / ");
 }
 
+export function getCategoryLeafLabel(label) {
+  if (!label) {
+    return "";
+  }
+  const parts = `${label}`.split("/").map((part) => part.trim()).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : "";
+}
+
 export function getLeafCategoryOptions(categories) {
   const childMap = getCategoryChildrenMap(categories);
 
