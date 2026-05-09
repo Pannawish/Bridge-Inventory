@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatDate, formatMoney as fmt } from "../format";
 
 const STATUS_LABELS = {
   draft: "Draft",
@@ -17,18 +18,6 @@ const STATUS_OPTIONS = [
 
 function getToday() {
   return new Date().toISOString().split("T")[0];
-}
-
-function fmt(value) {
-  const number = Number(value) || 0;
-  return `฿${number.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-function formatDate(value) {
-  return value ? `${value}` : "—";
 }
 
 function formatStatus(status) {

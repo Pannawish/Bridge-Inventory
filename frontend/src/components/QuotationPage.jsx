@@ -6,6 +6,7 @@ import {
   getProductDefaultSalesUnit,
   getProductUnitConversions,
 } from "../unitConversion";
+import { formatMoney as fmt } from "../format";
 
 const VAT_RATE = 0.07;
 const vatOptions = [
@@ -165,12 +166,6 @@ function isVatEnabled(vatMode) {
   return vatMode !== "none";
 }
 
-function fmt(value) {
-  return `฿${Number(value || 0).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
 
 function normalizePartnerOptions(partners = [], currentName = "") {
   const normalizedPartners = partners

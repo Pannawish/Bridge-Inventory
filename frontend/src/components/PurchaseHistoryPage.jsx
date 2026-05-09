@@ -14,6 +14,7 @@ import {
   buildConvertedItemFields,
   getProductUnitOptions,
 } from "../unitConversion";
+import { formatMoney as fmt } from "../format";
 
 const VAT_RATE = 0.07;
 const statusOptions = purchaseStatuses;
@@ -179,10 +180,6 @@ function computeLeadTimeDays(transactionDate, expectedDeliveryDate) {
   }
 
   return Math.max(0, Math.round(diffMs / 86400000));
-}
-
-function fmt(value) {
-  return `฿${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function getPurchaseItemRemovalMessage(purchase, item, itemIndex) {

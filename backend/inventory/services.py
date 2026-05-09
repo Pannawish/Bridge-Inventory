@@ -80,6 +80,13 @@ def get_sale_item_status_for_transaction_status(status):
 
 
 def apply_sale_status_to_items(sale):
+    if sale.status in {
+        Sale.STATUS_PARTIALLY_PACKED,
+        Sale.STATUS_PARTIALLY_SHIPPED,
+        Sale.STATUS_PARTIALLY_DELIVERED,
+    }:
+        return
+
     today = timezone.localdate()
     item_status = get_sale_item_status_for_transaction_status(sale.status)
 
@@ -148,14 +155,26 @@ def build_dashboard_summary(request=None):
     ]
 
     purchases = Purchase.objects.prefetch_related(
-        Prefetch("items", queryset=PurchaseItem.objects.select_related("product"))
+        Prefetch("items", queryset=PurchaseItem.objects.select_related("product")),
+        "documents",
     )
     sales = Sale.objects.prefetch_related(
-        Prefetch("items", queryset=SaleItem.objects.select_related("product"))
+        Prefetch("items", queryset=SaleItem.objects.select_related("product")),
+        "documents",
     )
 
-    purchase_total = sum((purchase.grand_total for purchase in purchases), Decimal("0"))
-    sales_total = sum((sale.grand_total for sale in sales), Decimal("0"))
+    purchase_total = sum(
+        (
+            purchase.grand_total
+            for purchase in purchases
+            if purchase.status != Purchase.STATUS_CANCELLED
+        ),
+        Decimal("0"),
+    )
+    sales_total = sum(
+        (sale.grand_total for sale in sales if sale.status != Sale.STATUS_CANCELLED),
+        Decimal("0"),
+    )
 
     return {
         "metrics": {

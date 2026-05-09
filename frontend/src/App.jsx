@@ -414,7 +414,7 @@ function App() {
   }
 
   function buildDraftSale(sale) {
-    return applySaleStatusToItems({ ...sale, status: "draft" }, "draft");
+    return applySaleStatusToItems(sale, "draft");
   }
 
   function normalizeSaleForAvailableStock(sale, options = {}) {

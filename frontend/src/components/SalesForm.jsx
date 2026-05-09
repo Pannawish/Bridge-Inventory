@@ -6,6 +6,7 @@ import {
   getProductDefaultSalesUnit,
   getProductUnitOptions,
 } from "../unitConversion";
+import { computePaymentDate, formatMoney as fmt } from "../format";
 
 const VAT_RATE = 0.07;
 const vatOptions = [
@@ -104,10 +105,6 @@ function computeAmount(item) {
   return qty * price * multiplier;
 }
 
-function fmt(v) {
-  return `฿${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 function computeVatSummary(itemTotal, vatMode) {
   if (vatMode === "included") {
     const totalBeforeVat = itemTotal / (1 + VAT_RATE);
@@ -137,19 +134,6 @@ function computeVatSummary(itemTotal, vatMode) {
 
 function isVatEnabled(vatMode) {
   return vatMode !== "none";
-}
-
-function computePaymentDate(transactionDate, termType, termDays) {
-  if (!transactionDate || !termType) return "";
-  if (termType === "debit") return transactionDate;
-  if (termType === "credit") {
-    const days = parseInt(termDays) || 0;
-    if (!days) return "";
-    const date = new Date(`${transactionDate}T00:00:00`);
-    date.setDate(date.getDate() + days);
-    return date.toISOString().slice(0, 10);
-  }
-  return "";
 }
 
 function getProductName(product) {

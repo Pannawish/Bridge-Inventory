@@ -235,12 +235,12 @@ class ProductViewSet(InventoryModelViewSet):
 
 
 class PurchaseViewSet(InventoryModelViewSet):
-    queryset = Purchase.objects.prefetch_related("items__product")
+    queryset = Purchase.objects.prefetch_related("items__product", "documents")
     serializer_class = PurchaseSerializer
 
 
 class SaleViewSet(InventoryModelViewSet):
-    queryset = Sale.objects.prefetch_related("items__product")
+    queryset = Sale.objects.prefetch_related("items__product", "documents")
     serializer_class = SaleSerializer
 
 
