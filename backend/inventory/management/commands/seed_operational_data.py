@@ -8,8 +8,12 @@ from django.db import transaction
 from django.utils import timezone
 
 from inventory.models import (
+    BillingNote,
+    BillingNoteLine,
     Category,
     Customer,
+    PaymentBatch,
+    PaymentBatchLine,
     Product,
     ProductUnitConversion,
     Purchase,
@@ -114,6 +118,8 @@ class Command(BaseCommand):
         products = self.seed_products(categories)
         purchases = self.seed_purchases(rng, suppliers, products)
         sales = self.seed_sales(rng, customers, products)
+        billing_notes = self.seed_billing_notes(rng, sales)
+        payment_batches = self.seed_payment_batches(rng, purchases)
 
         if not options["skip_documents"]:
             self.seed_documents(rng, purchases, sales)
@@ -123,11 +129,17 @@ class Command(BaseCommand):
                 "Seeded operational data: "
                 f"{len(categories)} categories, {len(suppliers)} suppliers, "
                 f"{len(customers)} customers, {len(products)} products, "
-                f"{len(purchases)} purchases, {len(sales)} sales."
+                f"{len(purchases)} purchases, {len(sales)} sales, "
+                f"{len(billing_notes)} billing notes, "
+                f"{len(payment_batches)} payment batches."
             )
         )
 
     def remove_previous_demo_records(self):
+        BillingNote.objects.filter(reference_no__startswith="BN-69").delete()
+        PaymentBatch.objects.filter(reference_no__startswith="PMT-69").delete()
+        BillingNote.objects.filter(id__startswith="demo-").delete()
+        PaymentBatch.objects.filter(id__startswith="demo-").delete()
         for document in PurchaseDocument.objects.filter(purchase__id__startswith="demo-"):
             document.file.delete(save=False)
             document.delete()
@@ -505,6 +517,7 @@ class Command(BaseCommand):
         return [rng.choice([5, 10])]
 
     def seed_purchases(self, rng, suppliers, products):
+        PaymentBatch.objects.filter(reference_no__startswith="PMT-69").delete()
         Purchase.objects.filter(reference_no__startswith="PO-69").delete()
         start_date = date(2026, 1, 6)
         latest_transaction_date = timezone.localdate()
@@ -656,6 +669,7 @@ class Command(BaseCommand):
         return [SaleItem.ITEM_PENDING] * count
 
     def seed_sales(self, rng, customers, products):
+        BillingNote.objects.filter(reference_no__startswith="BN-69").delete()
         Sale.objects.filter(reference_no__startswith="TI-69").delete()
         start_date = date(2026, 1, 10)
         sale_statuses = (
@@ -771,6 +785,225 @@ class Command(BaseCommand):
         }
         suffix = ["Billing follows customer cycle.", "Includes line discounts.", "Mixed unit quantities.", "Urgent department request."][index % 4]
         return f"{notes[status]} {suffix}"
+
+    def seed_billing_notes(self, rng, sales):
+        BillingNote.objects.filter(reference_no__startswith="BN-69").delete()
+        eligible_statuses = {
+            Sale.STATUS_DELIVERED,
+            Sale.STATUS_PARTIALLY_DELIVERED,
+            Sale.STATUS_SHIPPED,
+        }
+        grouped_sales = {}
+        for sale in sales:
+            if sale.status not in eligible_statuses:
+                continue
+            grouped_sales.setdefault(sale.customer_name, []).append(sale)
+
+        status_cycle = [
+            BillingNote.STATUS_FULLY_RECEIVED,
+            BillingNote.STATUS_ISSUED,
+            BillingNote.STATUS_PARTIALLY_RECEIVED,
+            BillingNote.STATUS_FULLY_RECEIVED,
+            BillingNote.STATUS_ISSUED,
+            BillingNote.STATUS_CANCELLED,
+        ]
+        billing_notes = []
+        serial = 1
+
+        for customer_name in sorted(grouped_sales):
+            customer_sales = sorted(
+                grouped_sales[customer_name],
+                key=lambda row: (row.transaction_date, row.reference_no),
+            )
+            cursor = 0
+            while cursor < len(customer_sales) and serial <= 28:
+                line_count = min(len(customer_sales) - cursor, rng.choice([1, 1, 2, 2, 3]))
+                selected_sales = customer_sales[cursor : cursor + line_count]
+                cursor += line_count
+
+                latest_sale_date = max(sale.transaction_date for sale in selected_sales)
+                billing_note_date = min(
+                    timezone.localdate(),
+                    latest_sale_date + timedelta(days=rng.choice([2, 4, 7, 10])),
+                )
+                sale_payment_dates = [sale.payment_date for sale in selected_sales if sale.payment_date]
+                expected_payment_date = (
+                    max(sale_payment_dates)
+                    if sale_payment_dates
+                    else billing_note_date + timedelta(days=30)
+                )
+                status = status_cycle[(serial - 1) % len(status_cycle)]
+                reference_no = reference("BN", billing_note_date, serial)
+                billing_note = BillingNote.objects.create(
+                    reference_no=reference_no,
+                    customer_name=customer_name,
+                    billing_note_date=billing_note_date,
+                    expected_payment_date=expected_payment_date,
+                    status=status,
+                    bank_reference=(
+                        f"KB-BN-{billing_note_date:%y%m}-{serial:03d}"
+                        if status == BillingNote.STATUS_FULLY_RECEIVED
+                        else ""
+                    ),
+                    note=self.billing_note_note(status, customer_name),
+                )
+                line_rows = []
+                total_amount = Decimal("0.00")
+                for line_index, sale in enumerate(selected_sales):
+                    received = status == BillingNote.STATUS_FULLY_RECEIVED or (
+                        status == BillingNote.STATUS_PARTIALLY_RECEIVED and line_index == 0
+                    )
+                    received_date = None
+                    if received:
+                        received_date = min(
+                            timezone.localdate(),
+                            (sale.payment_date or expected_payment_date)
+                            + timedelta(days=rng.choice([-1, 0, 1, 2])),
+                        )
+                    amount = money(sale.grand_total)
+                    line_rows.append(
+                        BillingNoteLine(
+                            billing_note=billing_note,
+                            sale=sale,
+                            received=received,
+                            received_date=received_date,
+                            amount=amount,
+                        )
+                    )
+                    total_amount += amount
+                BillingNoteLine.objects.bulk_create(line_rows)
+
+                received_dates = [
+                    line.received_date
+                    for line in line_rows
+                    if line.received and line.received_date
+                ]
+                billing_note.total_amount = total_amount
+                billing_note.actual_payment_date = max(received_dates) if received_dates else None
+                billing_note.save(update_fields=["total_amount", "actual_payment_date", "updated_at"])
+                billing_notes.append(billing_note)
+                serial += 1
+
+        return billing_notes
+
+    def billing_note_note(self, status, customer_name):
+        notes = {
+            BillingNote.STATUS_ISSUED: f"Issued to {customer_name}; waiting for finance confirmation.",
+            BillingNote.STATUS_PARTIALLY_RECEIVED: "Some invoices in this billing note have been received.",
+            BillingNote.STATUS_FULLY_RECEIVED: "All invoices in this billing note have been received.",
+            BillingNote.STATUS_CANCELLED: "Cancelled after customer requested revised billing.",
+            BillingNote.STATUS_DRAFT: "Draft billing note prepared for review.",
+        }
+        return notes[status]
+
+    def seed_payment_batches(self, rng, purchases):
+        PaymentBatch.objects.filter(reference_no__startswith="PMT-69").delete()
+        eligible_statuses = {
+            Purchase.STATUS_RECEIVED,
+            Purchase.STATUS_PARTIALLY_RECEIVED,
+        }
+        grouped_purchases = {}
+        for purchase in purchases:
+            if purchase.status not in eligible_statuses:
+                continue
+            grouped_purchases.setdefault(purchase.supplier_name, []).append(purchase)
+
+        status_cycle = [
+            PaymentBatch.STATUS_PAID,
+            PaymentBatch.STATUS_SCHEDULED,
+            PaymentBatch.STATUS_PARTIALLY_PAID,
+            PaymentBatch.STATUS_PAID,
+            PaymentBatch.STATUS_SCHEDULED,
+            PaymentBatch.STATUS_CANCELLED,
+        ]
+        payment_batches = []
+        serial = 1
+
+        for supplier_name in sorted(grouped_purchases):
+            supplier_purchases = sorted(
+                grouped_purchases[supplier_name],
+                key=lambda row: (row.transaction_date, row.reference_no),
+            )
+            cursor = 0
+            while cursor < len(supplier_purchases) and serial <= 24:
+                line_count = min(len(supplier_purchases) - cursor, rng.choice([1, 1, 2, 2, 3]))
+                selected_purchases = supplier_purchases[cursor : cursor + line_count]
+                cursor += line_count
+
+                latest_purchase_date = max(purchase.transaction_date for purchase in selected_purchases)
+                batch_date = min(
+                    timezone.localdate(),
+                    latest_purchase_date + timedelta(days=rng.choice([2, 5, 8, 12])),
+                )
+                purchase_payment_dates = [
+                    purchase.payment_date
+                    for purchase in selected_purchases
+                    if purchase.payment_date
+                ]
+                planned_payment_date = (
+                    max(purchase_payment_dates)
+                    if purchase_payment_dates
+                    else batch_date + timedelta(days=30)
+                )
+                status = status_cycle[(serial - 1) % len(status_cycle)]
+                reference_no = reference("PMT", batch_date, serial)
+                payment_batch = PaymentBatch.objects.create(
+                    reference_no=reference_no,
+                    supplier_name=supplier_name,
+                    batch_date=batch_date,
+                    planned_payment_date=planned_payment_date,
+                    status=status,
+                    bank_reference=(
+                        f"SCB-PMT-{batch_date:%y%m}-{serial:03d}"
+                        if status == PaymentBatch.STATUS_PAID
+                        else ""
+                    ),
+                    note=self.payment_batch_note(status, supplier_name),
+                )
+                line_rows = []
+                total_amount = Decimal("0.00")
+                for line_index, purchase in enumerate(selected_purchases):
+                    paid = status == PaymentBatch.STATUS_PAID or (
+                        status == PaymentBatch.STATUS_PARTIALLY_PAID and line_index == 0
+                    )
+                    paid_date = None
+                    if paid:
+                        paid_date = min(
+                            timezone.localdate(),
+                            (purchase.payment_date or planned_payment_date)
+                            + timedelta(days=rng.choice([-1, 0, 1, 2])),
+                        )
+                    amount = money(purchase.grand_total)
+                    line_rows.append(
+                        PaymentBatchLine(
+                            payment_batch=payment_batch,
+                            purchase=purchase,
+                            paid=paid,
+                            paid_date=paid_date,
+                            amount=amount,
+                        )
+                    )
+                    total_amount += amount
+                PaymentBatchLine.objects.bulk_create(line_rows)
+
+                paid_dates = [line.paid_date for line in line_rows if line.paid and line.paid_date]
+                payment_batch.total_amount = total_amount
+                payment_batch.actual_payment_date = max(paid_dates) if paid_dates else None
+                payment_batch.save(update_fields=["total_amount", "actual_payment_date", "updated_at"])
+                payment_batches.append(payment_batch)
+                serial += 1
+
+        return payment_batches
+
+    def payment_batch_note(self, status, supplier_name):
+        notes = {
+            PaymentBatch.STATUS_SCHEDULED: f"Scheduled payment batch for {supplier_name}.",
+            PaymentBatch.STATUS_PARTIALLY_PAID: "Some purchase invoices in this batch have been paid.",
+            PaymentBatch.STATUS_PAID: "All purchase invoices in this batch have been paid.",
+            PaymentBatch.STATUS_CANCELLED: "Cancelled after supplier credit note review.",
+            PaymentBatch.STATUS_DRAFT: "Draft payment batch prepared for review.",
+        }
+        return notes[status]
 
     def seed_documents(self, rng, purchases, sales):
         selected_purchases = [purchase for i, purchase in enumerate(purchases) if i % 4 == 0 and purchase.status != Purchase.STATUS_DRAFT]
