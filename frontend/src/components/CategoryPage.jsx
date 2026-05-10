@@ -715,8 +715,8 @@ function CategoryPage({
         ) : null}
       </section>
 
-      <section className="section-card supplier-directory-card">
-        <div className="section-heading supplier-directory-heading">
+      <section className="section-card">
+        <div className="section-heading">
           <div>
             <p className="eyebrow">Category Directory</p>
             <h3>Category List</h3>
@@ -726,7 +726,8 @@ function CategoryPage({
           </button>
         </div>
 
-        <div className="table-scroll category-tree-table">
+        <div className="transaction-table-window partner-table-window category-tree-window">
+          <div className="table-scroll category-tree-table">
           {categoryRows.length === 0 ? (
             <p className="empty-copy">No categories match the current search.</p>
           ) : (
@@ -828,6 +829,7 @@ function CategoryPage({
               </tbody>
             </table>
           )}
+          </div>
         </div>
       </section>
 

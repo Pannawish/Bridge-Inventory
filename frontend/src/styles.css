@@ -2756,10 +2756,13 @@ th {
 
 .category-tree-table {
   position: relative;
-  max-height: 430px;
   overflow: auto;
   overscroll-behavior: contain;
   padding-right: 4px;
+}
+
+.category-tree-window > .category-tree-table {
+  max-height: calc(100vh - 180px);
 }
 
 .category-col-name {
