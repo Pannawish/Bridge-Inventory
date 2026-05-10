@@ -331,6 +331,16 @@ function CategoryPage({
 
     return counts;
   }, [categories]);
+  const collapsibleCategoryIds = useMemo(
+    () =>
+      categories
+        .filter((category) => (childCategoryCounts.get(category.id) || 0) > 0)
+        .map((category) => category.id),
+    [categories, childCategoryCounts]
+  );
+  const isTreeCollapsed =
+    collapsibleCategoryIds.length > 0 &&
+    collapsibleCategoryIds.every((categoryId) => collapsedCategoryIds.has(categoryId));
   const activeFilterCount =
     (levelFilter === "all" ? 0 : 1) + (usageFilter === "all" ? 0 : 1);
   const filteredCategories = useMemo(() => {
@@ -509,6 +519,12 @@ function CategoryPage({
 
       return nextIds;
     });
+  }
+
+  function toggleFullCategoryTree() {
+    setCollapsedCategoryIds(
+      isTreeCollapsed ? new Set() : new Set(collapsibleCategoryIds)
+    );
   }
 
   function selectParentCategory(category) {
@@ -721,9 +737,20 @@ function CategoryPage({
             <p className="eyebrow">Category Directory</p>
             <h3>Category List</h3>
           </div>
-          <button className="primary-button" type="button" onClick={() => openCategoryEditor()}>
-            New Category
-          </button>
+          <div className="transaction-table-actions">
+            {collapsibleCategoryIds.length ? (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={toggleFullCategoryTree}
+              >
+                {isTreeCollapsed ? "Expand Tree" : "Collapse Tree"}
+              </button>
+            ) : null}
+            <button className="primary-button" type="button" onClick={() => openCategoryEditor()}>
+              New Category
+            </button>
+          </div>
         </div>
 
         <div className="transaction-table-window partner-table-window category-tree-window">
