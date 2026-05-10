@@ -129,6 +129,10 @@ class Supplier(BusinessPartner):
 
     class Meta:
         ordering = ["company_name"]
+        indexes = [
+            models.Index(fields=["company_name"], name="inv_supplier_name_idx"),
+            models.Index(fields=["taxpayer_id"], name="inv_supplier_tax_idx"),
+        ]
 
 
 class Customer(BusinessPartner):
@@ -136,6 +140,10 @@ class Customer(BusinessPartner):
 
     class Meta:
         ordering = ["company_name"]
+        indexes = [
+            models.Index(fields=["company_name"], name="inv_customer_name_idx"),
+            models.Index(fields=["taxpayer_id"], name="inv_customer_tax_idx"),
+        ]
 
 
 class Product(TimeStampedModel):
@@ -162,6 +170,14 @@ class Product(TimeStampedModel):
 
     class Meta:
         ordering = ["product_display_id", "product_name"]
+        indexes = [
+            models.Index(
+                fields=["product_display_id", "product_name"],
+                name="inv_prod_display_name",
+            ),
+            models.Index(fields=["product_name"], name="inv_prod_name_idx"),
+            models.Index(fields=["category_name"], name="inv_prod_catname_idx"),
+        ]
 
     def __str__(self):
         return f"{self.product_name} ({self.sku})"
@@ -219,6 +235,18 @@ class Purchase(TimeStampedModel):
 
     class Meta:
         ordering = ["-transaction_date", "-created_at"]
+        indexes = [
+            models.Index(fields=["transaction_date"], name="inv_purch_date_idx"),
+            models.Index(
+                fields=["status", "transaction_date"],
+                name="inv_purch_status_date",
+            ),
+            models.Index(
+                fields=["supplier_name", "transaction_date"],
+                name="inv_purch_supplier_date",
+            ),
+            models.Index(fields=["reference_no"], name="inv_purch_ref_idx"),
+        ]
 
     def __str__(self):
         return self.reference_no or self.id
@@ -265,6 +293,12 @@ class PurchaseItem(models.Model):
 
     class Meta:
         ordering = ["id"]
+        indexes = [
+            models.Index(
+                fields=["item_status", "product"],
+                name="inv_pitem_status_product",
+            ),
+        ]
 
     def __str__(self):
         return self.product_name
@@ -320,6 +354,18 @@ class Sale(TimeStampedModel):
 
     class Meta:
         ordering = ["-transaction_date", "-created_at"]
+        indexes = [
+            models.Index(fields=["transaction_date"], name="inv_sale_date_idx"),
+            models.Index(
+                fields=["status", "transaction_date"],
+                name="inv_sale_status_date",
+            ),
+            models.Index(
+                fields=["customer_name", "transaction_date"],
+                name="inv_sale_customer_date",
+            ),
+            models.Index(fields=["reference_no"], name="inv_sale_ref_idx"),
+        ]
 
     def __str__(self):
         return self.reference_no or self.id
@@ -369,6 +415,12 @@ class SaleItem(models.Model):
 
     class Meta:
         ordering = ["id"]
+        indexes = [
+            models.Index(
+                fields=["item_status", "product"],
+                name="inv_sitem_status_product",
+            ),
+        ]
 
     def __str__(self):
         return self.product_name
@@ -435,6 +487,19 @@ class BillingNote(TimeStampedModel):
 
     class Meta:
         ordering = ["-billing_note_date", "-created_at"]
+        indexes = [
+            models.Index(fields=["billing_note_date"], name="inv_bn_date_idx"),
+            models.Index(
+                fields=["status", "billing_note_date"],
+                name="inv_bn_status_date",
+            ),
+            models.Index(
+                fields=["customer_name", "billing_note_date"],
+                name="inv_bn_customer_date",
+            ),
+            models.Index(fields=["expected_payment_date"], name="inv_bn_expected_idx"),
+            models.Index(fields=["reference_no"], name="inv_bn_ref_idx"),
+        ]
 
     def __str__(self):
         return self.reference_no or self.id
@@ -491,6 +556,16 @@ class PaymentBatch(TimeStampedModel):
 
     class Meta:
         ordering = ["-batch_date", "-created_at"]
+        indexes = [
+            models.Index(fields=["batch_date"], name="inv_pb_date_idx"),
+            models.Index(fields=["status", "batch_date"], name="inv_pb_status_date"),
+            models.Index(
+                fields=["supplier_name", "batch_date"],
+                name="inv_pb_supplier_date",
+            ),
+            models.Index(fields=["planned_payment_date"], name="inv_pb_planned_idx"),
+            models.Index(fields=["reference_no"], name="inv_pb_ref_idx"),
+        ]
 
     def __str__(self):
         return self.reference_no or self.id
