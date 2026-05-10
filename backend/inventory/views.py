@@ -271,11 +271,55 @@ class CategoryViewSet(InventoryModelViewSet):
 class SupplierViewSet(InventoryModelViewSet):
     queryset = Supplier.objects.all()
     serializer_class = SupplierSerializer
+    search_fields = (
+        "company_name",
+        "taxpayer_id",
+        "term_type",
+        "billing_note_date",
+        "remark",
+    )
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        profile_filter = (self.request.query_params.get("profile_filter") or "").strip()
+
+        if profile_filter == "missing-tax-id":
+            return queryset.filter(taxpayer_id="")
+        if profile_filter == "has-email":
+            return queryset.exclude(emails=[])
+        if profile_filter == "has-phone":
+            return queryset.exclude(tels=[])
+        if profile_filter == "has-note":
+            return queryset.filter(Q(remark__gt="") | Q(billing_note_date__gt=""))
+
+        return queryset
 
 
 class CustomerViewSet(InventoryModelViewSet):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
+    search_fields = (
+        "company_name",
+        "taxpayer_id",
+        "term_type",
+        "billing_note_date",
+        "remark",
+    )
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        profile_filter = (self.request.query_params.get("profile_filter") or "").strip()
+
+        if profile_filter == "missing-tax-id":
+            return queryset.filter(taxpayer_id="")
+        if profile_filter == "has-email":
+            return queryset.exclude(emails=[])
+        if profile_filter == "has-phone":
+            return queryset.exclude(tels=[])
+        if profile_filter == "has-note":
+            return queryset.filter(Q(remark__gt="") | Q(billing_note_date__gt=""))
+
+        return queryset
 
 
 class ProductViewSet(InventoryModelViewSet):

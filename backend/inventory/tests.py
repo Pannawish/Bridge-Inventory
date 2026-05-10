@@ -118,6 +118,36 @@ class InventoryPaginationTests(APITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["sku"], "PAGE-0")
 
+    def test_supplier_search_and_profile_filter_apply_before_pagination(self):
+        from .models import Supplier
+
+        Supplier.objects.create(
+            company_name="Alpha Supplies",
+            taxpayer_id="",
+            emails=["alpha@example.com"],
+            tels=[],
+        )
+        Supplier.objects.create(
+            company_name="Beta Supplies",
+            taxpayer_id="123",
+            emails=[],
+            tels=["02-000-0000"],
+        )
+
+        response = self.client.get(
+            "/api/suppliers/",
+            {
+                "page": 1,
+                "page_size": 10,
+                "search": "alpha",
+                "profile_filter": "missing-tax-id",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["companyName"], "Alpha Supplies")
+
 
 class SaleStockValidationTests(TestCase):
     def setUp(self):

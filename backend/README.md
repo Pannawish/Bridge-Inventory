@@ -71,6 +71,8 @@ Purchases, sales, billing notes, and payment batches also support `search`,
 `supplier`; sales/billing notes support `customer`.
 Products support `search`, `category`, and `stock_filter` values of `in-stock`,
 `out-of-stock`, `selling`, `no-sales`, and `no-purchases`.
+Suppliers and customers support `search` and `profile_filter` values of
+`missing-tax-id`, `has-email`, `has-phone`, and `has-note`.
 
 API home:
 

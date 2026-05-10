@@ -62,6 +62,7 @@ function buildListParams({
   customer = "",
   category = "",
   stockFilter = "",
+  profileFilter = "",
   dateFrom = "",
   dateTo = "",
 } = {}) {
@@ -74,6 +75,7 @@ function buildListParams({
     customer,
     category,
     stock_filter: stockFilter,
+    profile_filter: profileFilter,
     date_from: dateFrom,
     date_to: dateTo,
   };
@@ -261,8 +263,12 @@ function App() {
   const [productPagination, setProductPagination] = useState(null);
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [supplierRows, setSupplierRows] = useState([]);
+  const [supplierPagination, setSupplierPagination] = useState(null);
   const [usingMockSuppliers, setUsingMockSuppliers] = useState(false);
   const [customers, setCustomers] = useState([]);
+  const [customerRows, setCustomerRows] = useState([]);
+  const [customerPagination, setCustomerPagination] = useState(null);
   const [usingMockCustomers, setUsingMockCustomers] = useState(false);
   const [purchases, setPurchases] = useState([]);
   const [purchaseRows, setPurchaseRows] = useState([]);
@@ -295,6 +301,30 @@ function App() {
         "Ask about low stock, recent sales, or which products need restocking.",
     },
   ]);
+
+  const loadSupplierPage = useCallback(async (params = {}) => {
+    try {
+      const response = await api.getSuppliers(buildListParams(params));
+      setSupplierRows(getCollectionRows(response));
+      setSupplierPagination(getCollectionPagination(response));
+      return response;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }, []);
+
+  const loadCustomerPage = useCallback(async (params = {}) => {
+    try {
+      const response = await api.getCustomers(buildListParams(params));
+      setCustomerRows(getCollectionRows(response));
+      setCustomerPagination(getCollectionPagination(response));
+      return response;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }, []);
 
   const loadProductPage = useCallback(async (params = {}) => {
     try {
@@ -371,6 +401,8 @@ function App() {
       api.getQuotations(),
       api.getBillingNotes(),
       api.getPaymentBatches(),
+      api.getSuppliers(buildListParams()),
+      api.getCustomers(buildListParams()),
       api.getProducts(buildListParams()),
       api.getPurchases(buildListParams()),
       api.getSales(buildListParams()),
@@ -389,6 +421,8 @@ function App() {
       quotationResult,
       billingNoteResult,
       paymentBatchResult,
+      supplierPageResult,
+      customerPageResult,
       productPageResult,
       purchasePageResult,
       salePageResult,
@@ -405,19 +439,39 @@ function App() {
     }
 
     if (supplierResult.status === "fulfilled") {
-      setSuppliers(getCollectionRows(supplierResult.value));
+      const supplierRowsAll = getCollectionRows(supplierResult.value);
+      setSuppliers(supplierRowsAll);
       setUsingMockSuppliers(false);
+      if (supplierPageResult.status === "fulfilled") {
+        setSupplierRows(getCollectionRows(supplierPageResult.value));
+        setSupplierPagination(getCollectionPagination(supplierPageResult.value));
+      } else {
+        setSupplierRows(supplierRowsAll);
+        setSupplierPagination(null);
+      }
     } else {
       setSuppliers(getDefaultSuppliers());
+      setSupplierRows(getDefaultSuppliers());
+      setSupplierPagination(null);
       setUsingMockSuppliers(true);
       failures.push("suppliers");
     }
 
     if (customerResult.status === "fulfilled") {
-      setCustomers(getCollectionRows(customerResult.value));
+      const customerRowsAll = getCollectionRows(customerResult.value);
+      setCustomers(customerRowsAll);
       setUsingMockCustomers(false);
+      if (customerPageResult.status === "fulfilled") {
+        setCustomerRows(getCollectionRows(customerPageResult.value));
+        setCustomerPagination(getCollectionPagination(customerPageResult.value));
+      } else {
+        setCustomerRows(customerRowsAll);
+        setCustomerPagination(null);
+      }
     } else {
       setCustomers(getDefaultCustomers());
+      setCustomerRows(getDefaultCustomers());
+      setCustomerPagination(null);
       setUsingMockCustomers(true);
       failures.push("customers");
     }
@@ -934,6 +988,13 @@ function App() {
             )
           : [resolvedSupplier, ...currentRows]
       );
+      setSupplierRows((currentRows) =>
+        currentRows.some((row) => `${row.id}` === `${nextSupplier.id}`)
+          ? currentRows.map((row) =>
+              `${row.id}` === `${nextSupplier.id}` ? resolvedSupplier : row
+            )
+          : [resolvedSupplier, ...currentRows].slice(0, PAGE_SIZE)
+      );
       setNotice(`Supplier ${resolvedSupplier.companyName || resolvedSupplier.id} saved.`);
       return resolvedSupplier;
     }
@@ -952,6 +1013,13 @@ function App() {
             )
           : [resolvedSupplier, ...currentRows]
       );
+      setSupplierRows((currentRows) =>
+        currentRows.some((row) => `${row.id}` === `${nextSupplier.id}`)
+          ? currentRows.map((row) =>
+              `${row.id}` === `${nextSupplier.id}` ? resolvedSupplier : row
+            )
+          : [resolvedSupplier, ...currentRows].slice(0, PAGE_SIZE)
+      );
       setNotice(`Supplier ${resolvedSupplier.companyName || resolvedSupplier.id} saved.`);
       return resolvedSupplier;
     } catch (requestError) {
@@ -963,6 +1031,7 @@ function App() {
   async function handleSupplierDelete(deletedSupplier) {
     if (usingMockSuppliers) {
       setSuppliers((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
+      setSupplierRows((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
       setNotice(`Supplier ${deletedSupplier.companyName || deletedSupplier.id} deleted.`);
       return true;
     }
@@ -970,6 +1039,7 @@ function App() {
     try {
       await api.deleteSupplier(deletedSupplier.id);
       setSuppliers((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
+      setSupplierRows((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
       setNotice(`Supplier ${deletedSupplier.companyName || deletedSupplier.id} deleted.`);
       return true;
     } catch (requestError) {
@@ -989,6 +1059,13 @@ function App() {
             )
           : [resolvedCustomer, ...currentRows]
       );
+      setCustomerRows((currentRows) =>
+        currentRows.some((row) => `${row.id}` === `${nextCustomer.id}`)
+          ? currentRows.map((row) =>
+              `${row.id}` === `${nextCustomer.id}` ? resolvedCustomer : row
+            )
+          : [resolvedCustomer, ...currentRows].slice(0, PAGE_SIZE)
+      );
       setNotice(`Customer ${resolvedCustomer.companyName || resolvedCustomer.id} saved.`);
       return resolvedCustomer;
     }
@@ -1007,6 +1084,13 @@ function App() {
             )
           : [resolvedCustomer, ...currentRows]
       );
+      setCustomerRows((currentRows) =>
+        currentRows.some((row) => `${row.id}` === `${nextCustomer.id}`)
+          ? currentRows.map((row) =>
+              `${row.id}` === `${nextCustomer.id}` ? resolvedCustomer : row
+            )
+          : [resolvedCustomer, ...currentRows].slice(0, PAGE_SIZE)
+      );
       setNotice(`Customer ${resolvedCustomer.companyName || resolvedCustomer.id} saved.`);
       return resolvedCustomer;
     } catch (requestError) {
@@ -1018,6 +1102,7 @@ function App() {
   async function handleCustomerDelete(deletedCustomer) {
     if (usingMockCustomers) {
       setCustomers((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
+      setCustomerRows((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
       setNotice(`Customer ${deletedCustomer.companyName || deletedCustomer.id} deleted.`);
       return true;
     }
@@ -1025,6 +1110,7 @@ function App() {
     try {
       await api.deleteCustomer(deletedCustomer.id);
       setCustomers((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
+      setCustomerRows((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
       setNotice(`Customer ${deletedCustomer.companyName || deletedCustomer.id} deleted.`);
       return true;
     } catch (requestError) {
@@ -1619,7 +1705,10 @@ function App() {
 
             {activeTab === "suppliers" ? (
               <SupplierPage
-                suppliers={suppliers}
+                suppliers={supplierRows}
+                allSuppliers={suppliers}
+                pagination={supplierPagination}
+                onPageRequest={loadSupplierPage}
                 onSaveSupplier={handleSupplierSave}
                 onDeleteSupplier={handleSupplierDelete}
               />
@@ -1627,7 +1716,10 @@ function App() {
 
             {activeTab === "customers" ? (
               <CustomerPage
-                customers={customers}
+                customers={customerRows}
+                allCustomers={customers}
+                pagination={customerPagination}
+                onPageRequest={loadCustomerPage}
                 onSaveCustomer={handleCustomerSave}
                 onDeleteCustomer={handleCustomerDelete}
               />

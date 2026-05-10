@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import PaginationControls from "./PaginationControls";
 
 function createCustomer(overrides = {}) {
   return {
@@ -240,6 +241,9 @@ function CustomerOptionField({
 
 function CustomerPage({
   customers = defaultCustomers,
+  allCustomers = customers,
+  pagination = null,
+  onPageRequest,
   onSaveCustomer,
   onDeleteCustomer,
 }) {
@@ -269,46 +273,71 @@ function CustomerPage({
     }
   }, [selectedCustomerId, customers]);
 
+  const isServerPaginated = Boolean(pagination && onPageRequest);
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const activeFilterCount = profileFilter === "all" ? 0 : 1;
   const compactRows = 5;
-  const filteredCustomers = useMemo(
-    () =>
-      customers.filter((customer) => {
-        const matchesSearch =
-          !normalizedSearch ||
-          customer.companyName.toLowerCase().includes(normalizedSearch) ||
-          customer.taxpayerId.toLowerCase().includes(normalizedSearch) ||
-          customer.locations.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
-          customer.emails.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
-          customer.tels.some((item) => item.toLowerCase().includes(normalizedSearch));
+  const filteredCustomers = useMemo(() => {
+    if (isServerPaginated) {
+      return customers;
+    }
 
-        if (!matchesSearch) {
-          return false;
-        }
+    return customers.filter((customer) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        customer.companyName.toLowerCase().includes(normalizedSearch) ||
+        customer.taxpayerId.toLowerCase().includes(normalizedSearch) ||
+        customer.locations.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
+        customer.emails.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
+        customer.tels.some((item) => item.toLowerCase().includes(normalizedSearch));
 
-        if (profileFilter === "missing-tax-id") {
-          return !customer.taxpayerId.trim();
-        }
+      if (!matchesSearch) {
+        return false;
+      }
 
-        if (profileFilter === "has-email") {
-          return countFilledValues(customer.emails) > 0;
-        }
+      if (profileFilter === "missing-tax-id") {
+        return !customer.taxpayerId.trim();
+      }
 
-        if (profileFilter === "has-phone") {
-          return countFilledValues(customer.tels) > 0;
-        }
+      if (profileFilter === "has-email") {
+        return countFilledValues(customer.emails) > 0;
+      }
 
-        if (profileFilter === "has-note") {
-          return Boolean(customer.remark.trim() || customer.billingNoteDate.trim());
-        }
+      if (profileFilter === "has-phone") {
+        return countFilledValues(customer.tels) > 0;
+      }
 
-        return true;
-      }),
-    [normalizedSearch, profileFilter, customers]
-  );
-  const shouldShowViewAll = filteredCustomers.length > compactRows;
+      if (profileFilter === "has-note") {
+        return Boolean(customer.remark.trim() || customer.billingNoteDate.trim());
+      }
+
+      return true;
+    });
+  }, [customers, isServerPaginated, normalizedSearch, profileFilter]);
+  const shouldShowViewAll =
+    !isServerPaginated && filteredCustomers.length > compactRows;
   const isCompact = shouldShowViewAll && !showAllRows;
+  const totalCustomerCount = pagination?.count ?? customers.length;
+
+  function getPageRequestParams(page = 1) {
+    return {
+      page,
+      search: searchTerm,
+      profileFilter: profileFilter === "all" ? "" : profileFilter,
+    };
+  }
+
+  useEffect(() => {
+    if (!isServerPaginated) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      onPageRequest(getPageRequestParams(1));
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isServerPaginated, onPageRequest, profileFilter, searchTerm]);
 
   function resetFilters() {
     setSearchTerm("");
@@ -383,7 +412,7 @@ function CustomerPage({
   function handleCreateCustomer() {
     setDraftCustomer(
       createCustomer({
-        companyName: `New Customer ${customers.length + 1}`,
+        companyName: `New Customer ${allCustomers.length + 1}`,
       })
     );
   }
@@ -409,7 +438,7 @@ function CustomerPage({
       return;
     }
 
-    const exists = customers.some((customer) => customer.id === draftCustomer.id);
+    const exists = allCustomers.some((customer) => customer.id === draftCustomer.id);
 
     if (!exists) {
       setDraftCustomer(null);
@@ -457,7 +486,11 @@ function CustomerPage({
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
-            <span>{filteredCustomers.length} of {customers.length} customers shown</span>
+            <span>
+              {isServerPaginated
+                ? `${filteredCustomers.length} on this page of ${totalCustomerCount} customers`
+                : `${filteredCustomers.length} of ${customers.length} customers shown`}
+            </span>
           </div>
         </div>
 
@@ -658,6 +691,11 @@ function CustomerPage({
             </div>
           </div>
         )}
+        <PaginationControls
+          pagination={pagination}
+          itemLabel="customers"
+          onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
+        />
       </section>
 
       {draftCustomer ? (

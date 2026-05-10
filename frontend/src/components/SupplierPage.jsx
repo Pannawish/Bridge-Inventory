@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import PaginationControls from "./PaginationControls";
 
 function createSupplier(overrides = {}) {
   return {
@@ -225,6 +226,9 @@ function SupplierOptionField({
 
 function SupplierPage({
   suppliers = defaultSuppliers,
+  allSuppliers = suppliers,
+  pagination = null,
+  onPageRequest,
   onSaveSupplier,
   onDeleteSupplier,
 }) {
@@ -254,46 +258,71 @@ function SupplierPage({
     }
   }, [selectedSupplierId, suppliers]);
 
+  const isServerPaginated = Boolean(pagination && onPageRequest);
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const activeFilterCount = profileFilter === "all" ? 0 : 1;
   const compactRows = 5;
-  const filteredSuppliers = useMemo(
-    () =>
-      suppliers.filter((supplier) => {
-        const matchesSearch =
-          !normalizedSearch ||
-          supplier.companyName.toLowerCase().includes(normalizedSearch) ||
-          supplier.taxpayerId.toLowerCase().includes(normalizedSearch) ||
-          supplier.locations.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
-          supplier.emails.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
-          supplier.tels.some((item) => item.toLowerCase().includes(normalizedSearch));
+  const filteredSuppliers = useMemo(() => {
+    if (isServerPaginated) {
+      return suppliers;
+    }
 
-        if (!matchesSearch) {
-          return false;
-        }
+    return suppliers.filter((supplier) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        supplier.companyName.toLowerCase().includes(normalizedSearch) ||
+        supplier.taxpayerId.toLowerCase().includes(normalizedSearch) ||
+        supplier.locations.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
+        supplier.emails.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
+        supplier.tels.some((item) => item.toLowerCase().includes(normalizedSearch));
 
-        if (profileFilter === "missing-tax-id") {
-          return !supplier.taxpayerId.trim();
-        }
+      if (!matchesSearch) {
+        return false;
+      }
 
-        if (profileFilter === "has-email") {
-          return countFilledValues(supplier.emails) > 0;
-        }
+      if (profileFilter === "missing-tax-id") {
+        return !supplier.taxpayerId.trim();
+      }
 
-        if (profileFilter === "has-phone") {
-          return countFilledValues(supplier.tels) > 0;
-        }
+      if (profileFilter === "has-email") {
+        return countFilledValues(supplier.emails) > 0;
+      }
 
-        if (profileFilter === "has-note") {
-          return Boolean(supplier.remark.trim() || supplier.billingNoteDate.trim());
-        }
+      if (profileFilter === "has-phone") {
+        return countFilledValues(supplier.tels) > 0;
+      }
 
-        return true;
-      }),
-    [normalizedSearch, profileFilter, suppliers]
-  );
-  const shouldShowViewAll = filteredSuppliers.length > compactRows;
+      if (profileFilter === "has-note") {
+        return Boolean(supplier.remark.trim() || supplier.billingNoteDate.trim());
+      }
+
+      return true;
+    });
+  }, [isServerPaginated, normalizedSearch, profileFilter, suppliers]);
+  const shouldShowViewAll =
+    !isServerPaginated && filteredSuppliers.length > compactRows;
   const isCompact = shouldShowViewAll && !showAllRows;
+  const totalSupplierCount = pagination?.count ?? suppliers.length;
+
+  function getPageRequestParams(page = 1) {
+    return {
+      page,
+      search: searchTerm,
+      profileFilter: profileFilter === "all" ? "" : profileFilter,
+    };
+  }
+
+  useEffect(() => {
+    if (!isServerPaginated) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      onPageRequest(getPageRequestParams(1));
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isServerPaginated, onPageRequest, profileFilter, searchTerm]);
 
   function resetFilters() {
     setSearchTerm("");
@@ -368,7 +397,7 @@ function SupplierPage({
   function handleCreateSupplier() {
     setDraftSupplier(
       createSupplier({
-        companyName: `New Supplier ${suppliers.length + 1}`,
+        companyName: `New Supplier ${allSuppliers.length + 1}`,
       })
     );
   }
@@ -394,7 +423,7 @@ function SupplierPage({
       return;
     }
 
-    const exists = suppliers.some((supplier) => supplier.id === draftSupplier.id);
+    const exists = allSuppliers.some((supplier) => supplier.id === draftSupplier.id);
 
     if (!exists) {
       setDraftSupplier(null);
@@ -442,7 +471,11 @@ function SupplierPage({
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
-            <span>{filteredSuppliers.length} of {suppliers.length} suppliers shown</span>
+            <span>
+              {isServerPaginated
+                ? `${filteredSuppliers.length} on this page of ${totalSupplierCount} suppliers`
+                : `${filteredSuppliers.length} of ${suppliers.length} suppliers shown`}
+            </span>
           </div>
         </div>
 
@@ -643,6 +676,11 @@ function SupplierPage({
             </div>
           </div>
         )}
+        <PaginationControls
+          pagination={pagination}
+          itemLabel="suppliers"
+          onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
+        />
       </section>
 
       {draftSupplier ? (
