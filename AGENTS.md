@@ -26,6 +26,7 @@ This file is for coding agents working in this repository. Follow these rules be
 - Add or update tests for backend behavior that affects validation, filtering, pagination, or financial/stock calculations.
 - Stock-changing rules must be enforced server-side.
 - Billing note and payment batch eligibility should be enforced server-side when possible.
+- Dashboard stock metrics should stay backend-calculated; do not reintroduce full purchase/sales startup loading for dashboard stock details.
 - Production safety settings should not break local development defaults.
 
 ## Frontend Standards
@@ -37,6 +38,8 @@ This file is for coding agents working in this repository. Follow these rules be
 - Category pages should show the full nested tree in one view; do not paginate the category tree.
 - Flat directory/history pages can use pagination controls.
 - Forms should preserve clear card boundaries and avoid overflowing content.
+- Do not add more feature logic into `App.jsx`, `ProductsPage.jsx`, or `styles.css` unless the task is explicitly to split or stabilize those files.
+- Prefer extracting focused components/hooks/helpers before extending oversized page components.
 
 ## Pagination Conventions
 
@@ -71,6 +74,16 @@ This file is for coding agents working in this repository. Follow these rules be
 - Supplier/customer pages may use:
   - `profile_filter`
 
+## Data Loading Conventions
+
+- Avoid full startup loads for large transaction datasets.
+- Use lookup endpoints for product, supplier, and customer form reference data.
+- Use eligibility endpoints for billing note and payment batch create flows.
+- Use paginated list endpoints for directory/history pages.
+- Use on-demand product history loading when a user opens product transaction details.
+- Keep backend stock validation authoritative. Frontend stock previews must not rely on partial paginated purchase/sales data as if it were complete.
+- If a new page needs global totals, add a backend summary endpoint instead of loading all rows into the frontend.
+
 ## Verification Commands
 
 Run relevant checks before finishing:
@@ -94,6 +107,23 @@ cd frontend
 npm run dev -- --host 127.0.0.1
 ```
 
+## Current Architecture Notes
+
+- Backend pagination is implemented and opt-in.
+- Backend lookup endpoints exist for products, suppliers, and customers.
+- Backend eligibility endpoints exist for billing note sales and payment batch purchases.
+- Search/filter database indexes exist for common product, transaction, finance, and partner filters.
+- Dashboard stock report rows are calculated by the backend and include stock position, demand, purchase pipeline, and value fields.
+- Product purchase/sales history is loaded on demand through the product history endpoint.
+- Billing note and payment batch seed data are included in operational seed data.
+
 ## Current Improvement Direction
 
-After pagination, the next performance step is replacing full startup reference loads with smaller lookup and eligibility endpoints, especially for product/customer/supplier lookup and billing note/payment batch eligibility.
+The next major maintainability step is splitting oversized frontend files. Start with:
+
+- `frontend/src/components/ProductsPage.jsx`
+- `frontend/src/App.jsx`
+- `frontend/src/styles.css`
+- purchase/sales history forms and shared transaction-detail UI
+
+Keep behavior unchanged while splitting. Extract small, named pieces with clear ownership instead of doing broad rewrites.
