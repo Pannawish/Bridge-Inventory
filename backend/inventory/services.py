@@ -1,9 +1,10 @@
 import json
+import math
 import re
 from decimal import Decimal
 
 from django.conf import settings
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch, Q, Sum
 from django.utils.dateparse import parse_date
 from django.utils import timezone
 
@@ -22,6 +23,7 @@ from .models import (
 
 
 SALE_STOCK_DEDUCTED_STATUSES = {"packed", "shipped", "delivered"}
+SAFETY_STOCK_DAYS = 7
 CHAT_STOP_WORDS = {
     "about",
     "are",
@@ -80,6 +82,21 @@ def as_number(value):
 
 def get_product_label(product):
     return product.product_name if product else ""
+
+
+def compute_date_diff_in_days(start_date, end_date):
+    if not start_date or not end_date:
+        return None
+
+    return max(0, (end_date - start_date).days)
+
+
+def compute_date_span_days(dates):
+    dates = [date for date in dates if date]
+    if len(dates) <= 1:
+        return len(dates)
+
+    return max(1, (max(dates) - min(dates)).days + 1)
 
 
 def get_available_stock_by_product_id(product_ids=None, exclude_sale_id=None):
@@ -244,26 +261,166 @@ def apply_sale_status_to_items(sale):
     sale.items.update(**updates)
 
 
-def build_stock_report():
-    stock_by_product_id = get_available_stock_by_product_id()
-    rows = []
+def create_empty_stock_row(product):
+    return {
+        "product_id": product.id,
+        "product_name": product.product_name,
+        "sku": product.sku,
+        "category": (
+            product.category_name
+            or (product.category.name if product.category else "")
+        ),
+        "unit": product.stock_base_unit,
+        "reorder_level": product.reorder_level or Decimal("0"),
+        "predicted_7_day_demand": Decimal("0"),
+        "received_purchase_units": Decimal("0"),
+        "received_purchase_value": Decimal("0"),
+        "allocated_sales_units": Decimal("0"),
+        "committed_sales_value": Decimal("0"),
+        "pending_sales_units": Decimal("0"),
+        "oversold_units": Decimal("0"),
+        "sales_history_units": Decimal("0"),
+        "sales_history_dates": [],
+        "pending_purchase_units": Decimal("0"),
+        "delayed_purchase_units": Decimal("0"),
+        "lead_time_sample_days": Decimal("0"),
+        "lead_time_sample_count": 0,
+    }
 
-    for product in Product.objects.select_related("category").all():
-        current_stock = stock_by_product_id.get(product.id, Decimal("0"))
+
+def build_stock_report():
+    today = timezone.localdate()
+    product_rows = {
+        product.id: create_empty_stock_row(product)
+        for product in Product.objects.select_related("category").all()
+    }
+
+    purchase_items = PurchaseItem.objects.select_related("purchase", "product").filter(
+        product_id__isnull=False,
+    )
+    for item in purchase_items:
+        row = product_rows.get(item.product_id)
+        if not row:
+            continue
+
+        quantity = item.base_quantity or Decimal("0")
+        if item.item_status == PurchaseItem.ITEM_RECEIVED:
+            row["received_purchase_units"] += quantity
+            row["received_purchase_value"] += item.amount or Decimal("0")
+
+            lead_time_days = compute_date_diff_in_days(
+                item.purchase.transaction_date,
+                item.received_date,
+            )
+            if lead_time_days is not None:
+                row["lead_time_sample_days"] += Decimal(lead_time_days)
+                row["lead_time_sample_count"] += 1
+        elif item.item_status == PurchaseItem.ITEM_PENDING:
+            if item.expected_delivery_date and item.expected_delivery_date < today:
+                row["delayed_purchase_units"] += quantity
+            else:
+                row["pending_purchase_units"] += quantity
+
+    sale_items = SaleItem.objects.select_related("sale", "product").filter(
+        product_id__isnull=False,
+    )
+    for item in sale_items:
+        row = product_rows.get(item.product_id)
+        if not row or item.sale.status == Sale.STATUS_CANCELLED:
+            continue
+
+        quantity = item.base_quantity or Decimal("0")
+        if item.item_status in SALE_STOCK_DEDUCTED_STATUSES:
+            row["allocated_sales_units"] += quantity
+            row["committed_sales_value"] += item.amount or Decimal("0")
+            row["sales_history_units"] += quantity
+            if item.sale.transaction_date:
+                row["sales_history_dates"].append(item.sale.transaction_date)
+        elif item.item_status == SaleItem.ITEM_PENDING:
+            row["pending_sales_units"] += quantity
+
+    rows = []
+    for row in product_rows.values():
+        raw_available_stock = row["received_purchase_units"] - row["allocated_sales_units"]
+        available_stock = max(Decimal("0"), raw_available_stock)
+        oversold_units = max(Decimal("0"), -raw_available_stock)
+        average_unit_cost = (
+            row["received_purchase_value"] / row["received_purchase_units"]
+            if row["received_purchase_units"] > 0
+            else Decimal("0")
+        )
+        average_lead_time_days = (
+            row["lead_time_sample_days"] / Decimal(row["lead_time_sample_count"])
+            if row["lead_time_sample_count"] > 0
+            else None
+        )
+        sales_history_days = compute_date_span_days(row["sales_history_dates"])
+        average_daily_demand = (
+            row["sales_history_units"] / Decimal(sales_history_days)
+            if row["sales_history_units"] > 0 and sales_history_days > 0
+            else Decimal("0")
+        )
+        lead_time_demand = (
+            average_daily_demand * average_lead_time_days
+            if average_lead_time_days is not None and average_daily_demand > 0
+            else Decimal("0")
+        )
+        safety_stock = average_daily_demand * Decimal(SAFETY_STOCK_DAYS)
+        calculated_reorder_level = Decimal(math.ceil(lead_time_demand + safety_stock))
+        reorder_level = calculated_reorder_level or row["reorder_level"]
+        recommended_restock = max(
+            Decimal("0"),
+            reorder_level
+            + row["pending_sales_units"]
+            + oversold_units
+            - available_stock
+            - row["pending_purchase_units"],
+        )
+        days_until_stockout = (
+            math.floor(available_stock / average_daily_demand)
+            if average_daily_demand > 0
+            else None
+        )
+        predicted_7_day_demand = average_daily_demand * Decimal("7")
+        stock_value = available_stock * average_unit_cost
+
         rows.append(
             {
-                "product_id": product.id,
-                "product_name": product.product_name,
-                "sku": product.sku,
-                "category": product.category_name or (product.category.name if product.category else ""),
-                "unit": product.stock_base_unit,
-                "current_stock": as_number(current_stock),
-                "available_stock": as_number(current_stock),
-                "reorder_level": as_number(product.reorder_level),
-                "predicted_7_day_demand": 0,
-                "days_until_stockout": None,
-                "recommended_restock": as_number(max(Decimal("0"), product.reorder_level - current_stock)),
-                "stock_value": 0,
+                "product_id": row["product_id"],
+                "product_name": row["product_name"],
+                "sku": row["sku"],
+                "category": row["category"],
+                "unit": row["unit"],
+                "current_stock": as_number(available_stock),
+                "available_stock": as_number(available_stock),
+                "reorder_level": as_number(reorder_level),
+                "predicted_7_day_demand": as_number(predicted_7_day_demand),
+                "days_until_stockout": days_until_stockout,
+                "recommended_restock": as_number(recommended_restock),
+                "stock_value": as_number(stock_value),
+                "total_cost": as_number(stock_value),
+                "received_purchase_units": as_number(row["received_purchase_units"]),
+                "received_purchase_value": as_number(row["received_purchase_value"]),
+                "allocated_sales_units": as_number(row["allocated_sales_units"]),
+                "committed_sales_value": as_number(row["committed_sales_value"]),
+                "pending_sales_units": as_number(row["pending_sales_units"]),
+                "oversold_units": as_number(oversold_units),
+                "sales_history_units": as_number(row["sales_history_units"]),
+                "pending_purchase_units": as_number(row["pending_purchase_units"]),
+                "delayed_purchase_units": as_number(row["delayed_purchase_units"]),
+                "incoming_purchase_units": as_number(
+                    row["pending_purchase_units"] + row["delayed_purchase_units"]
+                ),
+                "average_daily_demand": as_number(average_daily_demand),
+                "average_unit_cost": as_number(average_unit_cost),
+                "average_lead_time_days": (
+                    as_number(average_lead_time_days.quantize(Decimal("0.1")))
+                    if average_lead_time_days is not None
+                    else None
+                ),
+                "safety_stock": math.ceil(safety_stock),
+                "safety_stock_days": SAFETY_STOCK_DAYS,
+                "backend_calculated": True,
             }
         )
 
@@ -497,27 +654,26 @@ def build_dashboard_summary(request=None):
         if Decimal(str(row["available_stock"])) <= Decimal(str(row["reorder_level"]))
     ]
 
-    purchases = Purchase.objects.prefetch_related(
+    purchase_total = (
+        Purchase.objects.exclude(status=Purchase.STATUS_CANCELLED).aggregate(
+            total=Sum("grand_total")
+        )["total"]
+        or Decimal("0")
+    )
+    sales_total = (
+        Sale.objects.exclude(status=Sale.STATUS_CANCELLED).aggregate(
+            total=Sum("grand_total")
+        )["total"]
+        or Decimal("0")
+    )
+    recent_purchases = Purchase.objects.prefetch_related(
         Prefetch("items", queryset=PurchaseItem.objects.select_related("product")),
         "documents",
-    )
-    sales = Sale.objects.prefetch_related(
+    ).order_by("-transaction_date", "-created_at")[:5]
+    recent_sales = Sale.objects.prefetch_related(
         Prefetch("items", queryset=SaleItem.objects.select_related("product")),
         "documents",
-    )
-
-    purchase_total = sum(
-        (
-            purchase.grand_total
-            for purchase in purchases
-            if purchase.status != Purchase.STATUS_CANCELLED
-        ),
-        Decimal("0"),
-    )
-    sales_total = sum(
-        (sale.grand_total for sale in sales if sale.status != Sale.STATUS_CANCELLED),
-        Decimal("0"),
-    )
+    ).order_by("-transaction_date", "-created_at")[:5]
 
     return {
         "metrics": {
@@ -536,11 +692,11 @@ def build_dashboard_summary(request=None):
         "stock_report": stock_report,
         "recent_purchases": [
             serialize_light_purchase(purchase, request)
-            for purchase in purchases.order_by("-transaction_date", "-created_at")[:5]
+            for purchase in recent_purchases
         ],
         "recent_sales": [
             serialize_light_sale(sale, request)
-            for sale in sales.order_by("-transaction_date", "-created_at")[:5]
+            for sale in recent_sales
         ],
     }
 

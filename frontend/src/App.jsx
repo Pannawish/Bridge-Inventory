@@ -430,6 +430,10 @@ function App() {
     }
   }
 
+  async function handleLoadProductHistory(productId) {
+    return api.getProductHistory(productId);
+  }
+
   async function loadData() {
     setLoading(true);
     setError("");
@@ -440,8 +444,6 @@ function App() {
       api.getCustomerLookups(),
       api.getCategories(),
       api.getProductLookups(),
-      api.getPurchases(),
-      api.getSales(),
       api.getQuotations(),
       api.getEligibleBillingNoteSales(),
       api.getEligiblePaymentBatchPurchases(),
@@ -460,8 +462,6 @@ function App() {
       customerResult,
       categoryResult,
       productResult,
-      purchaseResult,
-      salesResult,
       quotationResult,
       billingNoteEligibilityResult,
       paymentBatchEligibilityResult,
@@ -548,17 +548,12 @@ function App() {
       failures.push("products");
     }
 
-    if (purchaseResult.status === "fulfilled") {
-      const purchaseRowsAll = getCollectionRows(purchaseResult.value);
+    if (purchasePageResult.status === "fulfilled") {
+      const purchaseRowsAll = getCollectionRows(purchasePageResult.value);
       setPurchases(purchaseRowsAll);
+      setPurchaseRows(purchaseRowsAll);
+      setPurchasePagination(getCollectionPagination(purchasePageResult.value));
       setUsingMockPurchases(false);
-      if (purchasePageResult.status === "fulfilled") {
-        setPurchaseRows(getCollectionRows(purchasePageResult.value));
-        setPurchasePagination(getCollectionPagination(purchasePageResult.value));
-      } else {
-        setPurchaseRows(purchaseRowsAll);
-        setPurchasePagination(null);
-      }
     } else {
       setPurchases(mockPurchases);
       setPurchaseRows(mockPurchases);
@@ -567,17 +562,12 @@ function App() {
       failures.push("purchases");
     }
 
-    if (salesResult.status === "fulfilled") {
-      const saleRowsAll = getCollectionRows(salesResult.value);
+    if (salePageResult.status === "fulfilled") {
+      const saleRowsAll = getCollectionRows(salePageResult.value);
       setSales(saleRowsAll);
+      setSaleRows(saleRowsAll);
+      setSalePagination(getCollectionPagination(salePageResult.value));
       setUsingMockSales(false);
-      if (salePageResult.status === "fulfilled") {
-        setSaleRows(getCollectionRows(salePageResult.value));
-        setSalePagination(getCollectionPagination(salePageResult.value));
-      } else {
-        setSaleRows(saleRowsAll);
-        setSalePagination(null);
-      }
     } else {
       setSales(mockSales);
       setSaleRows(mockSales);
@@ -717,6 +707,10 @@ function App() {
     const requestedStatus = sale?.status || "draft";
 
     if (!shouldKeepSaleAsDraft(requestedStatus)) {
+      return { sale, issues: [], forcedDraft: false };
+    }
+
+    if (!usingMockPurchases || !usingMockSales) {
       return { sale, issues: [], forcedDraft: false };
     }
 
@@ -874,7 +868,7 @@ function App() {
       return;
     }
 
-    if (shouldKeepSaleAsDraft(nextStatus)) {
+    if (shouldKeepSaleAsDraft(nextStatus) && usingMockPurchases && usingMockSales) {
       const nextSale = applySaleStatusToItems({ ...sale, status: nextStatus }, nextStatus);
       const issues = getSaleStockIssues(nextSale, products, purchases, sales, {
         excludeSaleId: sale.id,
@@ -1700,8 +1694,8 @@ function App() {
               <Dashboard
                 dashboard={dashboard}
                 products={products}
-                purchases={purchases}
-                sales={sales}
+                purchases={[]}
+                sales={[]}
               />
             ) : null}
 
@@ -1727,8 +1721,8 @@ function App() {
                 products={products}
                 suppliers={suppliers}
                 customers={customers}
-                purchases={purchases}
-                sales={sales}
+                purchases={usingMockPurchases ? purchases : []}
+                sales={usingMockSales ? sales : []}
                 onSaveQuotation={handleQuotationSave}
                 onDeleteQuotation={handleQuotationDelete}
                 onCreatePurchase={handlePurchaseCreateFromHistory}
@@ -1739,9 +1733,9 @@ function App() {
             {activeTab === "sales-history" ? (
               <SalesHistoryPage
                 sales={saleRows}
-                allSales={sales}
+                allSales={usingMockSales ? sales : []}
                 products={products}
-                purchases={purchases}
+                purchases={usingMockPurchases ? purchases : []}
                 pagination={salePagination}
                 customers={customers}
                 onPageRequest={loadSalePage}
@@ -1812,10 +1806,11 @@ function App() {
                 products={productRows}
                 allProducts={products}
                 categories={categories}
-                purchases={purchases}
-                sales={sales}
+                purchases={[]}
+                sales={[]}
                 pagination={productPagination}
                 onPageRequest={loadProductPage}
+                onLoadProductHistory={handleLoadProductHistory}
                 onSaveProduct={handleProductSave}
                 onDeleteProduct={handleProductDelete}
               />

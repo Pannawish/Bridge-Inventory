@@ -22,6 +22,11 @@ urlpatterns = [
     path("lookups/suppliers/", views.supplier_lookups, name="supplier_lookups"),
     path("lookups/customers/", views.customer_lookups, name="customer_lookups"),
     path(
+        "products/<str:product_id>/history/",
+        views.product_transaction_history,
+        name="product_transaction_history",
+    ),
+    path(
         "eligibility/billing-note-sales/",
         views.eligible_billing_note_sales,
         name="eligible_billing_note_sales",

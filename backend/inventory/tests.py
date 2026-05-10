@@ -295,6 +295,143 @@ class LookupEligibilityTests(APITestCase):
         self.assertEqual(response.data[0]["sku"], "LOOKUP-1")
         self.assertEqual(response.data[0]["current_stock"], Decimal("7"))
 
+    def test_dashboard_stock_report_includes_backend_transaction_metrics(self):
+        product = Product.objects.create(
+            sku="DASH-STOCK",
+            product_name="Dashboard Stock Product",
+            reorder_level=Decimal("2"),
+        )
+        purchase = Purchase.objects.create(
+            reference_no="PO-DASH",
+            supplier_name="Dashboard Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today,
+        )
+        PurchaseItem.objects.create(
+            purchase=purchase,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            received_date=self.today,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("10"),
+            base_quantity=Decimal("10"),
+            unit_cost=Decimal("2"),
+            amount=Decimal("20"),
+        )
+        sale = Sale.objects.create(
+            reference_no="SO-DASH",
+            customer_name="Dashboard Customer",
+            status=Sale.STATUS_PACKED,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=SaleItem.ITEM_PACKED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("4"),
+            base_quantity=Decimal("4"),
+            unit_price=Decimal("5"),
+            amount=Decimal("20"),
+        )
+
+        response = self.client.get("/api/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        row = next(
+            item for item in response.data["stock_report"] if item["product_id"] == product.id
+        )
+        self.assertEqual(row["received_purchase_units"], 10)
+        self.assertEqual(row["allocated_sales_units"], 4)
+        self.assertEqual(row["available_stock"], 6)
+        self.assertEqual(row["committed_sales_value"], 20)
+        self.assertTrue(row["backend_calculated"])
+
+    def test_product_history_endpoint_returns_only_matching_transactions(self):
+        product = Product.objects.create(
+            sku="HISTORY-1",
+            product_name="History Product",
+        )
+        other_product = Product.objects.create(
+            sku="HISTORY-2",
+            product_name="Other History Product",
+        )
+        matching_purchase = Purchase.objects.create(
+            reference_no="PO-HISTORY",
+            supplier_name="History Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today,
+        )
+        PurchaseItem.objects.create(
+            purchase=matching_purchase,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("3"),
+            base_quantity=Decimal("3"),
+            unit_cost=Decimal("2"),
+            amount=Decimal("6"),
+        )
+        other_purchase = Purchase.objects.create(
+            reference_no="PO-OTHER-HISTORY",
+            supplier_name="History Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today,
+        )
+        PurchaseItem.objects.create(
+            purchase=other_purchase,
+            product=other_product,
+            product_name=other_product.product_name,
+            sku=other_product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("5"),
+            base_quantity=Decimal("5"),
+            unit_cost=Decimal("2"),
+            amount=Decimal("10"),
+        )
+        matching_sale = Sale.objects.create(
+            reference_no="SO-HISTORY",
+            customer_name="History Customer",
+            status=Sale.STATUS_PACKED,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=matching_sale,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=SaleItem.ITEM_PACKED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("1"),
+            base_quantity=Decimal("1"),
+            unit_price=Decimal("4"),
+            amount=Decimal("4"),
+        )
+
+        response = self.client.get(f"/api/products/{product.id}/history/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["has_transaction_history"])
+        self.assertEqual([row["reference_no"] for row in response.data["purchases"]], ["PO-HISTORY"])
+        self.assertEqual([row["reference_no"] for row in response.data["sales"]], ["SO-HISTORY"])
+
     def test_billing_note_eligibility_excludes_sales_already_on_active_note(self):
         Customer.objects.create(company_name="Alpha Customer")
         available = Sale.objects.create(

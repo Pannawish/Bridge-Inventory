@@ -335,6 +335,53 @@ function createEmptyStockRow(key, overrides = {}) {
   };
 }
 
+function normalizeBackendStockRow(row) {
+  const normalized = {
+    product_id: row.product_id,
+    product_name: row.product_name || "Unnamed Product",
+    sku: row.sku || "",
+    category: row.category || "-",
+    unit: row.unit || "-",
+    reorder_level: Number(row.reorder_level) || 0,
+    predicted_7_day_demand: Number(row.predicted_7_day_demand) || 0,
+    received_purchase_units: Number(row.received_purchase_units) || 0,
+    received_purchase_value: Number(row.received_purchase_value) || 0,
+    allocated_sales_units: Number(row.allocated_sales_units) || 0,
+    committed_sales_value: Number(row.committed_sales_value) || 0,
+    pending_sales_units: Number(row.pending_sales_units) || 0,
+    oversold_units: Number(row.oversold_units) || 0,
+    sales_history_units: Number(row.sales_history_units) || 0,
+    sales_history_dates: Array.isArray(row.sales_history_dates) ? row.sales_history_dates : [],
+    pending_purchase_units: Number(row.pending_purchase_units) || 0,
+    delayed_purchase_units: Number(row.delayed_purchase_units) || 0,
+    lead_time_sample_days: Number(row.lead_time_sample_days) || 0,
+    lead_time_sample_count: Number(row.lead_time_sample_count) || 0,
+    available_stock: Number(row.available_stock ?? row.current_stock) || 0,
+    current_stock: Number(row.current_stock ?? row.available_stock) || 0,
+    average_daily_demand: Number(row.average_daily_demand) || 0,
+    average_unit_cost: Number(row.average_unit_cost) || 0,
+    average_lead_time_days:
+      row.average_lead_time_days === null || row.average_lead_time_days === undefined
+        ? null
+        : Number(row.average_lead_time_days),
+    safety_stock: Number(row.safety_stock) || 0,
+    safety_stock_days: Number(row.safety_stock_days) || SAFETY_STOCK_DAYS,
+    stock_value: Number(row.stock_value ?? row.total_cost) || 0,
+    total_cost: Number(row.total_cost ?? row.stock_value) || 0,
+    incoming_purchase_units: Number(row.incoming_purchase_units) || 0,
+    days_until_stockout:
+      row.days_until_stockout === null || row.days_until_stockout === undefined
+        ? null
+        : Number(row.days_until_stockout),
+    recommended_restock: Number(row.recommended_restock) || 0,
+  };
+
+  return {
+    ...normalized,
+    health: getStockHealth(normalized),
+  };
+}
+
 function getOrCreateStockRow(rowMap, key, overrides = {}) {
   const safeKey = key || normalizeName(overrides.product_name) || `${rowMap.size + 1}`;
 
@@ -397,6 +444,14 @@ function buildStockSeedRows(products, stockReport, lowStockItems) {
 }
 
 function createProductStockRows(products, stockReport, lowStockItems, purchases, sales) {
+  if (
+    !purchases.length &&
+    !sales.length &&
+    stockReport.some((item) => item.backend_calculated)
+  ) {
+    return stockReport.map(normalizeBackendStockRow);
+  }
+
   const rowMap = buildStockSeedRows(products, stockReport, lowStockItems);
 
   purchases.forEach((purchase) => {
@@ -566,10 +621,12 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
         (sum, item) => sum + item.received_purchase_value,
         0
       ),
-      committedSalesValue: createCommittedSalesRows(sales).reduce(
-        (sum, { item }) => sum + computeAmount(item),
-        0
-      ),
+      committedSalesValue: sales.length
+        ? createCommittedSalesRows(sales).reduce(
+            (sum, { item }) => sum + computeAmount(item),
+            0
+          )
+        : stockRows.reduce((sum, item) => sum + (Number(item.committed_sales_value) || 0), 0),
       pendingSalesUnits: stockRows.reduce((sum, item) => sum + item.pending_sales_units, 0),
       pendingPurchaseUnits: stockRows.reduce((sum, item) => sum + item.pending_purchase_units, 0),
       delayedPurchaseUnits: stockRows.reduce((sum, item) => sum + item.delayed_purchase_units, 0),

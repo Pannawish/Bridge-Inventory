@@ -779,6 +779,41 @@ def eligible_payment_batch_purchases(request):
     )
 
 
+@api_view(["GET"])
+def product_transaction_history(request, product_id):
+    product = Product.objects.filter(pk=product_id).first()
+    if product is None:
+        return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    purchases = (
+        Purchase.objects.filter(items__product_id=product_id)
+        .prefetch_related("items__product", "documents")
+        .distinct()
+    )
+    sales = (
+        Sale.objects.filter(items__product_id=product_id)
+        .prefetch_related("items__product", "documents")
+        .distinct()
+    )
+
+    return Response(
+        {
+            "product_id": product.id,
+            "has_transaction_history": purchases.exists() or sales.exists(),
+            "purchases": PurchaseSerializer(
+                purchases,
+                many=True,
+                context={"request": request},
+            ).data,
+            "sales": SaleSerializer(
+                sales,
+                many=True,
+                context={"request": request},
+            ).data,
+        }
+    )
+
+
 @api_view(["POST"])
 def chat(request):
     question = (request.data.get("question") or "").strip()

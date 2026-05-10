@@ -494,6 +494,10 @@ function itemMatchesProduct(item, product) {
   return matchesSku(item, product.sku) || getProductPreviousSkus(product).some((sku) => matchesSku(item, sku));
 }
 
+function getProductCurrentStock(product) {
+  return Number(product?.current_stock ?? product?.currentStock ?? product?.available_stock ?? 0) || 0;
+}
+
 function resolveProductCategoryId(product, categories) {
   if (product.categoryId && categories.some((category) => category.id === product.categoryId)) {
     return product.categoryId;
@@ -513,6 +517,17 @@ function getProductCategoryLabel(product, categories) {
 }
 
 function getProductMetrics(product, purchases, sales) {
+  if (!purchases.length && !sales.length) {
+    return {
+      totalUnits: getProductCurrentStock(product),
+      avgPrice: Number(product?.average_unit_cost ?? product?.avgPrice ?? 0) || 0,
+      receivedPurchaseCount: Number(product?.received_purchase_count ?? 0) || 0,
+      activeSalesCount: Number(product?.active_sales_count ?? 0) || 0,
+      purchaseItems: [],
+      salesItems: [],
+    };
+  }
+
   const purchaseItems = purchases.flatMap((purchase) =>
     (purchase.items || [])
       .filter((item) => itemMatchesProduct(item, product))
@@ -570,11 +585,15 @@ function ProductsPage({
   sales = [],
   pagination = null,
   onPageRequest,
+  onLoadProductHistory,
   onSaveProduct,
   onDeleteProduct,
 }) {
   const [viewingProduct, setViewingProduct] = useState(null);
   const [viewingTransaction, setViewingTransaction] = useState(null);
+  const [productHistoryById, setProductHistoryById] = useState({});
+  const [productHistoryLoadingId, setProductHistoryLoadingId] = useState("");
+  const [productHistoryError, setProductHistoryError] = useState("");
   const [draftProduct, setDraftProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState("all");
@@ -719,10 +738,46 @@ function ProductsPage({
     return () => window.clearTimeout(timeoutId);
   }, [categoryFilter, isServerPaginated, onPageRequest, searchTerm, stockFilter]);
 
+  async function loadProductHistory(product) {
+    const productId = `${product?.id ?? ""}`;
+
+    if (!productId || productHistoryById[productId]) {
+      return productHistoryById[productId] || null;
+    }
+
+    if (!onLoadProductHistory) {
+      return null;
+    }
+
+    setProductHistoryLoadingId(productId);
+    setProductHistoryError("");
+
+    try {
+      const history = await onLoadProductHistory(productId);
+      const normalizedHistory = {
+        purchases: Array.isArray(history?.purchases) ? history.purchases : [],
+        sales: Array.isArray(history?.sales) ? history.sales : [],
+        hasTransactionHistory: Boolean(history?.has_transaction_history),
+      };
+
+      setProductHistoryById((current) => ({
+        ...current,
+        [productId]: normalizedHistory,
+      }));
+      return normalizedHistory;
+    } catch (requestError) {
+      setProductHistoryError(requestError.message);
+      return null;
+    } finally {
+      setProductHistoryLoadingId("");
+    }
+  }
+
   function openProductDetail(product) {
     setViewingProduct(product);
     setViewingTransaction(null);
     setDraftProduct(null);
+    loadProductHistory(product);
   }
 
   function closeAll() {
@@ -742,6 +797,7 @@ function ProductsPage({
     const normalizedProduct = normalizeProduct(product);
     const categoryId = resolveProductCategoryId(product, categories);
 
+    loadProductHistory(product);
     setViewingProduct(null);
     setViewingTransaction(null);
     setProductFormError("");
@@ -931,9 +987,16 @@ function ProductsPage({
     return allProducts.find((item) => `${item.id}` === `${product?.id}`);
   }
 
-  function productHasTransactionHistory(product) {
+  function getCachedProductHasTransactionHistory(product) {
     if (!product) {
       return false;
+    }
+
+    const cachedHistory = productHistoryById[`${product.id}`];
+    if (cachedHistory) {
+      return cachedHistory.hasTransactionHistory ||
+        cachedHistory.purchases.length > 0 ||
+        cachedHistory.sales.length > 0;
     }
 
     return (
@@ -944,6 +1007,28 @@ function ProductsPage({
         (sale.items || []).some((item) => itemMatchesProduct(item, product))
       )
     );
+  }
+
+  async function productHasTransactionHistory(product) {
+    if (!product) {
+      return false;
+    }
+
+    const cachedHistory = productHistoryById[`${product.id}`];
+    if (cachedHistory) {
+      return cachedHistory.hasTransactionHistory ||
+        cachedHistory.purchases.length > 0 ||
+        cachedHistory.sales.length > 0;
+    }
+
+    const loadedHistory = await loadProductHistory(product);
+    if (loadedHistory) {
+      return loadedHistory.hasTransactionHistory ||
+        loadedHistory.purchases.length > 0 ||
+        loadedHistory.sales.length > 0;
+    }
+
+    return getCachedProductHasTransactionHistory(product);
   }
 
   function generateStructuredSku(product) {
@@ -1033,7 +1118,7 @@ function ProductsPage({
     let normalizedDraft = normalizeProduct(draftProduct);
     const categoryLabel = getCategoryPathById(categories, normalizedDraft.categoryId);
     const existingProduct = getExistingProduct(normalizedDraft);
-    const existingProductHasHistory = productHasTransactionHistory(existingProduct);
+    const existingProductHasHistory = await productHasTransactionHistory(existingProduct);
 
     if (!normalizedDraft.categoryId) {
       setProductFormError("Select a category for this product.");
@@ -1172,17 +1257,34 @@ function ProductsPage({
     );
   }
 
+  const viewingHistory = viewingProduct ? productHistoryById[`${viewingProduct.id}`] : null;
   const viewPurchaseHistory = viewingProduct
-    ? getPurchaseHistory(viewingProduct)
+    ? viewingHistory
+      ? viewingHistory.purchases.flatMap((purchase) =>
+          (purchase.items || [])
+            .filter((item) => itemMatchesProduct(item, viewingProduct))
+            .map((item) => ({ purchase, item }))
+        )
+      : getPurchaseHistory(viewingProduct)
     : [];
   const viewSalesHistory = viewingProduct
-    ? getSalesHistory(viewingProduct)
+    ? viewingHistory
+      ? viewingHistory.sales.flatMap((sale) =>
+          (sale.items || [])
+            .filter((item) => itemMatchesProduct(item, viewingProduct))
+            .map((item) => ({ sale, item }))
+        )
+      : getSalesHistory(viewingProduct)
     : [];
   const viewingProductMetrics = viewingProduct
-    ? getProductMetrics(viewingProduct, purchases, sales)
+    ? getProductMetrics(
+        viewingProduct,
+        viewingHistory?.purchases || purchases,
+        viewingHistory?.sales || sales
+      )
     : null;
   const draftExistingProduct = draftProduct ? getExistingProduct(draftProduct) : null;
-  const draftProductHasHistory = productHasTransactionHistory(draftExistingProduct);
+  const draftProductHasHistory = getCachedProductHasTransactionHistory(draftExistingProduct);
   const isSkuLocked = Boolean(draftExistingProduct && draftProductHasHistory && !skuChangeUnlocked);
 
   return (
@@ -1778,6 +1880,13 @@ function ProductsPage({
                     </div>
                   </div>
                 </div>
+
+                {productHistoryLoadingId === `${viewingProduct.id}` ? (
+                  <div className="notice-banner">Loading product transaction history...</div>
+                ) : null}
+                {productHistoryError ? (
+                  <div className="error-banner">{productHistoryError}</div>
+                ) : null}
 
                 <div className="product-detail-section">
                   <p className="detail-label">Purchase History</p>
