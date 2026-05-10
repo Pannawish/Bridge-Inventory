@@ -19,6 +19,19 @@ This file is for coding agents working in this repository. Follow these rules be
 - Do not silently remove existing data fields from serializers, API payloads, or frontend state.
 - Avoid unrelated formatting churn in large files.
 
+## Readability And Maintainability Standards
+
+- Write code that future developers can read without needing hidden context from prior agent conversations.
+- Prefer clear names for functions, variables, components, hooks, serializers, and query helpers.
+- Keep functions focused on one responsibility. If a function grows hard to scan, extract named helpers that explain the workflow.
+- Keep page components responsible for composition and user flow; move reusable data loading, formatting, validation, and mapping logic into hooks or utility modules.
+- Avoid duplicating business rules across frontend files. Shared rules should live in one named helper or, when authoritative, in the backend.
+- Keep files reasonably sized. When adding new behavior to a large file, first look for an existing focused module or create one with clear ownership.
+- Use comments only to explain non-obvious business rules, edge cases, or safety constraints. Do not comment obvious code.
+- Preserve behavior during refactors. Split files and rename helpers separately from feature changes whenever possible.
+- Make API payload builders, data normalizers, and eligibility/filter logic explicit and easy to test.
+- Do not hide important behavior in clever one-liners, deeply nested conditionals, or broad catch-all helpers.
+
 ## Backend Standards
 
 - Use Django ORM filters and serializers instead of ad hoc data handling.
