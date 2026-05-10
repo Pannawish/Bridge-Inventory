@@ -1,0 +1,648 @@
+@media (max-width: 1439px) {
+  .transaction-detail-modal {
+    width: min(900px, calc(100vw - 32px));
+  }
+
+  .transaction-detail-modal .table-scroll {
+    overflow-x: auto;
+  }
+
+  .detail-item-table {
+    table-layout: auto;
+  }
+
+  .detail-item-table-sale {
+    min-width: 1120px;
+  }
+
+  .detail-item-table-purchase {
+    min-width: 1420px;
+  }
+
+  .detail-item-table th,
+  .detail-item-table td {
+    padding: 12px 10px;
+    font-size: 0.86rem;
+  }
+
+  .detail-item-table th {
+    font-size: 0.78rem;
+  }
+
+  .detail-item-table .status-select,
+  .detail-item-table .received-date-input {
+    min-width: 142px;
+    padding: 9px 12px;
+    font-size: 0.78rem;
+  }
+
+  .detail-item-table .table-action-button {
+    min-width: 126px;
+    padding: 8px 14px;
+    font-size: 0.78rem;
+  }
+
+  .detail-item-table .purchase-item-status-control {
+    min-width: 142px;
+  }
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.transaction-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.transaction-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.transaction-detail-footer {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.detail-label {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.purchase-tax-invoice-field {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.purchase-tax-invoice-input {
+  width: min(280px, 100%);
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--text);
+  font-weight: 700;
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.purchase-tax-invoice-input::placeholder {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.purchase-tax-invoice-input:focus {
+  border-color: #c9b6c3;
+  box-shadow: 0 0 0 4px rgba(113, 75, 103, 0.10);
+}
+
+.detail-items {
+  display: grid;
+  gap: 12px;
+}
+
+.item-receiving-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.item-receiving-title {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1240px) {
+  .metrics-grid,
+  .dashboard-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inventory-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .double-grid,
+  .dashboard-insight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .supplier-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-editor-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "identity"
+      "contact"
+      "operations";
+  }
+
+  .contact-editor-section:first-child .contact-editor-grid,
+  .contact-editor-section:last-child .contact-editor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sales-summary-card {
+    max-width: 100%;
+    width: min(380px, 100%);
+  }
+}
+
+@media (max-width: 780px) {
+  .main-panel {
+    padding: 16px;
+  }
+
+  .topbar h2 {
+    font-size: 1.65rem;
+  }
+
+  .stock-report-summary,
+  .supplier-directory-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stock-filter-search-row,
+  .stock-filter-panel-top,
+  .stock-filter-groups,
+  .product-filter-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .product-filter-toggle {
+    width: 100%;
+  }
+
+  .stock-filter-grid,
+  .stock-filter-group-compact .stock-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stock-info-group {
+    grid-template-columns: 1fr;
+  }
+
+  .stock-info-group-heading {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .topbar-action-cluster {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .desktop-table {
+    display: none;
+  }
+
+  .mobile-record-list,
+  .mobile-stock-list {
+    display: grid;
+    gap: 14px;
+  }
+
+  .metrics-grid,
+  .dashboard-summary-grid,
+  .inventory-summary-grid,
+  .form-grid,
+  .product-editor-grid,
+  .product-editor-unit-grid,
+  .contact-editor-grid,
+  .contact-editor-section:first-child .contact-editor-grid,
+  .contact-editor-section:last-child .contact-editor-grid,
+  .detail-grid,
+  .line-item-row,
+  .sales-line-item-row {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+
+  .product-editor-wide-field {
+    grid-column: auto;
+  }
+
+  .product-sku-edit-row {
+    grid-template-columns: 1fr;
+  }
+
+  .purchase-line-item-row {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "index"
+      "product"
+      "sku"
+      "unit"
+      "delivery"
+      "qty"
+      "cost"
+      "discounts"
+      "amount"
+      "action";
+    min-width: 0;
+  }
+
+  .quotation-line-item-row {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "index"
+      "product"
+      "unit"
+      "qty"
+      "sale"
+      "cost"
+      "discounts"
+      "amount"
+      "action";
+    min-width: 0;
+  }
+
+  .line-item-index {
+    margin-top: 0;
+    justify-self: start;
+  }
+
+  .purchase-item-remove,
+  .quotation-item-remove {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .sales-line-item-row {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "index"
+      "product"
+      "qty"
+      "price"
+      "discounts"
+      "amount"
+      "action";
+    min-width: 0;
+  }
+
+  .sales-item-remove {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .quotation-action-cell {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+
+  .sales-line-item-header {
+    display: none;
+  }
+
+  .supplier-option-edit-row {
+    grid-template-columns: 1fr;
+  }
+
+  .unit-conversion-row {
+    grid-template-columns: 1fr;
+  }
+
+  .product-history-info-strip,
+  .product-profile-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .supplier-search-meta {
+    width: 100%;
+  }
+
+  .supplier-option-edit-actions,
+  .supplier-modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .product-name-editor-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .product-editor-section-heading {
+    flex-direction: column;
+  }
+
+  .contact-editor-section-heading {
+    flex-direction: column;
+  }
+
+  .supplier-modal-actions .danger-button {
+    margin-right: 0;
+  }
+
+  th,
+  td {
+    padding: 12px 10px;
+  }
+
+  .mobile-record-header,
+  .mobile-stock-header,
+  .attention-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mobile-record-grid,
+  .mobile-stock-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .supplier-directory-head {
+    display: none;
+  }
+
+  .supplier-directory-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .supplier-directory-cell-label {
+    display: block;
+  }
+
+  .status-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .section-card,
+  .dashboard-kpi-card,
+  .trend-card,
+  .stat-card {
+    border-radius: 24px;
+  }
+
+  .dashboard-page .section-card,
+  .dashboard-kpi-card {
+    border-radius: 18px;
+  }
+
+  .dashboard-movement-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .mini-stat-list.compact {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-backdrop {
+    padding: 12px;
+  }
+
+  .detail-modal {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 16px;
+  }
+
+  .section-card {
+    padding: 16px;
+  }
+
+  .section-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .transaction-detail-actions,
+  .transaction-table-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .topbar h2 {
+    font-size: 1.4rem;
+  }
+
+  .primary-button,
+  .secondary-button,
+  .danger-button {
+    font-size: 0.9rem;
+    padding: 10px 14px;
+  }
+}
+
+/* Odoo-inspired professional skin: flatter, squarer, and less decorative. */
+.main-panel {
+  background: var(--bg);
+}
+
+.section-card,
+.dashboard-page .section-card,
+.dashboard-kpi-card,
+.trend-card,
+.stat-card,
+.inventory-summary-card,
+.line-items-card,
+.purchase-vat-card,
+.sales-summary-card,
+.tx-sales-summary,
+.contact-editor-section,
+.detail-modal,
+.mobile-record-card,
+.mobile-stock-card,
+.chat-bubble,
+.stock-filter-panel,
+.stock-filter-group,
+.history-filter-panel,
+.product-filter-panel,
+.transaction-document-panel,
+.transaction-document-row,
+.supplier-combobox-menu,
+.dashboard-stock-info-modal,
+.attention-detail-panel,
+.product-detail-media,
+.quotation-link-card {
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+
+.section-card,
+.dashboard-page .section-card,
+.dashboard-kpi-card,
+.trend-card,
+.stat-card,
+.inventory-summary-card,
+.mobile-record-card,
+.mobile-stock-card,
+.detail-modal {
+  border: 1px solid var(--line);
+}
+
+.primary-button,
+.secondary-button,
+.edit-button,
+.danger-button,
+.prompt-chip,
+.table-action-button,
+.icon-button,
+.sidebar-close-button,
+.mobile-menu-button,
+.document-upload-button,
+.sales-discount-add,
+.sales-discount-remove,
+.text-danger-button,
+.category-tree-toggle,
+.stock-reset-button,
+.product-filter-toggle,
+.sidebar-refresh-button {
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+
+.primary-button {
+  background: var(--accent) !important;
+}
+
+.secondary-button,
+.prompt-chip,
+.table-action-button {
+  color: var(--accent-deep);
+  background: var(--accent-soft);
+}
+
+.primary-button:hover,
+.secondary-button:hover,
+.edit-button:hover,
+.danger-button:hover,
+.prompt-chip:hover,
+.icon-button:hover,
+.table-action-button:hover {
+  transform: none;
+}
+
+label input,
+label select,
+label textarea,
+.chat-form textarea,
+.line-item-row input,
+.line-item-row select,
+.status-select,
+.sales-discount-input,
+.purchase-tax-invoice-input,
+.received-date-input,
+.supplier-option-edit-row input,
+.stock-search,
+.search-shell,
+.topbar-action-cluster {
+  border-radius: 4px !important;
+}
+
+label input:focus,
+label select:focus,
+label textarea:focus,
+.chat-form textarea:focus,
+.line-item-row input:focus,
+.line-item-row select:focus,
+.status-select:focus,
+.sales-discount-input:focus,
+.purchase-tax-invoice-input:focus,
+.received-date-input:focus,
+.supplier-option-edit-row input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(113, 75, 103, 0.14) !important;
+}
+
+.stock-search-icon,
+.search-icon,
+.filter-button,
+.trend-pill,
+.directory-chip,
+.stock-filter-chips span,
+.product-filter-toggle span,
+.history-filter-option,
+.status-badge,
+.item-status-badge,
+.quotation-state-pill,
+.history-item-count,
+.mobile-record-index,
+.line-item-index,
+.purchase-vat-option,
+.vat-toggle-track,
+.attention-page-indicator,
+.pagination-pill {
+  border-radius: 4px !important;
+}
+
+.sidebar-nav-button {
+  border-radius: 4px;
+}
+
+.sidebar-nav-button.active {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.topbar,
+.section-heading {
+  border-radius: 0;
+}
+
+.transaction-table-window th,
+.dashboard-stock-table th,
+.category-tree-table th {
+  background: #f8f9fa;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+
+.chat-bubble.user {
+  background: var(--accent) !important;
+}

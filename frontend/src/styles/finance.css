@@ -1,0 +1,114 @@
+.billing-note-create-card,
+.payment-batch-create-card {
+  overflow: hidden;
+}
+
+.billing-note-create-card .form-layout,
+.billing-note-create-card .form-grid,
+.billing-note-create-card label,
+.billing-note-create-card select,
+.billing-note-create-card input,
+.billing-note-create-card textarea,
+.payment-batch-create-card .form-layout,
+.payment-batch-create-card .form-grid,
+.payment-batch-create-card label,
+.payment-batch-create-card select,
+.payment-batch-create-card input,
+.payment-batch-create-card textarea {
+  min-width: 0;
+}
+
+.billing-note-create-table-window,
+.payment-batch-create-table-window {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.billing-note-create-scroll,
+.payment-batch-create-scroll {
+  max-height: clamp(220px, 34vh, 420px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.transaction-table-window table.billing-note-create-table,
+.transaction-table-window table.payment-batch-create-table {
+  width: 100%;
+  min-width: 720px;
+  table-layout: fixed;
+}
+
+.billing-note-create-table th,
+.billing-note-create-table td,
+.payment-batch-create-table th,
+.payment-batch-create-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.billing-note-create-table td,
+.payment-batch-create-table td {
+  white-space: nowrap;
+}
+
+.billing-note-create-table .status-badge,
+.payment-batch-create-table .status-badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.billing-note-select-col,
+.payment-batch-select-col {
+  width: 44px;
+}
+
+.billing-note-reference-col,
+.payment-batch-reference-col {
+  width: 18%;
+}
+
+.billing-note-date-col,
+.payment-batch-date-col {
+  width: 14%;
+}
+
+.billing-note-status-col,
+.payment-batch-status-col {
+  width: 18%;
+}
+
+.billing-note-term-col,
+.payment-batch-term-col {
+  width: 18%;
+}
+
+.billing-note-amount-col,
+.payment-batch-amount-col {
+  width: 16%;
+}
+
+.billing-note-create-table th:first-child,
+.billing-note-create-table td:first-child,
+.payment-batch-create-table th:first-child,
+.payment-batch-create-table td:first-child {
+  text-align: center;
+}
+
+.billing-note-create-table th:last-child,
+.billing-note-create-table td:last-child,
+.payment-batch-create-table th:last-child,
+.payment-batch-create-table td:last-child {
+  text-align: right;
+}
+
+.billing-note-create-card .supplier-modal-actions,
+.payment-batch-create-card .supplier-modal-actions {
+  position: static;
+  margin: 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--line);
+}
+

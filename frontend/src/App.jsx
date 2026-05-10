@@ -1,303 +1,35 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "./api";
+import {
+  PAGE_SIZE,
+  buildBillingNotePayload,
+  buildPaymentBatchPayload,
+  buildPurchaseUpdatePayload,
+  buildSaleUpdatePayload,
+  isMockQuotationId,
+  mergeSavedQuotation,
+  removeMockQuotationId,
+} from "./app/appUtils";
+import { tabs } from "./app/tabs";
 import ChatPanel from "./components/ChatPanel";
 import Dashboard from "./components/Dashboard";
-import CustomerPage, { getDefaultCustomers } from "./components/CustomerPage";
-import {
-  mockBillingNotes,
-  mockDashboard,
-  mockPaymentBatches,
-  mockPurchases,
-  mockQuotations,
-  mockSales,
-} from "./mockData";
+import CustomerPage from "./components/CustomerPage";
 import PurchaseHistoryPage from "./components/PurchaseHistoryPage";
 import SalesHistoryPage from "./components/SalesHistoryPage";
-import SupplierPage, { getDefaultSuppliers } from "./components/SupplierPage";
-import ProductsPage, { getDefaultProducts } from "./components/ProductsPage";
-import CategoryPage, { getDefaultCategories } from "./components/CategoryPage";
+import SupplierPage from "./components/SupplierPage";
+import ProductsPage from "./components/ProductsPage";
+import CategoryPage from "./components/CategoryPage";
 import QuotationPage from "./components/QuotationPage";
 import BillingNotePage from "./components/BillingNotePage";
 import PaymentBatchPage from "./components/PaymentBatchPage";
+import { useInventoryData } from "./hooks/useInventoryData";
 import { applyPurchaseStatusToItems } from "./purchaseStatus";
 import { applySaleStatusToItems } from "./saleStatus";
 import { formatSaleStockIssueMessage, getSaleStockIssues } from "./saleStock";
 
-const PAGE_SIZE = 25;
-
-function getCollectionRows(result, fallback = []) {
-  if (Array.isArray(result)) {
-    return result;
-  }
-
-  if (Array.isArray(result?.results)) {
-    return result.results;
-  }
-
-  return fallback;
-}
-
-function getCollectionPagination(result) {
-  if (!Array.isArray(result?.results)) {
-    return null;
-  }
-
-  return {
-    count: Number(result.count || 0),
-    next: result.next || null,
-    previous: result.previous || null,
-    page: Number(result.page || 1),
-    page_size: Number(result.page_size || PAGE_SIZE),
-    total_pages: Number(result.total_pages || 1),
-  };
-}
-
-function buildListParams({
-  page = 1,
-  pageSize = PAGE_SIZE,
-  search = "",
-  statuses = "",
-  status = "",
-  supplier = "",
-  customer = "",
-  category = "",
-  stockFilter = "",
-  profileFilter = "",
-  dateFrom = "",
-  dateTo = "",
-} = {}) {
-  return {
-    page,
-    page_size: pageSize,
-    search: search.trim(),
-    status: Array.isArray(statuses) ? statuses.join(",") : statuses || status,
-    supplier,
-    customer,
-    category,
-    stock_filter: stockFilter,
-    profile_filter: profileFilter,
-    date_from: dateFrom,
-    date_to: dateTo,
-  };
-}
-
-function isMockQuotationId(quotationId) {
-  return mockQuotations.some((quotation) => `${quotation.id}` === `${quotationId}`);
-}
-
-function removeMockQuotationId(quotation) {
-  if (!isMockQuotationId(quotation?.id)) {
-    return quotation;
-  }
-
-  const { id, ...quotationPayload } = quotation;
-  return quotationPayload;
-}
-
-function mergeSavedQuotation(currentRows, sourceQuotation, savedQuotation, wasUpdate) {
-  if (wasUpdate) {
-    return currentRows.map((row) =>
-      `${row.id}` === `${savedQuotation.id}` ? savedQuotation : row
-    );
-  }
-
-  const shouldKeepSourceQuotation = isMockQuotationId(sourceQuotation?.id);
-
-  return [
-    savedQuotation,
-    ...currentRows.filter(
-      (row) =>
-        (shouldKeepSourceQuotation || `${row.id}` !== `${sourceQuotation.id}`) &&
-        `${row.id}` !== `${savedQuotation.id}`
-    ),
-  ];
-}
-
-function mergeQuotationRowsWithMocks(quotationRows = []) {
-  const realIds = new Set(quotationRows.map((quotation) => `${quotation.id}`));
-  const visibleMocks = mockQuotations.filter(
-    (quotation) => !realIds.has(`${quotation.id}`)
-  );
-
-  return [...quotationRows, ...visibleMocks];
-}
-
-function buildTransactionFormData(record, fields) {
-  const formData = new FormData();
-
-  fields.forEach((field) => {
-    if (record[field] !== undefined) {
-      formData.append(field, record[field] ?? "");
-    }
-  });
-
-  formData.append("items", JSON.stringify(record.items || []));
-  formData.append("vat_mode", record.vat_mode || "not_included");
-  formData.append("total_before_vat", record.total_before_vat ?? 0);
-  formData.append("vat_amount", record.vat_amount ?? 0);
-  formData.append("grand_total", record.grand_total ?? record.total_amount ?? 0);
-
-  (record.new_documents || []).forEach((document) => {
-    if (document instanceof File) {
-      formData.append("documents", document);
-    }
-  });
-
-  if (record.document instanceof File) {
-    formData.append("documents", record.document);
-  }
-
-  if (record.remove_document) {
-    formData.append("remove_document", "true");
-  }
-
-  if (record.remove_document_ids?.length) {
-    formData.append("remove_document_ids", JSON.stringify(record.remove_document_ids));
-  }
-
-  return formData;
-}
-
-function buildPurchaseUpdatePayload(purchase) {
-  return buildTransactionFormData(purchase, [
-    "reference_no",
-    "supplier_name",
-    "supplier_tax_invoice",
-    "status",
-    "transaction_date",
-    "payment_term_type",
-    "payment_term_days",
-    "payment_date",
-    "note",
-  ]);
-}
-
-function buildSaleUpdatePayload(sale) {
-  return buildTransactionFormData(sale, [
-    "reference_no",
-    "customer_name",
-    "status",
-    "payment_term_type",
-    "payment_term_days",
-    "payment_date",
-    "transaction_date",
-    "note",
-  ]);
-}
-
-const tabs = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    shortLabel: "D",
-    description: "Overview, stock health, and daily movement.",
-  },
-  {
-    id: "quotations",
-    label: "Quotation",
-    shortLabel: "QT",
-    description: "Prepare product quotations before purchase or sales records.",
-  },
-  {
-    id: "purchase-history",
-    label: "Purchases",
-    shortLabel: "PH",
-    description: "Search and review purchase records.",
-  },
-  {
-    id: "sales-history",
-    label: "Sales",
-    shortLabel: "SH",
-    description: "Search and review sales records.",
-  },
-  {
-    id: "billing-notes",
-    label: "Billing Notes",
-    shortLabel: "BN",
-    description: "Track money the business expects to receive from customers.",
-  },
-  {
-    id: "payment-batches",
-    label: "Payment Batches",
-    shortLabel: "PB",
-    description: "Track money the business needs to pay to suppliers.",
-  },
-  {
-    id: "suppliers",
-    label: "Supplier",
-    shortLabel: "SP",
-    description: "Supplier contact records, branches, and shipping details.",
-  },
-  {
-    id: "customers",
-    label: "Customer",
-    shortLabel: "CU",
-    description: "Customer contact records, branches, billing notes, and shipping details.",
-  },
-  {
-    id: "products",
-    label: "Products",
-    shortLabel: "PR",
-    description: "Product catalog with pricing, stock levels, and supplier discounts.",
-  },
-  {
-    id: "categories",
-    label: "Categories",
-    shortLabel: "CA",
-    description: "Manage product categories and prevent duplicate names.",
-  },
-  {
-    id: "chat",
-    label: "AI Chat",
-    shortLabel: "A",
-    description: "Ask inventory questions and review quick insights.",
-  },
-];
-
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [dashboard, setDashboard] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [productRows, setProductRows] = useState([]);
-  const [productPagination, setProductPagination] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
-  const [supplierRows, setSupplierRows] = useState([]);
-  const [supplierPagination, setSupplierPagination] = useState(null);
-  const [usingMockSuppliers, setUsingMockSuppliers] = useState(false);
-  const [customers, setCustomers] = useState([]);
-  const [customerRows, setCustomerRows] = useState([]);
-  const [customerPagination, setCustomerPagination] = useState(null);
-  const [usingMockCustomers, setUsingMockCustomers] = useState(false);
-  const [purchases, setPurchases] = useState([]);
-  const [purchaseRows, setPurchaseRows] = useState([]);
-  const [purchasePagination, setPurchasePagination] = useState(null);
-  const [usingMockPurchases, setUsingMockPurchases] = useState(false);
-  const [sales, setSales] = useState([]);
-  const [saleRows, setSaleRows] = useState([]);
-  const [salePagination, setSalePagination] = useState(null);
-  const [usingMockSales, setUsingMockSales] = useState(false);
-  const [quotations, setQuotations] = useState([]);
-  const [usingMockQuotations, setUsingMockQuotations] = useState(false);
-  const [usingMockCategories, setUsingMockCategories] = useState(false);
-  const [usingMockProducts, setUsingMockProducts] = useState(false);
-  const [billingNotes, setBillingNotes] = useState([]);
-  const [billingNoteRows, setBillingNoteRows] = useState([]);
-  const [billingNotePagination, setBillingNotePagination] = useState(null);
-  const [billingNoteEligibleSales, setBillingNoteEligibleSales] = useState([]);
-  const [billingNoteSummary, setBillingNoteSummary] = useState(null);
-  const [billingNoteNextReferenceNo, setBillingNoteNextReferenceNo] = useState("");
-  const [usingMockBillingNotes, setUsingMockBillingNotes] = useState(false);
-  const [paymentBatches, setPaymentBatches] = useState([]);
-  const [paymentBatchRows, setPaymentBatchRows] = useState([]);
-  const [paymentBatchPagination, setPaymentBatchPagination] = useState(null);
-  const [paymentBatchEligiblePurchases, setPaymentBatchEligiblePurchases] = useState([]);
-  const [paymentBatchSummary, setPaymentBatchSummary] = useState(null);
-  const [paymentBatchNextReferenceNo, setPaymentBatchNextReferenceNo] = useState("");
-  const [usingMockPaymentBatches, setUsingMockPaymentBatches] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
   const [messages, setMessages] = useState([
@@ -307,361 +39,84 @@ function App() {
         "Ask about low stock, recent sales, or which products need restocking.",
     },
   ]);
-
-  const loadSupplierPage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getSuppliers(buildListParams(params));
-      setSupplierRows(getCollectionRows(response));
-      setSupplierPagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
-
-  const loadCustomerPage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getCustomers(buildListParams(params));
-      setCustomerRows(getCollectionRows(response));
-      setCustomerPagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
-
-  const loadProductPage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getProducts(buildListParams(params));
-      setProductRows(getCollectionRows(response));
-      setProductPagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
-
-  const loadPurchasePage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getPurchases(buildListParams(params));
-      setPurchaseRows(getCollectionRows(response));
-      setPurchasePagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
-
-  const loadSalePage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getSales(buildListParams(params));
-      setSaleRows(getCollectionRows(response));
-      setSalePagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
-
-  const loadBillingNotePage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getBillingNotes(buildListParams(params));
-      const rows = getCollectionRows(response);
-      setBillingNotes(rows);
-      setBillingNoteRows(rows);
-      setBillingNotePagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
-
-  const loadPaymentBatchPage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getPaymentBatches(buildListParams(params));
-      const rows = getCollectionRows(response);
-      setPaymentBatches(rows);
-      setPaymentBatchRows(rows);
-      setPaymentBatchPagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
-
-  const loadBillingNoteEligibility = useCallback(async () => {
-    const response = await api.getEligibleBillingNoteSales();
-    setBillingNoteEligibleSales(Array.isArray(response?.sales) ? response.sales : []);
-    setBillingNoteSummary(response?.summary || null);
-    setBillingNoteNextReferenceNo(response?.next_reference_no || "");
-    return response;
-  }, []);
-
-  const loadPaymentBatchEligibility = useCallback(async () => {
-    const response = await api.getEligiblePaymentBatchPurchases();
-    setPaymentBatchEligiblePurchases(
-      Array.isArray(response?.purchases) ? response.purchases : []
-    );
-    setPaymentBatchSummary(response?.summary || null);
-    setPaymentBatchNextReferenceNo(response?.next_reference_no || "");
-    return response;
-  }, []);
-
-  async function refreshBillingNoteEligibility() {
-    try {
-      await loadBillingNoteEligibility();
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  }
-
-  async function refreshPaymentBatchEligibility() {
-    try {
-      await loadPaymentBatchEligibility();
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  }
+  const {
+    dashboard,
+    products,
+    setProducts,
+    productRows,
+    setProductRows,
+    productPagination,
+    categories,
+    setCategories,
+    suppliers,
+    setSuppliers,
+    supplierRows,
+    setSupplierRows,
+    supplierPagination,
+    usingMockSuppliers,
+    customers,
+    setCustomers,
+    customerRows,
+    setCustomerRows,
+    customerPagination,
+    usingMockCustomers,
+    purchases,
+    setPurchases,
+    purchaseRows,
+    setPurchaseRows,
+    purchasePagination,
+    usingMockPurchases,
+    sales,
+    setSales,
+    saleRows,
+    setSaleRows,
+    salePagination,
+    usingMockSales,
+    quotations,
+    setQuotations,
+    usingMockQuotations,
+    usingMockCategories,
+    usingMockProducts,
+    billingNotes,
+    setBillingNotes,
+    billingNoteRows,
+    setBillingNoteRows,
+    billingNotePagination,
+    billingNoteEligibleSales,
+    billingNoteSummary,
+    billingNoteNextReferenceNo,
+    usingMockBillingNotes,
+    paymentBatches,
+    setPaymentBatches,
+    paymentBatchRows,
+    setPaymentBatchRows,
+    paymentBatchPagination,
+    paymentBatchEligiblePurchases,
+    paymentBatchSummary,
+    paymentBatchNextReferenceNo,
+    usingMockPaymentBatches,
+    loading,
+    error,
+    setError,
+    loadData,
+    loadSupplierPage,
+    loadCustomerPage,
+    loadProductPage,
+    loadPurchasePage,
+    loadSalePage,
+    loadBillingNotePage,
+    loadPaymentBatchPage,
+    refreshBillingNoteEligibility,
+    refreshPaymentBatchEligibility,
+  } = useInventoryData();
 
   async function handleLoadProductHistory(productId) {
     return api.getProductHistory(productId);
   }
 
-  async function loadData() {
-    setLoading(true);
-    setError("");
-
-    const results = await Promise.allSettled([
-      api.getDashboard(),
-      api.getSupplierLookups(),
-      api.getCustomerLookups(),
-      api.getCategories(),
-      api.getProductLookups(),
-      api.getQuotations(),
-      api.getEligibleBillingNoteSales(),
-      api.getEligiblePaymentBatchPurchases(),
-      api.getSuppliers(buildListParams()),
-      api.getCustomers(buildListParams()),
-      api.getProducts(buildListParams()),
-      api.getPurchases(buildListParams()),
-      api.getSales(buildListParams()),
-      api.getBillingNotes(buildListParams()),
-      api.getPaymentBatches(buildListParams()),
-    ]);
-
-    const [
-      dashboardResult,
-      supplierResult,
-      customerResult,
-      categoryResult,
-      productResult,
-      quotationResult,
-      billingNoteEligibilityResult,
-      paymentBatchEligibilityResult,
-      supplierPageResult,
-      customerPageResult,
-      productPageResult,
-      purchasePageResult,
-      salePageResult,
-      billingNotePageResult,
-      paymentBatchPageResult,
-    ] = results;
-    const failures = [];
-
-    if (dashboardResult.status === "fulfilled") {
-      setDashboard(dashboardResult.value);
-    } else {
-      setDashboard(mockDashboard);
-      failures.push("dashboard");
-    }
-
-    if (supplierResult.status === "fulfilled") {
-      const supplierRowsAll = getCollectionRows(supplierResult.value);
-      setSuppliers(supplierRowsAll);
-      setUsingMockSuppliers(false);
-      if (supplierPageResult.status === "fulfilled") {
-        setSupplierRows(getCollectionRows(supplierPageResult.value));
-        setSupplierPagination(getCollectionPagination(supplierPageResult.value));
-      } else {
-        setSupplierRows(supplierRowsAll);
-        setSupplierPagination(null);
-      }
-    } else {
-      setSuppliers(getDefaultSuppliers());
-      setSupplierRows(getDefaultSuppliers());
-      setSupplierPagination(null);
-      setUsingMockSuppliers(true);
-      failures.push("suppliers");
-    }
-
-    if (customerResult.status === "fulfilled") {
-      const customerRowsAll = getCollectionRows(customerResult.value);
-      setCustomers(customerRowsAll);
-      setUsingMockCustomers(false);
-      if (customerPageResult.status === "fulfilled") {
-        setCustomerRows(getCollectionRows(customerPageResult.value));
-        setCustomerPagination(getCollectionPagination(customerPageResult.value));
-      } else {
-        setCustomerRows(customerRowsAll);
-        setCustomerPagination(null);
-      }
-    } else {
-      setCustomers(getDefaultCustomers());
-      setCustomerRows(getDefaultCustomers());
-      setCustomerPagination(null);
-      setUsingMockCustomers(true);
-      failures.push("customers");
-    }
-
-    if (categoryResult.status === "fulfilled") {
-      setCategories(getCollectionRows(categoryResult.value));
-      setUsingMockCategories(false);
-    } else {
-      setCategories(getDefaultCategories());
-      setUsingMockCategories(true);
-      failures.push("categories");
-    }
-
-    if (productResult.status === "fulfilled") {
-      const productRowsAll = getCollectionRows(productResult.value);
-      setProducts(productRowsAll);
-      setUsingMockProducts(false);
-      if (productPageResult.status === "fulfilled") {
-        setProductRows(getCollectionRows(productPageResult.value));
-        setProductPagination(getCollectionPagination(productPageResult.value));
-      } else {
-        setProductRows(productRowsAll);
-        setProductPagination(null);
-      }
-    } else {
-      setProducts(getDefaultProducts());
-      setProductRows(getDefaultProducts());
-      setProductPagination(null);
-      setUsingMockProducts(true);
-      failures.push("products");
-    }
-
-    if (purchasePageResult.status === "fulfilled") {
-      const purchaseRowsAll = getCollectionRows(purchasePageResult.value);
-      setPurchases(purchaseRowsAll);
-      setPurchaseRows(purchaseRowsAll);
-      setPurchasePagination(getCollectionPagination(purchasePageResult.value));
-      setUsingMockPurchases(false);
-    } else {
-      setPurchases(mockPurchases);
-      setPurchaseRows(mockPurchases);
-      setPurchasePagination(null);
-      setUsingMockPurchases(true);
-      failures.push("purchases");
-    }
-
-    if (salePageResult.status === "fulfilled") {
-      const saleRowsAll = getCollectionRows(salePageResult.value);
-      setSales(saleRowsAll);
-      setSaleRows(saleRowsAll);
-      setSalePagination(getCollectionPagination(salePageResult.value));
-      setUsingMockSales(false);
-    } else {
-      setSales(mockSales);
-      setSaleRows(mockSales);
-      setSalePagination(null);
-      setUsingMockSales(true);
-      failures.push("sales");
-    }
-
-    if (quotationResult.status === "fulfilled") {
-      const quotationRows = getCollectionRows(quotationResult.value);
-      setQuotations(mergeQuotationRowsWithMocks(quotationRows));
-      setUsingMockQuotations(false);
-    } else {
-      setQuotations(mockQuotations);
-      setUsingMockQuotations(true);
-      failures.push("quotations");
-    }
-
-    if (billingNoteEligibilityResult.status === "fulfilled") {
-      setBillingNoteEligibleSales(
-        Array.isArray(billingNoteEligibilityResult.value?.sales)
-          ? billingNoteEligibilityResult.value.sales
-          : []
-      );
-      setBillingNoteSummary(billingNoteEligibilityResult.value?.summary || null);
-      setBillingNoteNextReferenceNo(
-        billingNoteEligibilityResult.value?.next_reference_no || ""
-      );
-    } else {
-      setBillingNoteEligibleSales(mockSales);
-      setBillingNoteSummary(null);
-      setBillingNoteNextReferenceNo("");
-      failures.push("billing-note-eligibility");
-    }
-
-    if (billingNotePageResult.status === "fulfilled") {
-      const billingNoteRowsAll = getCollectionRows(billingNotePageResult.value);
-      setBillingNotes(billingNoteRowsAll);
-      setBillingNoteRows(billingNoteRowsAll);
-      setBillingNotePagination(getCollectionPagination(billingNotePageResult.value));
-      setUsingMockBillingNotes(false);
-    } else {
-      setBillingNotes(mockBillingNotes);
-      setBillingNoteRows(mockBillingNotes);
-      setBillingNotePagination(null);
-      setUsingMockBillingNotes(true);
-      failures.push("billing-notes");
-    }
-
-    if (paymentBatchEligibilityResult.status === "fulfilled") {
-      setPaymentBatchEligiblePurchases(
-        Array.isArray(paymentBatchEligibilityResult.value?.purchases)
-          ? paymentBatchEligibilityResult.value.purchases
-          : []
-      );
-      setPaymentBatchSummary(paymentBatchEligibilityResult.value?.summary || null);
-      setPaymentBatchNextReferenceNo(
-        paymentBatchEligibilityResult.value?.next_reference_no || ""
-      );
-    } else {
-      setPaymentBatchEligiblePurchases(mockPurchases);
-      setPaymentBatchSummary(null);
-      setPaymentBatchNextReferenceNo("");
-      failures.push("payment-batch-eligibility");
-    }
-
-    if (paymentBatchPageResult.status === "fulfilled") {
-      const paymentBatchRowsAll = getCollectionRows(paymentBatchPageResult.value);
-      setPaymentBatches(paymentBatchRowsAll);
-      setPaymentBatchRows(paymentBatchRowsAll);
-      setPaymentBatchPagination(getCollectionPagination(paymentBatchPageResult.value));
-      setUsingMockPaymentBatches(false);
-    } else {
-      setPaymentBatches(mockPaymentBatches);
-      setPaymentBatchRows(mockPaymentBatches);
-      setPaymentBatchPagination(null);
-      setUsingMockPaymentBatches(true);
-      failures.push("payment-batches");
-    }
-
-    if (failures.length) {
-      setError(
-        failures.includes("dashboard")
-          ? "Backend not connected. Showing mock dashboard data."
-          : "Some backend data is unavailable."
-      );
-    }
-
-    setLoading(false);
-  }
-
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -1375,44 +830,6 @@ function App() {
       setError(requestError.message);
       return false;
     }
-  }
-
-  function buildBillingNotePayload(billingNote) {
-    return {
-      reference_no: billingNote.reference_no || "",
-      customer_name: billingNote.customer_name || "",
-      billing_note_date: billingNote.billing_note_date || null,
-      expected_payment_date: billingNote.expected_payment_date || null,
-      actual_payment_date: billingNote.actual_payment_date || null,
-      status: billingNote.status || "issued",
-      bank_reference: billingNote.bank_reference || "",
-      note: billingNote.note || "",
-      lines: (billingNote.lines || []).map((line) => ({
-        sale: line.sale,
-        received: !!line.received,
-        received_date: line.received_date || null,
-        amount: line.amount,
-      })),
-    };
-  }
-
-  function buildPaymentBatchPayload(paymentBatch) {
-    return {
-      reference_no: paymentBatch.reference_no || "",
-      supplier_name: paymentBatch.supplier_name || "",
-      batch_date: paymentBatch.batch_date || null,
-      planned_payment_date: paymentBatch.planned_payment_date || null,
-      actual_payment_date: paymentBatch.actual_payment_date || null,
-      status: paymentBatch.status || "scheduled",
-      bank_reference: paymentBatch.bank_reference || "",
-      note: paymentBatch.note || "",
-      lines: (paymentBatch.lines || []).map((line) => ({
-        purchase: line.purchase,
-        paid: !!line.paid,
-        paid_date: line.paid_date || null,
-        amount: line.amount,
-      })),
-    };
   }
 
   async function handleBillingNoteCreate(nextBillingNote) {
