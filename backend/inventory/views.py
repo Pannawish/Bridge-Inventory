@@ -3,7 +3,8 @@ import logging
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.db import IntegrityError
-from django.db.models import ProtectedError, Q
+from django.db.models import ProtectedError, Q, Sum
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -11,9 +12,11 @@ from rest_framework.response import Response
 
 from .models import (
     BillingNote,
+    BillingNoteLine,
     Category,
     Customer,
     PaymentBatch,
+    PaymentBatchLine,
     Product,
     Purchase,
     PurchaseItem,
@@ -72,6 +75,17 @@ DECIMAL_FIELD_PLACES = {
     "base_quantity": 3,
     "conversion_factor": 6,
 }
+
+BILLING_NOTE_ELIGIBLE_SALE_STATUSES = (
+    Sale.STATUS_DELIVERED,
+    Sale.STATUS_PARTIALLY_DELIVERED,
+    Sale.STATUS_SHIPPED,
+)
+
+PAYMENT_BATCH_ELIGIBLE_PURCHASE_STATUSES = (
+    Purchase.STATUS_RECEIVED,
+    Purchase.STATUS_PARTIALLY_RECEIVED,
+)
 
 
 def format_serializer_errors(errors):
@@ -148,6 +162,150 @@ def normalize_request_data(request):
         ]
 
     return data
+
+
+def apply_text_search(queryset, request, fields):
+    search_query = (
+        request.query_params.get("search") or request.query_params.get("q") or ""
+    ).strip()
+    if not search_query:
+        return queryset
+
+    search_filter = Q()
+    for field in fields:
+        search_filter |= Q(**{f"{field}__icontains": search_query})
+    return queryset.filter(search_filter).distinct()
+
+
+def apply_date_range(queryset, request, date_field):
+    date_from = (
+        request.query_params.get("date_from") or request.query_params.get("from") or ""
+    ).strip()
+    date_to = (
+        request.query_params.get("date_to") or request.query_params.get("to") or ""
+    ).strip()
+
+    if date_from:
+        queryset = queryset.filter(**{f"{date_field}__gte": date_from})
+    if date_to:
+        queryset = queryset.filter(**{f"{date_field}__lte": date_to})
+
+    return queryset
+
+
+def build_next_reference_no(model, prefix):
+    today = timezone.localdate()
+    year_month = f"{today.year + 543}"[-2:] + f"{today.month:02d}"
+    reference_prefix = f"{prefix}-{year_month}-"
+    same_month_count = model.objects.filter(reference_no__startswith=reference_prefix).count()
+    return f"{reference_prefix}{same_month_count + 1:03d}"
+
+
+def build_party_options(names, model):
+    names = sorted({name for name in names if name})
+    partners = {
+        partner.company_name: partner
+        for partner in model.objects.filter(company_name__in=names)
+    }
+
+    return [
+        {
+            "id": partners[name].id if name in partners else name,
+            "name": name,
+            "companyName": name,
+        }
+        for name in names
+    ]
+
+
+def serialize_sale_lookup(sale):
+    return {
+        "id": sale.id,
+        "reference_no": sale.reference_no,
+        "customer_name": sale.customer_name,
+        "status": sale.status,
+        "transaction_date": sale.transaction_date,
+        "payment_term_type": sale.payment_term_type,
+        "payment_term_days": sale.payment_term_days,
+        "payment_date": sale.payment_date,
+        "grand_total": sale.grand_total,
+    }
+
+
+def serialize_purchase_lookup(purchase):
+    return {
+        "id": purchase.id,
+        "reference_no": purchase.reference_no,
+        "supplier_name": purchase.supplier_name,
+        "status": purchase.status,
+        "transaction_date": purchase.transaction_date,
+        "payment_term_type": purchase.payment_term_type,
+        "payment_term_days": purchase.payment_term_days,
+        "payment_date": purchase.payment_date,
+        "grand_total": purchase.grand_total,
+    }
+
+
+def build_billing_note_summary():
+    today = timezone.localdate()
+
+    outstanding = (
+        BillingNote.objects.exclude(
+            status__in=(BillingNote.STATUS_FULLY_RECEIVED, BillingNote.STATUS_CANCELLED)
+        ).aggregate(total=Sum("total_amount"))["total"]
+        or Decimal("0")
+    )
+    overdue = (
+        BillingNote.objects.exclude(
+            status__in=(BillingNote.STATUS_FULLY_RECEIVED, BillingNote.STATUS_CANCELLED)
+        )
+        .filter(expected_payment_date__lt=today)
+        .aggregate(total=Sum("total_amount"))["total"]
+        or Decimal("0")
+    )
+    received = (
+        BillingNote.objects.filter(
+            status=BillingNote.STATUS_FULLY_RECEIVED
+        ).aggregate(total=Sum("total_amount"))["total"]
+        or Decimal("0")
+    )
+
+    return {
+        "outstanding": outstanding,
+        "overdue": overdue,
+        "received": received,
+    }
+
+
+def build_payment_batch_summary():
+    today = timezone.localdate()
+
+    outstanding = (
+        PaymentBatch.objects.exclude(
+            status__in=(PaymentBatch.STATUS_PAID, PaymentBatch.STATUS_CANCELLED)
+        ).aggregate(total=Sum("total_amount"))["total"]
+        or Decimal("0")
+    )
+    overdue = (
+        PaymentBatch.objects.exclude(
+            status__in=(PaymentBatch.STATUS_PAID, PaymentBatch.STATUS_CANCELLED)
+        )
+        .filter(planned_payment_date__lt=today)
+        .aggregate(total=Sum("total_amount"))["total"]
+        or Decimal("0")
+    )
+    paid = (
+        PaymentBatch.objects.filter(
+            status=PaymentBatch.STATUS_PAID
+        ).aggregate(total=Sum("total_amount"))["total"]
+        or Decimal("0")
+    )
+
+    return {
+        "outstanding": outstanding,
+        "overdue": overdue,
+        "paid": paid,
+    }
 
 
 class InventoryModelViewSet(viewsets.ModelViewSet):
@@ -485,11 +643,16 @@ def api_home(request):
                 "/api/customers/",
                 "/api/categories/",
                 "/api/products/",
+                "/api/lookups/products/",
+                "/api/lookups/suppliers/",
+                "/api/lookups/customers/",
                 "/api/purchases/",
                 "/api/sales/",
                 "/api/quotations/",
                 "/api/billing-notes/",
+                "/api/eligibility/billing-note-sales/",
                 "/api/payment-batches/",
+                "/api/eligibility/payment-batch-purchases/",
                 "/api/chat/",
             ],
         }
@@ -499,6 +662,121 @@ def api_home(request):
 @api_view(["GET"])
 def dashboard(request):
     return Response(build_dashboard_summary(request))
+
+
+@api_view(["GET"])
+def product_lookups(request):
+    queryset = Product.objects.select_related("category").prefetch_related("unit_conversions")
+    queryset = apply_text_search(
+        queryset,
+        request,
+        ("product_name", "sku", "category__name", "category_name", "detail"),
+    )
+    products = list(queryset)
+    stock_by_product_id = get_available_stock_by_product_id(
+        product_ids=[product.id for product in products]
+    )
+    serializer = ProductSerializer(
+        products,
+        many=True,
+        context={"current_stock_by_product_id": stock_by_product_id},
+    )
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+def supplier_lookups(request):
+    queryset = apply_text_search(
+        Supplier.objects.all(),
+        request,
+        ("company_name", "taxpayer_id", "term_type", "billing_note_date", "remark"),
+    )
+    return Response(SupplierSerializer(queryset, many=True).data)
+
+
+@api_view(["GET"])
+def customer_lookups(request):
+    queryset = apply_text_search(
+        Customer.objects.all(),
+        request,
+        ("company_name", "taxpayer_id", "term_type", "billing_note_date", "remark"),
+    )
+    return Response(CustomerSerializer(queryset, many=True).data)
+
+
+@api_view(["GET"])
+def eligible_billing_note_sales(request):
+    active_sale_ids = BillingNoteLine.objects.exclude(
+        billing_note__status=BillingNote.STATUS_CANCELLED
+    ).values_list("sale_id", flat=True)
+
+    queryset = Sale.objects.filter(
+        status__in=BILLING_NOTE_ELIGIBLE_SALE_STATUSES,
+    ).exclude(id__in=active_sale_ids)
+
+    queryset = apply_text_search(
+        queryset,
+        request,
+        ("reference_no", "customer_name", "status", "transaction_date", "note"),
+    )
+    queryset = apply_date_range(queryset, request, "transaction_date")
+
+    customer = (request.query_params.get("customer") or "").strip()
+    if customer:
+        queryset = queryset.filter(customer_name__iexact=customer)
+
+    sales = list(queryset)
+    customer_names = [sale.customer_name for sale in sales]
+
+    return Response(
+        {
+            "customers": build_party_options(customer_names, Customer),
+            "sales": [serialize_sale_lookup(sale) for sale in sales],
+            "summary": build_billing_note_summary(),
+            "next_reference_no": build_next_reference_no(BillingNote, "BN"),
+        }
+    )
+
+
+@api_view(["GET"])
+def eligible_payment_batch_purchases(request):
+    active_purchase_ids = PaymentBatchLine.objects.exclude(
+        payment_batch__status=PaymentBatch.STATUS_CANCELLED
+    ).values_list("purchase_id", flat=True)
+
+    queryset = Purchase.objects.filter(
+        status__in=PAYMENT_BATCH_ELIGIBLE_PURCHASE_STATUSES,
+    ).exclude(id__in=active_purchase_ids)
+
+    queryset = apply_text_search(
+        queryset,
+        request,
+        (
+            "reference_no",
+            "supplier_name",
+            "supplier_tax_invoice",
+            "status",
+            "transaction_date",
+            "note",
+        ),
+    )
+    queryset = apply_date_range(queryset, request, "transaction_date")
+
+    supplier = (request.query_params.get("supplier") or "").strip()
+    if supplier:
+        queryset = queryset.filter(supplier_name__iexact=supplier)
+
+    purchases = list(queryset)
+    supplier_names = [purchase.supplier_name for purchase in purchases]
+
+    return Response(
+        {
+            "suppliers": build_party_options(supplier_names, Supplier),
+            "purchases": [serialize_purchase_lookup(purchase) for purchase in purchases],
+            "summary": build_payment_batch_summary(),
+            "next_reference_no": build_next_reference_no(PaymentBatch, "PMT"),
+        }
+    )
 
 
 @api_view(["POST"])

@@ -285,10 +285,16 @@ function App() {
   const [billingNotes, setBillingNotes] = useState([]);
   const [billingNoteRows, setBillingNoteRows] = useState([]);
   const [billingNotePagination, setBillingNotePagination] = useState(null);
+  const [billingNoteEligibleSales, setBillingNoteEligibleSales] = useState([]);
+  const [billingNoteSummary, setBillingNoteSummary] = useState(null);
+  const [billingNoteNextReferenceNo, setBillingNoteNextReferenceNo] = useState("");
   const [usingMockBillingNotes, setUsingMockBillingNotes] = useState(false);
   const [paymentBatches, setPaymentBatches] = useState([]);
   const [paymentBatchRows, setPaymentBatchRows] = useState([]);
   const [paymentBatchPagination, setPaymentBatchPagination] = useState(null);
+  const [paymentBatchEligiblePurchases, setPaymentBatchEligiblePurchases] = useState([]);
+  const [paymentBatchSummary, setPaymentBatchSummary] = useState(null);
+  const [paymentBatchNextReferenceNo, setPaymentBatchNextReferenceNo] = useState("");
   const [usingMockPaymentBatches, setUsingMockPaymentBatches] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -365,7 +371,9 @@ function App() {
   const loadBillingNotePage = useCallback(async (params = {}) => {
     try {
       const response = await api.getBillingNotes(buildListParams(params));
-      setBillingNoteRows(getCollectionRows(response));
+      const rows = getCollectionRows(response);
+      setBillingNotes(rows);
+      setBillingNoteRows(rows);
       setBillingNotePagination(getCollectionPagination(response));
       return response;
     } catch (requestError) {
@@ -377,7 +385,9 @@ function App() {
   const loadPaymentBatchPage = useCallback(async (params = {}) => {
     try {
       const response = await api.getPaymentBatches(buildListParams(params));
-      setPaymentBatchRows(getCollectionRows(response));
+      const rows = getCollectionRows(response);
+      setPaymentBatches(rows);
+      setPaymentBatchRows(rows);
       setPaymentBatchPagination(getCollectionPagination(response));
       return response;
     } catch (requestError) {
@@ -386,21 +396,55 @@ function App() {
     }
   }, []);
 
+  const loadBillingNoteEligibility = useCallback(async () => {
+    const response = await api.getEligibleBillingNoteSales();
+    setBillingNoteEligibleSales(Array.isArray(response?.sales) ? response.sales : []);
+    setBillingNoteSummary(response?.summary || null);
+    setBillingNoteNextReferenceNo(response?.next_reference_no || "");
+    return response;
+  }, []);
+
+  const loadPaymentBatchEligibility = useCallback(async () => {
+    const response = await api.getEligiblePaymentBatchPurchases();
+    setPaymentBatchEligiblePurchases(
+      Array.isArray(response?.purchases) ? response.purchases : []
+    );
+    setPaymentBatchSummary(response?.summary || null);
+    setPaymentBatchNextReferenceNo(response?.next_reference_no || "");
+    return response;
+  }, []);
+
+  async function refreshBillingNoteEligibility() {
+    try {
+      await loadBillingNoteEligibility();
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  }
+
+  async function refreshPaymentBatchEligibility() {
+    try {
+      await loadPaymentBatchEligibility();
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  }
+
   async function loadData() {
     setLoading(true);
     setError("");
 
     const results = await Promise.allSettled([
       api.getDashboard(),
-      api.getSuppliers(),
-      api.getCustomers(),
+      api.getSupplierLookups(),
+      api.getCustomerLookups(),
       api.getCategories(),
-      api.getProducts(),
+      api.getProductLookups(),
       api.getPurchases(),
       api.getSales(),
       api.getQuotations(),
-      api.getBillingNotes(),
-      api.getPaymentBatches(),
+      api.getEligibleBillingNoteSales(),
+      api.getEligiblePaymentBatchPurchases(),
       api.getSuppliers(buildListParams()),
       api.getCustomers(buildListParams()),
       api.getProducts(buildListParams()),
@@ -419,8 +463,8 @@ function App() {
       purchaseResult,
       salesResult,
       quotationResult,
-      billingNoteResult,
-      paymentBatchResult,
+      billingNoteEligibilityResult,
+      paymentBatchEligibilityResult,
       supplierPageResult,
       customerPageResult,
       productPageResult,
@@ -552,17 +596,29 @@ function App() {
       failures.push("quotations");
     }
 
-    if (billingNoteResult.status === "fulfilled") {
-      const billingNoteRowsAll = getCollectionRows(billingNoteResult.value);
+    if (billingNoteEligibilityResult.status === "fulfilled") {
+      setBillingNoteEligibleSales(
+        Array.isArray(billingNoteEligibilityResult.value?.sales)
+          ? billingNoteEligibilityResult.value.sales
+          : []
+      );
+      setBillingNoteSummary(billingNoteEligibilityResult.value?.summary || null);
+      setBillingNoteNextReferenceNo(
+        billingNoteEligibilityResult.value?.next_reference_no || ""
+      );
+    } else {
+      setBillingNoteEligibleSales(mockSales);
+      setBillingNoteSummary(null);
+      setBillingNoteNextReferenceNo("");
+      failures.push("billing-note-eligibility");
+    }
+
+    if (billingNotePageResult.status === "fulfilled") {
+      const billingNoteRowsAll = getCollectionRows(billingNotePageResult.value);
       setBillingNotes(billingNoteRowsAll);
+      setBillingNoteRows(billingNoteRowsAll);
+      setBillingNotePagination(getCollectionPagination(billingNotePageResult.value));
       setUsingMockBillingNotes(false);
-      if (billingNotePageResult.status === "fulfilled") {
-        setBillingNoteRows(getCollectionRows(billingNotePageResult.value));
-        setBillingNotePagination(getCollectionPagination(billingNotePageResult.value));
-      } else {
-        setBillingNoteRows(billingNoteRowsAll);
-        setBillingNotePagination(null);
-      }
     } else {
       setBillingNotes(mockBillingNotes);
       setBillingNoteRows(mockBillingNotes);
@@ -571,17 +627,29 @@ function App() {
       failures.push("billing-notes");
     }
 
-    if (paymentBatchResult.status === "fulfilled") {
-      const paymentBatchRowsAll = getCollectionRows(paymentBatchResult.value);
+    if (paymentBatchEligibilityResult.status === "fulfilled") {
+      setPaymentBatchEligiblePurchases(
+        Array.isArray(paymentBatchEligibilityResult.value?.purchases)
+          ? paymentBatchEligibilityResult.value.purchases
+          : []
+      );
+      setPaymentBatchSummary(paymentBatchEligibilityResult.value?.summary || null);
+      setPaymentBatchNextReferenceNo(
+        paymentBatchEligibilityResult.value?.next_reference_no || ""
+      );
+    } else {
+      setPaymentBatchEligiblePurchases(mockPurchases);
+      setPaymentBatchSummary(null);
+      setPaymentBatchNextReferenceNo("");
+      failures.push("payment-batch-eligibility");
+    }
+
+    if (paymentBatchPageResult.status === "fulfilled") {
+      const paymentBatchRowsAll = getCollectionRows(paymentBatchPageResult.value);
       setPaymentBatches(paymentBatchRowsAll);
+      setPaymentBatchRows(paymentBatchRowsAll);
+      setPaymentBatchPagination(getCollectionPagination(paymentBatchPageResult.value));
       setUsingMockPaymentBatches(false);
-      if (paymentBatchPageResult.status === "fulfilled") {
-        setPaymentBatchRows(getCollectionRows(paymentBatchPageResult.value));
-        setPaymentBatchPagination(getCollectionPagination(paymentBatchPageResult.value));
-      } else {
-        setPaymentBatchRows(paymentBatchRowsAll);
-        setPaymentBatchPagination(null);
-      }
     } else {
       setPaymentBatches(mockPaymentBatches);
       setPaymentBatchRows(mockPaymentBatches);
@@ -887,6 +955,7 @@ function App() {
         )
       );
       setNotice(successNotice);
+      await refreshBillingNoteEligibility();
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -922,6 +991,7 @@ function App() {
         )
       );
       setNotice(`Purchase ${updatedPurchase.reference_no || updatedPurchase.id} updated.`);
+      await refreshPaymentBatchEligibility();
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -942,6 +1012,7 @@ function App() {
       setSales((currentRows) => currentRows.filter((row) => row.id !== deletedSale.id));
       setSaleRows((currentRows) => currentRows.filter((row) => row.id !== deletedSale.id));
       setNotice(`Sale ${deletedSale.reference_no || deletedSale.id} deleted.`);
+      await refreshBillingNoteEligibility();
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -958,6 +1029,7 @@ function App() {
         currentRows.filter((row) => row.id !== deletedPurchase.id)
       );
       setNotice(`Purchase ${deletedPurchase.reference_no || deletedPurchase.id} deleted.`);
+      await refreshPaymentBatchEligibility();
       return true;
     }
 
@@ -1368,6 +1440,7 @@ function App() {
       setBillingNotes((rows) => [saved, ...rows]);
       setBillingNoteRows((rows) => [saved, ...rows].slice(0, PAGE_SIZE));
       setNotice(`Billing note ${saved.reference_no || saved.id} created.`);
+      await refreshBillingNoteEligibility();
       return saved;
     } catch (requestError) {
       setError(requestError.message);
@@ -1401,6 +1474,7 @@ function App() {
         rows.map((row) => (row.id === updated.id ? saved : row))
       );
       setNotice(`Billing note ${saved.reference_no || saved.id} updated.`);
+      await refreshBillingNoteEligibility();
       return saved;
     } catch (requestError) {
       setError(requestError.message);
@@ -1423,6 +1497,7 @@ function App() {
       setBillingNotes((rows) => rows.filter((row) => row.id !== deleted.id));
       setBillingNoteRows((rows) => rows.filter((row) => row.id !== deleted.id));
       setNotice(`Billing note ${deleted.reference_no || deleted.id} deleted.`);
+      await refreshBillingNoteEligibility();
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -1449,6 +1524,7 @@ function App() {
       setPaymentBatches((rows) => [saved, ...rows]);
       setPaymentBatchRows((rows) => [saved, ...rows].slice(0, PAGE_SIZE));
       setNotice(`Payment batch ${saved.reference_no || saved.id} created.`);
+      await refreshPaymentBatchEligibility();
       return saved;
     } catch (requestError) {
       setError(requestError.message);
@@ -1482,6 +1558,7 @@ function App() {
         rows.map((row) => (row.id === updated.id ? saved : row))
       );
       setNotice(`Payment batch ${saved.reference_no || saved.id} updated.`);
+      await refreshPaymentBatchEligibility();
       return saved;
     } catch (requestError) {
       setError(requestError.message);
@@ -1504,6 +1581,7 @@ function App() {
       setPaymentBatches((rows) => rows.filter((row) => row.id !== deleted.id));
       setPaymentBatchRows((rows) => rows.filter((row) => row.id !== deleted.id));
       setNotice(`Payment batch ${deleted.reference_no || deleted.id} deleted.`);
+      await refreshPaymentBatchEligibility();
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -1680,7 +1758,9 @@ function App() {
                 billingNotes={billingNoteRows}
                 allBillingNotes={billingNotes}
                 customers={customers}
-                sales={sales}
+                sales={billingNoteEligibleSales}
+                summary={billingNoteSummary}
+                nextReferenceNo={billingNoteNextReferenceNo}
                 pagination={billingNotePagination}
                 onPageRequest={loadBillingNotePage}
                 onCreateBillingNote={handleBillingNoteCreate}
@@ -1694,7 +1774,9 @@ function App() {
                 paymentBatches={paymentBatchRows}
                 allPaymentBatches={paymentBatches}
                 suppliers={suppliers}
-                purchases={purchases}
+                purchases={paymentBatchEligiblePurchases}
+                summary={paymentBatchSummary}
+                nextReferenceNo={paymentBatchNextReferenceNo}
                 pagination={paymentBatchPagination}
                 onPageRequest={loadPaymentBatchPage}
                 onCreatePaymentBatch={handlePaymentBatchCreate}

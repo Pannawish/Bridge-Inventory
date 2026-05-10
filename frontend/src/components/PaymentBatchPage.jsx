@@ -125,6 +125,7 @@ function StatusPill({ status }) {
 function CreatePaymentBatchModal({
   purchases,
   paymentBatches,
+  nextReferenceNo = "",
   onClose,
   onCreate,
 }) {
@@ -198,7 +199,7 @@ function CreatePaymentBatchModal({
       return;
     }
 
-    const referenceNo = getNextReferenceNo(paymentBatches);
+    const referenceNo = nextReferenceNo || getNextReferenceNo(paymentBatches);
     const lines = buildLinesFromPurchases(chosen);
 
     onCreate({
@@ -732,6 +733,8 @@ function PaymentBatchPage({
   allPaymentBatches = paymentBatches,
   suppliers = [],
   purchases = [],
+  summary: serverSummary = null,
+  nextReferenceNo = "",
   pagination = null,
   onPageRequest,
   onCreatePaymentBatch,
@@ -773,7 +776,7 @@ function PaymentBatchPage({
   const isCompact = shouldShowViewAll && !showAllRows;
   const totalPaymentBatchCount = pagination?.count ?? paymentBatches.length;
 
-  const summary = useMemo(() => {
+  const computedSummary = useMemo(() => {
     const today = getToday();
     let outstanding = 0;
     let overdue = 0;
@@ -790,6 +793,7 @@ function PaymentBatchPage({
     });
     return { outstanding, overdue, paid };
   }, [allPaymentBatches]);
+  const summary = serverSummary || computedSummary;
 
   const activeFilterCount =
     (statusFilter !== "all" ? 1 : 0) + (dateFrom || dateTo ? 1 : 0);
@@ -855,6 +859,7 @@ function PaymentBatchPage({
           suppliers={suppliers}
           purchases={purchases}
           paymentBatches={allPaymentBatches}
+          nextReferenceNo={nextReferenceNo}
           onClose={() => setCreating(false)}
           onCreate={handleCreate}
         />

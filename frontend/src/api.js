@@ -55,6 +55,21 @@ export const api = {
   getDashboard() {
     return request("/dashboard/");
   },
+  getProductLookups(params) {
+    return request("/lookups/products/", { params });
+  },
+  getSupplierLookups(params) {
+    return request("/lookups/suppliers/", { params });
+  },
+  getCustomerLookups(params) {
+    return request("/lookups/customers/", { params });
+  },
+  getEligibleBillingNoteSales(params) {
+    return request("/eligibility/billing-note-sales/", { params });
+  },
+  getEligiblePaymentBatchPurchases(params) {
+    return request("/eligibility/payment-batch-purchases/", { params });
+  },
   getSuppliers(params) {
     return request("/suppliers/", { params });
   },

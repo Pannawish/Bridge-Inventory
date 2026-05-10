@@ -123,6 +123,7 @@ function StatusPill({ status }) {
 function CreateBillingNoteModal({
   sales,
   billingNotes,
+  nextReferenceNo = "",
   onClose,
   onCreate,
 }) {
@@ -196,7 +197,7 @@ function CreateBillingNoteModal({
       return;
     }
 
-    const referenceNo = getNextReferenceNo(billingNotes);
+    const referenceNo = nextReferenceNo || getNextReferenceNo(billingNotes);
     const lines = buildLinesFromSales(chosenSales);
 
     onCreate({
@@ -734,6 +735,8 @@ function BillingNotePage({
   allBillingNotes = billingNotes,
   customers = [],
   sales = [],
+  summary: serverSummary = null,
+  nextReferenceNo = "",
   pagination = null,
   onPageRequest,
   onCreateBillingNote,
@@ -775,7 +778,7 @@ function BillingNotePage({
   const isCompact = shouldShowViewAll && !showAllRows;
   const totalBillingNoteCount = pagination?.count ?? billingNotes.length;
 
-  const summary = useMemo(() => {
+  const computedSummary = useMemo(() => {
     const today = getToday();
     let outstanding = 0;
     let overdue = 0;
@@ -792,6 +795,7 @@ function BillingNotePage({
     });
     return { outstanding, overdue, received };
   }, [allBillingNotes]);
+  const summary = serverSummary || computedSummary;
 
   const activeFilterCount = (statusFilter !== "all" ? 1 : 0) + (dateFrom || dateTo ? 1 : 0);
 
@@ -856,6 +860,7 @@ function BillingNotePage({
           customers={customers}
           sales={sales}
           billingNotes={allBillingNotes}
+          nextReferenceNo={nextReferenceNo}
           onClose={() => setCreating(false)}
           onCreate={handleCreate}
         />

@@ -4,7 +4,19 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from .models import Product, Purchase, PurchaseItem, Sale, SaleItem
+from .models import (
+    BillingNote,
+    BillingNoteLine,
+    Customer,
+    PaymentBatch,
+    PaymentBatchLine,
+    Product,
+    Purchase,
+    PurchaseItem,
+    Sale,
+    SaleItem,
+    Supplier,
+)
 from .serializers import SaleSerializer
 
 
@@ -241,3 +253,180 @@ class SaleStockValidationTests(TestCase):
         )
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
+
+
+class LookupEligibilityTests(APITestCase):
+    def setUp(self):
+        self.today = timezone.localdate()
+
+    def test_product_lookup_returns_current_stock_without_transaction_detail(self):
+        product = Product.objects.create(
+            sku="LOOKUP-1",
+            product_name="Lookup Product",
+            stock_base_unit="pcs",
+            default_purchase_unit="pcs",
+            default_sales_unit="pcs",
+        )
+        purchase = Purchase.objects.create(
+            reference_no="PO-LOOKUP",
+            supplier_name="Lookup Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today,
+        )
+        PurchaseItem.objects.create(
+            purchase=purchase,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("7"),
+            base_quantity=Decimal("7"),
+            unit_cost=Decimal("2"),
+            amount=Decimal("14"),
+        )
+
+        response = self.client.get("/api/lookups/products/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["sku"], "LOOKUP-1")
+        self.assertEqual(response.data[0]["current_stock"], Decimal("7"))
+
+    def test_billing_note_eligibility_excludes_sales_already_on_active_note(self):
+        Customer.objects.create(company_name="Alpha Customer")
+        available = Sale.objects.create(
+            reference_no="SO-ELIGIBLE",
+            customer_name="Alpha Customer",
+            status=Sale.STATUS_DELIVERED,
+            transaction_date=self.today,
+            grand_total=Decimal("100"),
+        )
+        used = Sale.objects.create(
+            reference_no="SO-USED",
+            customer_name="Alpha Customer",
+            status=Sale.STATUS_DELIVERED,
+            transaction_date=self.today,
+            grand_total=Decimal("200"),
+        )
+        cancelled_link = Sale.objects.create(
+            reference_no="SO-CANCELLED-LINK",
+            customer_name="Alpha Customer",
+            status=Sale.STATUS_SHIPPED,
+            transaction_date=self.today,
+            grand_total=Decimal("300"),
+        )
+        draft_sale = Sale.objects.create(
+            reference_no="SO-DRAFT",
+            customer_name="Alpha Customer",
+            status=Sale.STATUS_DRAFT,
+            transaction_date=self.today,
+            grand_total=Decimal("400"),
+        )
+
+        active_note = BillingNote.objects.create(
+            reference_no="BN-ACTIVE",
+            customer_name="Alpha Customer",
+            billing_note_date=self.today,
+            status=BillingNote.STATUS_ISSUED,
+            total_amount=Decimal("200"),
+        )
+        BillingNoteLine.objects.create(
+            billing_note=active_note,
+            sale=used,
+            amount=Decimal("200"),
+        )
+        cancelled_note = BillingNote.objects.create(
+            reference_no="BN-CANCELLED",
+            customer_name="Alpha Customer",
+            billing_note_date=self.today,
+            status=BillingNote.STATUS_CANCELLED,
+            total_amount=Decimal("300"),
+        )
+        BillingNoteLine.objects.create(
+            billing_note=cancelled_note,
+            sale=cancelled_link,
+            amount=Decimal("300"),
+        )
+
+        response = self.client.get("/api/eligibility/billing-note-sales/")
+
+        self.assertEqual(response.status_code, 200)
+        sale_ids = {sale["id"] for sale in response.data["sales"]}
+        self.assertIn(available.id, sale_ids)
+        self.assertIn(cancelled_link.id, sale_ids)
+        self.assertNotIn(used.id, sale_ids)
+        self.assertNotIn(draft_sale.id, sale_ids)
+        self.assertEqual(response.data["customers"][0]["companyName"], "Alpha Customer")
+        self.assertIn("summary", response.data)
+        self.assertTrue(response.data["next_reference_no"].startswith("BN-"))
+
+    def test_payment_batch_eligibility_excludes_purchases_already_on_active_batch(self):
+        Supplier.objects.create(company_name="Alpha Supplier")
+        available = Purchase.objects.create(
+            reference_no="PO-ELIGIBLE",
+            supplier_name="Alpha Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today,
+            grand_total=Decimal("100"),
+        )
+        used = Purchase.objects.create(
+            reference_no="PO-USED",
+            supplier_name="Alpha Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today,
+            grand_total=Decimal("200"),
+        )
+        cancelled_link = Purchase.objects.create(
+            reference_no="PO-CANCELLED-LINK",
+            supplier_name="Alpha Supplier",
+            status=Purchase.STATUS_PARTIALLY_RECEIVED,
+            transaction_date=self.today,
+            grand_total=Decimal("300"),
+        )
+        ordered_purchase = Purchase.objects.create(
+            reference_no="PO-ORDERED",
+            supplier_name="Alpha Supplier",
+            status=Purchase.STATUS_ORDERED,
+            transaction_date=self.today,
+            grand_total=Decimal("400"),
+        )
+
+        active_batch = PaymentBatch.objects.create(
+            reference_no="PMT-ACTIVE",
+            supplier_name="Alpha Supplier",
+            batch_date=self.today,
+            status=PaymentBatch.STATUS_SCHEDULED,
+            total_amount=Decimal("200"),
+        )
+        PaymentBatchLine.objects.create(
+            payment_batch=active_batch,
+            purchase=used,
+            amount=Decimal("200"),
+        )
+        cancelled_batch = PaymentBatch.objects.create(
+            reference_no="PMT-CANCELLED",
+            supplier_name="Alpha Supplier",
+            batch_date=self.today,
+            status=PaymentBatch.STATUS_CANCELLED,
+            total_amount=Decimal("300"),
+        )
+        PaymentBatchLine.objects.create(
+            payment_batch=cancelled_batch,
+            purchase=cancelled_link,
+            amount=Decimal("300"),
+        )
+
+        response = self.client.get("/api/eligibility/payment-batch-purchases/")
+
+        self.assertEqual(response.status_code, 200)
+        purchase_ids = {purchase["id"] for purchase in response.data["purchases"]}
+        self.assertIn(available.id, purchase_ids)
+        self.assertIn(cancelled_link.id, purchase_ids)
+        self.assertNotIn(used.id, purchase_ids)
+        self.assertNotIn(ordered_purchase.id, purchase_ids)
+        self.assertEqual(response.data["suppliers"][0]["companyName"], "Alpha Supplier")
+        self.assertIn("summary", response.data)
+        self.assertTrue(response.data["next_reference_no"].startswith("PMT-"))
