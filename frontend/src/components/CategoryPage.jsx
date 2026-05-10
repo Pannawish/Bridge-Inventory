@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import PaginationControls from "./PaginationControls";
 
 export const CATEGORY_STORAGE_KEY = "inventory-management-categories";
-const CATEGORY_PAGE_SIZE = 25;
 
 const defaultCategories = [
   {
@@ -293,7 +291,6 @@ function CategoryPage({
   const [isParentCategoryMenuOpen, setIsParentCategoryMenuOpen] = useState(false);
   const [formError, setFormError] = useState("");
   const [collapsedCategoryIds, setCollapsedCategoryIds] = useState(() => new Set());
-  const [categoryPage, setCategoryPage] = useState(1);
 
   useEffect(() => {
     if (typeof document === "undefined" || !draftCategory) {
@@ -444,31 +441,6 @@ function CategoryPage({
     visit(null, 0);
     return rows;
   }, [categories, collapsedCategoryIds, visibleCategoryIds]);
-  const categoryPageCount = Math.max(1, Math.ceil(categoryRows.length / CATEGORY_PAGE_SIZE));
-  const safeCategoryPage = Math.min(categoryPage, categoryPageCount);
-  const visibleCategoryRows = categoryRows.slice(
-    (safeCategoryPage - 1) * CATEGORY_PAGE_SIZE,
-    safeCategoryPage * CATEGORY_PAGE_SIZE
-  );
-  const categoryPagination =
-    categoryRows.length > CATEGORY_PAGE_SIZE
-      ? {
-          count: categoryRows.length,
-          page: safeCategoryPage,
-          page_size: CATEGORY_PAGE_SIZE,
-          total_pages: categoryPageCount,
-        }
-      : null;
-
-  useEffect(() => {
-    setCategoryPage(1);
-  }, [levelFilter, normalizedSearch, usageFilter]);
-
-  useEffect(() => {
-    if (categoryPage > categoryPageCount) {
-      setCategoryPage(categoryPageCount);
-    }
-  }, [categoryPage, categoryPageCount]);
   const parentCategoryOptions = useMemo(() => {
     if (!draftCategory) {
       return [];
@@ -690,11 +662,7 @@ function CategoryPage({
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
-            <span>
-              {categoryPagination
-                ? `${visibleCategoryRows.length} on this page of ${categoryRows.length} categories`
-                : `${filteredCategories.length} of ${categories.length} categories shown`}
-            </span>
+            <span>{filteredCategories.length} of {categories.length} categories shown</span>
           </div>
         </div>
 
@@ -778,7 +746,7 @@ function CategoryPage({
                 </tr>
               </thead>
               <tbody>
-                {visibleCategoryRows.map(({
+                {categoryRows.map(({
                   category,
                   depth,
                   hasChildren,
@@ -861,11 +829,6 @@ function CategoryPage({
             </table>
           )}
         </div>
-        <PaginationControls
-          pagination={categoryPagination}
-          itemLabel="categories"
-          onPageChange={setCategoryPage}
-        />
       </section>
 
       {draftCategory ? (
