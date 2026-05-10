@@ -76,6 +76,48 @@ class InventoryPaginationTests(APITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["reference_no"], "PO-SEARCH-1")
 
+    def test_product_stock_filter_applies_before_pagination(self):
+        product = Product.objects.get(sku="PAGE-0")
+        purchase = Purchase.objects.create(
+            reference_no="PO-PRODUCT-STOCK",
+            supplier_name="Stock Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date="2026-05-01",
+        )
+        PurchaseItem.objects.create(
+            purchase=purchase,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("5"),
+            base_quantity=Decimal("5"),
+            unit_cost=Decimal("1"),
+            amount=Decimal("5"),
+        )
+
+        response = self.client.get(
+            "/api/products/",
+            {"page": 1, "page_size": 10, "stock_filter": "in-stock"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["sku"], "PAGE-0")
+
+    def test_product_search_matches_display_id_before_pagination(self):
+        response = self.client.get(
+            "/api/products/",
+            {"page": 1, "page_size": 10, "search": "1000"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["sku"], "PAGE-0")
+
 
 class SaleStockValidationTests(TestCase):
     def setUp(self):

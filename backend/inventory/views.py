@@ -16,8 +16,10 @@ from .models import (
     PaymentBatch,
     Product,
     Purchase,
+    PurchaseItem,
     Quotation,
     Sale,
+    SaleItem,
     Supplier,
 )
 from .serializers import (
@@ -31,7 +33,12 @@ from .serializers import (
     SaleSerializer,
     SupplierSerializer,
 )
-from .services import answer_inventory_question, build_dashboard_summary
+from .services import (
+    SALE_STOCK_DEDUCTED_STATUSES,
+    answer_inventory_question,
+    build_dashboard_summary,
+    get_available_stock_by_product_id,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -274,13 +281,75 @@ class CustomerViewSet(InventoryModelViewSet):
 class ProductViewSet(InventoryModelViewSet):
     queryset = Product.objects.select_related("category").prefetch_related("unit_conversions")
     serializer_class = ProductSerializer
-    search_fields = (
-        "product_name",
-        "sku",
-        "category__name",
-        "category_name",
-        "detail",
-    )
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        params = self.request.query_params
+
+        search_query = (params.get("search") or params.get("q") or "").strip()
+        if search_query:
+            product_search = (
+                Q(product_name__icontains=search_query)
+                | Q(sku__icontains=search_query)
+                | Q(category__name__icontains=search_query)
+                | Q(category_name__icontains=search_query)
+                | Q(detail__icontains=search_query)
+            )
+            if search_query.isdigit():
+                product_search |= Q(product_display_id=int(search_query))
+            queryset = queryset.filter(product_search).distinct()
+
+        category = (params.get("category") or "").strip()
+        if category:
+            category_leaf = category.split("/")[-1].strip()
+            queryset = queryset.filter(
+                Q(category__name__iexact=category)
+                | Q(category__name__iexact=category_leaf)
+                | Q(category_name__iexact=category)
+                | Q(category_name__iexact=category_leaf)
+            )
+
+        stock_filter = (params.get("stock_filter") or params.get("stock") or "").strip()
+        if stock_filter in {"in-stock", "out-of-stock"}:
+            product_ids = list(queryset.values_list("id", flat=True))
+            stock_by_product_id = get_available_stock_by_product_id(product_ids=product_ids)
+            matching_ids = []
+            for product_id in product_ids:
+                stock_quantity = stock_by_product_id.get(product_id, Decimal("0"))
+                if stock_filter == "in-stock" and stock_quantity > 0:
+                    matching_ids.append(product_id)
+                elif stock_filter == "out-of-stock" and stock_quantity <= 0:
+                    matching_ids.append(product_id)
+            queryset = queryset.filter(id__in=matching_ids)
+
+        if stock_filter in {"selling", "no-sales"}:
+            product_ids = list(queryset.values_list("id", flat=True))
+            selling_product_ids = set(
+                SaleItem.objects.filter(
+                    item_status__in=SALE_STOCK_DEDUCTED_STATUSES,
+                    product_id__in=product_ids,
+                )
+                .values_list("product_id", flat=True)
+                .distinct()
+            )
+            if stock_filter == "selling":
+                queryset = queryset.filter(id__in=selling_product_ids)
+            else:
+                queryset = queryset.exclude(id__in=selling_product_ids)
+
+        if stock_filter == "no-purchases":
+            product_ids = list(queryset.values_list("id", flat=True))
+            purchased_product_ids = set(
+                PurchaseItem.objects.filter(
+                    item_status=PurchaseItem.ITEM_RECEIVED,
+                    product_id__in=product_ids,
+                )
+                .values_list("product_id", flat=True)
+                .distinct()
+            )
+            queryset = queryset.exclude(id__in=purchased_product_ids)
+
+        return queryset
 
 
 class PurchaseViewSet(InventoryModelViewSet):

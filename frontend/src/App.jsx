@@ -60,6 +60,8 @@ function buildListParams({
   status = "",
   supplier = "",
   customer = "",
+  category = "",
+  stockFilter = "",
   dateFrom = "",
   dateTo = "",
 } = {}) {
@@ -70,6 +72,8 @@ function buildListParams({
     status: Array.isArray(statuses) ? statuses.join(",") : statuses || status,
     supplier,
     customer,
+    category,
+    stock_filter: stockFilter,
     date_from: dateFrom,
     date_to: dateTo,
   };
@@ -253,6 +257,8 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dashboard, setDashboard] = useState(null);
   const [products, setProducts] = useState([]);
+  const [productRows, setProductRows] = useState([]);
+  const [productPagination, setProductPagination] = useState(null);
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [usingMockSuppliers, setUsingMockSuppliers] = useState(false);
@@ -289,6 +295,18 @@ function App() {
         "Ask about low stock, recent sales, or which products need restocking.",
     },
   ]);
+
+  const loadProductPage = useCallback(async (params = {}) => {
+    try {
+      const response = await api.getProducts(buildListParams(params));
+      setProductRows(getCollectionRows(response));
+      setProductPagination(getCollectionPagination(response));
+      return response;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }, []);
 
   const loadPurchasePage = useCallback(async (params = {}) => {
     try {
@@ -353,6 +371,7 @@ function App() {
       api.getQuotations(),
       api.getBillingNotes(),
       api.getPaymentBatches(),
+      api.getProducts(buildListParams()),
       api.getPurchases(buildListParams()),
       api.getSales(buildListParams()),
       api.getBillingNotes(buildListParams()),
@@ -370,6 +389,7 @@ function App() {
       quotationResult,
       billingNoteResult,
       paymentBatchResult,
+      productPageResult,
       purchasePageResult,
       salePageResult,
       billingNotePageResult,
@@ -412,10 +432,20 @@ function App() {
     }
 
     if (productResult.status === "fulfilled") {
-      setProducts(getCollectionRows(productResult.value));
+      const productRowsAll = getCollectionRows(productResult.value);
+      setProducts(productRowsAll);
       setUsingMockProducts(false);
+      if (productPageResult.status === "fulfilled") {
+        setProductRows(getCollectionRows(productPageResult.value));
+        setProductPagination(getCollectionPagination(productPageResult.value));
+      } else {
+        setProductRows(productRowsAll);
+        setProductPagination(null);
+      }
     } else {
       setProducts(getDefaultProducts());
+      setProductRows(getDefaultProducts());
+      setProductPagination(null);
       setUsingMockProducts(true);
       failures.push("products");
     }
@@ -1069,6 +1099,13 @@ function App() {
             )
           : [resolvedProduct, ...currentRows]
       );
+      setProductRows((currentRows) =>
+        currentRows.some((row) => `${row.id}` === `${nextProduct.id}`)
+          ? currentRows.map((row) =>
+              `${row.id}` === `${nextProduct.id}` ? resolvedProduct : row
+            )
+          : [resolvedProduct, ...currentRows].slice(0, PAGE_SIZE)
+      );
       setNotice(`Product ${resolvedProduct.productName || resolvedProduct.id} saved.`);
       return resolvedProduct;
     }
@@ -1087,6 +1124,13 @@ function App() {
             )
           : [resolvedProduct, ...currentRows]
       );
+      setProductRows((currentRows) =>
+        currentRows.some((row) => `${row.id}` === `${nextProduct.id}`)
+          ? currentRows.map((row) =>
+              `${row.id}` === `${nextProduct.id}` ? resolvedProduct : row
+            )
+          : [resolvedProduct, ...currentRows].slice(0, PAGE_SIZE)
+      );
       setNotice(`Product ${resolvedProduct.productName || resolvedProduct.id} saved.`);
       return resolvedProduct;
     } catch (requestError) {
@@ -1098,6 +1142,7 @@ function App() {
   async function handleProductDelete(deletedProduct) {
     if (usingMockProducts) {
       setProducts((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));
+      setProductRows((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));
       setNotice(`Product ${deletedProduct.productName || deletedProduct.id} deleted.`);
       return true;
     }
@@ -1105,6 +1150,7 @@ function App() {
     try {
       await api.deleteProduct(deletedProduct.id);
       setProducts((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));
+      setProductRows((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));
       setNotice(`Product ${deletedProduct.productName || deletedProduct.id} deleted.`);
       return true;
     } catch (requestError) {
@@ -1589,10 +1635,13 @@ function App() {
 
             {activeTab === "products" ? (
               <ProductsPage
-                products={products}
+                products={productRows}
+                allProducts={products}
                 categories={categories}
                 purchases={purchases}
                 sales={sales}
+                pagination={productPagination}
+                onPageRequest={loadProductPage}
                 onSaveProduct={handleProductSave}
                 onDeleteProduct={handleProductDelete}
               />

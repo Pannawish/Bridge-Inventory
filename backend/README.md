@@ -69,6 +69,8 @@ The response includes `count`, `next`, `previous`, `page`, `page_size`,
 Purchases, sales, billing notes, and payment batches also support `search`,
 `status`, `date_from`, and `date_to`. Purchases/payment batches support
 `supplier`; sales/billing notes support `customer`.
+Products support `search`, `category`, and `stock_filter` values of `in-stock`,
+`out-of-stock`, `selling`, `no-sales`, and `no-purchases`.
 
 API home:
 

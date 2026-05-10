@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import PaginationControls from "./PaginationControls";
 import {
   getCategoryLeafLabel,
   getCategoryOptions,
@@ -563,9 +564,12 @@ function getProductMetrics(product, purchases, sales) {
 
 function ProductsPage({
   products = defaultProducts,
+  allProducts = products,
   categories = [],
   purchases = [],
   sales = [],
+  pagination = null,
+  onPageRequest,
   onSaveProduct,
   onDeleteProduct,
 }) {
@@ -598,6 +602,7 @@ function ProductsPage({
   }, [viewingProduct, viewingTransaction, draftProduct]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const isServerPaginated = Boolean(pagination && onPageRequest);
   const productCategoryOptions = useMemo(
     () => getCategoryOptions(categories),
     [categories]
@@ -615,9 +620,15 @@ function ProductsPage({
 
   const categoryOptions = useMemo(
     () =>
-      [...new Set(productsWithMetrics.map(({ categoryLabel }) => categoryLabel).filter(Boolean))]
+      [
+        ...new Set(
+          allProducts
+            .map((product) => getProductCategoryLabel(product, categories))
+            .filter(Boolean)
+        ),
+      ]
         .sort((left, right) => left.localeCompare(right)),
-    [productsWithMetrics]
+    [allProducts, categories]
   );
   const filteredProductCategoryOptions = useMemo(() => {
     const normalizedQuery = categoryQuery.trim().toLowerCase();
@@ -631,55 +642,82 @@ function ProductsPage({
     );
   }, [categoryQuery, productCategoryOptions]);
 
-  const filteredProductsWithMetrics = useMemo(
-    () =>
-      productsWithMetrics.filter(({ product, metrics, categoryLabel }) => {
-        const searchableNames = getProductAllNames(product);
-        const matchesSearch =
-          !normalizedSearch ||
-          searchableNames.some((name) => name.toLowerCase().includes(normalizedSearch)) ||
-          categoryLabel.toLowerCase().includes(normalizedSearch) ||
-          `${product.sku ?? ""}`.toLowerCase().includes(normalizedSearch) ||
-          getProductPreviousSkus(product).some((sku) => sku.toLowerCase().includes(normalizedSearch)) ||
-          `${product.productDisplayId}`.includes(normalizedSearch);
+  const filteredProductsWithMetrics = useMemo(() => {
+    if (isServerPaginated) {
+      return productsWithMetrics;
+    }
 
-        if (!matchesSearch) {
-          return false;
-        }
+    return productsWithMetrics.filter(({ product, metrics, categoryLabel }) => {
+      const searchableNames = getProductAllNames(product);
+      const matchesSearch =
+        !normalizedSearch ||
+        searchableNames.some((name) => name.toLowerCase().includes(normalizedSearch)) ||
+        categoryLabel.toLowerCase().includes(normalizedSearch) ||
+        `${product.sku ?? ""}`.toLowerCase().includes(normalizedSearch) ||
+        getProductPreviousSkus(product).some((sku) =>
+          sku.toLowerCase().includes(normalizedSearch)
+        ) ||
+        `${product.productDisplayId}`.includes(normalizedSearch);
 
-        if (categoryFilter !== "all" && categoryLabel !== categoryFilter) {
-          return false;
-        }
+      if (!matchesSearch) {
+        return false;
+      }
 
-        if (stockFilter === "in-stock") {
-          return metrics.totalUnits > 0;
-        }
+      if (categoryFilter !== "all" && categoryLabel !== categoryFilter) {
+        return false;
+      }
 
-        if (stockFilter === "out-of-stock") {
-          return metrics.totalUnits <= 0;
-        }
+      if (stockFilter === "in-stock") {
+        return metrics.totalUnits > 0;
+      }
 
-        if (stockFilter === "selling") {
-          return metrics.activeSalesCount > 0;
-        }
+      if (stockFilter === "out-of-stock") {
+        return metrics.totalUnits <= 0;
+      }
 
-        if (stockFilter === "no-sales") {
-          return metrics.activeSalesCount === 0;
-        }
+      if (stockFilter === "selling") {
+        return metrics.activeSalesCount > 0;
+      }
 
-        if (stockFilter === "no-purchases") {
-          return metrics.receivedPurchaseCount === 0;
-        }
+      if (stockFilter === "no-sales") {
+        return metrics.activeSalesCount === 0;
+      }
 
-        return true;
-      }),
-    [categoryFilter, normalizedSearch, productsWithMetrics, stockFilter]
-  );
+      if (stockFilter === "no-purchases") {
+        return metrics.receivedPurchaseCount === 0;
+      }
+
+      return true;
+    });
+  }, [categoryFilter, isServerPaginated, normalizedSearch, productsWithMetrics, stockFilter]);
   const activeFilterCount =
     (categoryFilter === "all" ? 0 : 1) + (stockFilter === "all" ? 0 : 1);
   const compactRows = 5;
-  const shouldShowViewAll = filteredProductsWithMetrics.length > compactRows;
+  const shouldShowViewAll =
+    !isServerPaginated && filteredProductsWithMetrics.length > compactRows;
   const isCompact = shouldShowViewAll && !showAllRows;
+  const totalProductCount = pagination?.count ?? products.length;
+
+  function getPageRequestParams(page = 1) {
+    return {
+      page,
+      search: searchTerm,
+      category: categoryFilter === "all" ? "" : categoryFilter,
+      stockFilter: stockFilter === "all" ? "" : stockFilter,
+    };
+  }
+
+  useEffect(() => {
+    if (!isServerPaginated) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      onPageRequest(getPageRequestParams(1));
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [categoryFilter, isServerPaginated, onPageRequest, searchTerm, stockFilter]);
 
   function openProductDetail(product) {
     setViewingProduct(product);
@@ -738,7 +776,7 @@ function ProductsPage({
       const nextProduct = { ...prev, [key]: value };
 
       if (key === "categoryId" && !value) {
-        const isExistingProduct = products.some((product) => `${product.id}` === `${prev.id}`);
+        const isExistingProduct = allProducts.some((product) => `${product.id}` === `${prev.id}`);
 
         return {
           ...nextProduct,
@@ -747,7 +785,7 @@ function ProductsPage({
       }
 
       if (key === "categoryId" && getCategoryPathSkuCode(categories, value)) {
-        const isExistingProduct = products.some((product) => `${product.id}` === `${prev.id}`);
+        const isExistingProduct = allProducts.some((product) => `${product.id}` === `${prev.id}`);
         const shouldRegenerateSku = !isExistingProduct || !normalizeSku(nextProduct.sku);
 
         if (!shouldRegenerateSku) {
@@ -890,7 +928,7 @@ function ProductsPage({
   }
 
   function getExistingProduct(product) {
-    return products.find((item) => `${item.id}` === `${product?.id}`);
+    return allProducts.find((item) => `${item.id}` === `${product?.id}`);
   }
 
   function productHasTransactionHistory(product) {
@@ -915,7 +953,7 @@ function ProductsPage({
       return "";
     }
 
-    const serial = getNextSkuSerial(baseSku, products, product.id);
+    const serial = getNextSkuSerial(baseSku, allProducts, product.id);
 
     return `${baseSku}${serial}`;
   }
@@ -974,9 +1012,9 @@ function ProductsPage({
 
   function handleCreateProduct() {
     const nextDisplayId =
-      products.length === 0
+      allProducts.length === 0
         ? 1001
-        : Math.max(...products.map((p) => p.productDisplayId)) + 1;
+        : Math.max(...allProducts.map((p) => p.productDisplayId)) + 1;
 
     setViewingProduct(null);
     setViewingTransaction(null);
@@ -1028,7 +1066,7 @@ function ProductsPage({
       return;
     }
 
-    const duplicateProduct = products.find(
+    const duplicateProduct = allProducts.find(
       (product) =>
         `${product.id}` !== `${normalizedDraft.id}` &&
         (normalizeSku(product.sku) === normalizedDraft.sku ||
@@ -1169,7 +1207,9 @@ function ProductsPage({
           </label>
           <div className="stock-report-summary supplier-search-meta">
             <span>
-              {filteredProductsWithMetrics.length} of {productsWithMetrics.length} products shown
+              {isServerPaginated
+                ? `${filteredProductsWithMetrics.length} on this page of ${totalProductCount} products`
+                : `${filteredProductsWithMetrics.length} of ${productsWithMetrics.length} products shown`}
             </span>
           </div>
         </div>
@@ -1364,6 +1404,11 @@ function ProductsPage({
             </div>
           </div>
         )}
+        <PaginationControls
+          pagination={pagination}
+          itemLabel="products"
+          onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
+        />
       </section>
 
       {(viewingProduct || viewingTransaction) ? (
@@ -1901,7 +1946,7 @@ function ProductsPage({
             <div className="section-heading supplier-modal-header">
               <div>
                 <p className="eyebrow">
-                  {products.some((p) => p.id === draftProduct.id) ? "Edit Product" : "New Product"}
+                  {allProducts.some((p) => p.id === draftProduct.id) ? "Edit Product" : "New Product"}
                 </p>
                 <h3 id="product-modal-title">
                   {getProductDisplayName(draftProduct) || "New Product"}
