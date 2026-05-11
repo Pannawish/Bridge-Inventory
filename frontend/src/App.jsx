@@ -284,7 +284,7 @@ function App() {
     }
   }
 
-  function handlePurchaseItemStatusChange(updatedPurchase) {
+  async function handlePurchaseItemStatusChange(updatedPurchase) {
     if (usingMockPurchases) {
       setPurchases((currentRows) =>
         currentRows.map((row) => (row.id === updatedPurchase.id ? updatedPurchase : row))
@@ -293,27 +293,28 @@ function App() {
         currentRows.map((row) => (row.id === updatedPurchase.id ? updatedPurchase : row))
       );
       setNotice(`Purchase ${updatedPurchase.reference_no || updatedPurchase.id} updated.`);
-      return;
+      return true;
     }
 
-    api
-      .updatePurchase(updatedPurchase.id, updatedPurchase)
-      .then((savedPurchase) => {
-        setPurchases((currentRows) =>
-          currentRows.map((row) =>
-            row.id === updatedPurchase.id ? savedPurchase || updatedPurchase : row
-          )
-        );
-        setPurchaseRows((currentRows) =>
-          currentRows.map((row) =>
-            row.id === updatedPurchase.id ? savedPurchase || updatedPurchase : row
-          )
-        );
-        setNotice(`Purchase ${updatedPurchase.reference_no || updatedPurchase.id} updated.`);
-      })
-      .catch((requestError) => {
-        setError(requestError.message);
-      });
+    try {
+      const savedPurchase = await api.updatePurchase(updatedPurchase.id, updatedPurchase);
+
+      setPurchases((currentRows) =>
+        currentRows.map((row) =>
+          row.id === updatedPurchase.id ? savedPurchase || updatedPurchase : row
+        )
+      );
+      setPurchaseRows((currentRows) =>
+        currentRows.map((row) =>
+          row.id === updatedPurchase.id ? savedPurchase || updatedPurchase : row
+        )
+      );
+      setNotice(`Purchase ${updatedPurchase.reference_no || updatedPurchase.id} updated.`);
+      return true;
+    } catch (requestError) {
+      showWarning(requestError.message || "Purchase update failed.");
+      return false;
+    }
   }
 
   async function handleSaleStatusChange(saleId, nextStatus) {
@@ -412,7 +413,7 @@ function App() {
       await loadData();
       return true;
     } catch (requestError) {
-      setError(requestError.message);
+      showWarning(requestError.message || "Sale update failed.");
       return false;
     }
   }

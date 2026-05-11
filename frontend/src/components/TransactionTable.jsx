@@ -277,8 +277,13 @@ function TransactionTable({
     setHasUnsavedItemChanges(true);
   }
 
-  function handleSavePurchaseUpdates() {
-    onPurchaseItemStatusChange?.(selectedRow);
+  async function handleSavePurchaseUpdates() {
+    const saved = await onPurchaseItemStatusChange?.(selectedRow);
+
+    if (saved === false) {
+      return;
+    }
+
     setHasUnsavedItemChanges(false);
   }
 
