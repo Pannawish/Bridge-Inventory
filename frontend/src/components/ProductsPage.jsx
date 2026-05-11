@@ -1773,6 +1773,61 @@ function ProductsPage({
                       />
                     </label>
 
+                    <label className="supplier-combobox-field full-width">
+                      <span className="required-label">Category</span>
+                      <div className="supplier-combobox">
+                        <input
+                          type="search"
+                          value={categoryQuery}
+                          onChange={(event) => handleCategoryQueryChange(event.target.value)}
+                          onFocus={() => setCategoryComboboxOpen(true)}
+                          onBlur={handleCategoryBlur}
+                          placeholder={
+                            productCategoryOptions.length
+                              ? "Search category"
+                              : "Create a category first"
+                          }
+                          autoComplete="off"
+                          aria-expanded={categoryComboboxOpen}
+                          aria-controls="product-editor-category-list"
+                        />
+
+                        {categoryComboboxOpen ? (
+                          <div
+                            className="supplier-combobox-menu"
+                            id="product-editor-category-list"
+                            role="listbox"
+                          >
+                            {filteredProductCategoryOptions.length ? (
+                              filteredProductCategoryOptions.map((category) => (
+                                <button
+                                  key={category.id}
+                                  type="button"
+                                  className={
+                                    category.id === draftProduct.categoryId
+                                      ? "supplier-combobox-option active"
+                                      : "supplier-combobox-option"
+                                  }
+                                  onMouseDown={(event) => {
+                                    event.preventDefault();
+                                    selectDraftCategory(category);
+                                  }}
+                                  role="option"
+                                  aria-selected={category.id === draftProduct.categoryId}
+                                >
+                                  {category.label}
+                                </button>
+                              ))
+                            ) : (
+                              <div className="supplier-combobox-empty">
+                                No category found.
+                              </div>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                    </label>
+
                     <label className="supplier-option-field product-editor-wide-field">
                       <span className="required-label">SKU</span>
                       <div className="product-sku-edit-row">
@@ -1992,68 +2047,13 @@ function ProductsPage({
                 <section className="product-editor-section">
                   <div className="product-editor-section-heading">
                     <div>
-                      <p className="eyebrow">Classification</p>
-                      <h4>Category, Image, and Notes</h4>
+                      <p className="eyebrow">Details</p>
+                      <h4>Image and Notes</h4>
                     </div>
                     <span>Optional detail</span>
                   </div>
 
                   <div className="product-editor-grid">
-                    <label className="supplier-combobox-field">
-                      <span className="required-label">Category</span>
-                      <div className="supplier-combobox">
-                        <input
-                          type="search"
-                          value={categoryQuery}
-                          onChange={(event) => handleCategoryQueryChange(event.target.value)}
-                          onFocus={() => setCategoryComboboxOpen(true)}
-                          onBlur={handleCategoryBlur}
-                          placeholder={
-                            productCategoryOptions.length
-                              ? "Search category"
-                              : "Create a category first"
-                          }
-                          autoComplete="off"
-                          aria-expanded={categoryComboboxOpen}
-                          aria-controls="product-editor-category-list"
-                        />
-
-                        {categoryComboboxOpen ? (
-                          <div
-                            className="supplier-combobox-menu"
-                            id="product-editor-category-list"
-                            role="listbox"
-                          >
-                            {filteredProductCategoryOptions.length ? (
-                              filteredProductCategoryOptions.map((category) => (
-                                <button
-                                  key={category.id}
-                                  type="button"
-                                  className={
-                                    category.id === draftProduct.categoryId
-                                      ? "supplier-combobox-option active"
-                                      : "supplier-combobox-option"
-                                  }
-                                  onMouseDown={(event) => {
-                                    event.preventDefault();
-                                    selectDraftCategory(category);
-                                  }}
-                                  role="option"
-                                  aria-selected={category.id === draftProduct.categoryId}
-                                >
-                                  {category.label}
-                                </button>
-                              ))
-                            ) : (
-                              <div className="supplier-combobox-empty">
-                                No category found.
-                              </div>
-                            )}
-                          </div>
-                        ) : null}
-                      </div>
-                    </label>
-
                     <label>
                       Picture URL
                       <input
