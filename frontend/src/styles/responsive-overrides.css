@@ -560,13 +560,15 @@
 }
 
 .transaction-detail-actions .transaction-save-button {
-  color: #fff;
-  background: var(--accent);
+  min-width: 176px;
+  color: #fff !important;
+  background: var(--accent) !important;
+  border: 0 !important;
 }
 
 .transaction-detail-actions .transaction-save-button:disabled {
-  color: #8d96ad;
-  background: #edf1f7;
+  color: #8d96ad !important;
+  background: #edf1f7 !important;
 }
 
 .primary-button:hover,
