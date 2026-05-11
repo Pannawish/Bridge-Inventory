@@ -52,6 +52,10 @@ def quotation_id():
     return make_prefixed_id("quotation")
 
 
+def quotation_item_id():
+    return make_prefixed_id("quotation-item")
+
+
 def billing_note_id():
     return make_prefixed_id("billing-note")
 
@@ -219,6 +223,13 @@ class Purchase(TimeStampedModel):
 
     id = models.CharField(max_length=80, primary_key=True, default=purchase_id)
     reference_no = models.CharField(max_length=80, blank=True)
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.SET_NULL,
+        related_name="purchases",
+        blank=True,
+        null=True,
+    )
     supplier_name = models.CharField(max_length=255)
     supplier_tax_invoice = models.CharField(max_length=120, blank=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_ORDERED)
@@ -339,6 +350,13 @@ class Sale(TimeStampedModel):
 
     id = models.CharField(max_length=80, primary_key=True, default=sale_id)
     reference_no = models.CharField(max_length=80, blank=True)
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.SET_NULL,
+        related_name="sales",
+        blank=True,
+        null=True,
+    )
     customer_name = models.CharField(max_length=255)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_DRAFT)
     payment_term_type = models.CharField(max_length=20, blank=True, default="")
@@ -443,7 +461,21 @@ class Quotation(TimeStampedModel):
     reference_no = models.CharField(max_length=80, blank=True)
     quotation_date = models.DateField(default=timezone.localdate)
     valid_until_date = models.DateField(blank=True, null=True)
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.SET_NULL,
+        related_name="quotations_as_customer",
+        blank=True,
+        null=True,
+    )
     customer_name = models.CharField(max_length=255, blank=True)
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.SET_NULL,
+        related_name="quotations_as_supplier",
+        blank=True,
+        null=True,
+    )
     supplier_name = models.CharField(max_length=255, blank=True)
     vat_mode = models.CharField(max_length=40, default="not_included")
     note = models.TextField(blank=True)
@@ -457,6 +489,32 @@ class Quotation(TimeStampedModel):
 
     def __str__(self):
         return self.reference_no or self.id
+
+
+class QuotationItem(models.Model):
+    id = models.CharField(max_length=80, primary_key=True, default=quotation_item_id)
+    quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name="line_items")
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        related_name="quotation_items",
+        blank=True,
+        null=True,
+    )
+    position = models.PositiveIntegerField(default=0)
+    product_name = models.CharField(max_length=255)
+    sku = models.CharField(max_length=80, blank=True)
+    unit = models.CharField(max_length=40, default="pcs")
+    quantity = models.DecimalField(max_digits=14, decimal_places=3, default=0)
+    sale_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    cost_price = models.DecimalField(max_digits=14, decimal_places=2, blank=True, null=True)
+    discounts = models.JSONField(default=list_default, blank=True)
+
+    class Meta:
+        ordering = ["position", "id"]
+
+    def __str__(self):
+        return self.product_name
 
 
 class BillingNote(TimeStampedModel):
@@ -476,6 +534,13 @@ class BillingNote(TimeStampedModel):
 
     id = models.CharField(max_length=80, primary_key=True, default=billing_note_id)
     reference_no = models.CharField(max_length=80, blank=True)
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.SET_NULL,
+        related_name="billing_notes",
+        blank=True,
+        null=True,
+    )
     customer_name = models.CharField(max_length=255)
     billing_note_date = models.DateField(default=timezone.localdate)
     expected_payment_date = models.DateField(blank=True, null=True)
@@ -545,6 +610,13 @@ class PaymentBatch(TimeStampedModel):
 
     id = models.CharField(max_length=80, primary_key=True, default=payment_batch_id)
     reference_no = models.CharField(max_length=80, blank=True)
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.SET_NULL,
+        related_name="payment_batches",
+        blank=True,
+        null=True,
+    )
     supplier_name = models.CharField(max_length=255)
     batch_date = models.DateField(default=timezone.localdate)
     planned_payment_date = models.DateField(blank=True, null=True)

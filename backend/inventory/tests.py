@@ -13,6 +13,8 @@ from .models import (
     Product,
     Purchase,
     PurchaseItem,
+    Quotation,
+    QuotationItem,
     Sale,
     SaleItem,
     Supplier,
@@ -430,6 +432,94 @@ class SaleStockValidationTests(APITestCase):
 
         self.assertEqual(product_response.status_code, 200)
         self.assertEqual(product_response.data["current_stock"], Decimal("10"))
+
+
+class RelationalNormalizationTests(APITestCase):
+    def setUp(self):
+        self.today = timezone.localdate()
+        self.supplier = Supplier.objects.create(company_name="Normalized Supplier")
+        self.customer = Customer.objects.create(company_name="Normalized Customer")
+        self.product = Product.objects.create(
+            sku="NORM-1",
+            product_name="Normalized Product",
+        )
+
+    def test_purchase_and_sale_resolve_partner_foreign_keys_from_names(self):
+        purchase_response = self.client.post(
+            "/api/purchases/",
+            {
+                "reference_no": "PO-NORM",
+                "supplier_name": self.supplier.company_name,
+                "transaction_date": self.today.isoformat(),
+            },
+            format="json",
+        )
+        sale_response = self.client.post(
+            "/api/sales/",
+            {
+                "reference_no": "SO-NORM",
+                "customer_name": self.customer.company_name,
+                "status": Sale.STATUS_DRAFT,
+                "transaction_date": self.today.isoformat(),
+            },
+            format="json",
+        )
+
+        self.assertEqual(purchase_response.status_code, 201)
+        self.assertEqual(sale_response.status_code, 201)
+        self.assertEqual(purchase_response.data["supplier_id"], self.supplier.id)
+        self.assertEqual(sale_response.data["customer_id"], self.customer.id)
+        self.assertEqual(
+            Purchase.objects.get(id=purchase_response.data["id"]).supplier_id,
+            self.supplier.id,
+        )
+        self.assertEqual(
+            Sale.objects.get(id=sale_response.data["id"]).customer_id,
+            self.customer.id,
+        )
+
+    def test_quotation_items_are_normalized_without_changing_api_shape(self):
+        response = self.client.post(
+            "/api/quotations/",
+            {
+                "reference_no": "QT-NORM",
+                "quotation_date": self.today.isoformat(),
+                "valid_until_date": self.today.isoformat(),
+                "customer_name": self.customer.company_name,
+                "supplier_name": self.supplier.company_name,
+                "items": [
+                    {
+                        "line_id": "line-1",
+                        "product_id": self.product.id,
+                        "product_name": self.product.product_name,
+                        "sku": self.product.sku,
+                        "unit": "pcs",
+                        "quantity": "2",
+                        "sale_price": "10",
+                        "cost_price": "7",
+                        "discounts": ["5"],
+                    }
+                ],
+                "total_before_vat": "19",
+                "vat_amount": "1.33",
+                "grand_total": "20.33",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        quotation = Quotation.objects.get(id=response.data["id"])
+        quotation_item = QuotationItem.objects.get(quotation=quotation)
+
+        self.assertEqual(response.data["customer_id"], self.customer.id)
+        self.assertEqual(response.data["supplier_id"], self.supplier.id)
+        self.assertEqual(len(response.data["items"]), 1)
+        self.assertEqual(response.data["items"][0]["line_id"], "line-1")
+        self.assertEqual(response.data["items"][0]["product_id"], self.product.id)
+        self.assertEqual(quotation.customer_id, self.customer.id)
+        self.assertEqual(quotation.supplier_id, self.supplier.id)
+        self.assertEqual(quotation_item.product_id, self.product.id)
+        self.assertEqual(quotation_item.quantity, Decimal("2.000"))
 
 
 class LookupEligibilityTests(APITestCase):

@@ -555,7 +555,10 @@ class ProductViewSet(InventoryModelViewSet):
 
 
 class PurchaseViewSet(InventoryModelViewSet):
-    queryset = Purchase.objects.prefetch_related("items__product", "documents")
+    queryset = Purchase.objects.select_related("supplier").prefetch_related(
+        "items__product",
+        "documents",
+    )
     serializer_class = PurchaseSerializer
     search_fields = (
         "reference_no",
@@ -573,7 +576,10 @@ class PurchaseViewSet(InventoryModelViewSet):
 
 
 class SaleViewSet(InventoryModelViewSet):
-    queryset = Sale.objects.prefetch_related("items__product", "documents")
+    queryset = Sale.objects.select_related("customer").prefetch_related(
+        "items__product",
+        "documents",
+    )
     serializer_class = SaleSerializer
     search_fields = (
         "reference_no",
@@ -590,12 +596,14 @@ class SaleViewSet(InventoryModelViewSet):
 
 
 class QuotationViewSet(InventoryModelViewSet):
-    queryset = Quotation.objects.all()
+    queryset = Quotation.objects.select_related("customer", "supplier").prefetch_related(
+        "line_items__product"
+    )
     serializer_class = QuotationSerializer
 
 
 class BillingNoteViewSet(InventoryModelViewSet):
-    queryset = BillingNote.objects.prefetch_related("lines__sale")
+    queryset = BillingNote.objects.select_related("customer").prefetch_related("lines__sale")
     serializer_class = BillingNoteSerializer
     search_fields = (
         "reference_no",
@@ -614,7 +622,7 @@ class BillingNoteViewSet(InventoryModelViewSet):
 
 
 class PaymentBatchViewSet(InventoryModelViewSet):
-    queryset = PaymentBatch.objects.prefetch_related("lines__purchase")
+    queryset = PaymentBatch.objects.select_related("supplier").prefetch_related("lines__purchase")
     serializer_class = PaymentBatchSerializer
     search_fields = (
         "reference_no",

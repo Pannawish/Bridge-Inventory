@@ -16,6 +16,7 @@ from .models import (
     PurchaseDocument,
     PurchaseItem,
     Quotation,
+    QuotationItem,
     Sale,
     SaleDocument,
     SaleItem,
@@ -64,6 +65,36 @@ def resolve_product(product_id=None, sku="", product_name=""):
 
     if product_name:
         return Product.objects.filter(product_name__iexact=product_name).first()
+
+    return None
+
+
+def resolve_supplier(supplier_id=None, supplier_name=""):
+    supplier_id = str(supplier_id or "").strip()
+    supplier_name = str(supplier_name or "").strip()
+
+    if supplier_id:
+        supplier = Supplier.objects.filter(pk=supplier_id).first()
+        if supplier:
+            return supplier
+
+    if supplier_name:
+        return Supplier.objects.filter(company_name__iexact=supplier_name).first()
+
+    return None
+
+
+def resolve_customer(customer_id=None, customer_name=""):
+    customer_id = str(customer_id or "").strip()
+    customer_name = str(customer_name or "").strip()
+
+    if customer_id:
+        customer = Customer.objects.filter(pk=customer_id).first()
+        if customer:
+            return customer
+
+    if customer_name:
+        return Customer.objects.filter(company_name__iexact=customer_name).first()
 
     return None
 
@@ -408,6 +439,7 @@ class PurchaseItemSerializer(serializers.ModelSerializer):
 
 class PurchaseSerializer(serializers.ModelSerializer):
     items = PurchaseItemSerializer(many=True, required=False)
+    supplier_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     document_url = serializers.SerializerMethodField()
     documents = serializers.SerializerMethodField()
     uploaded_documents = serializers.ListField(
@@ -427,6 +459,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "reference_no",
+            "supplier_id",
             "supplier_name",
             "supplier_tax_invoice",
             "status",
@@ -480,6 +513,25 @@ class PurchaseSerializer(serializers.ModelSerializer):
             documents.insert(0, build_legacy_document_payload(request, purchase.document))
 
         return documents
+
+    def validate(self, attrs):
+        supplier_id_value = attrs.pop("supplier_id", None)
+        should_resolve_supplier = (
+            supplier_id_value is not None
+            or "supplier_name" in attrs
+            or self.instance is None
+        )
+
+        if should_resolve_supplier:
+            attrs["supplier"] = resolve_supplier(
+                supplier_id=supplier_id_value,
+                supplier_name=attrs.get(
+                    "supplier_name",
+                    getattr(self.instance, "supplier_name", ""),
+                ),
+            )
+
+        return attrs
 
     def _add_documents(self, purchase, documents):
         for document in documents:
@@ -633,6 +685,7 @@ class SaleItemSerializer(serializers.ModelSerializer):
 
 class SaleSerializer(serializers.ModelSerializer):
     items = SaleItemSerializer(many=True, required=False)
+    customer_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     document_url = serializers.SerializerMethodField()
     documents = serializers.SerializerMethodField()
     uploaded_documents = serializers.ListField(
@@ -652,6 +705,7 @@ class SaleSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "reference_no",
+            "customer_id",
             "customer_name",
             "status",
             "payment_term_type",
@@ -743,6 +797,22 @@ class SaleSerializer(serializers.ModelSerializer):
             get_sale_stock_issues,
             normalize_sale_items_for_status,
         )
+
+        customer_id_value = attrs.pop("customer_id", None)
+        should_resolve_customer = (
+            customer_id_value is not None
+            or "customer_name" in attrs
+            or self.instance is None
+        )
+
+        if should_resolve_customer:
+            attrs["customer"] = resolve_customer(
+                customer_id=customer_id_value,
+                customer_name=attrs.get(
+                    "customer_name",
+                    getattr(self.instance, "customer_name", ""),
+                ),
+            )
 
         sale_status = attrs.get("status", getattr(self.instance, "status", Sale.STATUS_DRAFT))
         current_sale_status = getattr(self.instance, "status", Sale.STATUS_DRAFT)
@@ -840,6 +910,9 @@ class SaleSerializer(serializers.ModelSerializer):
 
 
 class QuotationSerializer(serializers.ModelSerializer):
+    customer_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    supplier_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
     class Meta:
         model = Quotation
         fields = [
@@ -847,7 +920,9 @@ class QuotationSerializer(serializers.ModelSerializer):
             "reference_no",
             "quotation_date",
             "valid_until_date",
+            "customer_id",
             "customer_name",
+            "supplier_id",
             "supplier_name",
             "vat_mode",
             "note",
@@ -928,7 +1003,70 @@ class QuotationSerializer(serializers.ModelSerializer):
 
         return normalized_items
 
+    def _serialize_item(self, item):
+        return {
+            "id": item.id,
+            "line_id": item.id,
+            "product_id": item.product_id or "",
+            "product_name": item.product_name,
+            "sku": item.sku,
+            "unit": item.unit,
+            "quantity": str(item.quantity),
+            "sale_price": str(item.sale_price),
+            "cost_price": "" if item.cost_price is None else str(item.cost_price),
+            "discounts": item.discounts or ["0"],
+        }
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        line_items = list(instance.line_items.all())
+        if line_items:
+            legacy_items = instance.items if isinstance(instance.items, list) else []
+            serialized_items = []
+            for index, item in enumerate(line_items):
+                legacy_item = (
+                    legacy_items[index]
+                    if index < len(legacy_items) and isinstance(legacy_items[index], dict)
+                    else {}
+                )
+                serialized_item = {**legacy_item, **self._serialize_item(item)}
+                if legacy_item.get("line_id"):
+                    serialized_item["line_id"] = legacy_item["line_id"]
+                serialized_items.append(serialized_item)
+            data["items"] = serialized_items
+        return data
+
     def validate(self, attrs):
+        customer_id_value = attrs.pop("customer_id", None)
+        supplier_id_value = attrs.pop("supplier_id", None)
+        should_resolve_customer = (
+            customer_id_value is not None
+            or "customer_name" in attrs
+            or self.instance is None
+        )
+        should_resolve_supplier = (
+            supplier_id_value is not None
+            or "supplier_name" in attrs
+            or self.instance is None
+        )
+
+        if should_resolve_customer:
+            attrs["customer"] = resolve_customer(
+                customer_id=customer_id_value,
+                customer_name=attrs.get(
+                    "customer_name",
+                    getattr(self.instance, "customer_name", ""),
+                ),
+            )
+        if should_resolve_supplier:
+            attrs["supplier"] = resolve_supplier(
+                supplier_id=supplier_id_value,
+                supplier_name=attrs.get(
+                    "supplier_name",
+                    getattr(self.instance, "supplier_name", ""),
+                ),
+            )
+
         quotation_date = attrs.get("quotation_date", getattr(self.instance, "quotation_date", None))
         valid_until_date = attrs.get(
             "valid_until_date",
@@ -944,6 +1082,55 @@ class QuotationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"items": "Add at least one quotation item."})
 
         return attrs
+
+    def _replace_items(self, quotation, items):
+        if items is None:
+            return
+
+        quotation.line_items.all().delete()
+        rows = []
+        for position, item in enumerate(items):
+            product = resolve_product(
+                product_id=item.get("product_id"),
+                sku=item.get("sku", ""),
+                product_name=item.get("product_name", ""),
+            )
+            rows.append(
+                QuotationItem(
+                    quotation=quotation,
+                    product=product,
+                    position=position,
+                    product_name=item.get("product_name", ""),
+                    sku=item.get("sku", ""),
+                    unit=item.get("unit") or "pcs",
+                    quantity=decimal_or_zero(item.get("quantity")),
+                    sale_price=decimal_or_zero(item.get("sale_price")),
+                    cost_price=decimal_or_none(item.get("cost_price")),
+                    discounts=item.get("discounts") or ["0"],
+                )
+            )
+
+        QuotationItem.objects.bulk_create(rows)
+        quotation.items = items
+        quotation.save(update_fields=["items", "updated_at"])
+        if hasattr(quotation, "_prefetched_objects_cache"):
+            quotation._prefetched_objects_cache = {}
+
+    def create(self, validated_data):
+        items = validated_data.pop("items", [])
+        with transaction.atomic():
+            quotation = Quotation.objects.create(**validated_data)
+            self._replace_items(quotation, items)
+        return quotation
+
+    def update(self, instance, validated_data):
+        items = validated_data.pop("items", None)
+        with transaction.atomic():
+            for field, value in validated_data.items():
+                setattr(instance, field, value)
+            instance.save()
+            self._replace_items(instance, items)
+        return instance
 
 
 def compute_billing_note_status(lines):
@@ -1025,12 +1212,14 @@ class BillingNoteLineSerializer(serializers.ModelSerializer):
 
 class BillingNoteSerializer(serializers.ModelSerializer):
     lines = BillingNoteLineSerializer(many=True, required=False)
+    customer_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = BillingNote
         fields = [
             "id",
             "reference_no",
+            "customer_id",
             "customer_name",
             "billing_note_date",
             "expected_payment_date",
@@ -1056,9 +1245,28 @@ class BillingNoteSerializer(serializers.ModelSerializer):
             "updated_at": {"read_only": True},
         }
 
-    def _validate_lines_for_customer(self, customer_name, lines):
+    def validate(self, attrs):
+        customer_id_value = attrs.pop("customer_id", None)
+        should_resolve_customer = (
+            customer_id_value is not None
+            or "customer_name" in attrs
+            or self.instance is None
+        )
+
+        if should_resolve_customer:
+            attrs["customer"] = resolve_customer(
+                customer_id=customer_id_value,
+                customer_name=attrs.get(
+                    "customer_name",
+                    getattr(self.instance, "customer_name", ""),
+                ),
+            )
+
+        return attrs
+
+    def _validate_lines_for_customer(self, customer_name, lines, customer=None):
         sale_ids = [line["sale"].id if hasattr(line["sale"], "id") else line["sale"] for line in lines]
-        sales = Sale.objects.filter(pk__in=sale_ids)
+        sales = Sale.objects.select_related("customer").filter(pk__in=sale_ids)
         sale_map = {sale.id: sale for sale in sales}
 
         for line in lines:
@@ -1067,7 +1275,11 @@ class BillingNoteSerializer(serializers.ModelSerializer):
             if sale_obj is None:
                 raise serializers.ValidationError({"lines": "Each line must reference an existing sale."})
 
-            if sale_obj.customer_name != customer_name:
+            if customer and sale_obj.customer_id and sale_obj.customer_id != customer.id:
+                raise serializers.ValidationError(
+                    {"lines": "All sales in a billing note must belong to the same customer."}
+                )
+            if not (customer and sale_obj.customer_id) and sale_obj.customer_name != customer_name:
                 raise serializers.ValidationError(
                     {"lines": "All sales in a billing note must belong to the same customer."}
                 )
@@ -1143,7 +1355,8 @@ class BillingNoteSerializer(serializers.ModelSerializer):
         if not customer_name:
             raise serializers.ValidationError({"customer_name": "Customer is required."})
 
-        self._validate_lines_for_customer(customer_name, lines_data)
+        customer = validated_data.get("customer")
+        self._validate_lines_for_customer(customer_name, lines_data, customer=customer)
         self._check_unique_active_sales(lines_data)
 
         with transaction.atomic():
@@ -1164,7 +1377,11 @@ class BillingNoteSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         {"lines": "A billing note must contain at least one sale."}
                     )
-                self._validate_lines_for_customer(instance.customer_name, lines_data)
+                self._validate_lines_for_customer(
+                    instance.customer_name,
+                    lines_data,
+                    customer=instance.customer,
+                )
                 self._check_unique_active_sales(lines_data, current_billing_note_id=instance.id)
                 self._replace_lines(instance, lines_data)
 
@@ -1228,12 +1445,14 @@ class PaymentBatchLineSerializer(serializers.ModelSerializer):
 
 class PaymentBatchSerializer(serializers.ModelSerializer):
     lines = PaymentBatchLineSerializer(many=True, required=False)
+    supplier_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = PaymentBatch
         fields = [
             "id",
             "reference_no",
+            "supplier_id",
             "supplier_name",
             "batch_date",
             "planned_payment_date",
@@ -1259,12 +1478,31 @@ class PaymentBatchSerializer(serializers.ModelSerializer):
             "updated_at": {"read_only": True},
         }
 
-    def _validate_lines_for_supplier(self, supplier_name, lines):
+    def validate(self, attrs):
+        supplier_id_value = attrs.pop("supplier_id", None)
+        should_resolve_supplier = (
+            supplier_id_value is not None
+            or "supplier_name" in attrs
+            or self.instance is None
+        )
+
+        if should_resolve_supplier:
+            attrs["supplier"] = resolve_supplier(
+                supplier_id=supplier_id_value,
+                supplier_name=attrs.get(
+                    "supplier_name",
+                    getattr(self.instance, "supplier_name", ""),
+                ),
+            )
+
+        return attrs
+
+    def _validate_lines_for_supplier(self, supplier_name, lines, supplier=None):
         purchase_ids = [
             line["purchase"].id if hasattr(line["purchase"], "id") else line["purchase"]
             for line in lines
         ]
-        purchases = Purchase.objects.filter(pk__in=purchase_ids)
+        purchases = Purchase.objects.select_related("supplier").filter(pk__in=purchase_ids)
         purchase_map = {purchase.id: purchase for purchase in purchases}
 
         for line in lines:
@@ -1279,7 +1517,11 @@ class PaymentBatchSerializer(serializers.ModelSerializer):
                     {"lines": "Each line must reference an existing purchase."}
                 )
 
-            if purchase_obj.supplier_name != supplier_name:
+            if supplier and purchase_obj.supplier_id and purchase_obj.supplier_id != supplier.id:
+                raise serializers.ValidationError(
+                    {"lines": "All purchases in a payment batch must belong to the same supplier."}
+                )
+            if not (supplier and purchase_obj.supplier_id) and purchase_obj.supplier_name != supplier_name:
                 raise serializers.ValidationError(
                     {"lines": "All purchases in a payment batch must belong to the same supplier."}
                 )
@@ -1354,7 +1596,8 @@ class PaymentBatchSerializer(serializers.ModelSerializer):
         if not supplier_name:
             raise serializers.ValidationError({"supplier_name": "Supplier is required."})
 
-        self._validate_lines_for_supplier(supplier_name, lines_data)
+        supplier = validated_data.get("supplier")
+        self._validate_lines_for_supplier(supplier_name, lines_data, supplier=supplier)
         self._check_unique_active_purchases(lines_data)
 
         with transaction.atomic():
@@ -1375,7 +1618,11 @@ class PaymentBatchSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         {"lines": "A payment batch must contain at least one purchase."}
                     )
-                self._validate_lines_for_supplier(instance.supplier_name, lines_data)
+                self._validate_lines_for_supplier(
+                    instance.supplier_name,
+                    lines_data,
+                    supplier=instance.supplier,
+                )
                 self._check_unique_active_purchases(lines_data, current_payment_batch_id=instance.id)
                 self._replace_lines(instance, lines_data)
 

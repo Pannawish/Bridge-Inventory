@@ -8,6 +8,7 @@ from .models import (
     Purchase,
     PurchaseItem,
     Quotation,
+    QuotationItem,
     Sale,
     SaleItem,
     Supplier,
@@ -26,6 +27,11 @@ class PurchaseItemInline(admin.TabularInline):
 
 class SaleItemInline(admin.TabularInline):
     model = SaleItem
+    extra = 0
+
+
+class QuotationItemInline(admin.TabularInline):
+    model = QuotationItem
     extra = 0
 
 
@@ -79,3 +85,4 @@ class QuotationAdmin(admin.ModelAdmin):
         "grand_total",
     ]
     search_fields = ["reference_no", "customer_name", "supplier_name", "note"]
+    inlines = [QuotationItemInline]
