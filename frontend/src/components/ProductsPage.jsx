@@ -976,7 +976,7 @@ function ProductsPage({
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search by main name, subname, category, SKU, or ID"
+              placeholder="Search by main name, subname, category, or SKU"
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
@@ -1116,7 +1116,6 @@ function ProductsPage({
                       <td>
                         <div className="cell-stack">
                           <strong>{formatCurrency(metrics.avgPrice)}</strong>
-                          <span>ID {product.productDisplayId}</span>
                         </div>
                       </td>
                       <td>
@@ -1159,10 +1158,6 @@ function ProductsPage({
                     <div>
                       <span>Avg Cost</span>
                       <strong>{formatCurrency(metrics.avgPrice)}</strong>
-                    </div>
-                    <div>
-                      <span>ID</span>
-                      <strong>{product.productDisplayId}</strong>
                     </div>
                   </div>
 
@@ -1533,10 +1528,6 @@ function ProductsPage({
                       )}
                     </div>
                     <div>
-                      <p className="detail-label">Product ID</p>
-                      <strong>{viewingProduct.productDisplayId}</strong>
-                    </div>
-                    <div>
                       <p className="detail-label">Category</p>
                       <strong>{getProductCategoryLabel(viewingProduct, categories) || "—"}</strong>
                     </div>
@@ -1757,7 +1748,7 @@ function ProductsPage({
                   <div className="product-editor-section-heading">
                     <div>
                       <p className="eyebrow">Identity</p>
-                      <h4>Name, SKU, and Product ID</h4>
+                      <h4>Name, Category, and SKU</h4>
                     </div>
                     <span>Start here</span>
                   </div>
@@ -1869,18 +1860,6 @@ function ProductsPage({
                       </span>
                     </label>
 
-                    <label>
-                      <span className="required-label">Product ID</span>
-                      <input
-                        type="number"
-                        value={draftProduct.productDisplayId}
-                        onChange={(event) =>
-                          updateDraftField("productDisplayId", event.target.value)
-                        }
-                        placeholder="e.g. 1232"
-                        min="1"
-                      />
-                    </label>
                   </div>
 
                   <div className="supplier-option-field product-editor-subsection">
