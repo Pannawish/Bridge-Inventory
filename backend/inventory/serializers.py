@@ -910,6 +910,7 @@ class SaleSerializer(serializers.ModelSerializer):
 
 
 class QuotationSerializer(serializers.ModelSerializer):
+    items = serializers.JSONField(required=False, write_only=True)
     customer_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     supplier_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
@@ -994,7 +995,19 @@ class QuotationSerializer(serializers.ModelSerializer):
                 "product_name": product_name,
                 "sku": sku,
                 "unit": str(item.get("unit") or "pcs").strip() or "pcs",
+                "base_unit": str(item.get("base_unit") or item.get("baseUnit") or "pcs").strip()
+                or "pcs",
+                "conversion_factor": str(
+                    decimal_or_none(
+                        item.get("conversion_factor", item.get("conversionFactor", 1))
+                    )
+                    or Decimal("1")
+                ),
                 "quantity": str(quantity),
+                "base_quantity": str(
+                    decimal_or_none(item.get("base_quantity", item.get("baseQuantity")))
+                    or quantity
+                ),
                 "sale_price": str(sale_price),
                 "cost_price": "" if cost_price is None else str(cost_price),
                 "discounts": discounts or ["0"],
@@ -1003,7 +1016,30 @@ class QuotationSerializer(serializers.ModelSerializer):
 
         return normalized_items
 
+    def _compute_discounted_amount(self, quantity, price, discounts):
+        amount = decimal_or_zero(quantity) * decimal_or_zero(price)
+        for discount in discounts or []:
+            discount_value = decimal_or_none(discount) or Decimal("0")
+            if discount_value < 0:
+                discount_value = Decimal("0")
+            if discount_value > 100:
+                discount_value = Decimal("100")
+            amount *= Decimal("1") - (discount_value / Decimal("100"))
+        return amount
+
     def _serialize_item(self, item):
+        discounts = item.discounts or ["0"]
+        sale_amount = self._compute_discounted_amount(
+            item.quantity,
+            item.sale_price,
+            discounts,
+        )
+        cost_amount = (
+            Decimal("0")
+            if item.cost_price is None
+            else self._compute_discounted_amount(item.quantity, item.cost_price, discounts)
+        )
+
         return {
             "id": item.id,
             "line_id": item.id,
@@ -1011,29 +1047,21 @@ class QuotationSerializer(serializers.ModelSerializer):
             "product_name": item.product_name,
             "sku": item.sku,
             "unit": item.unit,
+            "base_unit": item.base_unit,
+            "conversion_factor": str(item.conversion_factor),
             "quantity": str(item.quantity),
+            "base_quantity": str(item.base_quantity),
             "sale_price": str(item.sale_price),
             "cost_price": "" if item.cost_price is None else str(item.cost_price),
-            "discounts": item.discounts or ["0"],
+            "discounts": discounts,
+            "sale_amount": str(sale_amount),
+            "cost_amount": str(cost_amount),
         }
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         line_items = list(instance.line_items.all())
-        if line_items:
-            legacy_items = instance.items if isinstance(instance.items, list) else []
-            serialized_items = []
-            for index, item in enumerate(line_items):
-                legacy_item = (
-                    legacy_items[index]
-                    if index < len(legacy_items) and isinstance(legacy_items[index], dict)
-                    else {}
-                )
-                serialized_item = {**legacy_item, **self._serialize_item(item)}
-                if legacy_item.get("line_id"):
-                    serialized_item["line_id"] = legacy_item["line_id"]
-                serialized_items.append(serialized_item)
-            data["items"] = serialized_items
+        data["items"] = [self._serialize_item(item) for item in line_items]
         return data
 
     def validate(self, attrs):
@@ -1095,6 +1123,17 @@ class QuotationSerializer(serializers.ModelSerializer):
                 sku=item.get("sku", ""),
                 product_name=item.get("product_name", ""),
             )
+            quantity = decimal_or_zero(item.get("quantity"))
+            conversion_factor = decimal_or_zero(item.get("conversion_factor", 1)) or Decimal("1")
+            base_quantity = decimal_or_zero(item.get("base_quantity")) or (
+                quantity * conversion_factor
+            )
+            base_unit = (
+                item.get("base_unit")
+                or getattr(product, "stock_base_unit", "")
+                or item.get("unit")
+                or "pcs"
+            )
             rows.append(
                 QuotationItem(
                     quotation=quotation,
@@ -1103,7 +1142,10 @@ class QuotationSerializer(serializers.ModelSerializer):
                     product_name=item.get("product_name", ""),
                     sku=item.get("sku", ""),
                     unit=item.get("unit") or "pcs",
-                    quantity=decimal_or_zero(item.get("quantity")),
+                    base_unit=base_unit,
+                    conversion_factor=conversion_factor,
+                    quantity=quantity,
+                    base_quantity=base_quantity,
                     sale_price=decimal_or_zero(item.get("sale_price")),
                     cost_price=decimal_or_none(item.get("cost_price")),
                     discounts=item.get("discounts") or ["0"],
@@ -1111,8 +1153,6 @@ class QuotationSerializer(serializers.ModelSerializer):
             )
 
         QuotationItem.objects.bulk_create(rows)
-        quotation.items = items
-        quotation.save(update_fields=["items", "updated_at"])
         if hasattr(quotation, "_prefetched_objects_cache"):
             quotation._prefetched_objects_cache = {}
 

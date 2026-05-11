@@ -49,7 +49,7 @@ This file is for coding agents working in this repository. Follow these rules be
 - Keep the current practical 3NF direction: master data lives in `Category`, `Product`, `Supplier`, and `Customer`; transactions reference master data through foreign keys; line items reference their parent transaction and product.
 - Preserve transaction snapshot fields such as `supplier_name`, `customer_name`, `product_name`, `sku`, prices, totals, and tax amounts when they represent historical business documents. These fields are intentional audit snapshots and should not be removed just because a foreign key exists.
 - Do not remove compatibility fields from serializers, API payloads, or frontend state in the same change that introduces normalization. Migrate callers first, then remove old fields in a separate explicit cleanup.
-- `QuotationItem` is the normalized quotation line table. `Quotation.items` is currently kept for API/frontend compatibility; avoid adding new behavior that depends on `Quotation.items` as the source of truth.
+- `QuotationItem` is the normalized quotation line table and the database source of truth. The quotation API still exposes an `items` array for frontend compatibility, but that array must be built from `QuotationItem`, not from a JSON column on `Quotation`.
 - Use data migrations for schema changes that need existing records backfilled. Do not rely on one-off shell commands for durable data migrations.
 - When adding a new foreign key to existing data, make it nullable first, backfill it, update serializers/views/tests, and only make it required later if the workflow can guarantee it.
 - Keep delete behavior deliberate:
@@ -147,6 +147,8 @@ npm run dev -- --host 127.0.0.1
 - Search/filter database indexes exist for common product, transaction, finance, and partner filters.
 - Dashboard stock report rows are calculated by the backend and include stock position, demand, purchase pipeline, and value fields.
 - Product purchase/sales history is loaded on demand through the product history endpoint.
+- Quotation line items are stored in `QuotationItem`; `Quotation` no longer has an `items` JSON database column. The quotation API still exposes an `items` array built from `QuotationItem`.
+- `clear_operational_data` can clear purchases, sales, quotations, billing notes, payment batches, and transaction documents while preserving master data.
 - Billing note and payment batch seed data are included in operational seed data.
 
 ## Current Improvement Direction

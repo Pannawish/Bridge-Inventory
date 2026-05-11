@@ -514,12 +514,14 @@ class RelationalNormalizationTests(APITestCase):
         self.assertEqual(response.data["customer_id"], self.customer.id)
         self.assertEqual(response.data["supplier_id"], self.supplier.id)
         self.assertEqual(len(response.data["items"]), 1)
-        self.assertEqual(response.data["items"][0]["line_id"], "line-1")
+        self.assertEqual(response.data["items"][0]["line_id"], quotation_item.id)
         self.assertEqual(response.data["items"][0]["product_id"], self.product.id)
+        self.assertEqual(response.data["items"][0]["base_unit"], self.product.stock_base_unit)
         self.assertEqual(quotation.customer_id, self.customer.id)
         self.assertEqual(quotation.supplier_id, self.supplier.id)
         self.assertEqual(quotation_item.product_id, self.product.id)
         self.assertEqual(quotation_item.quantity, Decimal("2.000"))
+        self.assertEqual(quotation_item.base_quantity, Decimal("2.000"))
 
 
 class LookupEligibilityTests(APITestCase):

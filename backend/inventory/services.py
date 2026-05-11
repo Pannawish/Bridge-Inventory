@@ -772,6 +772,19 @@ def serialize_payment_batch_for_chat(batch):
 
 
 def serialize_quotation_for_chat(quotation):
+    items = [
+        {
+            "product_name": item.product_name,
+            "sku": item.sku,
+            "unit": item.unit,
+            "quantity": as_number(item.quantity),
+            "sale_price": as_number(item.sale_price),
+            "cost_price": None if item.cost_price is None else as_number(item.cost_price),
+            "discounts": item.discounts or ["0"],
+        }
+        for item in quotation.line_items.all()[:8]
+    ]
+
     return {
         "id": quotation.id,
         "reference_no": quotation.reference_no,
@@ -781,7 +794,7 @@ def serialize_quotation_for_chat(quotation):
         "supplier_name": quotation.supplier_name,
         "grand_total": as_number(quotation.grand_total),
         "note": quotation.note,
-        "items": quotation.items[:8] if isinstance(quotation.items, list) else quotation.items,
+        "items": items,
     }
 
 
@@ -931,7 +944,7 @@ def build_ai_inventory_context(question, request=None):
     recent_purchases = date_filtered_purchases.order_by("-transaction_date", "-created_at")[:8]
     recent_sales = date_filtered_sales.order_by("-transaction_date", "-created_at")[:8]
 
-    quotations = Quotation.objects.all()
+    quotations = Quotation.objects.prefetch_related("line_items__product")
     billing_notes = BillingNote.objects.prefetch_related("lines__sale")
     payment_batches = PaymentBatch.objects.prefetch_related("lines__purchase")
 
