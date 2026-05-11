@@ -23,6 +23,13 @@ from .models import (
 
 
 SALE_STOCK_DEDUCTED_STATUSES = {"packed", "shipped", "delivered"}
+SALE_FULL_TRANSACTION_STATUSES = {"draft", "packed", "shipped", "delivered", "cancelled"}
+SALE_PARTIAL_TRANSACTION_STATUSES = {
+    "partially_packed",
+    "partially_shipped",
+    "partially_delivered",
+}
+SALE_ITEM_STATUSES = {"pending", "packed", "shipped", "delivered", "cancelled"}
 SAFETY_STOCK_DAYS = 7
 CHAT_STOP_WORDS = {
     "about",
@@ -172,8 +179,8 @@ def get_sale_item_status(item, sale_status):
     return SaleItem.ITEM_CANCELLED if sale_status == Sale.STATUS_CANCELLED else SaleItem.ITEM_PENDING
 
 
-def get_sale_stock_issues(items, sale_status, exclude_sale_id=None):
-    requested_by_product_id = {}
+def get_sale_committed_quantity_by_product_id(items, sale_status):
+    committed_by_product_id = {}
 
     for item in items or []:
         item_status = get_sale_item_status(item, sale_status)
@@ -184,17 +191,51 @@ def get_sale_stock_issues(items, sale_status, exclude_sale_id=None):
         if not product_id:
             continue
 
-        requested_by_product_id[product_id] = (
-            requested_by_product_id.get(product_id, Decimal("0"))
+        committed_by_product_id[product_id] = (
+            committed_by_product_id.get(product_id, Decimal("0"))
             + get_sale_item_base_quantity(item)
         )
+
+    return committed_by_product_id
+
+
+def get_sale_stock_issues(
+    items,
+    sale_status,
+    exclude_sale_id=None,
+    current_items=None,
+    current_sale_status=None,
+):
+    requested_by_product_id = get_sale_committed_quantity_by_product_id(items, sale_status)
+
+    if current_items is not None:
+        current_by_product_id = get_sale_committed_quantity_by_product_id(
+            current_items,
+            current_sale_status or Sale.STATUS_DRAFT,
+        )
+        product_ids = set(requested_by_product_id) | set(current_by_product_id)
+        requested_by_product_id = {
+            product_id: max(
+                Decimal("0"),
+                requested_by_product_id.get(product_id, Decimal("0"))
+                - current_by_product_id.get(product_id, Decimal("0")),
+            )
+            for product_id in product_ids
+        }
+
+    requested_by_product_id = {
+        product_id: quantity
+        for product_id, quantity in requested_by_product_id.items()
+        if quantity > 0
+    }
 
     if not requested_by_product_id:
         return []
 
+    stock_exclude_sale_id = None if current_items is not None else exclude_sale_id
     available_stock = get_available_stock_by_product_id(
         product_ids=requested_by_product_id.keys(),
-        exclude_sale_id=exclude_sale_id,
+        exclude_sale_id=stock_exclude_sale_id,
     )
     products = Product.objects.in_bulk(requested_by_product_id.keys())
     issues = []
@@ -237,6 +278,111 @@ def get_sale_item_status_for_transaction_status(status):
     if status == Sale.STATUS_CANCELLED:
         return SaleItem.ITEM_CANCELLED
     return SaleItem.ITEM_PENDING
+
+
+def get_sale_item_payload_status(item):
+    if isinstance(item, dict):
+        status = item.get("item_status") or item.get("status")
+    else:
+        status = item.item_status
+
+    return status if status in SALE_ITEM_STATUSES else SaleItem.ITEM_PENDING
+
+
+def set_sale_item_payload_value(item, field_name, value):
+    if isinstance(item, dict):
+        item[field_name] = value
+    else:
+        setattr(item, field_name, value)
+
+
+def get_sale_item_payload_value(item, field_name):
+    if isinstance(item, dict):
+        return item.get(field_name)
+
+    return getattr(item, field_name)
+
+
+def apply_sale_item_status_dates(item, item_status, today=None):
+    today = today or timezone.localdate()
+
+    if item_status == SaleItem.ITEM_DELIVERED:
+        shipped_date = get_sale_item_payload_value(item, "shipped_date")
+        delivered_date = get_sale_item_payload_value(item, "delivered_date")
+        set_sale_item_payload_value(item, "shipped_date", shipped_date or today)
+        set_sale_item_payload_value(item, "delivered_date", delivered_date or today)
+        return
+
+    if item_status == SaleItem.ITEM_SHIPPED:
+        shipped_date = get_sale_item_payload_value(item, "shipped_date")
+        set_sale_item_payload_value(item, "shipped_date", shipped_date or today)
+        set_sale_item_payload_value(item, "delivered_date", None)
+        return
+
+    set_sale_item_payload_value(item, "shipped_date", None)
+    set_sale_item_payload_value(item, "delivered_date", None)
+
+
+def get_sale_status_from_item_statuses(item_statuses, fallback_status=Sale.STATUS_DRAFT):
+    if not item_statuses:
+        return fallback_status or Sale.STATUS_DRAFT
+
+    active_statuses = [
+        status for status in item_statuses if status != SaleItem.ITEM_CANCELLED
+    ]
+
+    if all(status == SaleItem.ITEM_CANCELLED for status in item_statuses):
+        return Sale.STATUS_CANCELLED
+
+    if not active_statuses:
+        return Sale.STATUS_CANCELLED
+
+    if all(status == SaleItem.ITEM_DELIVERED for status in active_statuses):
+        return Sale.STATUS_DELIVERED
+
+    if any(status == SaleItem.ITEM_DELIVERED for status in active_statuses):
+        return Sale.STATUS_PARTIALLY_DELIVERED
+
+    if all(status == SaleItem.ITEM_SHIPPED for status in active_statuses):
+        return Sale.STATUS_SHIPPED
+
+    if any(status == SaleItem.ITEM_SHIPPED for status in active_statuses):
+        return Sale.STATUS_PARTIALLY_SHIPPED
+
+    if all(status == SaleItem.ITEM_PACKED for status in active_statuses):
+        return Sale.STATUS_PACKED
+
+    if any(status == SaleItem.ITEM_PACKED for status in active_statuses):
+        return Sale.STATUS_PARTIALLY_PACKED
+
+    return Sale.STATUS_DRAFT
+
+
+def get_sale_status_from_items(items, fallback_status=Sale.STATUS_DRAFT):
+    return get_sale_status_from_item_statuses(
+        [get_sale_item_payload_status(item) for item in items or []],
+        fallback_status=fallback_status,
+    )
+
+
+def normalize_sale_items_for_status(items, sale_status):
+    if items is None:
+        return sale_status
+
+    today = timezone.localdate()
+    if sale_status in SALE_FULL_TRANSACTION_STATUSES:
+        item_status = get_sale_item_status_for_transaction_status(sale_status)
+        for item in items:
+            set_sale_item_payload_value(item, "item_status", item_status)
+            apply_sale_item_status_dates(item, item_status, today)
+        return sale_status
+
+    for item in items:
+        item_status = get_sale_item_payload_status(item)
+        set_sale_item_payload_value(item, "item_status", item_status)
+        apply_sale_item_status_dates(item, item_status, today)
+
+    return get_sale_status_from_items(items, fallback_status=sale_status)
 
 
 def apply_sale_status_to_items(sale):

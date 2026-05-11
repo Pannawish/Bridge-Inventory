@@ -147,6 +147,7 @@ function TransactionTable({
   products = [],
   purchases = [],
   sales = [],
+  enableSaleStockPrecheck = true,
   type,
   onPurchaseStatusChange,
   onPurchaseItemStatusChange,
@@ -293,9 +294,12 @@ function TransactionTable({
     }
 
     const updatedRow = updateSaleItemStatus(selectedRow, itemIndex, nextStatus);
-    const issues = getSaleStockIssues(updatedRow, products, purchases, sales, {
-      excludeSaleId: selectedRow.id,
-    });
+    const issues = enableSaleStockPrecheck
+      ? getSaleStockIssues(updatedRow, products, purchases, sales, {
+          excludeSaleId: selectedRow.id,
+          currentSale: selectedRow,
+        })
+      : [];
 
     if (issues.length) {
       onWarning?.(formatSaleStockIssueMessage(issues));

@@ -161,7 +161,7 @@ class InventoryPaginationTests(APITestCase):
         self.assertEqual(response.data["results"][0]["companyName"], "Alpha Supplies")
 
 
-class SaleStockValidationTests(TestCase):
+class SaleStockValidationTests(APITestCase):
     def setUp(self):
         self.product = Product.objects.create(
             sku="STOCK-API-1",
@@ -253,6 +253,183 @@ class SaleStockValidationTests(TestCase):
         )
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_status_patch_to_packed_updates_items_and_reduces_available_stock(self):
+        sale = Sale.objects.create(
+            customer_name="Stock Customer",
+            status=Sale.STATUS_DRAFT,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=SaleItem.ITEM_PENDING,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("4"),
+            base_quantity=Decimal("4"),
+            unit_price=Decimal("1"),
+            amount=Decimal("4"),
+        )
+
+        response = self.client.patch(
+            f"/api/sales/{sale.id}/",
+            {"status": Sale.STATUS_PACKED},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], Sale.STATUS_PACKED)
+        self.assertEqual(response.data["items"][0]["item_status"], SaleItem.ITEM_PACKED)
+
+        product_response = self.client.get(f"/api/products/{self.product.id}/")
+
+        self.assertEqual(product_response.status_code, 200)
+        self.assertEqual(product_response.data["current_stock"], Decimal("6"))
+
+    def test_item_status_to_packed_rejects_quantity_above_available_stock(self):
+        sale = Sale.objects.create(
+            customer_name="Stock Customer",
+            status=Sale.STATUS_DRAFT,
+            transaction_date=self.today,
+        )
+
+        payload = self.sale_payload(Sale.STATUS_PARTIALLY_PACKED, 11)
+        payload["items"][0]["item_status"] = SaleItem.ITEM_PACKED
+
+        response = self.client.patch(
+            f"/api/sales/{sale.id}/",
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Insufficient stock", response.data["error"])
+
+    def test_existing_packed_sale_can_ship_when_seed_data_is_oversold(self):
+        other_sale = Sale.objects.create(
+            customer_name="Other Stock Customer",
+            status=Sale.STATUS_PACKED,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=other_sale,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=SaleItem.ITEM_PACKED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("10"),
+            base_quantity=Decimal("10"),
+            unit_price=Decimal("1"),
+            amount=Decimal("10"),
+        )
+        sale = Sale.objects.create(
+            customer_name="Stock Customer",
+            status=Sale.STATUS_PACKED,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=SaleItem.ITEM_PACKED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("5"),
+            base_quantity=Decimal("5"),
+            unit_price=Decimal("1"),
+            amount=Decimal("5"),
+        )
+
+        response = self.client.patch(
+            f"/api/sales/{sale.id}/",
+            {"status": Sale.STATUS_SHIPPED},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], Sale.STATUS_SHIPPED)
+        self.assertEqual(response.data["items"][0]["item_status"], SaleItem.ITEM_SHIPPED)
+
+    def test_item_status_pending_releases_available_stock(self):
+        sale = Sale.objects.create(
+            customer_name="Stock Customer",
+            status=Sale.STATUS_PACKED,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=SaleItem.ITEM_PACKED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("4"),
+            base_quantity=Decimal("4"),
+            unit_price=Decimal("1"),
+            amount=Decimal("4"),
+        )
+
+        response = self.client.patch(
+            f"/api/sales/{sale.id}/",
+            self.sale_payload(Sale.STATUS_DRAFT, 4),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], Sale.STATUS_DRAFT)
+        self.assertEqual(response.data["items"][0]["item_status"], SaleItem.ITEM_PENDING)
+
+        product_response = self.client.get(f"/api/products/{self.product.id}/")
+
+        self.assertEqual(product_response.status_code, 200)
+        self.assertEqual(product_response.data["current_stock"], Decimal("10"))
+
+    def test_status_patch_to_cancelled_releases_available_stock(self):
+        sale = Sale.objects.create(
+            customer_name="Stock Customer",
+            status=Sale.STATUS_PACKED,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=SaleItem.ITEM_PACKED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("4"),
+            base_quantity=Decimal("4"),
+            unit_price=Decimal("1"),
+            amount=Decimal("4"),
+        )
+
+        response = self.client.patch(
+            f"/api/sales/{sale.id}/",
+            {"status": Sale.STATUS_CANCELLED},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], Sale.STATUS_CANCELLED)
+        self.assertEqual(response.data["items"][0]["item_status"], SaleItem.ITEM_CANCELLED)
+
+        product_response = self.client.get(f"/api/products/{self.product.id}/")
+
+        self.assertEqual(product_response.status_code, 200)
+        self.assertEqual(product_response.data["current_stock"], Decimal("10"))
 
 
 class LookupEligibilityTests(APITestCase):

@@ -388,6 +388,7 @@ function SalesEditForm({
   customers = defaultCustomerOptions,
   purchases = [],
   sales = [],
+  enableStockValidation = true,
   onCancel,
   onSave,
 }) {
@@ -433,6 +434,7 @@ function SalesEditForm({
             product_id: item.product_id || undefined,
             product_name: item.product_name,
             sku: item.sku,
+            item_status: getStoredSaleItemStatus(item, form.status),
             ...(selectedProduct
               ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
               : {
@@ -449,18 +451,20 @@ function SalesEditForm({
   );
   const saleStockIssues = useMemo(
     () =>
-      getSaleStockIssues(
-        {
-          ...sale,
-          status: form.status,
-          items: stockPreviewItems,
-        },
-        products,
-        purchases,
-        sales,
-        { excludeSaleId: sale.id }
-      ),
-    [form.status, items, products, purchases, sale, sales, stockPreviewItems]
+      enableStockValidation
+        ? getSaleStockIssues(
+            {
+              ...sale,
+              status: form.status,
+              items: stockPreviewItems,
+            },
+            products,
+            purchases,
+            sales,
+            { excludeSaleId: sale.id, currentSale: sale }
+          )
+        : [],
+    [enableStockValidation, form.status, products, purchases, sale, sales, stockPreviewItems]
   );
   const saleStockMessage =
     !["draft", "cancelled"].includes(form.status) && saleStockIssues.length
@@ -475,17 +479,19 @@ function SalesEditForm({
   }
 
   function handleStatusChange(nextStatus) {
-    const nextIssues = getSaleStockIssues(
-      {
-        ...sale,
-        status: nextStatus,
-        items: stockPreviewItems,
-      },
-      products,
-      purchases,
-      sales,
-      { excludeSaleId: sale.id }
-    );
+    const nextIssues = enableStockValidation
+      ? getSaleStockIssues(
+          {
+            ...sale,
+            status: nextStatus,
+            items: stockPreviewItems,
+          },
+          products,
+          purchases,
+          sales,
+          { excludeSaleId: sale.id, currentSale: sale }
+        )
+      : [];
 
     if (!["draft", "cancelled"].includes(nextStatus) && nextIssues.length) {
       const message = formatSaleStockIssueMessage(nextIssues);
@@ -1242,6 +1248,7 @@ function SalesHistoryPage({
   allSales = sales,
   products = [],
   purchases = [],
+  enableStockValidation = true,
   pagination = null,
   customers = defaultCustomerOptions,
   onPageRequest,
@@ -1419,6 +1426,7 @@ function SalesHistoryPage({
           customers={customers}
           purchases={purchases}
           sales={allSales}
+          enableStockValidation={enableStockValidation}
           onSubmit={handleCreateSale}
           onCancel={() => setShowNewSaleForm(false)}
         />
@@ -1436,6 +1444,7 @@ function SalesHistoryPage({
           customers={customers}
           purchases={purchases}
           sales={allSales}
+          enableStockValidation={enableStockValidation}
           onCancel={() => setEditingSale(null)}
           onSave={handleSave}
         />
@@ -1586,6 +1595,7 @@ function SalesHistoryPage({
         products={products}
         purchases={purchases}
         sales={allSales}
+        enableSaleStockPrecheck={enableStockValidation}
         type="sale"
         onSaleStatusChange={onSaleStatusChange}
         onSaleUpdate={onSaleUpdate}

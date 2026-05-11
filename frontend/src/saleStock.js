@@ -161,50 +161,72 @@ export function getSaleStockIssues(
   options = {}
 ) {
   const resolveProduct = createProductResolver(products);
+  const stockOptions = options.currentSale
+    ? { ...options, excludeSaleId: undefined }
+    : options;
   const availableStockByProductId = getAvailableStockByProductId(
     products,
     purchases,
     sales,
-    options
+    stockOptions
   );
   const requestedByProductId = new Map();
   const requestedProductById = new Map();
   const issues = [];
 
-  (sale?.items || []).forEach((item) => {
-    const itemStatus = getStoredSaleItemStatus(item, sale.status);
+  function addCommittedItems(sourceSale, quantityByProductId, productById, reportUnknown = true) {
+    (sourceSale?.items || []).forEach((item) => {
+      const itemStatus = getStoredSaleItemStatus(item, sourceSale.status);
 
-    if (!isSaleStockDeducted(itemStatus)) {
-      return;
-    }
+      if (!isSaleStockDeducted(itemStatus)) {
+        return;
+      }
 
-    const quantity = getItemBaseQuantity(item);
+      const quantity = getItemBaseQuantity(item);
 
-    if (!(quantity > 0)) {
-      return;
-    }
+      if (!(quantity > 0)) {
+        return;
+      }
 
-    const product = resolveProduct(item);
+      const product = resolveProduct(item);
 
-    if (!product?.id) {
-      issues.push({
-        type: "unknown-product",
-        label:
-          item.product_name ||
-          item.productName ||
-          item.name ||
-          item.sku ||
-          "Unknown product",
-      });
-      return;
-    }
+      if (!product?.id) {
+        if (reportUnknown) {
+          issues.push({
+            type: "unknown-product",
+            label:
+              item.product_name ||
+              item.productName ||
+              item.name ||
+              item.sku ||
+              "Unknown product",
+          });
+        }
+        return;
+      }
 
-    const productId = `${product.id}`;
-    requestedByProductId.set(productId, (requestedByProductId.get(productId) || 0) + quantity);
-    requestedProductById.set(productId, product);
-  });
+      const productId = `${product.id}`;
+      quantityByProductId.set(productId, (quantityByProductId.get(productId) || 0) + quantity);
+      productById.set(productId, product);
+    });
+  }
+
+  addCommittedItems(sale, requestedByProductId, requestedProductById);
+
+  if (options.currentSale) {
+    const currentByProductId = new Map();
+    addCommittedItems(options.currentSale, currentByProductId, requestedProductById, false);
+    currentByProductId.forEach((currentQuantity, productId) => {
+      const requestedQuantity = requestedByProductId.get(productId) || 0;
+      requestedByProductId.set(productId, Math.max(0, requestedQuantity - currentQuantity));
+    });
+  }
 
   requestedByProductId.forEach((requestedQuantity, productId) => {
+    if (!(requestedQuantity > 0)) {
+      return;
+    }
+
     const product = requestedProductById.get(productId);
     const availableQuantity = availableStockByProductId.get(productId) || 0;
 

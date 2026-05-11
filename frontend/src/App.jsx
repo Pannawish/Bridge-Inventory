@@ -327,6 +327,7 @@ function App() {
       const nextSale = applySaleStatusToItems({ ...sale, status: nextStatus }, nextStatus);
       const issues = getSaleStockIssues(nextSale, products, purchases, sales, {
         excludeSaleId: sale.id,
+        currentSale: sale,
       });
 
       if (issues.length) {
@@ -371,7 +372,10 @@ function App() {
     setError("");
     const { sale: normalizedSale, issues, forcedDraft } = normalizeSaleForAvailableStock(
       updatedSale,
-      { excludeSaleId: updatedSale.id }
+      {
+        excludeSaleId: updatedSale.id,
+        currentSale: sales.find((row) => row.id === updatedSale.id),
+      }
     );
     const successNotice = forcedDraft
       ? `Sale ${updatedSale.reference_no || updatedSale.id} saved as draft. ${formatSaleStockIssueMessage(issues)}`
@@ -405,6 +409,7 @@ function App() {
       );
       setNotice(successNotice);
       await refreshBillingNoteEligibility();
+      await loadData();
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -462,6 +467,7 @@ function App() {
       setSaleRows((currentRows) => currentRows.filter((row) => row.id !== deletedSale.id));
       setNotice(`Sale ${deletedSale.reference_no || deletedSale.id} deleted.`);
       await refreshBillingNoteEligibility();
+      await loadData();
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -1111,8 +1117,8 @@ function App() {
               <Dashboard
                 dashboard={dashboard}
                 products={products}
-                purchases={[]}
-                sales={[]}
+                purchases={usingMockPurchases ? purchases : []}
+                sales={usingMockSales ? sales : []}
               />
             ) : null}
 
@@ -1140,6 +1146,7 @@ function App() {
                 customers={customers}
                 purchases={usingMockPurchases ? purchases : []}
                 sales={usingMockSales ? sales : []}
+                enableSaleStockValidation={usingMockPurchases && usingMockSales}
                 onSaveQuotation={handleQuotationSave}
                 onDeleteQuotation={handleQuotationDelete}
                 onCreatePurchase={handlePurchaseCreateFromHistory}
@@ -1153,6 +1160,7 @@ function App() {
                 allSales={usingMockSales ? sales : []}
                 products={products}
                 purchases={usingMockPurchases ? purchases : []}
+                enableStockValidation={usingMockPurchases && usingMockSales}
                 pagination={salePagination}
                 customers={customers}
                 onPageRequest={loadSalePage}
@@ -1223,8 +1231,8 @@ function App() {
                 products={productRows}
                 allProducts={products}
                 categories={categories}
-                purchases={[]}
-                sales={[]}
+                purchases={usingMockPurchases ? purchases : []}
+                sales={usingMockSales ? sales : []}
                 pagination={productPagination}
                 onPageRequest={loadProductPage}
                 onLoadProductHistory={handleLoadProductHistory}

@@ -898,6 +898,7 @@ function QuotationPage({
   customers = [],
   purchases = [],
   sales = [],
+  enableSaleStockValidation = true,
   onSaveQuotation,
   onDeleteQuotation,
   onCreatePurchase,
@@ -1125,6 +1126,7 @@ function QuotationPage({
           customers={customers}
           purchases={purchases}
           sales={sales}
+          enableStockValidation={enableSaleStockValidation}
           prefill={buildSalesPrefill(conversion.quotation)}
           onSubmit={handleSaleCreate}
           onCancel={() => setConversion(null)}

@@ -159,6 +159,7 @@ function SalesForm({
   customers = defaultCustomerOptions,
   purchases = [],
   sales = [],
+  enableStockValidation = true,
   onSubmit,
   onCancel = null,
   prefill = null,
@@ -232,16 +233,18 @@ function SalesForm({
   );
   const saleStockIssues = useMemo(
     () =>
-      getSaleStockIssues(
-        {
-          status: form.status,
-          items: stockPreviewItems,
-        },
-        products,
-        purchases,
-        sales
-      ),
-    [form.status, products, purchases, sales, stockPreviewItems]
+      enableStockValidation
+        ? getSaleStockIssues(
+            {
+              status: form.status,
+              items: stockPreviewItems,
+            },
+            products,
+            purchases,
+            sales
+          )
+        : [],
+    [enableStockValidation, form.status, products, purchases, sales, stockPreviewItems]
   );
   const saleStockMessage =
     !["draft", "cancelled"].includes(form.status) && saleStockIssues.length
@@ -259,15 +262,17 @@ function SalesForm({
   }
 
   function handleStatusChange(nextStatus) {
-    const nextIssues = getSaleStockIssues(
-      {
-        status: nextStatus,
-        items: stockPreviewItems,
-      },
-      products,
-      purchases,
-      sales
-    );
+    const nextIssues = enableStockValidation
+      ? getSaleStockIssues(
+          {
+            status: nextStatus,
+            items: stockPreviewItems,
+          },
+          products,
+          purchases,
+          sales
+        )
+      : [];
 
     if (!["draft", "cancelled"].includes(nextStatus) && nextIssues.length) {
       const message = formatSaleStockIssueMessage(nextIssues);

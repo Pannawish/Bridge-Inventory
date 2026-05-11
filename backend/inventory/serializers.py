@@ -737,17 +737,38 @@ class SaleSerializer(serializers.ModelSerializer):
         apply_sale_status_to_items(sale)
 
     def validate(self, attrs):
-        from .services import get_sale_stock_issues
+        from .services import (
+            SALE_PARTIAL_TRANSACTION_STATUSES,
+            get_sale_status_from_items,
+            get_sale_stock_issues,
+            normalize_sale_items_for_status,
+        )
 
         sale_status = attrs.get("status", getattr(self.instance, "status", Sale.STATUS_DRAFT))
+        current_sale_status = getattr(self.instance, "status", Sale.STATUS_DRAFT)
+        current_items = (
+            list(self.instance.items.select_related("product"))
+            if self.instance is not None
+            else None
+        )
+        items_submitted = "items" in attrs
         items = attrs.get("items")
-        if items is None and self.instance is not None:
-            items = list(self.instance.items.select_related("product"))
+        if items is None:
+            items = current_items
+
+        if items_submitted:
+            sale_status = normalize_sale_items_for_status(items or [], sale_status)
+            attrs["status"] = sale_status
+        elif sale_status in SALE_PARTIAL_TRANSACTION_STATUSES:
+            sale_status = get_sale_status_from_items(items or [], fallback_status=sale_status)
+            attrs["status"] = sale_status
 
         issues = get_sale_stock_issues(
             items or [],
             sale_status,
             exclude_sale_id=getattr(self.instance, "id", None),
+            current_items=current_items,
+            current_sale_status=current_sale_status,
         )
         if issues:
             details = "; ".join(
