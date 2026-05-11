@@ -602,7 +602,7 @@ function TransactionTable({
                 ) : null}
                 {type === "purchase" && onPurchaseItemStatusChange ? (
                   <button
-                    className="primary-button table-action-button"
+                    className="primary-button table-action-button transaction-save-button"
                     type="button"
                     onClick={handleSavePurchaseUpdates}
                     disabled={!hasUnsavedItemChanges}
@@ -612,7 +612,7 @@ function TransactionTable({
                 ) : null}
                 {type === "sale" && onSaleUpdate ? (
                   <button
-                    className="primary-button table-action-button"
+                    className="primary-button table-action-button transaction-save-button"
                     type="button"
                     onClick={handleSaveSaleUpdates}
                     disabled={!hasUnsavedItemChanges}

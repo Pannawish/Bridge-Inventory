@@ -559,6 +559,16 @@
   background: var(--accent-soft);
 }
 
+.transaction-detail-actions .transaction-save-button {
+  color: #fff;
+  background: var(--accent);
+}
+
+.transaction-detail-actions .transaction-save-button:disabled {
+  color: #8d96ad;
+  background: #edf1f7;
+}
+
 .primary-button:hover,
 .secondary-button:hover,
 .edit-button:hover,
