@@ -42,6 +42,25 @@ This file is for coding agents working in this repository. Follow these rules be
 - Dashboard stock metrics should stay backend-calculated; do not reintroduce full purchase/sales startup loading for dashboard stock details.
 - Production safety settings should not break local development defaults.
 
+## Database And Normalization Standards
+
+- The database is MySQL and should remain a relational, migration-managed Django schema.
+- Prefer normalized relational tables and foreign keys for new durable data instead of adding new JSON blobs or duplicated text fields.
+- Keep the current practical 3NF direction: master data lives in `Category`, `Product`, `Supplier`, and `Customer`; transactions reference master data through foreign keys; line items reference their parent transaction and product.
+- Preserve transaction snapshot fields such as `supplier_name`, `customer_name`, `product_name`, `sku`, prices, totals, and tax amounts when they represent historical business documents. These fields are intentional audit snapshots and should not be removed just because a foreign key exists.
+- Do not remove compatibility fields from serializers, API payloads, or frontend state in the same change that introduces normalization. Migrate callers first, then remove old fields in a separate explicit cleanup.
+- `QuotationItem` is the normalized quotation line table. `Quotation.items` is currently kept for API/frontend compatibility; avoid adding new behavior that depends on `Quotation.items` as the source of truth.
+- Use data migrations for schema changes that need existing records backfilled. Do not rely on one-off shell commands for durable data migrations.
+- When adding a new foreign key to existing data, make it nullable first, backfill it, update serializers/views/tests, and only make it required later if the workflow can guarantee it.
+- Keep delete behavior deliberate:
+  - Use `PROTECT` where deleting a referenced record would corrupt financial or audit history.
+  - Use `SET_NULL` where historical snapshot fields keep the record readable after master data is removed.
+  - Use `CASCADE` for owned child rows such as transaction line items and documents.
+- Add indexes for fields used by list search, status filters, date filters, partner filters, and stock calculations. Avoid adding indexes that do not match an actual query pattern.
+- Keep stock availability derived from purchase/sale item statuses in backend services. Do not store a mutable product stock number unless there is a dedicated reconciliation design.
+- Development/mock operational data may be cleared with `clear_operational_data`; this must not delete master data or migrations.
+- Seed data should respect relational links and stock/status rules. Do not seed packed/shipped/delivered sales that exceed available stock unless a test explicitly covers oversold legacy data.
+
 ## Frontend Standards
 
 - Keep the UI consistent with the existing square, compact system style.
