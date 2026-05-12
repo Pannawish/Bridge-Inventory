@@ -71,6 +71,7 @@ This file is for coding agents working in this repository. Follow these rules be
 - Category pages should show the full nested tree in one view; do not paginate the category tree.
 - Flat directory/history pages can use pagination controls.
 - Forms should preserve clear card boundaries and avoid overflowing content.
+- Required form inputs must show the red required marker using the existing `required-label` pattern.
 - Do not add more feature logic into `App.jsx`, `ProductsPage.jsx`, or `styles.css` unless the task is explicitly to split or stabilize those files.
 - Prefer extracting focused components/hooks/helpers before extending oversized page components.
 

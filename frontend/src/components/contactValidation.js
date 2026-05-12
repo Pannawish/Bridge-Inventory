@@ -32,6 +32,16 @@ export function getContactFieldError(field, value) {
   return "";
 }
 
+export function getRequiredFieldError(label, value) {
+  return `${value ?? ""}`.trim() ? "" : `${label} is required.`;
+}
+
+export function getRequiredListError(label, values) {
+  return (values || []).some((value) => !`${value ?? ""}`.trim())
+    ? `${label} is required.`
+    : "";
+}
+
 export function getContactListErrors(record) {
   return {
     emails:

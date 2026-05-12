@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "./PaginationControls";
 import {
   getContactFieldError,
-  getFirstInvalidContactIndex,
-  getContactListErrors,
-  hasContactErrors,
+  getRequiredFieldError,
+  getRequiredListError,
 } from "./contactValidation";
 
 function createSupplier(overrides = {}) {
@@ -187,6 +186,14 @@ function countFilledValues(list) {
 }
 
 function getContactListKeyForIndex(indexKey) {
+  if (indexKey === "selectedBranchIndex") {
+    return "branches";
+  }
+
+  if (indexKey === "selectedLocationIndex") {
+    return "locations";
+  }
+
   if (indexKey === "selectedEmailIndex") {
     return "emails";
   }
@@ -195,7 +202,83 @@ function getContactListKeyForIndex(indexKey) {
     return "tels";
   }
 
+  if (indexKey === "selectedShippingAddressIndex") {
+    return "shippingAddresses";
+  }
+
   return "";
+}
+
+const SUPPLIER_REQUIRED_FIELDS = {
+  companyName: "Supplier company name",
+  taxpayerId: "Supplier taxpayer identification number",
+  termType: "Payment term",
+  billingNoteDate: "Credit term",
+};
+
+const SUPPLIER_REQUIRED_OPTIONS = {
+  branches: "Supplier branch",
+  locations: "Supplier company location",
+  emails: "Supplier email",
+  tels: "Supplier tel",
+  shippingAddresses: "Shipping address",
+};
+
+const SUPPLIER_OPTION_INDEX_KEYS = {
+  branches: "selectedBranchIndex",
+  locations: "selectedLocationIndex",
+  emails: "selectedEmailIndex",
+  tels: "selectedTelIndex",
+  shippingAddresses: "selectedShippingAddressIndex",
+};
+
+function getSupplierOptionError(listKey, value) {
+  return (
+    getRequiredFieldError(SUPPLIER_REQUIRED_OPTIONS[listKey], value) ||
+    getContactFieldError(listKey, value)
+  );
+}
+
+function getFirstInvalidSupplierOptionIndex(supplier, listKey) {
+  return (supplier[listKey] || []).findIndex((value) => getSupplierOptionError(listKey, value));
+}
+
+function getSupplierFormErrors(supplier) {
+  return {
+    companyName: getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS.companyName, supplier.companyName),
+    taxpayerId: getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS.taxpayerId, supplier.taxpayerId),
+    branches:
+      getRequiredListError(SUPPLIER_REQUIRED_OPTIONS.branches, supplier.branches) ||
+      (supplier.branches || []).map((value) => getSupplierOptionError("branches", value)).find(Boolean) ||
+      "",
+    locations:
+      getRequiredListError(SUPPLIER_REQUIRED_OPTIONS.locations, supplier.locations) ||
+      (supplier.locations || []).map((value) => getSupplierOptionError("locations", value)).find(Boolean) ||
+      "",
+    emails:
+      getRequiredListError(SUPPLIER_REQUIRED_OPTIONS.emails, supplier.emails) ||
+      (supplier.emails || []).map((value) => getSupplierOptionError("emails", value)).find(Boolean) ||
+      "",
+    tels:
+      getRequiredListError(SUPPLIER_REQUIRED_OPTIONS.tels, supplier.tels) ||
+      (supplier.tels || []).map((value) => getSupplierOptionError("tels", value)).find(Boolean) ||
+      "",
+    shippingAddresses:
+      getRequiredListError(SUPPLIER_REQUIRED_OPTIONS.shippingAddresses, supplier.shippingAddresses) ||
+      (supplier.shippingAddresses || [])
+        .map((value) => getSupplierOptionError("shippingAddresses", value))
+        .find(Boolean) ||
+      "",
+    termType: getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS.termType, supplier.termType),
+    billingNoteDate:
+      supplier.termType === "credit"
+        ? getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS.billingNoteDate, supplier.billingNoteDate)
+        : "",
+  };
+}
+
+function hasFormErrors(errors) {
+  return Object.values(errors).some(Boolean);
 }
 
 function SupplierOptionField({
@@ -205,6 +288,7 @@ function SupplierOptionField({
   placeholder,
   type = "text",
   error = "",
+  required = false,
   onSelect,
   onChange,
   onAdd,
@@ -213,8 +297,12 @@ function SupplierOptionField({
   return (
     <div className="supplier-option-field">
       <label>
-        {label}
-        <select value={selectedIndex} onChange={(event) => onSelect(Number(event.target.value))}>
+        <span className={required ? "required-label" : undefined}>{label}</span>
+        <select
+          value={selectedIndex}
+          required={required}
+          onChange={(event) => onSelect(Number(event.target.value))}
+        >
           {options.map((option, index) => (
             <option key={`${label}-${index}`} value={index}>
               {option?.trim() || `${label} ${index + 1}`}
@@ -226,6 +314,7 @@ function SupplierOptionField({
       <div className="supplier-option-edit-row">
         <input
           type={type}
+          required={required}
           value={options[selectedIndex] || ""}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
@@ -259,7 +348,7 @@ function SupplierPage({
   const [filterOpen, setFilterOpen] = useState(false);
   const [profileFilter, setProfileFilter] = useState("all");
   const [showAllRows, setShowAllRows] = useState(false);
-  const [contactErrors, setContactErrors] = useState({ emails: "", tels: "" });
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     if (typeof document === "undefined" || !draftSupplier) {
@@ -355,12 +444,12 @@ function SupplierPage({
   function openSupplierEditor(supplier) {
     setSelectedSupplierId(supplier.id);
     setDraftSupplier(normalizeSupplier(supplier));
-    setContactErrors({ emails: "", tels: "" });
+    setFormErrors({});
   }
 
   function closeSupplierEditor() {
     setDraftSupplier(null);
-    setContactErrors({ emails: "", tels: "" });
+    setFormErrors({});
   }
 
   function updateDraftSupplier(updater) {
@@ -371,6 +460,13 @@ function SupplierPage({
 
   function updateTextField(key, value) {
     updateDraftSupplier((supplier) => ({ ...supplier, [key]: value }));
+    setFormErrors((currentErrors) => ({
+      ...currentErrors,
+      [key]:
+        key === "remark"
+          ? ""
+          : getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS[key], value),
+    }));
   }
 
   function updateOptionIndex(indexKey, nextIndex) {
@@ -378,9 +474,9 @@ function SupplierPage({
 
     const listKey = getContactListKeyForIndex(indexKey);
     if (listKey && draftSupplier) {
-      setContactErrors((currentErrors) => ({
+      setFormErrors((currentErrors) => ({
         ...currentErrors,
-        [listKey]: getContactFieldError(listKey, draftSupplier[listKey]?.[nextIndex] || ""),
+        [listKey]: getSupplierOptionError(listKey, draftSupplier[listKey]?.[nextIndex] || ""),
       }));
     }
   }
@@ -392,21 +488,21 @@ function SupplierPage({
       return { ...supplier, [listKey]: nextOptions };
     });
 
-    if (listKey === "emails" || listKey === "tels") {
-      setContactErrors((currentErrors) => ({
+    if (SUPPLIER_REQUIRED_OPTIONS[listKey]) {
+      setFormErrors((currentErrors) => ({
         ...currentErrors,
-        [listKey]: getContactFieldError(listKey, nextValue),
+        [listKey]: getSupplierOptionError(listKey, nextValue),
       }));
     }
   }
 
   function addOption(listKey, indexKey) {
-    if ((listKey === "emails" || listKey === "tels") && draftSupplier) {
+    if (SUPPLIER_REQUIRED_OPTIONS[listKey] && draftSupplier) {
       const currentValue = draftSupplier[listKey]?.[draftSupplier[indexKey]] || "";
-      const error = getContactFieldError(listKey, currentValue);
+      const error = getSupplierOptionError(listKey, currentValue);
 
       if (error) {
-        setContactErrors((currentErrors) => ({
+        setFormErrors((currentErrors) => ({
           ...currentErrors,
           [listKey]: error,
         }));
@@ -445,8 +541,8 @@ function SupplierPage({
       };
     });
 
-    if (listKey === "emails" || listKey === "tels") {
-      setContactErrors((currentErrors) => ({
+    if (SUPPLIER_REQUIRED_OPTIONS[listKey]) {
+      setFormErrors((currentErrors) => ({
         ...currentErrors,
         [listKey]: "",
       }));
@@ -454,12 +550,8 @@ function SupplierPage({
   }
 
   function handleCreateSupplier() {
-    setContactErrors({ emails: "", tels: "" });
-    setDraftSupplier(
-      createSupplier({
-        companyName: `New Supplier ${allSuppliers.length + 1}`,
-      })
-    );
+    setFormErrors({});
+    setDraftSupplier(createSupplier());
   }
 
   async function handleSaveSupplier() {
@@ -468,20 +560,19 @@ function SupplierPage({
     }
 
     const nextSupplier = normalizeSupplier(draftSupplier);
-    const nextContactErrors = getContactListErrors(nextSupplier);
+    const nextFormErrors = getSupplierFormErrors(nextSupplier);
 
-    if (hasContactErrors(nextContactErrors)) {
-      const invalidEmailIndex = getFirstInvalidContactIndex(nextSupplier, "emails");
-      const invalidTelIndex = getFirstInvalidContactIndex(nextSupplier, "tels");
+    if (hasFormErrors(nextFormErrors)) {
+      const nextIndexes = Object.entries(SUPPLIER_OPTION_INDEX_KEYS).reduce(
+        (indexes, [listKey, indexKey]) => {
+          const invalidIndex = getFirstInvalidSupplierOptionIndex(nextSupplier, listKey);
+          return invalidIndex >= 0 ? { ...indexes, [indexKey]: invalidIndex } : indexes;
+        },
+        {}
+      );
 
-      setDraftSupplier({
-        ...nextSupplier,
-        selectedEmailIndex:
-          invalidEmailIndex >= 0 ? invalidEmailIndex : nextSupplier.selectedEmailIndex,
-        selectedTelIndex:
-          invalidTelIndex >= 0 ? invalidTelIndex : nextSupplier.selectedTelIndex,
-      });
-      setContactErrors(nextContactErrors);
+      setDraftSupplier({ ...nextSupplier, ...nextIndexes });
+      setFormErrors(nextFormErrors);
       return;
     }
 
@@ -805,22 +896,32 @@ function SupplierPage({
 
                   <div className="contact-editor-grid">
                     <label>
-                      Supplier Company Name
+                      <span className="required-label">Supplier Company Name</span>
                       <input
                         autoFocus
+                        required
                         value={draftSupplier.companyName}
                         onChange={(event) => updateTextField("companyName", event.target.value)}
                         placeholder="Supplier company name"
+                        aria-invalid={formErrors.companyName ? "true" : undefined}
                       />
+                      {formErrors.companyName ? (
+                        <span className="field-error-text">{formErrors.companyName}</span>
+                      ) : null}
                     </label>
 
                     <label>
-                      Supplier Taxpayer Identification Number
+                      <span className="required-label">Supplier Taxpayer Identification Number</span>
                       <input
+                        required
                         value={draftSupplier.taxpayerId}
                         onChange={(event) => updateTextField("taxpayerId", event.target.value)}
                         placeholder="Taxpayer identification number"
+                        aria-invalid={formErrors.taxpayerId ? "true" : undefined}
                       />
+                      {formErrors.taxpayerId ? (
+                        <span className="field-error-text">{formErrors.taxpayerId}</span>
+                      ) : null}
                     </label>
 
                     <div className="full-width">
@@ -829,6 +930,8 @@ function SupplierPage({
                         options={draftSupplier.branches}
                         selectedIndex={draftSupplier.selectedBranchIndex}
                         placeholder="Add or edit a branch"
+                        required
+                        error={formErrors.branches}
                         onSelect={(nextIndex) => updateOptionIndex("selectedBranchIndex", nextIndex)}
                         onChange={(nextValue) =>
                           updateOptionValue("branches", "selectedBranchIndex", nextValue)
@@ -855,6 +958,8 @@ function SupplierPage({
                       options={draftSupplier.locations}
                       selectedIndex={draftSupplier.selectedLocationIndex}
                       placeholder="Add or edit a company location"
+                      required
+                      error={formErrors.locations}
                       onSelect={(nextIndex) => updateOptionIndex("selectedLocationIndex", nextIndex)}
                       onChange={(nextValue) =>
                         updateOptionValue("locations", "selectedLocationIndex", nextValue)
@@ -869,7 +974,8 @@ function SupplierPage({
                       selectedIndex={draftSupplier.selectedEmailIndex}
                       placeholder="Add or edit an email"
                       type="email"
-                      error={contactErrors.emails}
+                      required
+                      error={formErrors.emails}
                       onSelect={(nextIndex) => updateOptionIndex("selectedEmailIndex", nextIndex)}
                       onChange={(nextValue) =>
                         updateOptionValue("emails", "selectedEmailIndex", nextValue)
@@ -885,7 +991,8 @@ function SupplierPage({
                         selectedIndex={draftSupplier.selectedTelIndex}
                         placeholder="Add or edit a telephone number"
                         type="tel"
-                        error={contactErrors.tels}
+                        required
+                        error={formErrors.tels}
                         onSelect={(nextIndex) => updateOptionIndex("selectedTelIndex", nextIndex)}
                         onChange={(nextValue) =>
                           updateOptionValue("tels", "selectedTelIndex", nextValue)
@@ -913,6 +1020,8 @@ function SupplierPage({
                         options={draftSupplier.shippingAddresses}
                         selectedIndex={draftSupplier.selectedShippingAddressIndex}
                         placeholder="Add or edit a shipping address"
+                        required
+                        error={formErrors.shippingAddresses}
                         onSelect={(nextIndex) =>
                           updateOptionIndex("selectedShippingAddressIndex", nextIndex)
                         }
@@ -943,8 +1052,9 @@ function SupplierPage({
                     </label>
 
                     <label>
-                      Payment Term
+                      <span className="required-label">Payment Term</span>
                       <select
+                        required
                         value={draftSupplier.termType}
                         onChange={(event) => {
                           const next = event.target.value;
@@ -953,26 +1063,49 @@ function SupplierPage({
                             termType: next,
                             billingNoteDate: next === "debit" ? "" : s.billingNoteDate,
                           }));
+                          setFormErrors((currentErrors) => ({
+                            ...currentErrors,
+                            termType: getRequiredFieldError(
+                              SUPPLIER_REQUIRED_FIELDS.termType,
+                              next
+                            ),
+                            billingNoteDate:
+                              next === "credit"
+                                ? getRequiredFieldError(
+                                    SUPPLIER_REQUIRED_FIELDS.billingNoteDate,
+                                    draftSupplier.billingNoteDate
+                                  )
+                                : "",
+                          }));
                         }}
+                        aria-invalid={formErrors.termType ? "true" : undefined}
                       >
                         <option value="">— Select payment term —</option>
                         <option value="debit">Debit</option>
                         <option value="credit">Credit</option>
                       </select>
+                      {formErrors.termType ? (
+                        <span className="field-error-text">{formErrors.termType}</span>
+                      ) : null}
                     </label>
 
                     {draftSupplier.termType === "credit" && (
                       <label>
-                        Credit Term
+                        <span className="required-label">Credit Term</span>
                         <select
+                          required
                           value={draftSupplier.billingNoteDate}
                           onChange={(event) => updateTextField("billingNoteDate", event.target.value)}
+                          aria-invalid={formErrors.billingNoteDate ? "true" : undefined}
                         >
                           <option value="">— Select credit term —</option>
                           <option value="30 days">30 days</option>
                           <option value="60 days">60 days</option>
                           <option value="90 days">90 days</option>
                         </select>
+                        {formErrors.billingNoteDate ? (
+                          <span className="field-error-text">{formErrors.billingNoteDate}</span>
+                        ) : null}
                       </label>
                     )}
                   </div>
