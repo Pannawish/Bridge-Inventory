@@ -136,6 +136,21 @@
   box-shadow: none;
 }
 
+.product-delete-action {
+  display: grid;
+  gap: 6px;
+  max-width: min(460px, 100%);
+  margin-right: auto;
+}
+
+.supplier-modal-actions .product-delete-action .danger-button {
+  margin-right: 0;
+}
+
+.product-delete-helper {
+  max-width: 460px;
+}
+
 .contact-editor-layout {
   display: grid;
   grid-template-columns: 1fr;

@@ -800,6 +800,77 @@ class LookupEligibilityTests(APITestCase):
         self.assertEqual([row["reference_no"] for row in response.data["purchases"]], ["PO-HISTORY"])
         self.assertEqual([row["reference_no"] for row in response.data["sales"]], ["SO-HISTORY"])
 
+    def test_product_history_endpoint_counts_quotation_lines_as_history(self):
+        product = Product.objects.create(
+            sku="HISTORY-QUOTE",
+            product_name="Quoted History Product",
+        )
+        quotation = Quotation.objects.create(
+            reference_no="QT-HISTORY",
+            customer_name="History Customer",
+            quotation_date=self.today,
+        )
+        QuotationItem.objects.create(
+            quotation=quotation,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("1"),
+            base_quantity=Decimal("1"),
+            sale_price=Decimal("4"),
+        )
+
+        response = self.client.get(f"/api/products/{product.id}/history/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["has_transaction_history"])
+
+    def test_product_delete_without_transaction_history_succeeds(self):
+        product = Product.objects.create(
+            sku="DELETE-AVAILABLE",
+            product_name="Deletable Product",
+        )
+
+        response = self.client.delete(f"/api/products/{product.id}/")
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Product.objects.filter(pk=product.id).exists())
+
+    def test_product_delete_with_transaction_history_is_blocked(self):
+        product = Product.objects.create(
+            sku="DELETE-BLOCKED",
+            product_name="Blocked Product",
+        )
+        purchase = Purchase.objects.create(
+            reference_no="PO-DELETE-BLOCKED",
+            supplier_name="History Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today,
+        )
+        PurchaseItem.objects.create(
+            purchase=purchase,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("3"),
+            base_quantity=Decimal("3"),
+            unit_cost=Decimal("2"),
+            amount=Decimal("6"),
+        )
+
+        response = self.client.delete(f"/api/products/{product.id}/")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("purchase, sales, or quotation history", response.data["error"])
+        self.assertTrue(Product.objects.filter(pk=product.id).exists())
+
     def test_billing_note_eligibility_excludes_sales_already_on_active_note(self):
         Customer.objects.create(company_name="Alpha Customer")
         available = Sale.objects.create(

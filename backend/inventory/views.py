@@ -96,6 +96,11 @@ PAYMENT_BATCH_ELIGIBLE_PURCHASE_STATUSES = (
     Purchase.STATUS_PARTIALLY_RECEIVED,
 )
 
+PRODUCT_DELETE_HISTORY_ERROR = (
+    "This product cannot be deleted because it already has purchase, sales, "
+    "or quotation history."
+)
+
 
 def format_serializer_errors(errors):
     if isinstance(errors, dict):
@@ -253,6 +258,14 @@ def serialize_purchase_lookup(purchase):
         "payment_date": purchase.payment_date,
         "grand_total": purchase.grand_total,
     }
+
+
+def product_has_transaction_history(product):
+    return (
+        product.purchase_items.exists()
+        or product.sale_items.exists()
+        or product.quotation_items.exists()
+    )
 
 
 def build_billing_note_summary():
@@ -565,6 +578,16 @@ class ProductViewSet(InventoryModelViewSet):
 
         return queryset
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if product_has_transaction_history(instance):
+            return Response(
+                {"error": PRODUCT_DELETE_HISTORY_ERROR},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return super().destroy(request, *args, **kwargs)
+
 
 class PurchaseViewSet(InventoryModelViewSet):
     queryset = Purchase.objects.select_related("supplier").prefetch_related(
@@ -821,11 +844,16 @@ def product_transaction_history(request, product_id):
         .prefetch_related("items__product", "documents")
         .distinct()
     )
+    has_transaction_history = (
+        purchases.exists()
+        or sales.exists()
+        or product.quotation_items.exists()
+    )
 
     return Response(
         {
             "product_id": product.id,
-            "has_transaction_history": purchases.exists() or sales.exists(),
+            "has_transaction_history": has_transaction_history,
             "purchases": PurchaseSerializer(
                 purchases,
                 many=True,

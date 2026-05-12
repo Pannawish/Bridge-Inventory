@@ -41,6 +41,9 @@ import {
   resolveProductCategoryId,
 } from "./products/productUtils";
 
+const PRODUCT_DELETE_HISTORY_MESSAGE =
+  "This product cannot be deleted because it already has purchase, sales, or quotation history.";
+
 function createProduct(overrides = {}) {
   return {
     id: `product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -989,6 +992,18 @@ function ProductsPage({
       return;
     }
 
+    const existingProduct = getExistingProduct(draftProduct);
+    if (!existingProduct) {
+      setProductFormError("Only saved products can be deleted.");
+      return;
+    }
+
+    const hasTransactionHistory = await productHasTransactionHistory(existingProduct);
+    if (hasTransactionHistory) {
+      setProductFormError(PRODUCT_DELETE_HISTORY_MESSAGE);
+      return;
+    }
+
     const confirmed = window.confirm(
       `Delete product ${getProductDisplayName(draftProduct) || "this product"}?`
     );
@@ -1052,7 +1067,20 @@ function ProductsPage({
     : null;
   const draftExistingProduct = draftProduct ? getExistingProduct(draftProduct) : null;
   const draftProductHasHistory = getCachedProductHasTransactionHistory(draftExistingProduct);
+  const isDraftHistoryLoading =
+    Boolean(draftExistingProduct) &&
+    productHistoryLoadingId === `${draftExistingProduct.id}`;
   const isSkuLocked = Boolean(draftExistingProduct && draftProductHasHistory && !skuChangeUnlocked);
+  const productDeleteDisabledReason = !draftProduct
+    ? ""
+    : !draftExistingProduct
+      ? "Only saved products can be deleted."
+      : isDraftHistoryLoading
+        ? "Checking transaction history before delete is available."
+        : draftProductHasHistory
+          ? PRODUCT_DELETE_HISTORY_MESSAGE
+          : "";
+  const isProductDeleteDisabled = Boolean(productDeleteDisabledReason);
   const viewingProductPictures = viewingProduct ? getProductPictures(viewingProduct) : [];
   const selectedViewingPicture =
     viewingProductPictures.find((picture) => picture.id === viewingPictureId) ||
@@ -2235,9 +2263,22 @@ function ProductsPage({
               </div>
 
               <div className="supplier-modal-actions">
-                <button className="danger-button" type="button" onClick={handleDeleteProduct}>
-                  Delete Product
-                </button>
+                <div className="product-delete-action">
+                  <button
+                    className="danger-button"
+                    type="button"
+                    onClick={handleDeleteProduct}
+                    disabled={isProductDeleteDisabled}
+                    title={productDeleteDisabledReason || undefined}
+                  >
+                    Delete Product
+                  </button>
+                  {productDeleteDisabledReason ? (
+                    <span className="field-helper-text product-delete-helper">
+                      {productDeleteDisabledReason}
+                    </span>
+                  ) : null}
+                </div>
                 <button className="secondary-button" type="button" onClick={closeProductEditor}>
                   Cancel
                 </button>
