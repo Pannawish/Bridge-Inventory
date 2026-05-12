@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatMoney as fmt } from "../format";
+import EligiblePartyCombobox from "./EligiblePartyCombobox";
 import PaginationControls from "./PaginationControls";
 
 const STATUS_LABELS = {
@@ -232,24 +233,19 @@ function CreateBillingNoteModal({
 
       <form className="form-layout" onSubmit={handleSubmit}>
         <div className="form-grid">
-          <label>
-            Customer
-            <select
-              value={customerName}
-              onChange={(event) => {
-                setCustomerName(event.target.value);
-                setSelectedSaleIds(new Set());
-                setError("");
-              }}
-            >
-              <option value="">— Select customer —</option>
-              {customerOptions.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <EligiblePartyCombobox
+            id="billing-note-customer"
+            label="Customer"
+            value={customerName}
+            options={customerOptions}
+            placeholder="Search eligible customer"
+            emptyMessage="No eligible customers found."
+            onChange={(nextCustomerName) => {
+              setCustomerName(nextCustomerName);
+              setSelectedSaleIds(new Set());
+              setError("");
+            }}
+          />
 
           <label>
             Billing Note Date
@@ -640,7 +636,7 @@ function BillingNoteDetailModal({
                   <th>Sale Date</th>
                   <th>Payment Term</th>
                   <th>Payment Due</th>
-                  <th>Received Date</th>
+                  <th>Payment Received Date</th>
                   <th>Amount</th>
                 </tr>
               </thead>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatMoney as fmt } from "../format";
+import EligiblePartyCombobox from "./EligiblePartyCombobox";
 import PaginationControls from "./PaginationControls";
 
 const STATUS_LABELS = {
@@ -234,24 +235,19 @@ function CreatePaymentBatchModal({
 
       <form className="form-layout" onSubmit={handleSubmit}>
         <div className="form-grid">
-          <label>
-            Supplier
-            <select
-              value={supplierName}
-              onChange={(event) => {
-                setSupplierName(event.target.value);
-                setSelectedPurchaseIds(new Set());
-                setError("");
-              }}
-            >
-              <option value="">— Select supplier —</option>
-              {supplierOptions.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <EligiblePartyCombobox
+            id="payment-batch-supplier"
+            label="Supplier"
+            value={supplierName}
+            options={supplierOptions}
+            placeholder="Search eligible supplier"
+            emptyMessage="No eligible suppliers found."
+            onChange={(nextSupplierName) => {
+              setSupplierName(nextSupplierName);
+              setSelectedPurchaseIds(new Set());
+              setError("");
+            }}
+          />
 
           <label>
             Batch Date
