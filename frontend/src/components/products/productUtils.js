@@ -66,6 +66,65 @@ export function getProductDisplayName(product) {
   return getProductAllNames(product)[0] || product?.sku || `Product ${product?.id || ""}`.trim();
 }
 
+export function getProductPictures(product) {
+  const sourcePictures = Array.isArray(product?.productPictures)
+    ? product.productPictures
+    : Array.isArray(product?.pictures)
+      ? product.pictures
+      : [];
+  const pictureUrl = `${product?.pictureUrl ?? ""}`.trim();
+
+  const productPictures = sourcePictures
+    .map((picture, index) => {
+      const url = `${picture?.url ?? picture?.pictureUrl ?? ""}`.trim();
+      const file =
+        typeof File !== "undefined" && picture?.file instanceof File ? picture.file : null;
+
+      return {
+        id: `${picture?.id || url || `product-picture-${index}`}`,
+        name: `${picture?.name ?? (file ? file.name : "") ?? ""}`.trim(),
+        url,
+        file,
+        isNew: Boolean(picture?.isNew),
+        isSelected: Boolean(
+          picture?.isSelected ?? picture?.is_selected ?? picture?.selected
+        ),
+      };
+    })
+    .filter((picture) => picture.url || picture.file);
+
+  if (
+    pictureUrl &&
+    !productPictures.some((picture) => picture.url && picture.url === pictureUrl)
+  ) {
+    productPictures.push({
+      id: "__legacy_picture__",
+      name: getDocumentName(pictureUrl),
+      url: pictureUrl,
+      file: null,
+      isNew: false,
+      isSelected: !productPictures.some((picture) => picture.isSelected),
+    });
+  }
+
+  return productPictures;
+}
+
+export function getSelectedProductPicture(product) {
+  const pictures = getProductPictures(product);
+  const selectedPictureId = `${product?.selectedPictureId ?? ""}`;
+  const selectedPicture =
+    pictures.find((picture) => picture.id === selectedPictureId) ||
+    pictures.find((picture) => picture.isSelected) ||
+    pictures[0];
+
+  if (selectedPicture) {
+    return selectedPicture;
+  }
+
+  return null;
+}
+
 export function normalizeSku(value) {
   return `${value ?? ""}`.trim().toUpperCase().replace(/\s+/g, "-");
 }
@@ -144,6 +203,8 @@ export function normalizeProduct(product) {
     ...product,
     stockBaseUnit,
   });
+  const productPictures = getProductPictures(product);
+  const selectedPicture = getSelectedProductPicture({ ...product, productPictures });
 
   return {
     id: product.id || `product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -168,6 +229,9 @@ export function normalizeProduct(product) {
     category: `${product.category ?? ""}`,
     detail: `${product.detail ?? ""}`,
     pictureUrl: `${product.pictureUrl ?? ""}`,
+    productPictures,
+    selectedPictureId: selectedPicture?.id || "",
+    removePictureIds: Array.isArray(product.removePictureIds) ? product.removePictureIds : [],
   };
 }
 

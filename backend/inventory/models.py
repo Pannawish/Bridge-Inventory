@@ -24,6 +24,10 @@ def product_id():
     return make_prefixed_id("product")
 
 
+def product_picture_id():
+    return make_prefixed_id("product-picture")
+
+
 def purchase_id():
     return make_prefixed_id("purchase")
 
@@ -185,6 +189,22 @@ class Product(TimeStampedModel):
 
     def __str__(self):
         return f"{self.product_name} ({self.sku})"
+
+
+class ProductPicture(TimeStampedModel):
+    id = models.CharField(max_length=80, primary_key=True, default=product_picture_id)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="pictures")
+    file = models.FileField(upload_to="products/pictures/")
+    is_selected = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        indexes = [
+            models.Index(fields=["product", "is_selected"], name="inv_ppic_product_sel"),
+        ]
+
+    def __str__(self):
+        return self.file.name
 
 
 class ProductUnitConversion(models.Model):

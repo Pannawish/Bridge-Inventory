@@ -4,6 +4,7 @@ from .models import (
     Category,
     Customer,
     Product,
+    ProductPicture,
     ProductUnitConversion,
     Purchase,
     PurchaseItem,
@@ -17,6 +18,11 @@ from .models import (
 
 class ProductUnitConversionInline(admin.TabularInline):
     model = ProductUnitConversion
+    extra = 0
+
+
+class ProductPictureInline(admin.TabularInline):
+    model = ProductPicture
     extra = 0
 
 
@@ -57,7 +63,7 @@ class CustomerAdmin(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     list_display = ["product_display_id", "product_name", "sku", "category_name"]
     search_fields = ["product_name", "sku", "category_name"]
-    inlines = [ProductUnitConversionInline]
+    inlines = [ProductUnitConversionInline, ProductPictureInline]
 
 
 @admin.register(Purchase)

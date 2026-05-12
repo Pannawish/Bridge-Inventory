@@ -27,7 +27,9 @@ import {
   getProductCategoryLabel,
   getProductDisplayName,
   getProductMetrics,
+  getProductPictures,
   getProductPreviousSkus,
+  getSelectedProductPicture,
   getProductSubNames,
   getTransactionDocuments,
   isValidSku,
@@ -57,6 +59,9 @@ function createProduct(overrides = {}) {
     category: "",
     detail: "",
     pictureUrl: "",
+    productPictures: [],
+    selectedPictureId: "",
+    removePictureIds: [],
     ...overrides,
   };
 }
@@ -249,6 +254,22 @@ export function getDefaultProducts() {
   return defaultProducts.map((product) => normalizeProduct(product));
 }
 
+function createDraftPicture(file) {
+  const objectUrl =
+    typeof URL !== "undefined" && typeof URL.createObjectURL === "function"
+      ? URL.createObjectURL(file)
+      : "";
+
+  return {
+    id: `new-picture-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: file.name,
+    url: objectUrl,
+    file,
+    isNew: true,
+    isSelected: false,
+  };
+}
+
 function ProductsPage({
   products = defaultProducts,
   allProducts = products,
@@ -263,6 +284,7 @@ function ProductsPage({
 }) {
   const [viewingProduct, setViewingProduct] = useState(null);
   const [viewingTransaction, setViewingTransaction] = useState(null);
+  const [viewingPictureId, setViewingPictureId] = useState("");
   const [productHistoryById, setProductHistoryById] = useState({});
   const [productHistoryLoadingId, setProductHistoryLoadingId] = useState("");
   const [productHistoryError, setProductHistoryError] = useState("");
@@ -446,7 +468,10 @@ function ProductsPage({
   }
 
   function openProductDetail(product) {
+    const selectedPicture = getSelectedProductPicture(product);
+
     setViewingProduct(product);
+    setViewingPictureId(selectedPicture?.id || "");
     setViewingTransaction(null);
     setDraftProduct(null);
     loadProductHistory(product);
@@ -455,6 +480,7 @@ function ProductsPage({
   function closeAll() {
     setViewingProduct(null);
     setViewingTransaction(null);
+    setViewingPictureId("");
   }
 
   function openTransactionDetail(type, data) {
@@ -472,6 +498,7 @@ function ProductsPage({
     loadProductHistory(product);
     setViewingProduct(null);
     setViewingTransaction(null);
+    setViewingPictureId("");
     setProductFormError("");
     setSkuChangeUnlocked(false);
     setCategoryComboboxOpen(false);
@@ -527,6 +554,88 @@ function ProductsPage({
       }
 
       return nextProduct;
+    });
+    setProductFormError("");
+  }
+
+  function addDraftPictures(files) {
+    const nextPictures = Array.from(files || [])
+      .filter((file) => file?.type?.startsWith("image/"))
+      .map(createDraftPicture);
+
+    if (!nextPictures.length) {
+      return;
+    }
+
+    setDraftProduct((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const currentPictures = getProductPictures(prev);
+      const selectedPictureId =
+        !prev.selectedPictureId || prev.selectedPictureId === "__legacy_picture__"
+          ? nextPictures[0].id
+          : prev.selectedPictureId;
+
+      return {
+        ...prev,
+        productPictures: [...currentPictures, ...nextPictures].map((picture) => ({
+          ...picture,
+          isSelected: picture.id === selectedPictureId,
+        })),
+        selectedPictureId,
+      };
+    });
+    setProductFormError("");
+  }
+
+  function selectDraftPicture(pictureId) {
+    setDraftProduct((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        selectedPictureId: pictureId,
+        productPictures: getProductPictures(prev).map((picture) => ({
+          ...picture,
+          isSelected: picture.id === pictureId,
+        })),
+      };
+    });
+    setProductFormError("");
+  }
+
+  function removeDraftPicture(pictureId) {
+    setDraftProduct((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const currentPictures = getProductPictures(prev);
+      const removedPicture = currentPictures.find((picture) => picture.id === pictureId);
+      const nextPictures = currentPictures.filter((picture) => picture.id !== pictureId);
+      const currentSelectedRemoved = prev.selectedPictureId === pictureId;
+      const selectedPictureId = currentSelectedRemoved
+        ? nextPictures[0]?.id || ""
+        : prev.selectedPictureId;
+      const removePictureIds =
+        removedPicture && !removedPicture.isNew && removedPicture.id !== "__legacy_picture__"
+          ? [...(prev.removePictureIds || []), removedPicture.id]
+          : prev.removePictureIds || [];
+
+      return {
+        ...prev,
+        pictureUrl: removedPicture?.id === "__legacy_picture__" ? "" : prev.pictureUrl,
+        productPictures: nextPictures.map((picture) => ({
+          ...picture,
+          isSelected: picture.id === selectedPictureId,
+        })),
+        selectedPictureId,
+        removePictureIds,
+      };
     });
     setProductFormError("");
   }
@@ -775,6 +884,7 @@ function ProductsPage({
 
     setViewingProduct(null);
     setViewingTransaction(null);
+    setViewingPictureId("");
     setProductFormError("");
     setSkuChangeUnlocked(false);
     setCategoryQuery("");
@@ -958,6 +1068,14 @@ function ProductsPage({
   const draftExistingProduct = draftProduct ? getExistingProduct(draftProduct) : null;
   const draftProductHasHistory = getCachedProductHasTransactionHistory(draftExistingProduct);
   const isSkuLocked = Boolean(draftExistingProduct && draftProductHasHistory && !skuChangeUnlocked);
+  const viewingProductPictures = viewingProduct ? getProductPictures(viewingProduct) : [];
+  const selectedViewingPicture =
+    viewingProductPictures.find((picture) => picture.id === viewingPictureId) ||
+    getSelectedProductPicture(viewingProduct);
+  const draftProductPictures = draftProduct ? getProductPictures(draftProduct) : [];
+  const selectedDraftPicture =
+    draftProductPictures.find((picture) => picture.id === draftProduct.selectedPictureId) ||
+    getSelectedProductPicture(draftProduct);
 
   return (
     <div className="stack-layout">
@@ -1496,18 +1614,38 @@ function ProductsPage({
 
               <div className="product-detail-body">
                 <div className="product-profile-panel">
-                  {viewingProduct.pictureUrl ? (
-                    <img
-                      src={viewingProduct.pictureUrl}
-                      alt={getProductDisplayName(viewingProduct)}
-                      className="product-profile-image"
-                      onError={(event) => {
-                        event.target.style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <div className="product-profile-placeholder">No Image</div>
-                  )}
+                  <div className="product-profile-media">
+                    {selectedViewingPicture?.url ? (
+                      <img
+                        src={selectedViewingPicture.url}
+                        alt={getProductDisplayName(viewingProduct)}
+                        className="product-profile-image"
+                        onError={(event) => {
+                          event.target.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="product-profile-placeholder">No Image</div>
+                    )}
+                    {viewingProductPictures.length > 1 ? (
+                      <div className="product-picture-links compact">
+                        {viewingProductPictures.map((picture) => (
+                          <button
+                            className={
+                              selectedViewingPicture?.id === picture.id
+                                ? "product-picture-link active"
+                                : "product-picture-link"
+                            }
+                            type="button"
+                            key={picture.id}
+                            onClick={() => setViewingPictureId(picture.id)}
+                          >
+                            {picture.name || getDocumentName(picture.url)}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                   <div className="product-profile-copy">
                     <div>
                       <p className="detail-label">Main Product Name</p>
@@ -2033,27 +2171,70 @@ function ProductsPage({
                   </div>
 
                   <div className="product-editor-grid">
-                    <label>
-                      Picture URL
-                      <input
-                        value={draftProduct.pictureUrl}
-                        onChange={(event) => updateDraftField("pictureUrl", event.target.value)}
-                        placeholder="https://example.com/image.jpg"
-                      />
-                    </label>
+                    <div className="transaction-document-panel product-picture-upload-panel full-width">
+                      <div className="transaction-document-panel-header">
+                        <div>
+                          <strong>Picture of this product</strong>
+                          <span>
+                            {draftProductPictures.length
+                              ? `${draftProductPictures.length} picture${draftProductPictures.length === 1 ? "" : "s"} attached`
+                              : "No pictures attached"}
+                          </span>
+                        </div>
+                        <label className="document-upload-button">
+                          Add Pictures
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={(event) => {
+                              addDraftPictures(event.target.files);
+                              event.target.value = "";
+                            }}
+                          />
+                        </label>
+                      </div>
 
-                    {draftProduct.pictureUrl ? (
-                      <div className="full-width">
+                      {selectedDraftPicture?.url ? (
                         <img
-                          src={draftProduct.pictureUrl}
+                          src={selectedDraftPicture.url}
                           alt="Product preview"
                           className="product-picture-preview"
                           onError={(event) => {
                             event.target.style.display = "none";
                           }}
                         />
-                      </div>
-                    ) : null}
+                      ) : (
+                        <p className="transaction-document-empty">No picture selected.</p>
+                      )}
+
+                      {draftProductPictures.length ? (
+                        <div className="product-picture-list">
+                          {draftProductPictures.map((picture) => (
+                            <span className="product-picture-row" key={picture.id}>
+                              <button
+                                className={
+                                  selectedDraftPicture?.id === picture.id
+                                    ? "product-picture-link active"
+                                    : "product-picture-link"
+                                }
+                                type="button"
+                                onClick={() => selectDraftPicture(picture.id)}
+                              >
+                                {picture.name || getDocumentName(picture.url)}
+                              </button>
+                              <button
+                                className="text-danger-button"
+                                type="button"
+                                onClick={() => removeDraftPicture(picture.id)}
+                              >
+                                Remove
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
 
                     <label className="full-width">
                       Product Detail

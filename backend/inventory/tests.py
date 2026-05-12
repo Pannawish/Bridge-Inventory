@@ -1,5 +1,9 @@
+import json
+import shutil
+import tempfile
 from decimal import Decimal
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
@@ -11,6 +15,7 @@ from .models import (
     PaymentBatch,
     PaymentBatchLine,
     Product,
+    ProductPicture,
     Purchase,
     PurchaseItem,
     Quotation,
@@ -20,6 +25,9 @@ from .models import (
     Supplier,
 )
 from .serializers import SaleSerializer
+
+
+TEST_MEDIA_ROOT = tempfile.mkdtemp()
 
 
 @override_settings(INVENTORY_DEFAULT_PAGE_SIZE=2, INVENTORY_MAX_PAGE_SIZE=3)
@@ -161,6 +169,97 @@ class InventoryPaginationTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["companyName"], "Alpha Supplies")
+
+
+@override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
+class ProductPictureUploadTests(APITestCase):
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEST_MEDIA_ROOT, ignore_errors=True)
+
+    def picture_file(self, name):
+        return SimpleUploadedFile(name, b"product-picture", content_type="image/png")
+
+    def test_product_picture_upload_rejects_non_image_files(self):
+        response = self.client.post(
+            "/api/products/",
+            {
+                "sku": "PIC-BAD",
+                "productName": "Bad Picture Product",
+                "pictures": [
+                    SimpleUploadedFile(
+                        "notes.txt",
+                        b"not an image",
+                        content_type="text/plain",
+                    )
+                ],
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Product pictures must be image files", response.data["error"])
+
+    def test_product_create_accepts_multiple_pictures_and_selected_index(self):
+        response = self.client.post(
+            "/api/products/",
+            {
+                "sku": "PIC-1",
+                "productName": "Picture Product",
+                "selected_picture_index": "1",
+                "pictures": [
+                    self.picture_file("front.png"),
+                    self.picture_file("side.png"),
+                ],
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(response.data["productPictures"]), 2)
+        self.assertEqual(response.data["productPictures"][1]["name"], "side.png")
+        self.assertTrue(response.data["productPictures"][1]["isSelected"])
+        self.assertEqual(ProductPicture.objects.count(), 2)
+
+    def test_product_update_selects_and_removes_pictures(self):
+        product = Product.objects.create(sku="PIC-2", product_name="Picture Product")
+        front = ProductPicture.objects.create(
+            product=product,
+            file=self.picture_file("front.png"),
+            is_selected=True,
+        )
+        side = ProductPicture.objects.create(
+            product=product,
+            file=self.picture_file("side.png"),
+        )
+
+        select_response = self.client.patch(
+            f"/api/products/{product.id}/",
+            {"selected_picture_id": side.id},
+            format="multipart",
+        )
+
+        self.assertEqual(select_response.status_code, 200)
+        self.assertEqual(select_response.data["selectedPictureId"], side.id)
+        self.assertTrue(
+            next(
+                picture
+                for picture in select_response.data["productPictures"]
+                if picture["id"] == side.id
+            )["isSelected"]
+        )
+
+        remove_response = self.client.patch(
+            f"/api/products/{product.id}/",
+            {"remove_picture_ids": json.dumps([side.id])},
+            format="multipart",
+        )
+
+        self.assertEqual(remove_response.status_code, 200)
+        self.assertEqual(len(remove_response.data["productPictures"]), 1)
+        self.assertEqual(remove_response.data["selectedPictureId"], front.id)
+        self.assertFalse(ProductPicture.objects.filter(id=side.id).exists())
 
 
 class SaleStockValidationTests(APITestCase):

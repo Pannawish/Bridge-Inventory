@@ -27,6 +27,62 @@ import { applyPurchaseStatusToItems } from "./purchaseStatus";
 import { applySaleStatusToItems } from "./saleStatus";
 import { formatSaleStockIssueMessage, getSaleStockIssues } from "./saleStock";
 
+function isBrowserFile(value) {
+  return typeof File !== "undefined" && value instanceof File;
+}
+
+function appendProductJson(formData, key, value) {
+  formData.append(key, JSON.stringify(Array.isArray(value) ? value : []));
+}
+
+function buildProductSavePayload(product) {
+  const formData = new FormData();
+  const productPictures = Array.isArray(product.productPictures) ? product.productPictures : [];
+  const newPictures = productPictures.filter((picture) => isBrowserFile(picture.file));
+  const selectedPictureId = `${product.selectedPictureId || ""}`;
+  const selectedNewPictureIndex = newPictures.findIndex(
+    (picture) => picture.id === selectedPictureId
+  );
+
+  [
+    "id",
+    "productDisplayId",
+    "sku",
+    "productName",
+    "stockBaseUnit",
+    "defaultPurchaseUnit",
+    "defaultSalesUnit",
+    "categoryId",
+    "category",
+    "detail",
+    "pictureUrl",
+  ].forEach((field) => {
+    if (product[field] !== undefined) {
+      formData.append(field, product[field] ?? "");
+    }
+  });
+
+  appendProductJson(formData, "previousSkus", product.previousSkus);
+  appendProductJson(formData, "subNames", product.subNames);
+  appendProductJson(formData, "unitConversions", product.unitConversions);
+
+  newPictures.forEach((picture) => {
+    formData.append("pictures", picture.file);
+  });
+
+  if (Array.isArray(product.removePictureIds) && product.removePictureIds.length) {
+    appendProductJson(formData, "remove_picture_ids", product.removePictureIds);
+  }
+
+  if (selectedNewPictureIndex >= 0) {
+    formData.append("selected_picture_index", selectedNewPictureIndex);
+  } else if (selectedPictureId && selectedPictureId !== "__legacy_picture__") {
+    formData.append("selected_picture_id", selectedPictureId);
+  }
+
+  return formData;
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -726,9 +782,10 @@ function App() {
 
     try {
       const exists = products.some((row) => `${row.id}` === `${nextProduct.id}`);
+      const productPayload = buildProductSavePayload(nextProduct);
       const savedProduct = exists
-        ? await api.updateProduct(nextProduct.id, nextProduct)
-        : await api.createProduct(nextProduct);
+        ? await api.updateProduct(nextProduct.id, productPayload)
+        : await api.createProduct(productPayload);
       const resolvedProduct = savedProduct || nextProduct;
 
       setProducts((currentRows) =>

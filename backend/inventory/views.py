@@ -76,6 +76,15 @@ DECIMAL_FIELD_PLACES = {
     "conversion_factor": 6,
 }
 
+JSON_LIST_FIELDS = {
+    "items",
+    "previousSkus",
+    "subNames",
+    "unitConversions",
+    "remove_document_ids",
+    "remove_picture_ids",
+}
+
 BILLING_NOTE_ELIGIBLE_SALE_STATUSES = (
     Sale.STATUS_DELIVERED,
     Sale.STATUS_PARTIALLY_DELIVERED,
@@ -135,14 +144,14 @@ def normalize_request_data(request):
         uploaded_documents = request.FILES.getlist("documents")
         if uploaded_documents:
             data["uploaded_documents"] = uploaded_documents
+        uploaded_pictures = request.FILES.getlist("pictures")
+        if uploaded_pictures:
+            data["uploaded_pictures"] = uploaded_pictures
 
-    raw_items = data.get("items")
-    if isinstance(raw_items, str):
-        data["items"] = json.loads(raw_items or "[]")
-
-    raw_remove_document_ids = data.get("remove_document_ids")
-    if isinstance(raw_remove_document_ids, str):
-        data["remove_document_ids"] = json.loads(raw_remove_document_ids or "[]")
+    for field in JSON_LIST_FIELDS:
+        raw_value = data.get(field)
+        if isinstance(raw_value, str):
+            data[field] = json.loads(raw_value or "[]")
 
     for field in NULL_IF_BLANK_FIELDS:
         if data.get(field) == "":
@@ -481,7 +490,10 @@ class CustomerViewSet(InventoryModelViewSet):
 
 
 class ProductViewSet(InventoryModelViewSet):
-    queryset = Product.objects.select_related("category").prefetch_related("unit_conversions")
+    queryset = Product.objects.select_related("category").prefetch_related(
+        "unit_conversions",
+        "pictures",
+    )
     serializer_class = ProductSerializer
 
     def get_queryset(self):
@@ -674,7 +686,10 @@ def dashboard(request):
 
 @api_view(["GET"])
 def product_lookups(request):
-    queryset = Product.objects.select_related("category").prefetch_related("unit_conversions")
+    queryset = Product.objects.select_related("category").prefetch_related(
+        "unit_conversions",
+        "pictures",
+    )
     queryset = apply_text_search(
         queryset,
         request,
@@ -687,7 +702,10 @@ def product_lookups(request):
     serializer = ProductSerializer(
         products,
         many=True,
-        context={"current_stock_by_product_id": stock_by_product_id},
+        context={
+            "current_stock_by_product_id": stock_by_product_id,
+            "request": request,
+        },
     )
     return Response(serializer.data)
 

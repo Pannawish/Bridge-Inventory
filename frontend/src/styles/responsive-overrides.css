@@ -357,6 +357,10 @@
     grid-template-columns: 1fr;
   }
 
+  .product-profile-media {
+    max-width: 100%;
+  }
+
   .supplier-search-meta {
     width: 100%;
   }

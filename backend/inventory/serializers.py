@@ -11,6 +11,7 @@ from .models import (
     PaymentBatch,
     PaymentBatchLine,
     Product,
+    ProductPicture,
     ProductUnitConversion,
     Purchase,
     PurchaseDocument,
@@ -127,6 +128,16 @@ def build_legacy_document_payload(request, file_field):
         "id": "__legacy_document__",
         "name": file_name,
         "url": build_file_url(request, file_field),
+    }
+
+
+def build_product_picture_payload(request, picture, selected_picture):
+    file_name = picture.file.name.split("/")[-1] if picture.file else "Product picture"
+    return {
+        "id": picture.id,
+        "name": file_name,
+        "url": build_file_url(request, picture.file),
+        "isSelected": picture.id == getattr(selected_picture, "id", None),
     }
 
 
@@ -279,6 +290,30 @@ class ProductSerializer(serializers.ModelSerializer):
     )
     category = serializers.CharField(source="category_name", required=False, allow_blank=True)
     pictureUrl = serializers.URLField(source="picture_url", required=False, allow_blank=True)
+    productPictures = serializers.SerializerMethodField()
+    selectedPictureId = serializers.SerializerMethodField()
+    uploaded_pictures = serializers.ListField(
+        child=serializers.FileField(),
+        write_only=True,
+        required=False,
+    )
+    remove_picture_ids = serializers.ListField(
+        child=serializers.CharField(),
+        write_only=True,
+        required=False,
+    )
+    selected_picture_id = serializers.CharField(
+        write_only=True,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
+    selected_picture_index = serializers.IntegerField(
+        write_only=True,
+        required=False,
+        allow_null=True,
+        min_value=0,
+    )
     current_stock = serializers.SerializerMethodField()
 
     class Meta:
@@ -298,6 +333,12 @@ class ProductSerializer(serializers.ModelSerializer):
             "category",
             "detail",
             "pictureUrl",
+            "productPictures",
+            "selectedPictureId",
+            "uploaded_pictures",
+            "remove_picture_ids",
+            "selected_picture_id",
+            "selected_picture_index",
             "reorder_level",
             "current_stock",
         ]
@@ -307,6 +348,25 @@ class ProductSerializer(serializers.ModelSerializer):
             "detail": {"required": False, "allow_blank": True},
             "reorder_level": {"required": False},
         }
+
+    def get_selected_picture(self, product):
+        pictures = list(product.pictures.all())
+        if not pictures:
+            return None
+
+        return next((picture for picture in pictures if picture.is_selected), pictures[0])
+
+    def get_productPictures(self, product):
+        selected_picture = self.get_selected_picture(product)
+        request = self.context.get("request")
+        return [
+            build_product_picture_payload(request, picture, selected_picture)
+            for picture in product.pictures.all()
+        ]
+
+    def get_selectedPictureId(self, product):
+        selected_picture = self.get_selected_picture(product)
+        return selected_picture.id if selected_picture else ""
 
     def get_current_stock(self, product):
         from .services import get_available_stock_by_product_id
@@ -326,6 +386,56 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def validate_categoryId(self, value):
         return value or None
+
+    def validate_uploaded_pictures(self, value):
+        for picture in value:
+            content_type = getattr(picture, "content_type", "")
+            if not content_type.startswith("image/"):
+                raise serializers.ValidationError("Product pictures must be image files.")
+
+        return value
+
+    def _add_pictures(self, product, pictures):
+        created_pictures = []
+        for picture in pictures:
+            created_pictures.append(ProductPicture.objects.create(product=product, file=picture))
+        return created_pictures
+
+    def _remove_pictures(self, product, picture_ids):
+        ids = {str(picture_id) for picture_id in picture_ids or []}
+        if not ids:
+            return
+
+        for picture in product.pictures.filter(id__in=ids):
+            picture.file.delete(save=False)
+            picture.delete()
+
+    def _select_picture(
+        self,
+        product,
+        selected_picture_id=None,
+        selected_picture_index=None,
+        created_pictures=None,
+    ):
+        selected_picture = None
+        selected_picture_id = str(selected_picture_id or "").strip()
+        created_pictures = created_pictures or []
+
+        if selected_picture_id:
+            selected_picture = product.pictures.filter(id=selected_picture_id).first()
+        elif selected_picture_index is not None and selected_picture_index < len(created_pictures):
+            selected_picture = created_pictures[selected_picture_index]
+
+        if selected_picture:
+            product.pictures.update(is_selected=False)
+            ProductPicture.objects.filter(id=selected_picture.id).update(is_selected=True)
+        elif not product.pictures.filter(is_selected=True).exists():
+            first_picture = product.pictures.first()
+            if first_picture:
+                ProductPicture.objects.filter(id=first_picture.id).update(is_selected=True)
+
+        if hasattr(product, "_prefetched_objects_cache"):
+            product._prefetched_objects_cache = {}
 
     def _replace_unit_conversions(self, product, unit_conversions):
         if unit_conversions is None:
@@ -359,16 +469,36 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         unit_conversions = validated_data.pop("unit_conversions", None)
-        product = Product.objects.create(**validated_data)
-        self._replace_unit_conversions(product, unit_conversions)
+        uploaded_pictures = validated_data.pop("uploaded_pictures", [])
+        selected_picture_id = validated_data.pop("selected_picture_id", "")
+        selected_picture_index = validated_data.pop("selected_picture_index", None)
+        validated_data.pop("remove_picture_ids", None)
+        with transaction.atomic():
+            product = Product.objects.create(**validated_data)
+            created_pictures = self._add_pictures(product, uploaded_pictures)
+            self._select_picture(product, selected_picture_id, selected_picture_index, created_pictures)
+            self._replace_unit_conversions(product, unit_conversions)
         return product
 
     def update(self, instance, validated_data):
         unit_conversions = validated_data.pop("unit_conversions", None)
-        for field, value in validated_data.items():
-            setattr(instance, field, value)
-        instance.save()
-        self._replace_unit_conversions(instance, unit_conversions)
+        uploaded_pictures = validated_data.pop("uploaded_pictures", [])
+        remove_picture_ids = validated_data.pop("remove_picture_ids", [])
+        selected_picture_id = validated_data.pop("selected_picture_id", "")
+        selected_picture_index = validated_data.pop("selected_picture_index", None)
+        with transaction.atomic():
+            self._remove_pictures(instance, remove_picture_ids)
+            created_pictures = self._add_pictures(instance, uploaded_pictures)
+            for field, value in validated_data.items():
+                setattr(instance, field, value)
+            instance.save()
+            self._select_picture(
+                instance,
+                selected_picture_id,
+                selected_picture_index,
+                created_pictures,
+            )
+            self._replace_unit_conversions(instance, unit_conversions)
         return instance
 
 
