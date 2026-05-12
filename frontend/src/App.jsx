@@ -1114,12 +1114,6 @@ function App() {
               </button>
             ))}
           </nav>
-
-          <div className="sidebar-support">
-            <button className="secondary-button sidebar-refresh-button" onClick={loadData} type="button">
-              Refresh Page
-            </button>
-          </div>
         </div>
       </aside>
 

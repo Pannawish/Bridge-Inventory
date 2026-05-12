@@ -546,8 +546,7 @@
 .text-danger-button,
 .category-tree-toggle,
 .stock-reset-button,
-.product-filter-toggle,
-.sidebar-refresh-button {
+.product-filter-toggle {
   border-radius: 4px !important;
   box-shadow: none !important;
 }

@@ -266,23 +266,6 @@ textarea {
   text-transform: uppercase;
 }
 
-.sidebar-support {
-  align-self: end;
-}
-
-.sidebar-refresh-button {
-  width: 100%;
-  color: var(--text);
-  font-size: 0.88rem;
-  background: #f5f7fc;
-  border: 1px solid var(--line);
-}
-
-.sidebar-refresh-button:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
 .main-panel {
   position: relative;
   display: flex;
@@ -515,4 +498,3 @@ textarea {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
 }
-
