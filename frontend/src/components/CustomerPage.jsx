@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "./PaginationControls";
+import {
+  getContactFieldError,
+  getFirstInvalidContactIndex,
+  getContactListErrors,
+  hasContactErrors,
+} from "./contactValidation";
 
 function createCustomer(overrides = {}) {
   return {
@@ -195,12 +201,25 @@ function countFilledValues(list) {
   return (list || []).filter((value) => `${value ?? ""}`.trim()).length;
 }
 
+function getContactListKeyForIndex(indexKey) {
+  if (indexKey === "selectedEmailIndex") {
+    return "emails";
+  }
+
+  if (indexKey === "selectedTelIndex") {
+    return "tels";
+  }
+
+  return "";
+}
+
 function CustomerOptionField({
   label,
   options,
   selectedIndex,
   placeholder,
   type = "text",
+  error = "",
   onSelect,
   onChange,
   onAdd,
@@ -225,6 +244,7 @@ function CustomerOptionField({
           value={options[selectedIndex] || ""}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
+          aria-invalid={error ? "true" : undefined}
         />
         <div className="supplier-option-edit-actions">
           <button className="secondary-button" type="button" onClick={onAdd}>
@@ -235,6 +255,7 @@ function CustomerOptionField({
           </button>
         </div>
       </div>
+      {error ? <span className="field-error-text">{error}</span> : null}
     </div>
   );
 }
@@ -253,6 +274,7 @@ function CustomerPage({
   const [filterOpen, setFilterOpen] = useState(false);
   const [profileFilter, setProfileFilter] = useState("all");
   const [showAllRows, setShowAllRows] = useState(false);
+  const [contactErrors, setContactErrors] = useState({ emails: "", tels: "" });
 
   useEffect(() => {
     if (typeof document === "undefined" || !draftCustomer) {
@@ -348,10 +370,12 @@ function CustomerPage({
   function openCustomerEditor(customer) {
     setSelectedCustomerId(customer.id);
     setDraftCustomer(normalizeCustomer(customer));
+    setContactErrors({ emails: "", tels: "" });
   }
 
   function closeCustomerEditor() {
     setDraftCustomer(null);
+    setContactErrors({ emails: "", tels: "" });
   }
 
   function updateDraftCustomer(updater) {
@@ -366,6 +390,14 @@ function CustomerPage({
 
   function updateOptionIndex(indexKey, nextIndex) {
     updateDraftCustomer((customer) => ({ ...customer, [indexKey]: nextIndex }));
+
+    const listKey = getContactListKeyForIndex(indexKey);
+    if (listKey && draftCustomer) {
+      setContactErrors((currentErrors) => ({
+        ...currentErrors,
+        [listKey]: getContactFieldError(listKey, draftCustomer[listKey]?.[nextIndex] || ""),
+      }));
+    }
   }
 
   function updateOptionValue(listKey, indexKey, nextValue) {
@@ -374,9 +406,29 @@ function CustomerPage({
       nextOptions[customer[indexKey]] = nextValue;
       return { ...customer, [listKey]: nextOptions };
     });
+
+    if (listKey === "emails" || listKey === "tels") {
+      setContactErrors((currentErrors) => ({
+        ...currentErrors,
+        [listKey]: getContactFieldError(listKey, nextValue),
+      }));
+    }
   }
 
   function addOption(listKey, indexKey) {
+    if ((listKey === "emails" || listKey === "tels") && draftCustomer) {
+      const currentValue = draftCustomer[listKey]?.[draftCustomer[indexKey]] || "";
+      const error = getContactFieldError(listKey, currentValue);
+
+      if (error) {
+        setContactErrors((currentErrors) => ({
+          ...currentErrors,
+          [listKey]: error,
+        }));
+        return;
+      }
+    }
+
     updateDraftCustomer((customer) => {
       const nextOptions = [...customer[listKey], ""];
       return {
@@ -407,9 +459,17 @@ function CustomerPage({
         [indexKey]: clampIndex(nextOptions, currentIndex),
       };
     });
+
+    if (listKey === "emails" || listKey === "tels") {
+      setContactErrors((currentErrors) => ({
+        ...currentErrors,
+        [listKey]: "",
+      }));
+    }
   }
 
   function handleCreateCustomer() {
+    setContactErrors({ emails: "", tels: "" });
     setDraftCustomer(
       createCustomer({
         companyName: `New Customer ${allCustomers.length + 1}`,
@@ -423,6 +483,23 @@ function CustomerPage({
     }
 
     const nextCustomer = normalizeCustomer(draftCustomer);
+    const nextContactErrors = getContactListErrors(nextCustomer);
+
+    if (hasContactErrors(nextContactErrors)) {
+      const invalidEmailIndex = getFirstInvalidContactIndex(nextCustomer, "emails");
+      const invalidTelIndex = getFirstInvalidContactIndex(nextCustomer, "tels");
+
+      setDraftCustomer({
+        ...nextCustomer,
+        selectedEmailIndex:
+          invalidEmailIndex >= 0 ? invalidEmailIndex : nextCustomer.selectedEmailIndex,
+        selectedTelIndex:
+          invalidTelIndex >= 0 ? invalidTelIndex : nextCustomer.selectedTelIndex,
+      });
+      setContactErrors(nextContactErrors);
+      return;
+    }
+
     const savedCustomer = await onSaveCustomer?.(nextCustomer);
 
     if (savedCustomer === false) {
@@ -725,6 +802,7 @@ function CustomerPage({
 
             <form
               className="form-layout"
+              noValidate
               onSubmit={(event) => {
                 event.preventDefault();
                 handleSaveCustomer();
@@ -806,6 +884,7 @@ function CustomerPage({
                       selectedIndex={draftCustomer.selectedEmailIndex}
                       placeholder="Add or edit an email"
                       type="email"
+                      error={contactErrors.emails}
                       onSelect={(nextIndex) => updateOptionIndex("selectedEmailIndex", nextIndex)}
                       onChange={(nextValue) =>
                         updateOptionValue("emails", "selectedEmailIndex", nextValue)
@@ -820,6 +899,8 @@ function CustomerPage({
                         options={draftCustomer.tels}
                         selectedIndex={draftCustomer.selectedTelIndex}
                         placeholder="Add or edit a telephone number"
+                        type="tel"
+                        error={contactErrors.tels}
                         onSelect={(nextIndex) => updateOptionIndex("selectedTelIndex", nextIndex)}
                         onChange={(nextValue) =>
                           updateOptionValue("tels", "selectedTelIndex", nextValue)

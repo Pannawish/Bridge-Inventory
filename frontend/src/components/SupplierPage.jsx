@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "./PaginationControls";
+import {
+  getContactFieldError,
+  getFirstInvalidContactIndex,
+  getContactListErrors,
+  hasContactErrors,
+} from "./contactValidation";
 
 function createSupplier(overrides = {}) {
   return {
@@ -180,12 +186,25 @@ function countFilledValues(list) {
   return (list || []).filter((value) => `${value ?? ""}`.trim()).length;
 }
 
+function getContactListKeyForIndex(indexKey) {
+  if (indexKey === "selectedEmailIndex") {
+    return "emails";
+  }
+
+  if (indexKey === "selectedTelIndex") {
+    return "tels";
+  }
+
+  return "";
+}
+
 function SupplierOptionField({
   label,
   options,
   selectedIndex,
   placeholder,
   type = "text",
+  error = "",
   onSelect,
   onChange,
   onAdd,
@@ -210,6 +229,7 @@ function SupplierOptionField({
           value={options[selectedIndex] || ""}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
+          aria-invalid={error ? "true" : undefined}
         />
         <div className="supplier-option-edit-actions">
           <button className="secondary-button" type="button" onClick={onAdd}>
@@ -220,6 +240,7 @@ function SupplierOptionField({
           </button>
         </div>
       </div>
+      {error ? <span className="field-error-text">{error}</span> : null}
     </div>
   );
 }
@@ -238,6 +259,7 @@ function SupplierPage({
   const [filterOpen, setFilterOpen] = useState(false);
   const [profileFilter, setProfileFilter] = useState("all");
   const [showAllRows, setShowAllRows] = useState(false);
+  const [contactErrors, setContactErrors] = useState({ emails: "", tels: "" });
 
   useEffect(() => {
     if (typeof document === "undefined" || !draftSupplier) {
@@ -333,10 +355,12 @@ function SupplierPage({
   function openSupplierEditor(supplier) {
     setSelectedSupplierId(supplier.id);
     setDraftSupplier(normalizeSupplier(supplier));
+    setContactErrors({ emails: "", tels: "" });
   }
 
   function closeSupplierEditor() {
     setDraftSupplier(null);
+    setContactErrors({ emails: "", tels: "" });
   }
 
   function updateDraftSupplier(updater) {
@@ -351,6 +375,14 @@ function SupplierPage({
 
   function updateOptionIndex(indexKey, nextIndex) {
     updateDraftSupplier((supplier) => ({ ...supplier, [indexKey]: nextIndex }));
+
+    const listKey = getContactListKeyForIndex(indexKey);
+    if (listKey && draftSupplier) {
+      setContactErrors((currentErrors) => ({
+        ...currentErrors,
+        [listKey]: getContactFieldError(listKey, draftSupplier[listKey]?.[nextIndex] || ""),
+      }));
+    }
   }
 
   function updateOptionValue(listKey, indexKey, nextValue) {
@@ -359,9 +391,29 @@ function SupplierPage({
       nextOptions[supplier[indexKey]] = nextValue;
       return { ...supplier, [listKey]: nextOptions };
     });
+
+    if (listKey === "emails" || listKey === "tels") {
+      setContactErrors((currentErrors) => ({
+        ...currentErrors,
+        [listKey]: getContactFieldError(listKey, nextValue),
+      }));
+    }
   }
 
   function addOption(listKey, indexKey) {
+    if ((listKey === "emails" || listKey === "tels") && draftSupplier) {
+      const currentValue = draftSupplier[listKey]?.[draftSupplier[indexKey]] || "";
+      const error = getContactFieldError(listKey, currentValue);
+
+      if (error) {
+        setContactErrors((currentErrors) => ({
+          ...currentErrors,
+          [listKey]: error,
+        }));
+        return;
+      }
+    }
+
     updateDraftSupplier((supplier) => {
       const nextOptions = [...supplier[listKey], ""];
       return {
@@ -392,9 +444,17 @@ function SupplierPage({
         [indexKey]: clampIndex(nextOptions, currentIndex),
       };
     });
+
+    if (listKey === "emails" || listKey === "tels") {
+      setContactErrors((currentErrors) => ({
+        ...currentErrors,
+        [listKey]: "",
+      }));
+    }
   }
 
   function handleCreateSupplier() {
+    setContactErrors({ emails: "", tels: "" });
     setDraftSupplier(
       createSupplier({
         companyName: `New Supplier ${allSuppliers.length + 1}`,
@@ -408,6 +468,23 @@ function SupplierPage({
     }
 
     const nextSupplier = normalizeSupplier(draftSupplier);
+    const nextContactErrors = getContactListErrors(nextSupplier);
+
+    if (hasContactErrors(nextContactErrors)) {
+      const invalidEmailIndex = getFirstInvalidContactIndex(nextSupplier, "emails");
+      const invalidTelIndex = getFirstInvalidContactIndex(nextSupplier, "tels");
+
+      setDraftSupplier({
+        ...nextSupplier,
+        selectedEmailIndex:
+          invalidEmailIndex >= 0 ? invalidEmailIndex : nextSupplier.selectedEmailIndex,
+        selectedTelIndex:
+          invalidTelIndex >= 0 ? invalidTelIndex : nextSupplier.selectedTelIndex,
+      });
+      setContactErrors(nextContactErrors);
+      return;
+    }
+
     const savedSupplier = await onSaveSupplier?.(nextSupplier);
 
     if (savedSupplier === false) {
@@ -710,6 +787,7 @@ function SupplierPage({
 
             <form
               className="form-layout"
+              noValidate
               onSubmit={(event) => {
                 event.preventDefault();
                 handleSaveSupplier();
@@ -791,6 +869,7 @@ function SupplierPage({
                       selectedIndex={draftSupplier.selectedEmailIndex}
                       placeholder="Add or edit an email"
                       type="email"
+                      error={contactErrors.emails}
                       onSelect={(nextIndex) => updateOptionIndex("selectedEmailIndex", nextIndex)}
                       onChange={(nextValue) =>
                         updateOptionValue("emails", "selectedEmailIndex", nextValue)
@@ -805,6 +884,8 @@ function SupplierPage({
                         options={draftSupplier.tels}
                         selectedIndex={draftSupplier.selectedTelIndex}
                         placeholder="Add or edit a telephone number"
+                        type="tel"
+                        error={contactErrors.tels}
                         onSelect={(nextIndex) => updateOptionIndex("selectedTelIndex", nextIndex)}
                         onChange={(nextValue) =>
                           updateOptionValue("tels", "selectedTelIndex", nextValue)
