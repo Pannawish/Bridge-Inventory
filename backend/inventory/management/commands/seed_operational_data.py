@@ -19,6 +19,8 @@ from inventory.models import (
     Purchase,
     PurchaseDocument,
     PurchaseItem,
+    Quotation,
+    QuotationItem,
     Sale,
     SaleDocument,
     SaleItem,
@@ -117,6 +119,7 @@ class Command(BaseCommand):
         customers = self.seed_customers()
         products = self.seed_products(categories)
         purchases = self.seed_purchases(rng, suppliers, products)
+        quotations = self.seed_quotations(rng, suppliers, customers, products)
         sales = self.seed_sales(rng, customers, products)
         billing_notes = self.seed_billing_notes(rng, sales)
         payment_batches = self.seed_payment_batches(rng, purchases)
@@ -129,7 +132,8 @@ class Command(BaseCommand):
                 "Seeded operational data: "
                 f"{len(categories)} categories, {len(suppliers)} suppliers, "
                 f"{len(customers)} customers, {len(products)} products, "
-                f"{len(purchases)} purchases, {len(sales)} sales, "
+                f"{len(purchases)} purchases, {len(quotations)} quotations, "
+                f"{len(sales)} sales, "
                 f"{len(billing_notes)} billing notes, "
                 f"{len(payment_batches)} payment batches."
             )
@@ -138,8 +142,10 @@ class Command(BaseCommand):
     def remove_previous_demo_records(self):
         BillingNote.objects.filter(reference_no__startswith="BN-69").delete()
         PaymentBatch.objects.filter(reference_no__startswith="PMT-69").delete()
+        Quotation.objects.filter(reference_no__startswith="QT-69").delete()
         BillingNote.objects.filter(id__startswith="demo-").delete()
         PaymentBatch.objects.filter(id__startswith="demo-").delete()
+        Quotation.objects.filter(id__startswith="demo-").delete()
         for document in PurchaseDocument.objects.filter(purchase__id__startswith="demo-"):
             document.file.delete(save=False)
             document.delete()
@@ -600,6 +606,7 @@ class Command(BaseCommand):
                 payment_date = None
             purchase = Purchase.objects.create(
                 reference_no=ref,
+                supplier=supplier,
                 supplier_name=supplier.company_name,
                 supplier_tax_invoice=supplier_tax_invoice,
                 status=status,
@@ -648,6 +655,103 @@ class Command(BaseCommand):
         }
         suffix = ["Includes converted units.", "Tax invoice to be reconciled.", "Price includes tier discount.", "Urgent replenishment."][index % 4]
         return f"{notes[status]} {suffix}"
+
+    def seed_quotations(self, rng, suppliers, customers, products):
+        Quotation.objects.filter(reference_no__startswith="QT-69").delete()
+        start_date = date(2026, 1, 12)
+        latest_quotation_date = timezone.localdate()
+        quotation_count = 18
+        day_span = max(1, (latest_quotation_date - start_date).days)
+        vat_modes = ["not_included", "included", "none", "not_included"]
+        quotations = []
+
+        for index in range(1, quotation_count + 1):
+            day_offset = round((index - 1) * day_span / max(1, quotation_count - 1))
+            quotation_date = min(
+                latest_quotation_date,
+                start_date + timedelta(days=day_offset),
+            )
+            customer = customers[index % len(customers)]
+            supplier = suppliers[(index * 2) % len(suppliers)]
+            vat_mode = vat_modes[index % len(vat_modes)]
+            ref = reference("QT", quotation_date, index)
+            item_count = rng.choice([1, 2, 2, 3, 4])
+            selected_products = rng.sample(products, item_count)
+            line_specs = []
+            line_amounts = []
+
+            for product in selected_products:
+                conversion = self.choose_unit(rng, product, False)
+                if conversion.factor_to_base < 1:
+                    quantity = rng.choice([5, 10, 15, 20])
+                else:
+                    quantity = rng.choice([1, 2, 3, 4, 5, 8, 10])
+                sale_price = money(
+                    product._seed_price
+                    * conversion.factor_to_base
+                    * decimal(rng.uniform(0.96, 1.10))
+                )
+                cost_price = money(
+                    product._seed_cost
+                    * conversion.factor_to_base
+                    * decimal(rng.uniform(0.94, 1.06))
+                )
+                discounts = self.discounts(rng, allow_multiple=True)
+                amount = line_amount(quantity, sale_price, discounts)
+                line_amounts.append(amount)
+                line_specs.append(
+                    {
+                        "product": product,
+                        "conversion": conversion,
+                        "quantity": quantity,
+                        "sale_price": sale_price,
+                        "cost_price": cost_price,
+                        "discounts": discounts,
+                    }
+                )
+
+            total_before_vat, vat_amount, grand_total = transaction_totals(line_amounts, vat_mode)
+            quotation = Quotation.objects.create(
+                reference_no=ref,
+                quotation_date=quotation_date,
+                valid_until_date=quotation_date + timedelta(days=rng.choice([14, 30, 45, 60])),
+                customer=customer,
+                customer_name=customer.company_name,
+                supplier=supplier,
+                supplier_name=supplier.company_name,
+                vat_mode=vat_mode,
+                note=f"Seed quotation for {customer.company_name}; prices based on current catalog.",
+                total_before_vat=total_before_vat,
+                vat_amount=vat_amount,
+                grand_total=grand_total,
+            )
+
+            rows = []
+            for position, item in enumerate(line_specs):
+                product = item["product"]
+                conversion = item["conversion"]
+                quantity = decimal(item["quantity"])
+                rows.append(
+                    QuotationItem(
+                        quotation=quotation,
+                        product=product,
+                        position=position,
+                        product_name=product.product_name,
+                        sku=product.sku,
+                        unit=conversion.unit,
+                        base_unit=product.stock_base_unit,
+                        conversion_factor=conversion.factor_to_base,
+                        quantity=quantity,
+                        base_quantity=quantity * conversion.factor_to_base,
+                        sale_price=item["sale_price"],
+                        cost_price=item["cost_price"],
+                        discounts=item["discounts"],
+                    )
+                )
+            QuotationItem.objects.bulk_create(rows)
+            quotations.append(quotation)
+
+        return quotations
 
     def sale_item_statuses(self, status, count):
         if status == Sale.STATUS_DRAFT:
@@ -736,6 +840,7 @@ class Command(BaseCommand):
             total_before_vat, vat_amount, grand_total = transaction_totals(line_amounts, vat_mode)
             sale = Sale.objects.create(
                 reference_no=ref,
+                customer=customer,
                 customer_name=customer.company_name,
                 status=status,
                 payment_term_type=payment_term_type,
@@ -834,8 +939,10 @@ class Command(BaseCommand):
                 )
                 status = status_cycle[(serial - 1) % len(status_cycle)]
                 reference_no = reference("BN", billing_note_date, serial)
+                customer = selected_sales[0].customer
                 billing_note = BillingNote.objects.create(
                     reference_no=reference_no,
+                    customer=customer,
                     customer_name=customer_name,
                     billing_note_date=billing_note_date,
                     expected_payment_date=expected_payment_date,
@@ -947,8 +1054,10 @@ class Command(BaseCommand):
                 )
                 status = status_cycle[(serial - 1) % len(status_cycle)]
                 reference_no = reference("PMT", batch_date, serial)
+                supplier = selected_purchases[0].supplier
                 payment_batch = PaymentBatch.objects.create(
                     reference_no=reference_no,
+                    supplier=supplier,
                     supplier_name=supplier_name,
                     batch_date=batch_date,
                     planned_payment_date=planned_payment_date,
