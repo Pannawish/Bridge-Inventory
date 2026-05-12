@@ -64,6 +64,7 @@ This file is for coding agents working in this repository. Follow these rules be
 ## Frontend Standards
 
 - Keep the UI consistent with the existing square, compact system style.
+- Any new frontend update must match the current system UI: square 4px-radius controls/panels, compact spacing, restrained borders, and no decorative rounded-card or marketing-style treatment unless an existing shared component already uses it.
 - Use existing shared classes before adding new CSS.
 - Do not add marketing-style layouts or oversized decorative sections.
 - Tables/directories should be readable, compact, and responsive.
