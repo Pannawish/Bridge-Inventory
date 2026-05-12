@@ -55,7 +55,6 @@ function buildProductSavePayload(product) {
     "categoryId",
     "category",
     "detail",
-    "pictureUrl",
   ].forEach((field) => {
     if (product[field] !== undefined) {
       formData.append(field, product[field] ?? "");
@@ -76,7 +75,7 @@ function buildProductSavePayload(product) {
 
   if (selectedNewPictureIndex >= 0) {
     formData.append("selected_picture_index", selectedNewPictureIndex);
-  } else if (selectedPictureId && selectedPictureId !== "__legacy_picture__") {
+  } else if (selectedPictureId) {
     formData.append("selected_picture_id", selectedPictureId);
   }
 

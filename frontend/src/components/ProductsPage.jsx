@@ -58,7 +58,6 @@ function createProduct(overrides = {}) {
     categoryId: "",
     category: "",
     detail: "",
-    pictureUrl: "",
     productPictures: [],
     selectedPictureId: "",
     removePictureIds: [],
@@ -84,7 +83,6 @@ const defaultProducts = [
     categoryId: "category-notebooks",
     category: "Stationery / Notebooks",
     detail: "Standard A5 spiral notebook, 80 pages, ruled. Suitable for students and office use.",
-    pictureUrl: "",
   }),
   createProduct({
     id: "product-2",
@@ -102,7 +100,6 @@ const defaultProducts = [
     categoryId: "category-pens",
     category: "Writing Tools / Pens",
     detail: "Medium tip blue ballpoint pen. Smooth writing, long-lasting ink.",
-    pictureUrl: "",
   }),
   createProduct({
     id: "product-3",
@@ -119,7 +116,6 @@ const defaultProducts = [
     categoryId: "category-staplers",
     category: "Desk Accessories / Staplers",
     detail: "Compact desktop stapler. Accepts standard 26/6 staples. Capacity up to 20 sheets.",
-    pictureUrl: "",
   }),
   createProduct({
     id: "product-4",
@@ -137,7 +133,6 @@ const defaultProducts = [
     categoryId: "category-sticky-notes",
     category: "Paper Goods / Sticky Notes",
     detail: "Pack of 4 sticky note pads, 100 sheets each. Assorted colors.",
-    pictureUrl: "",
   }),
   createProduct({
     id: "product-5",
@@ -155,7 +150,6 @@ const defaultProducts = [
     categoryId: "category-markers",
     category: "Presentation Supplies / Markers",
     detail: "Low-odor whiteboard marker with chisel tip. Suitable for classrooms and meeting rooms.",
-    pictureUrl: "",
   }),
   createProduct({
     id: "product-6",
@@ -174,7 +168,6 @@ const defaultProducts = [
     categoryId: "category-filing",
     category: "Desk Accessories / Filing",
     detail: "Durable A4 file folder for daily document handling and archiving.",
-    pictureUrl: "",
   }),
   createProduct({
     id: "product-7",
@@ -192,7 +185,6 @@ const defaultProducts = [
     categoryId: "category-staplers",
     category: "Desk Accessories / Staplers",
     detail: "Standard 26/6 staples refill pack for office staplers.",
-    pictureUrl: "",
   }),
   createProduct({
     id: "product-8",
@@ -210,7 +202,6 @@ const defaultProducts = [
     categoryId: "category-markers",
     category: "Presentation Supplies / Markers",
     detail: "Set of assorted-color highlighters for review and study marking.",
-    pictureUrl: "",
   }),
   createProduct({
     id: "product-9",
@@ -228,7 +219,6 @@ const defaultProducts = [
     categoryId: "category-filing",
     category: "Desk Accessories / Filing",
     detail: "Heavy-duty PVC ring binder for document storage and archive workflows.",
-    pictureUrl: "",
   }),
   createProduct({
     id: "product-10",
@@ -246,7 +236,6 @@ const defaultProducts = [
     categoryId: "category-correction",
     category: "Writing Tools / Correction",
     detail: "Quick-dry correction tape for forms, notes, and printed worksheets.",
-    pictureUrl: "",
   }),
 ];
 
@@ -573,10 +562,7 @@ function ProductsPage({
       }
 
       const currentPictures = getProductPictures(prev);
-      const selectedPictureId =
-        !prev.selectedPictureId || prev.selectedPictureId === "__legacy_picture__"
-          ? nextPictures[0].id
-          : prev.selectedPictureId;
+      const selectedPictureId = prev.selectedPictureId || nextPictures[0].id;
 
       return {
         ...prev,
@@ -622,13 +608,12 @@ function ProductsPage({
         ? nextPictures[0]?.id || ""
         : prev.selectedPictureId;
       const removePictureIds =
-        removedPicture && !removedPicture.isNew && removedPicture.id !== "__legacy_picture__"
+        removedPicture && !removedPicture.isNew
           ? [...(prev.removePictureIds || []), removedPicture.id]
           : prev.removePictureIds || [];
 
       return {
         ...prev,
-        pictureUrl: removedPicture?.id === "__legacy_picture__" ? "" : prev.pictureUrl,
         productPictures: nextPictures.map((picture) => ({
           ...picture,
           isSelected: picture.id === selectedPictureId,

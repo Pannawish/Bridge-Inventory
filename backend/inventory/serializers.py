@@ -289,7 +289,6 @@ class ProductSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     category = serializers.CharField(source="category_name", required=False, allow_blank=True)
-    pictureUrl = serializers.URLField(source="picture_url", required=False, allow_blank=True)
     productPictures = serializers.SerializerMethodField()
     selectedPictureId = serializers.SerializerMethodField()
     uploaded_pictures = serializers.ListField(
@@ -332,7 +331,6 @@ class ProductSerializer(serializers.ModelSerializer):
             "categoryId",
             "category",
             "detail",
-            "pictureUrl",
             "productPictures",
             "selectedPictureId",
             "uploaded_pictures",

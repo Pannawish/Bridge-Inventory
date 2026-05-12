@@ -474,7 +474,6 @@ class Command(BaseCommand):
                     "category": category,
                     "category_name": category.name,
                     "detail": f"{name} used for purchasing, stock, sales, and reporting workflows.",
-                    "picture_url": "",
                     "reorder_level": decimal(reorder),
                 },
             )

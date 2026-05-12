@@ -173,7 +173,6 @@ class Product(TimeStampedModel):
     )
     category_name = models.CharField(max_length=255, blank=True)
     detail = models.TextField(blank=True)
-    picture_url = models.URLField(max_length=1000, blank=True)
     reorder_level = models.DecimalField(max_digits=12, decimal_places=3, default=0)
 
     class Meta:

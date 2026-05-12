@@ -72,11 +72,10 @@ export function getProductPictures(product) {
     : Array.isArray(product?.pictures)
       ? product.pictures
       : [];
-  const pictureUrl = `${product?.pictureUrl ?? ""}`.trim();
 
-  const productPictures = sourcePictures
+  return sourcePictures
     .map((picture, index) => {
-      const url = `${picture?.url ?? picture?.pictureUrl ?? ""}`.trim();
+      const url = `${picture?.url ?? ""}`.trim();
       const file =
         typeof File !== "undefined" && picture?.file instanceof File ? picture.file : null;
 
@@ -92,22 +91,6 @@ export function getProductPictures(product) {
       };
     })
     .filter((picture) => picture.url || picture.file);
-
-  if (
-    pictureUrl &&
-    !productPictures.some((picture) => picture.url && picture.url === pictureUrl)
-  ) {
-    productPictures.push({
-      id: "__legacy_picture__",
-      name: getDocumentName(pictureUrl),
-      url: pictureUrl,
-      file: null,
-      isNew: false,
-      isSelected: !productPictures.some((picture) => picture.isSelected),
-    });
-  }
-
-  return productPictures;
 }
 
 export function getSelectedProductPicture(product) {
@@ -228,7 +211,6 @@ export function normalizeProduct(product) {
     categoryId: `${product.categoryId ?? ""}`,
     category: `${product.category ?? ""}`,
     detail: `${product.detail ?? ""}`,
-    pictureUrl: `${product.pictureUrl ?? ""}`,
     productPictures,
     selectedPictureId: selectedPicture?.id || "",
     removePictureIds: Array.isArray(product.removePictureIds) ? product.removePictureIds : [],
