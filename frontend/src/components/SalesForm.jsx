@@ -7,6 +7,12 @@ import {
   getProductUnitOptions,
 } from "../unitConversion";
 import { computePaymentDate, formatMoney as fmt } from "../format";
+import AllItemsDiscountControl from "./AllItemsDiscountControl";
+import {
+  computeDiscountedAmount,
+  getActiveTransactionDiscount,
+  getEffectiveDiscounts,
+} from "./transactionDiscounts";
 
 const VAT_RATE = 0.07;
 const vatOptions = [
@@ -95,14 +101,12 @@ function createInitialItems(prefill = {}) {
   }));
 }
 
-function computeAmount(item) {
-  const qty = Number(item.quantity) || 0;
-  const price = Number(item.unit_price) || 0;
-  const multiplier = (item.discounts || []).reduce((acc, d) => {
-    const clamped = Math.min(100, Math.max(0, Number(d) || 0));
-    return acc * (1 - clamped / 100);
-  }, 1);
-  return qty * price * multiplier;
+function computeAmount(item, transactionDiscount = null) {
+  return computeDiscountedAmount(
+    item.quantity,
+    item.unit_price,
+    getEffectiveDiscounts(item.discounts, transactionDiscount)
+  );
 }
 
 function computeVatSummary(itemTotal, vatMode) {
@@ -172,6 +176,8 @@ function SalesForm({
   const [form, setForm] = useState(() => createInitialForm(nextReferenceNo, prefill || {}));
   const [items, setItems] = useState(() => createInitialItems(prefill || {}));
   const [vatMode, setVatMode] = useState(prefill?.vat_mode || "not_included");
+  const [allItemsDiscountEnabled, setAllItemsDiscountEnabled] = useState(false);
+  const [allItemsDiscountValue, setAllItemsDiscountValue] = useState("0");
   const [customerQuery, setCustomerQuery] = useState(prefill?.customer_name || "");
   const [customerOpen, setCustomerOpen] = useState(false);
   const [customerError, setCustomerError] = useState("");
@@ -468,15 +474,20 @@ function SalesForm({
         const selectedProduct = products.find(
           (product) => `${product.id}` === `${item.product_id}`
         );
+        const effectiveDiscounts = getEffectiveDiscounts(
+          item.discounts,
+          activeAllItemsDiscount
+        );
 
         return {
           ...itemPayload,
           product_name: selectedProduct ? getProductName(selectedProduct) : item.product_name,
           sku: selectedProduct ? getProductSku(selectedProduct) : item.sku,
+          discounts: effectiveDiscounts,
           ...(selectedProduct
             ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
             : {}),
-          amount: computeAmount(item),
+          amount: computeAmount(item, activeAllItemsDiscount),
         };
       });
     const saleWithItems = applySaleStatusToItems(
@@ -498,13 +509,22 @@ function SalesForm({
     setForm(createInitialForm(lastGeneratedReference.current));
     setItems([emptyItem()]);
     setVatMode("not_included");
+    setAllItemsDiscountEnabled(false);
+    setAllItemsDiscountValue("0");
     setCustomerQuery("");
     setCustomerError("");
     setStatusError("");
     setDraggedItemIndex(null);
   }
 
-  const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
+  const activeAllItemsDiscount = getActiveTransactionDiscount(
+    allItemsDiscountEnabled,
+    allItemsDiscountValue
+  );
+  const itemTotal = items.reduce(
+    (sum, item) => sum + computeAmount(item, activeAllItemsDiscount),
+    0
+  );
   const vatSummary = computeVatSummary(itemTotal, vatMode);
   const paymentDate = computePaymentDate(form.transaction_date, form.payment_term_type, form.payment_term_days);
 
@@ -729,7 +749,7 @@ function SalesForm({
           </div>
 
           {items.map((item, index) => {
-            const amount = computeAmount(item);
+            const amount = computeAmount(item, activeAllItemsDiscount);
             const selectedProduct = products.find(
               (product) => `${product.id}` === `${item.product_id}`
             );
@@ -893,6 +913,13 @@ function SalesForm({
             );
           })}
         </div>
+
+        <AllItemsDiscountControl
+          enabled={allItemsDiscountEnabled}
+          value={allItemsDiscountValue}
+          onEnabledChange={setAllItemsDiscountEnabled}
+          onValueChange={setAllItemsDiscountValue}
+        />
 
         <section className="purchase-vat-card">
           <div className="purchase-vat-card-header">

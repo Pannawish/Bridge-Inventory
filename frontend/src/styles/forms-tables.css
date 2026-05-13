@@ -751,6 +751,20 @@ label textarea:focus,
   gap: 16px;
 }
 
+.transaction-wide-discount-field {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.transaction-wide-discount-field > span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .purchase-vat-label {
   margin: 0;
   color: var(--muted);
@@ -1366,4 +1380,3 @@ th {
   color: var(--muted);
   line-height: 1.65;
 }
-

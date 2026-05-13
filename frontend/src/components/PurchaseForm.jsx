@@ -11,6 +11,12 @@ import {
   getProductUnitOptions,
 } from "../unitConversion";
 import { computePaymentDate, formatMoney as fmt } from "../format";
+import AllItemsDiscountControl from "./AllItemsDiscountControl";
+import {
+  computeDiscountedAmount,
+  getActiveTransactionDiscount,
+  getEffectiveDiscounts,
+} from "./transactionDiscounts";
 
 const today = getTodayString();
 const VAT_RATE = 0.07;
@@ -83,15 +89,12 @@ function getProductUnit(product) {
   return getProductDefaultPurchaseUnit(product);
 }
 
-function computeAmount(item) {
-  const qty = Number(item.quantity) || 0;
-  const cost = Number(item.unit_cost) || 0;
-  const multiplier = (item.discounts || []).reduce((acc, discount) => {
-    const clamped = Math.min(100, Math.max(0, Number(discount) || 0));
-    return acc * (1 - clamped / 100);
-  }, 1);
-
-  return qty * cost * multiplier;
+function computeAmount(item, transactionDiscount = null) {
+  return computeDiscountedAmount(
+    item.quantity,
+    item.unit_cost,
+    getEffectiveDiscounts(item.discounts, transactionDiscount)
+  );
 }
 
 function computeLeadTimeDays(transactionDate, expectedDeliveryDate) {
@@ -205,6 +208,8 @@ function PurchaseForm({
   const [form, setForm] = useState(() => createInitialForm(nextReferenceNo, prefill || {}));
   const [items, setItems] = useState(() => createInitialItems(prefill || {}));
   const [vatMode, setVatMode] = useState(prefill?.vat_mode || "not_included");
+  const [allItemsDiscountEnabled, setAllItemsDiscountEnabled] = useState(false);
+  const [allItemsDiscountValue, setAllItemsDiscountValue] = useState("0");
   const [supplierQuery, setSupplierQuery] = useState(prefill?.supplier_name || "");
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [supplierError, setSupplierError] = useState("");
@@ -480,6 +485,11 @@ function PurchaseForm({
         return nextItems;
       }
 
+      const effectiveDiscounts = getEffectiveDiscounts(
+        item.discounts,
+        activeAllItemsDiscount
+      );
+
       return [
         ...nextItems,
         {
@@ -504,8 +514,8 @@ function PurchaseForm({
           ),
           quantity: item.quantity,
           unit_cost: item.unit_cost,
-          discounts: item.discounts,
-          amount: computeAmount(item),
+          discounts: effectiveDiscounts,
+          amount: computeAmount(item, activeAllItemsDiscount),
         },
       ];
     }, []);
@@ -546,6 +556,8 @@ function PurchaseForm({
     setForm(createInitialForm(lastGeneratedReference.current));
     setItems([emptyItem()]);
     setVatMode("not_included");
+    setAllItemsDiscountEnabled(false);
+    setAllItemsDiscountValue("0");
     setSupplierQuery("");
     setSupplierError("");
     setOpenProductIndex(null);
@@ -553,7 +565,14 @@ function PurchaseForm({
     setDraggedItemIndex(null);
   }
 
-  const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
+  const activeAllItemsDiscount = getActiveTransactionDiscount(
+    allItemsDiscountEnabled,
+    allItemsDiscountValue
+  );
+  const itemTotal = items.reduce(
+    (sum, item) => sum + computeAmount(item, activeAllItemsDiscount),
+    0
+  );
   const vatSummary = computeVatSummary(itemTotal, vatMode);
   const paymentDate = computePaymentDate(form.transaction_date, form.payment_term_type, form.payment_term_days);
 
@@ -792,7 +811,7 @@ function PurchaseForm({
           </div>
 
           {items.map((item, index) => {
-            const amount = computeAmount(item);
+            const amount = computeAmount(item, activeAllItemsDiscount);
             const filteredProducts = getFilteredProducts(item.product_query);
             const selectedProduct = productOptions.find(
               (product) => `${product.id}` === `${item.product_id}`
@@ -1026,6 +1045,13 @@ function PurchaseForm({
             );
           })}
         </div>
+
+        <AllItemsDiscountControl
+          enabled={allItemsDiscountEnabled}
+          value={allItemsDiscountValue}
+          onEnabledChange={setAllItemsDiscountEnabled}
+          onValueChange={setAllItemsDiscountValue}
+        />
 
         <section className="purchase-vat-card">
           <div className="purchase-vat-card-header">
