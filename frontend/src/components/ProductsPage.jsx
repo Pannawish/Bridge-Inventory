@@ -9,6 +9,7 @@ import {
   formatStatusLabel,
   getPurchaseItemDisplayStatus,
 } from "../purchaseStatus";
+import { getStoredSaleItemStatus } from "../saleStatus";
 import {
   getProductBaseUnit,
   getProductDefaultPurchaseUnit,
@@ -43,6 +44,7 @@ import {
 
 const PRODUCT_DELETE_HISTORY_MESSAGE =
   "This product cannot be deleted because it already has purchase, sales, or quotation history.";
+const PRODUCT_HISTORY_PAGE_SIZE = 5;
 
 function createProduct(overrides = {}) {
   return {
@@ -66,6 +68,25 @@ function createProduct(overrides = {}) {
     removePictureIds: [],
     ...overrides,
   };
+}
+
+function createLocalPagination(count, page, pageSize = PRODUCT_HISTORY_PAGE_SIZE) {
+  const totalPages = Math.max(1, Math.ceil(count / pageSize));
+  const safePage = Math.min(Math.max(1, Number(page) || 1), totalPages);
+
+  return {
+    count,
+    next: safePage < totalPages,
+    previous: safePage > 1,
+    page: safePage,
+    page_size: pageSize,
+    total_pages: totalPages,
+  };
+}
+
+function getPaginatedRows(rows, pagination) {
+  const start = (pagination.page - 1) * pagination.page_size;
+  return rows.slice(start, start + pagination.page_size);
 }
 
 const defaultProducts = [
@@ -288,6 +309,8 @@ function ProductsPage({
   const [showAllRows, setShowAllRows] = useState(false);
   const [productFormError, setProductFormError] = useState("");
   const [skuChangeUnlocked, setSkuChangeUnlocked] = useState(false);
+  const [purchaseHistoryPage, setPurchaseHistoryPage] = useState(1);
+  const [salesHistoryPage, setSalesHistoryPage] = useState(1);
   const [categoryQuery, setCategoryQuery] = useState("");
   const [categoryComboboxOpen, setCategoryComboboxOpen] = useState(false);
 
@@ -305,6 +328,11 @@ function ProductsPage({
       document.body.style.overflow = prev;
     };
   }, [viewingProduct, viewingTransaction, draftProduct]);
+
+  useEffect(() => {
+    setPurchaseHistoryPage(1);
+    setSalesHistoryPage(1);
+  }, [viewingProduct?.id]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const isServerPaginated = Boolean(pagination && onPageRequest);
@@ -1058,6 +1086,22 @@ function ProductsPage({
         )
       : getSalesHistory(viewingProduct)
     : [];
+  const purchaseHistoryPagination = createLocalPagination(
+    viewPurchaseHistory.length,
+    purchaseHistoryPage
+  );
+  const salesHistoryPagination = createLocalPagination(
+    viewSalesHistory.length,
+    salesHistoryPage
+  );
+  const paginatedPurchaseHistory = getPaginatedRows(
+    viewPurchaseHistory,
+    purchaseHistoryPagination
+  );
+  const paginatedSalesHistory = getPaginatedRows(
+    viewSalesHistory,
+    salesHistoryPagination
+  );
   const viewingProductMetrics = viewingProduct
     ? getProductMetrics(
         viewingProduct,
@@ -1707,76 +1751,103 @@ function ProductsPage({
                   {viewPurchaseHistory.length === 0 ? (
                     <p className="empty-copy">No purchase history found for this product.</p>
                   ) : (
-                    <div className="table-scroll">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th className="table-index-cell">#</th>
-                            <th>Reference</th>
-                            <th>Supplier</th>
-                            <th>Date</th>
-                            <th>Qty</th>
-                            <th>Base Qty</th>
-                            <th>Unit Cost</th>
-                            <th>Discounts</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {viewPurchaseHistory.map(({ purchase, item }, itemIndex) => {
-                            const quantityDetails = getItemQuantityDetails(
-                              item,
-                              viewingProduct,
-                              "purchase"
-                            );
+                    <div>
+                      <div className="transaction-table-window product-history-table-window">
+                        <div className="table-scroll desktop-table">
+                          <table className="transaction-history-table transaction-history-table-purchase product-history-transaction-table">
+                            <colgroup>
+                              <col className="product-history-col-index" />
+                              <col className="product-history-col-reference" />
+                              <col className="product-history-col-party" />
+                              <col className="product-history-col-date" />
+                              <col className="product-history-col-qty" />
+                              <col className="product-history-col-qty" />
+                              <col className="product-history-col-money" />
+                              <col className="product-history-col-discount" />
+                              <col className="product-history-col-money" />
+                              <col className="product-history-col-status" />
+                              <col className="product-history-col-action" />
+                            </colgroup>
+                            <thead>
+                              <tr>
+                                <th className="table-index-cell">#</th>
+                                <th>Reference</th>
+                                <th>Supplier</th>
+                                <th>Date</th>
+                                <th>Qty</th>
+                                <th>Base Qty</th>
+                                <th>Unit Cost</th>
+                                <th>Discounts</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th />
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {paginatedPurchaseHistory.map(({ purchase, item }, itemIndex) => {
+                                const quantityDetails = getItemQuantityDetails(
+                                  item,
+                                  viewingProduct,
+                                  "purchase"
+                                );
+                                const rowNumber =
+                                  (purchaseHistoryPagination.page - 1) *
+                                    purchaseHistoryPagination.page_size +
+                                  itemIndex +
+                                  1;
 
-                            return (
-                            <tr key={`${purchase.id}-${item.id}`}>
-                              <td className="table-index-cell">{itemIndex + 1}</td>
-                              <td>{purchase.reference_no}</td>
-                              <td>{purchase.supplier_name}</td>
-                              <td>{purchase.transaction_date}</td>
-                              <td>{quantityDetails.enteredLabel}</td>
-                              <td>{quantityDetails.baseLabel}</td>
-                              <td>
-                                {item.unit_cost !== undefined && item.unit_cost !== null
-                                  ? formatCurrency(item.unit_cost)
-                                  : "—"}
-                              </td>
-                              <td>
-                                <span className="tx-discount-label">
-                                  {renderDiscounts(item)}
-                                </span>
-                              </td>
-                              <td>{formatCurrency(computeItemAmount(item))}</td>
-                              <td>
-                                <span
-                                  className={`status-badge status-${getPurchaseItemDisplayStatus(
-                                    item,
-                                    purchase.status
-                                  )}`}
-                                >
-                                  {formatStatusLabel(
-                                    getPurchaseItemDisplayStatus(item, purchase.status)
-                                  )}
-                                </span>
-                              </td>
-                              <td>
-                                <button
-                                  className="table-action-button"
-                                  type="button"
-                                  onClick={() => openTransactionDetail("purchase", purchase)}
-                                >
-                                  Details
-                                </button>
-                              </td>
-                            </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                                return (
+                                  <tr key={`${purchase.id}-${item.id}`}>
+                                    <td className="table-index-cell">{rowNumber}</td>
+                                    <td>{purchase.reference_no}</td>
+                                    <td>{purchase.supplier_name}</td>
+                                    <td>{purchase.transaction_date}</td>
+                                    <td>{quantityDetails.enteredLabel}</td>
+                                    <td>{quantityDetails.baseLabel}</td>
+                                    <td>
+                                      {item.unit_cost !== undefined && item.unit_cost !== null
+                                        ? formatCurrency(item.unit_cost)
+                                        : "—"}
+                                    </td>
+                                    <td>
+                                      <span className="tx-discount-label">
+                                        {renderDiscounts(item)}
+                                      </span>
+                                    </td>
+                                    <td>{formatCurrency(computeItemAmount(item))}</td>
+                                    <td>
+                                      <span
+                                        className={`status-badge status-${getPurchaseItemDisplayStatus(
+                                          item,
+                                          purchase.status
+                                        )}`}
+                                      >
+                                        {formatStatusLabel(
+                                          getPurchaseItemDisplayStatus(item, purchase.status)
+                                        )}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <button
+                                        className="table-action-button"
+                                        type="button"
+                                        onClick={() => openTransactionDetail("purchase", purchase)}
+                                      >
+                                        Details
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                      <PaginationControls
+                        pagination={purchaseHistoryPagination}
+                        onPageChange={setPurchaseHistoryPage}
+                        itemLabel="purchase rows"
+                      />
                     </div>
                   )}
                 </div>
@@ -1786,69 +1857,99 @@ function ProductsPage({
                   {viewSalesHistory.length === 0 ? (
                     <p className="empty-copy">No sales history found for this product.</p>
                   ) : (
-                    <div className="table-scroll">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th className="table-index-cell">#</th>
-                            <th>Reference</th>
-                            <th>Customer</th>
-                            <th>Date</th>
-                            <th>Qty</th>
-                            <th>Base Qty</th>
-                            <th>Unit Price</th>
-                            <th>Discounts</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {viewSalesHistory.map(({ sale, item }, itemIndex) => {
-                            const quantityDetails = getItemQuantityDetails(
-                              item,
-                              viewingProduct,
-                              "sale"
-                            );
+                    <div>
+                      <div className="transaction-table-window product-history-table-window">
+                        <div className="table-scroll desktop-table">
+                          <table className="transaction-history-table transaction-history-table-sale product-history-transaction-table">
+                            <colgroup>
+                              <col className="product-history-col-index" />
+                              <col className="product-history-col-reference" />
+                              <col className="product-history-col-party" />
+                              <col className="product-history-col-date" />
+                              <col className="product-history-col-qty" />
+                              <col className="product-history-col-qty" />
+                              <col className="product-history-col-money" />
+                              <col className="product-history-col-discount" />
+                              <col className="product-history-col-money" />
+                              <col className="product-history-col-status" />
+                              <col className="product-history-col-action" />
+                            </colgroup>
+                            <thead>
+                              <tr>
+                                <th className="table-index-cell">#</th>
+                                <th>Reference</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Qty</th>
+                                <th>Base Qty</th>
+                                <th>Unit Price</th>
+                                <th>Discounts</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th />
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {paginatedSalesHistory.map(({ sale, item }, itemIndex) => {
+                                const quantityDetails = getItemQuantityDetails(
+                                  item,
+                                  viewingProduct,
+                                  "sale"
+                                );
+                                const displayStatus = getStoredSaleItemStatus(item, sale.status);
+                                const rowNumber =
+                                  (salesHistoryPagination.page - 1) *
+                                    salesHistoryPagination.page_size +
+                                  itemIndex +
+                                  1;
 
-                            return (
-                            <tr key={`${sale.id}-${item.id}`}>
-                              <td className="table-index-cell">{itemIndex + 1}</td>
-                              <td>{sale.reference_no}</td>
-                              <td>{sale.customer_name}</td>
-                              <td>{sale.transaction_date}</td>
-                              <td>{quantityDetails.enteredLabel}</td>
-                              <td>{quantityDetails.baseLabel}</td>
-                              <td>
-                                {item.unit_price !== undefined && item.unit_price !== null
-                                  ? formatCurrency(item.unit_price)
-                                  : "—"}
-                              </td>
-                              <td>
-                                <span className="tx-discount-label">
-                                  {renderDiscounts(item)}
-                                </span>
-                              </td>
-                              <td>{formatCurrency(computeItemAmount(item))}</td>
-                              <td>
-                                <span className={`status-badge status-${sale.status}`}>
-                                  {formatStatusLabel(sale.status)}
-                                </span>
-                              </td>
-                              <td>
-                                <button
-                                  className="table-action-button"
-                                  type="button"
-                                  onClick={() => openTransactionDetail("sale", sale)}
-                                >
-                                  Details
-                                </button>
-                              </td>
-                            </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                                return (
+                                  <tr key={`${sale.id}-${item.id}`}>
+                                    <td className="table-index-cell">{rowNumber}</td>
+                                    <td>{sale.reference_no}</td>
+                                    <td>{sale.customer_name}</td>
+                                    <td>{sale.transaction_date}</td>
+                                    <td>{quantityDetails.enteredLabel}</td>
+                                    <td>{quantityDetails.baseLabel}</td>
+                                    <td>
+                                      {item.unit_price !== undefined && item.unit_price !== null
+                                        ? formatCurrency(item.unit_price)
+                                        : "—"}
+                                    </td>
+                                    <td>
+                                      <span className="tx-discount-label">
+                                        {renderDiscounts(item)}
+                                      </span>
+                                    </td>
+                                    <td>{formatCurrency(computeItemAmount(item))}</td>
+                                    <td>
+                                      <span
+                                        className={`status-badge status-${displayStatus}`}
+                                      >
+                                        {formatStatusLabel(displayStatus)}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <button
+                                        className="table-action-button"
+                                        type="button"
+                                        onClick={() => openTransactionDetail("sale", sale)}
+                                      >
+                                        Details
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                      <PaginationControls
+                        pagination={salesHistoryPagination}
+                        onPageChange={setSalesHistoryPage}
+                        itemLabel="sales rows"
+                      />
                     </div>
                   )}
                 </div>

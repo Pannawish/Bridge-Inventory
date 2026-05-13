@@ -739,7 +739,10 @@
 }
 
 .product-detail-modal {
-  width: min(900px, 100%);
+  width: min(1350px, calc(100vw - 40px));
+  max-width: calc(100vw - 40px);
+  max-height: 94vh;
+  box-sizing: border-box;
   border-radius: 4px;
   box-shadow: none;
 }
@@ -752,9 +755,9 @@
 
 .product-history-info-strip {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  padding: 14px 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 14px;
   margin-bottom: 8px;
   border: 1px solid var(--line);
   border-radius: 4px;
@@ -780,12 +783,102 @@
 
 .product-detail-body {
   display: grid;
-  gap: 20px;
+  gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .product-detail-section {
   display: grid;
-  gap: 12px;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.product-detail-section > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.product-history-table-window {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.product-history-table-window > .table-scroll {
+  width: 100%;
+  max-width: 100%;
+  max-height: 340px;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.product-history-table-window .product-history-transaction-table,
+.product-history-table-window .transaction-history-table-purchase,
+.product-history-table-window .transaction-history-table-sale {
+  width: max-content;
+  min-width: 1152px;
+  table-layout: auto;
+}
+
+.product-history-table-window th,
+.product-history-table-window td {
+  overflow: visible;
+  padding: 8px 6px;
+  font-size: 0.8rem;
+  line-height: 1.22;
+  text-overflow: initial;
+  white-space: nowrap;
+}
+
+.product-history-table-window .status-badge,
+.product-history-table-window .tx-discount-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-history-col-index {
+  width: 44px;
+}
+
+.product-history-col-reference {
+  width: 116px;
+}
+
+.product-history-col-party {
+  width: 150px;
+}
+
+.product-history-col-date {
+  width: 100px;
+}
+
+.product-history-col-qty {
+  width: 102px;
+}
+
+.product-history-col-money {
+  width: 110px;
+}
+
+.product-history-col-discount {
+  width: 98px;
+}
+
+.product-history-col-status {
+  width: 132px;
+}
+
+.product-history-col-action {
+  width: 78px;
+}
+
+.product-detail-section .list-pagination {
+  margin-top: 12px;
 }
 
 .product-profile-panel {
@@ -793,6 +886,10 @@
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
   gap: 18px;
   align-items: start;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 4px;
@@ -829,8 +926,23 @@
 
 .product-profile-copy {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
   min-width: 0;
+}
+
+.product-profile-copy > div {
+  min-width: 0;
+}
+
+.product-profile-copy > div:last-child {
+  grid-column: 1 / -1;
+}
+
+.product-profile-copy strong,
+.product-detail-text,
+.product-history-stat > strong {
+  overflow-wrap: anywhere;
 }
 
 .product-detail-text {
