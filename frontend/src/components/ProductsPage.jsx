@@ -7,6 +7,7 @@ import {
 } from "./CategoryPage";
 import {
   formatStatusLabel,
+  formatPurchaseLeadTime,
   getPurchaseItemDisplayStatus,
 } from "../purchaseStatus";
 import { getStoredSaleItemStatus } from "../saleStatus";
@@ -1520,11 +1521,7 @@ function ProductsPage({
                                       <td>{item.product_name}</td>
                                       <td>{item.sku || "—"}</td>
                                       <td>{item.expected_delivery_date || "—"}</td>
-                                      <td>
-                                        {item.lead_time_days !== undefined && item.lead_time_days !== ""
-                                          ? `${item.lead_time_days} days`
-                                          : "—"}
-                                      </td>
+                                      <td>{formatPurchaseLeadTime(item, transaction)}</td>
                                       <td>
                                         <span
                                           className={`status-badge item-status-badge status-${getPurchaseItemDisplayStatus(

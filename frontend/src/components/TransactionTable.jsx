@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   editablePurchaseItemStatuses,
   formatStatusLabel,
+  formatPurchaseLeadTime,
   getPurchaseItemDisplayStatus,
   getPurchaseItemStatusCounts,
   getStoredPurchaseItemStatus,
@@ -923,11 +924,7 @@ function TransactionTable({
                             <td>{item.product_name}</td>
                             <td>{item.sku || "—"}</td>
                             <td>{item.expected_delivery_date || "—"}</td>
-                            <td>
-                              {item.lead_time_days !== undefined && item.lead_time_days !== ""
-                                ? `${item.lead_time_days} days`
-                                : "—"}
-                            </td>
+                            <td>{formatPurchaseLeadTime(item, selectedRow)}</td>
                             <td>
                               <div className="purchase-item-status-control">
                                 <select

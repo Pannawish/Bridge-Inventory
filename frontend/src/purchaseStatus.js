@@ -19,6 +19,29 @@ export function getTodayString(date = new Date()) {
   return date.toISOString().split("T")[0];
 }
 
+function getDateMs(dateValue) {
+  if (!dateValue) {
+    return null;
+  }
+
+  const date = new Date(`${dateValue}T00:00:00`);
+  const time = date.getTime();
+
+  return Number.isFinite(time) ? time : null;
+}
+
+export function formatPurchaseLeadTime(item, purchase) {
+  const startMs = getDateMs(purchase?.transaction_date);
+  const receivedMs = getDateMs(item?.received_date);
+
+  if (startMs === null || receivedMs === null) {
+    return "—";
+  }
+
+  const days = Math.max(0, Math.round((receivedMs - startMs) / 86400000));
+  return `${days} days`;
+}
+
 export function getInitialPurchaseItemStatus(purchaseStatus = "ordered") {
   if (purchaseStatus === "received") {
     return "received";
