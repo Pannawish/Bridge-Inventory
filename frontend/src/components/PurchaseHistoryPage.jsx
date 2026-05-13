@@ -156,7 +156,19 @@ function sortRecentTransactions(a, b) {
   return (Number(b.id) || 0) - (Number(a.id) || 0);
 }
 
-function computeAmount(item) {
+function getBillDiscountValue(transaction) {
+  return Math.min(
+    100,
+    Math.max(0, Number(transaction?.bill_discount ?? transaction?.billDiscount ?? 0) || 0)
+  );
+}
+
+function renderBillDiscount(transaction) {
+  const discount = getBillDiscountValue(transaction);
+  return discount > 0 ? `${discount}%` : "—";
+}
+
+function computeAmount(item, transaction = null) {
   const qty = Number(item.quantity) || 0;
   const cost = Number(item.unit_cost) || 0;
   const multiplier = (item.discounts || []).reduce((acc, discount) => {
@@ -164,7 +176,7 @@ function computeAmount(item) {
     return acc * (1 - clamped / 100);
   }, 1);
 
-  return qty * cost * multiplier;
+  return qty * cost * multiplier * (1 - getBillDiscountValue(transaction) / 100);
 }
 
 function computeLeadTimeDays(transactionDate, expectedDeliveryDate) {
@@ -203,7 +215,7 @@ function getPurchaseItemRemovalMessage(purchase, item, itemIndex) {
     `Status: ${formatStatusLabel(displayStatus)}`,
     `Expected delivery: ${item.expected_delivery_date || "—"}`,
     `Received date: ${item.received_date || "—"}`,
-    `Line amount: ${fmt(computeAmount(item))}`,
+    `Line amount: ${fmt(computeAmount(item, purchase))}`,
     "",
     impact,
     "This cannot be undone after you save the transaction.",
@@ -390,7 +402,7 @@ function PurchaseEditForm({
     );
   }, [purchase.supplier_name, supplierQuery, suppliers]);
 
-  const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
+  const itemTotal = items.reduce((sum, item) => sum + computeAmount(item, purchase), 0);
   const vatSummary = computeVatSummary(itemTotal, vatMode);
   const productOptions = products;
   const visibleDocuments = getTransactionDocuments(purchase).filter(
@@ -628,24 +640,24 @@ function PurchaseEditForm({
         return nextItems;
       }
 
-        const amount = computeAmount(item);
-        const convertedFields = buildConvertedItemFields(
-          selectedProduct,
-          item.quantity,
-          item.unit,
-          "purchase"
-        );
-        const itemStatus =
-          form.status === "received" ||
-          form.status === "cancelled" ||
-          form.status === "ordered" ||
-          form.status === "draft"
-            ? getInitialPurchaseItemStatus(form.status)
-            : item.item_status || getInitialPurchaseItemStatus(form.status);
+      const amount = computeAmount(item, purchase);
+      const convertedFields = buildConvertedItemFields(
+        selectedProduct,
+        item.quantity,
+        item.unit,
+        "purchase"
+      );
+      const itemStatus =
+        form.status === "received" ||
+        form.status === "cancelled" ||
+        form.status === "ordered" ||
+        form.status === "draft"
+          ? getInitialPurchaseItemStatus(form.status)
+          : item.item_status || getInitialPurchaseItemStatus(form.status);
 
-        return [
-          ...nextItems,
-          {
+      return [
+        ...nextItems,
+        {
           id: item.id,
           product_id: selectedProduct.id,
           product_name: getProductName(selectedProduct),
@@ -663,9 +675,9 @@ function PurchaseEditForm({
           discounts: item.discounts || [0],
           amount,
           line_total: amount,
-          },
-        ];
-      }, []);
+        },
+      ];
+    }, []);
 
     if (Object.keys(nextItemErrors).length) {
       setItemErrors(nextItemErrors);
@@ -953,7 +965,7 @@ function PurchaseEditForm({
           </div>
 
           {items.map((item, index) => {
-            const amount = computeAmount(item);
+            const amount = computeAmount(item, purchase);
             const filteredProducts = getFilteredProducts(item.product_query || "");
             const selectedProduct = findProductForItem(item, products);
             const unitOptions = selectedProduct
@@ -1203,6 +1215,12 @@ function PurchaseEditForm({
         </section>
 
         <div className="sales-summary-card">
+          {renderBillDiscount(purchase) !== "—" ? (
+            <div className="sales-summary-row">
+              <span>Bill Discount</span>
+              <span>{renderBillDiscount(purchase)}</span>
+            </div>
+          ) : null}
           {isVatEnabled(vatMode) ? (
             <>
               <div className="sales-summary-row">

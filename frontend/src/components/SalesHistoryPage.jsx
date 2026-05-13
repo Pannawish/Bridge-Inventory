@@ -157,7 +157,19 @@ function sortRecentTransactions(a, b) {
   return (Number(b.id) || 0) - (Number(a.id) || 0);
 }
 
-function computeAmount(item) {
+function getBillDiscountValue(transaction) {
+  return Math.min(
+    100,
+    Math.max(0, Number(transaction?.bill_discount ?? transaction?.billDiscount ?? 0) || 0)
+  );
+}
+
+function renderBillDiscount(transaction) {
+  const discount = getBillDiscountValue(transaction);
+  return discount > 0 ? `${discount}%` : "—";
+}
+
+function computeAmount(item, transaction = null) {
   const qty = Number(item.quantity) || 0;
   const price = Number(item.unit_price) || 0;
   const multiplier = (item.discounts || []).reduce((acc, discount) => {
@@ -165,7 +177,7 @@ function computeAmount(item) {
     return acc * (1 - clamped / 100);
   }, 1);
 
-  return qty * price * multiplier;
+  return qty * price * multiplier * (1 - getBillDiscountValue(transaction) / 100);
 }
 
 function formatSalesStatusLabel(status = "") {
@@ -194,7 +206,7 @@ function getSalesItemRemovalMessage(sale, item, itemIndex) {
     `Status: ${formatSalesStatusLabel(itemStatus)}`,
     `Shipped date: ${item.shipped_date || "—"}`,
     `Delivered date: ${item.delivered_date || "—"}`,
-    `Line amount: ${fmt(computeAmount(item))}`,
+    `Line amount: ${fmt(computeAmount(item, sale))}`,
     "",
     impact,
     "This cannot be undone after you save the transaction.",
@@ -419,7 +431,7 @@ function SalesEditForm({
     [items, products]
   );
 
-  const itemTotal = items.reduce((sum, item) => sum + computeAmount(item), 0);
+  const itemTotal = items.reduce((sum, item) => sum + computeAmount(item, sale), 0);
   const vatSummary = computeVatSummary(itemTotal, vatMode);
   const stockPreviewItems = useMemo(
     () =>
@@ -658,7 +670,7 @@ function SalesEditForm({
     const normalizedItems = items
       .filter((item) => item.product_name && item.quantity && item.unit_price)
       .map((item) => {
-        const amount = computeAmount(item);
+        const amount = computeAmount(item, sale);
         const selectedProduct = products.find(
           (product) => `${product.id}` === `${item.product_id}`
         );
@@ -1025,7 +1037,7 @@ function SalesEditForm({
           </div>
 
           {items.map((item, index) => {
-            const amount = computeAmount(item);
+            const amount = computeAmount(item, sale);
             const selectedProduct = products.find(
               (product) => `${product.id}` === `${item.product_id}`
             );
@@ -1212,6 +1224,12 @@ function SalesEditForm({
         </section>
 
         <div className="sales-summary-card">
+          {renderBillDiscount(sale) !== "—" ? (
+            <div className="sales-summary-row">
+              <span>Bill Discount</span>
+              <span>{renderBillDiscount(sale)}</span>
+            </div>
+          ) : null}
           {isVatEnabled(vatMode) ? (
             <>
               <div className="sales-summary-row">

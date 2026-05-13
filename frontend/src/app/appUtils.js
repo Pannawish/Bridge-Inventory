@@ -110,6 +110,7 @@ function buildTransactionFormData(record, fields) {
 
   formData.append("items", JSON.stringify(record.items || []));
   formData.append("vat_mode", record.vat_mode || "not_included");
+  formData.append("bill_discount", record.bill_discount ?? record.billDiscount ?? 0);
   formData.append("total_before_vat", record.total_before_vat ?? 0);
   formData.append("vat_amount", record.vat_amount ?? 0);
   formData.append("grand_total", record.grand_total ?? record.total_amount ?? 0);

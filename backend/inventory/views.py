@@ -69,6 +69,7 @@ DECIMAL_FIELD_PLACES = {
     "unit_price": 2,
     "cost_price": 2,
     "sale_price": 2,
+    "bill_discount": 2,
     "amount": 2,
     "line_total": 2,
     "quantity": 3,

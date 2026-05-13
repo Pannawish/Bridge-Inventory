@@ -456,6 +456,7 @@ function SalesForm({
     formData.append("transaction_date", form.transaction_date);
     formData.append("note", form.note);
     formData.append("vat_mode", vatMode);
+    formData.append("bill_discount", activeAllItemsDiscount ?? 0);
     formData.append("payment_term_type", form.payment_term_type);
     formData.append("payment_term_days", form.payment_term_type === "credit" ? form.payment_term_days : "");
     formData.append("payment_date", paymentDate);
@@ -474,16 +475,11 @@ function SalesForm({
         const selectedProduct = products.find(
           (product) => `${product.id}` === `${item.product_id}`
         );
-        const effectiveDiscounts = getEffectiveDiscounts(
-          item.discounts,
-          activeAllItemsDiscount
-        );
-
         return {
           ...itemPayload,
           product_name: selectedProduct ? getProductName(selectedProduct) : item.product_name,
           sku: selectedProduct ? getProductSku(selectedProduct) : item.sku,
-          discounts: effectiveDiscounts,
+          discounts: item.discounts,
           ...(selectedProduct
             ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
             : {}),

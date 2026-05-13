@@ -49,6 +49,15 @@ def decimal_or_none(value):
         raise serializers.ValidationError("Enter a valid number.")
 
 
+def validate_percentage_discount(value, label):
+    discount = decimal_or_none(value) or Decimal("0")
+
+    if discount < 0 or discount > 100:
+        raise serializers.ValidationError(f"{label} must be between 0 and 100.")
+
+    return discount
+
+
 def resolve_product(product_id=None, sku="", product_name=""):
     product_id = str(product_id or "").strip()
     sku = str(sku or "").strip()
@@ -603,6 +612,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "remove_document_ids",
             "remove_document",
             "vat_mode",
+            "bill_discount",
             "total_before_vat",
             "vat_amount",
             "grand_total",
@@ -618,6 +628,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "note": {"required": False, "allow_blank": True},
             "document": {"required": False, "allow_null": True, "write_only": True},
             "vat_mode": {"required": False},
+            "bill_discount": {"required": False},
             "total_before_vat": {"required": False},
             "vat_amount": {"required": False},
             "grand_total": {"required": False},
@@ -641,6 +652,9 @@ class PurchaseSerializer(serializers.ModelSerializer):
             documents.insert(0, build_legacy_document_payload(request, purchase.document))
 
         return documents
+
+    def validate_bill_discount(self, value):
+        return validate_percentage_discount(value, "Bill discount")
 
     def validate(self, attrs):
         supplier_id_value = attrs.pop("supplier_id", None)
@@ -848,6 +862,7 @@ class SaleSerializer(serializers.ModelSerializer):
             "remove_document_ids",
             "remove_document",
             "vat_mode",
+            "bill_discount",
             "total_before_vat",
             "vat_amount",
             "grand_total",
@@ -862,6 +877,7 @@ class SaleSerializer(serializers.ModelSerializer):
             "note": {"required": False, "allow_blank": True},
             "document": {"required": False, "allow_null": True, "write_only": True},
             "vat_mode": {"required": False},
+            "bill_discount": {"required": False},
             "total_before_vat": {"required": False},
             "vat_amount": {"required": False},
             "grand_total": {"required": False},
@@ -873,6 +889,9 @@ class SaleSerializer(serializers.ModelSerializer):
             return build_file_url(self.context.get("request"), first_document.file)
 
         return build_file_url(self.context.get("request"), sale.document)
+
+    def validate_bill_discount(self, value):
+        return validate_percentage_discount(value, "Bill discount")
 
     def get_documents(self, sale):
         request = self.context.get("request")

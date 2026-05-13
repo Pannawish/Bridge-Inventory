@@ -957,6 +957,33 @@
   font-weight: 600;
 }
 
+.tx-discount-breakdown {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tx-discount-breakdown-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.tx-discount-type {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.tx-discount-breakdown .tx-discount-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .tx-sales-summary {
   display: grid;
   gap: 0;

@@ -485,11 +485,6 @@ function PurchaseForm({
         return nextItems;
       }
 
-      const effectiveDiscounts = getEffectiveDiscounts(
-        item.discounts,
-        activeAllItemsDiscount
-      );
-
       return [
         ...nextItems,
         {
@@ -514,7 +509,7 @@ function PurchaseForm({
           ),
           quantity: item.quantity,
           unit_cost: item.unit_cost,
-          discounts: effectiveDiscounts,
+          discounts: item.discounts,
           amount: computeAmount(item, activeAllItemsDiscount),
         },
       ];
@@ -534,6 +529,7 @@ function PurchaseForm({
     formData.append("transaction_date", form.transaction_date);
     formData.append("note", form.note);
     formData.append("vat_mode", vatMode);
+    formData.append("bill_discount", activeAllItemsDiscount ?? 0);
     formData.append("payment_term_type", form.payment_term_type);
     formData.append("payment_term_days", form.payment_term_type === "credit" ? form.payment_term_days : "");
     formData.append("payment_date", paymentDate);

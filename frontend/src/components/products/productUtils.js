@@ -251,7 +251,16 @@ export function getTransactionDocuments(transaction = {}) {
     : [];
 }
 
-export function computeItemAmount(item) {
+function applyBillDiscount(amount, transaction) {
+  const billDiscount = Math.min(
+    100,
+    Math.max(0, Number(transaction?.bill_discount ?? transaction?.billDiscount ?? 0) || 0)
+  );
+
+  return amount * (1 - billDiscount / 100);
+}
+
+export function computeItemAmount(item, transaction = null) {
   const qty = Number(item.quantity) || 0;
   const price = Number(item.unit_price ?? item.unit_cost) || 0;
 
@@ -264,11 +273,11 @@ export function computeItemAmount(item) {
       const clamped = Math.min(100, Math.max(0, Number(discount) || 0));
       return acc * (1 - clamped / 100);
     }, 1);
-    return qty * price * multiplier;
+    return applyBillDiscount(qty * price * multiplier, transaction);
   }
 
   const discount = Math.min(100, Math.max(0, Number(item.discount) || 0));
-  return qty * price * (1 - discount / 100);
+  return applyBillDiscount(qty * price * (1 - discount / 100), transaction);
 }
 
 export function renderDiscounts(item) {
@@ -287,8 +296,21 @@ export function renderDiscounts(item) {
   return "—";
 }
 
-export function computeVatSummary(items, vatMode) {
-  const itemTotal = items.reduce((sum, item) => sum + computeItemAmount(item), 0);
+export function renderBillDiscount(transaction) {
+  const discount = Number(transaction?.bill_discount ?? transaction?.billDiscount ?? 0);
+
+  if (discount > 0) {
+    return `${discount}%`;
+  }
+
+  return "—";
+}
+
+export function computeVatSummary(items, vatMode, transaction = null) {
+  const itemTotal = items.reduce(
+    (sum, item) => sum + computeItemAmount(item, transaction),
+    0
+  );
 
   if (vatMode === "included") {
     const subtotal = itemTotal / (1 + VAT_RATE);
@@ -398,7 +420,7 @@ export function getProductMetrics(product, purchases, sales) {
     0
   );
   const totalPriceAmount = priceRows.reduce(
-    (sum, { item }) => sum + computeItemAmount(item),
+    (sum, { transaction, item }) => sum + computeItemAmount(item, transaction),
     0
   );
   const totalUnits = Math.max(0, purchasedUnits - soldUnits);

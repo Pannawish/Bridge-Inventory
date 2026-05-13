@@ -38,6 +38,7 @@ import {
   normalizeProduct,
   normalizeSku,
   normalizeUniqueNames,
+  renderBillDiscount,
   renderDiscounts,
   resolveProductCategoryId,
 } from "./products/productUtils";
@@ -87,6 +88,21 @@ function createLocalPagination(count, page, pageSize = PRODUCT_HISTORY_PAGE_SIZE
 function getPaginatedRows(rows, pagination) {
   const start = (pagination.page - 1) * pagination.page_size;
   return rows.slice(start, start + pagination.page_size);
+}
+
+function DiscountBreakdown({ item, transaction }) {
+  return (
+    <div className="tx-discount-breakdown">
+      <span className="tx-discount-breakdown-row">
+        <span className="tx-discount-type">Item</span>
+        <span className="tx-discount-label">{renderDiscounts(item)}</span>
+      </span>
+      <span className="tx-discount-breakdown-row">
+        <span className="tx-discount-type">Bill</span>
+        <span className="tx-discount-label">{renderBillDiscount(transaction)}</span>
+      </span>
+    </div>
+  );
 }
 
 const defaultProducts = [
@@ -1398,7 +1414,11 @@ function ProductsPage({
                 {(() => {
                   const isPurchase = viewingTransaction.type === "purchase";
                   const transaction = viewingTransaction.data;
-                  const summary = computeVatSummary(transaction.items || [], transaction.vat_mode);
+                  const summary = computeVatSummary(
+                    transaction.items || [],
+                    transaction.vat_mode,
+                    transaction
+                  );
                   const showVat = transaction.vat_mode !== "none";
 
                   return (
@@ -1484,7 +1504,7 @@ function ProductsPage({
                                   const isHighlighted =
                                     viewingProduct &&
                                     itemMatchesProduct(item, viewingProduct);
-                                  const amount = computeItemAmount(item);
+                                  const amount = computeItemAmount(item, transaction);
                                   const quantityDetails = getItemQuantityDetails(
                                     item,
                                     viewingProduct,
@@ -1526,9 +1546,7 @@ function ProductsPage({
                                           : "—"}
                                       </td>
                                       <td>
-                                        <span className="tx-discount-label">
-                                          {renderDiscounts(item)}
-                                        </span>
+                                        <DiscountBreakdown item={item} transaction={transaction} />
                                       </td>
                                       <td>{formatCurrency(amount)}</td>
                                     </tr>
@@ -1554,7 +1572,7 @@ function ProductsPage({
                                   const isHighlighted =
                                     viewingProduct &&
                                     itemMatchesProduct(item, viewingProduct);
-                                  const amount = computeItemAmount(item);
+                                  const amount = computeItemAmount(item, transaction);
                                   const quantityDetails = getItemQuantityDetails(
                                     item,
                                     viewingProduct,
@@ -1576,9 +1594,7 @@ function ProductsPage({
                                           : "—"}
                                       </td>
                                       <td>
-                                        <span className="tx-discount-label">
-                                          {renderDiscounts(item)}
-                                        </span>
+                                        <DiscountBreakdown item={item} transaction={transaction} />
                                       </td>
                                       <td>{formatCurrency(amount)}</td>
                                     </tr>
@@ -1591,6 +1607,12 @@ function ProductsPage({
                       </div>
 
                       <div className="tx-sales-summary">
+                        {renderBillDiscount(transaction) !== "—" ? (
+                          <div className="tx-summary-row">
+                            <span>Bill Discount</span>
+                            <span>{renderBillDiscount(transaction)}</span>
+                          </div>
+                        ) : null}
                         {showVat ? (
                           <>
                             <div className="tx-summary-row">
@@ -1810,11 +1832,9 @@ function ProductsPage({
                                         : "—"}
                                     </td>
                                     <td>
-                                      <span className="tx-discount-label">
-                                        {renderDiscounts(item)}
-                                      </span>
+                                      <DiscountBreakdown item={item} transaction={purchase} />
                                     </td>
-                                    <td>{formatCurrency(computeItemAmount(item))}</td>
+                                    <td>{formatCurrency(computeItemAmount(item, purchase))}</td>
                                     <td>
                                       <span
                                         className={`status-badge status-${getPurchaseItemDisplayStatus(
@@ -1917,11 +1937,9 @@ function ProductsPage({
                                         : "—"}
                                     </td>
                                     <td>
-                                      <span className="tx-discount-label">
-                                        {renderDiscounts(item)}
-                                      </span>
+                                      <DiscountBreakdown item={item} transaction={sale} />
                                     </td>
-                                    <td>{formatCurrency(computeItemAmount(item))}</td>
+                                    <td>{formatCurrency(computeItemAmount(item, sale))}</td>
                                     <td>
                                       <span
                                         className={`status-badge status-${displayStatus}`}

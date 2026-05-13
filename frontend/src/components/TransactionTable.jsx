@@ -30,7 +30,16 @@ function formatCurrency(value) {
   })}`;
 }
 
-function computeItemAmount(item) {
+function applyBillDiscount(amount, transaction) {
+  const billDiscount = Math.min(
+    100,
+    Math.max(0, Number(transaction?.bill_discount ?? transaction?.billDiscount ?? 0) || 0)
+  );
+
+  return amount * (1 - billDiscount / 100);
+}
+
+function computeItemAmount(item, transaction = null) {
   const qty = Number(item.quantity) || 0;
   const price = Number(item.unit_price ?? item.unit_cost) || 0;
 
@@ -43,11 +52,11 @@ function computeItemAmount(item) {
       const clamped = Math.min(100, Math.max(0, Number(d) || 0));
       return acc * (1 - clamped / 100);
     }, 1);
-    return qty * price * multiplier;
+    return applyBillDiscount(qty * price * multiplier, transaction);
   }
 
   const disc = Math.min(100, Math.max(0, Number(item.discount) || 0));
-  return qty * price * (1 - disc / 100);
+  return applyBillDiscount(qty * price * (1 - disc / 100), transaction);
 }
 
 function renderDiscounts(item) {
@@ -64,6 +73,31 @@ function renderDiscounts(item) {
   }
 
   return "—";
+}
+
+function renderBillDiscount(transaction) {
+  const discount = Number(transaction?.bill_discount ?? transaction?.billDiscount ?? 0);
+
+  if (discount > 0) {
+    return `${discount}%`;
+  }
+
+  return "—";
+}
+
+function DiscountBreakdown({ item, transaction }) {
+  return (
+    <div className="tx-discount-breakdown">
+      <span className="tx-discount-breakdown-row">
+        <span className="tx-discount-type">Item</span>
+        <span className="tx-discount-label">{renderDiscounts(item)}</span>
+      </span>
+      <span className="tx-discount-breakdown-row">
+        <span className="tx-discount-type">Bill</span>
+        <span className="tx-discount-label">{renderBillDiscount(transaction)}</span>
+      </span>
+    </div>
+  );
 }
 
 function normalizeLookupValue(value) {
@@ -172,7 +206,10 @@ function TransactionTable({
   const isCompact = shouldShowViewAll && !showAllRows;
 
   function getVatSummary(row) {
-    const itemTotal = (row.items || []).reduce((sum, item) => sum + computeItemAmount(item), 0);
+    const itemTotal = (row.items || []).reduce(
+      (sum, item) => sum + computeItemAmount(item, row),
+      0
+    );
 
     if (row.vat_mode === "included") {
       const subtotal = itemTotal / (1 + VAT_RATE);
@@ -761,7 +798,7 @@ function TransactionTable({
                     </thead>
                     <tbody>
                       {(selectedRow.items || []).map((item, itemIndex) => {
-                        const amount = computeItemAmount(item);
+                        const amount = computeItemAmount(item, selectedRow);
                         const itemStatus = getStoredSaleItemStatus(item, selectedRow.status);
                         const itemStatusOptions = getItemStatusOptions(
                           editableSaleItemStatuses,
@@ -829,9 +866,7 @@ function TransactionTable({
                             <td>{quantityDetails.baseLabel}</td>
                             <td>{item.unit_price ? formatCurrency(item.unit_price) : "—"}</td>
                             <td>
-                              <span className="tx-discount-label">
-                                {renderDiscounts(item)}
-                              </span>
+                              <DiscountBreakdown item={item} transaction={selectedRow} />
                             </td>
                             <td>{formatCurrency(amount)}</td>
                           </tr>
@@ -860,7 +895,7 @@ function TransactionTable({
                     </thead>
                     <tbody>
                       {(selectedRow.items || []).map((item, itemIndex) => {
-                        const amount = computeItemAmount(item);
+                        const amount = computeItemAmount(item, selectedRow);
                         const displayStatus = getPurchaseItemDisplayStatus(
                           item,
                           selectedRow.status
@@ -939,9 +974,7 @@ function TransactionTable({
                             <td>{quantityDetails.baseLabel}</td>
                             <td>{item.unit_cost ? formatCurrency(item.unit_cost) : "—"}</td>
                             <td>
-                              <span className="tx-discount-label">
-                                {renderDiscounts(item)}
-                              </span>
+                              <DiscountBreakdown item={item} transaction={selectedRow} />
                             </td>
                             <td>{formatCurrency(amount)}</td>
                             <td>
@@ -969,6 +1002,12 @@ function TransactionTable({
 
               return (
                 <div className="tx-sales-summary">
+                  {renderBillDiscount(selectedRow) !== "—" ? (
+                    <div className="tx-summary-row">
+                      <span>Bill Discount</span>
+                      <span>{renderBillDiscount(selectedRow)}</span>
+                    </div>
+                  ) : null}
                   {showVat ? (
                     <>
                       <div className="tx-summary-row">
