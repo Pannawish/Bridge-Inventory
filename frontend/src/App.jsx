@@ -1195,8 +1195,8 @@ function App() {
                 products={products}
                 suppliers={suppliers}
                 customers={customers}
-                purchases={usingMockPurchases ? purchases : []}
-                sales={usingMockSales ? sales : []}
+                purchases={purchases}
+                sales={sales}
                 enableSaleStockValidation={usingMockPurchases && usingMockSales}
                 onSaveQuotation={handleQuotationSave}
                 onDeleteQuotation={handleQuotationDelete}
@@ -1208,7 +1208,7 @@ function App() {
             {activeTab === "sales-history" ? (
               <SalesHistoryPage
                 sales={saleRows}
-                allSales={usingMockSales ? sales : []}
+                allSales={sales}
                 products={products}
                 purchases={usingMockPurchases ? purchases : []}
                 enableStockValidation={usingMockPurchases && usingMockSales}

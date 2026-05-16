@@ -35,7 +35,7 @@ function getSalesReferencePrefix(date = new Date()) {
 
 function getNextSalesReference(sales = [], date = new Date()) {
   const prefix = getSalesReferencePrefix(date);
-  const referencePattern = new RegExp(`^${prefix}-(\\d{3})$`);
+  const referencePattern = new RegExp(`^${prefix}-(\\d+)$`);
   const maxSerial = sales.reduce((max, sale) => {
     const match = `${sale.reference_no || ""}`.match(referencePattern);
 
@@ -45,8 +45,20 @@ function getNextSalesReference(sales = [], date = new Date()) {
 
     return Math.max(max, Number(match[1]));
   }, 0);
-  const nextSerial = maxSerial >= 999 ? 1 : maxSerial + 1;
+  const nextSerial = maxSerial + 1;
 
+  return `${prefix}-${`${nextSerial}`.padStart(3, "0")}`;
+}
+
+function getNextSalesReferenceAfter(referenceNo, date = new Date()) {
+  const prefix = getSalesReferencePrefix(date);
+  const match = `${referenceNo || ""}`.match(new RegExp(`^${prefix}-(\\d+)$`));
+
+  if (!match) {
+    return getNextSalesReference([], date);
+  }
+
+  const nextSerial = Number(match[1]) + 1;
   return `${prefix}-${`${nextSerial}`.padStart(3, "0")}`;
 }
 
@@ -502,7 +514,9 @@ function SalesForm({
       return;
     }
 
-    setForm(createInitialForm(lastGeneratedReference.current));
+    const nextReference = getNextSalesReferenceAfter(lastGeneratedReference.current);
+    lastGeneratedReference.current = nextReference;
+    setForm(createInitialForm(nextReference));
     setItems([emptyItem()]);
     setVatMode("not_included");
     setAllItemsDiscountEnabled(false);

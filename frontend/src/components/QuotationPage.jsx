@@ -53,7 +53,7 @@ function getReferenceDate(dateString = "") {
 
 function getNextQuotationReference(quotations = [], dateString = getToday()) {
   const prefix = getQuotationReferencePrefix(getReferenceDate(dateString));
-  const referencePattern = new RegExp(`^${prefix}-(\\d{3})$`);
+  const referencePattern = new RegExp(`^${prefix}-(\\d+)$`);
   const maxSerial = quotations.reduce((max, quotation) => {
     const match = `${quotation.reference_no || ""}`.match(referencePattern);
 
@@ -63,7 +63,7 @@ function getNextQuotationReference(quotations = [], dateString = getToday()) {
 
     return Math.max(max, Number(match[1]));
   }, 0);
-  const nextSerial = maxSerial >= 999 ? 1 : maxSerial + 1;
+  const nextSerial = maxSerial + 1;
 
   return `${prefix}-${`${nextSerial}`.padStart(3, "0")}`;
 }

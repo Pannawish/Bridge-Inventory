@@ -36,7 +36,7 @@ function getPurchaseReferencePrefix(date = new Date()) {
 
 function getNextPurchaseReference(purchases = [], date = new Date()) {
   const prefix = getPurchaseReferencePrefix(date);
-  const referencePattern = new RegExp(`^${prefix}-(\\d{3})$`);
+  const referencePattern = new RegExp(`^${prefix}-(\\d+)$`);
   const maxSerial = purchases.reduce((max, purchase) => {
     const match = `${purchase.reference_no || ""}`.match(referencePattern);
 
@@ -46,8 +46,20 @@ function getNextPurchaseReference(purchases = [], date = new Date()) {
 
     return Math.max(max, Number(match[1]));
   }, 0);
-  const nextSerial = maxSerial >= 999 ? 1 : maxSerial + 1;
+  const nextSerial = maxSerial + 1;
 
+  return `${prefix}-${`${nextSerial}`.padStart(3, "0")}`;
+}
+
+function getNextPurchaseReferenceAfter(referenceNo, date = new Date()) {
+  const prefix = getPurchaseReferencePrefix(date);
+  const match = `${referenceNo || ""}`.match(new RegExp(`^${prefix}-(\\d+)$`));
+
+  if (!match) {
+    return getNextPurchaseReference([], date);
+  }
+
+  const nextSerial = Number(match[1]) + 1;
   return `${prefix}-${`${nextSerial}`.padStart(3, "0")}`;
 }
 
@@ -549,7 +561,9 @@ function PurchaseForm({
       return;
     }
 
-    setForm(createInitialForm(lastGeneratedReference.current));
+    const nextReference = getNextPurchaseReferenceAfter(lastGeneratedReference.current);
+    lastGeneratedReference.current = nextReference;
+    setForm(createInitialForm(nextReference));
     setItems([emptyItem()]);
     setVatMode("not_included");
     setAllItemsDiscountEnabled(false);

@@ -30,10 +30,12 @@ function getNextReferenceNo(paymentBatches) {
   const today = new Date();
   const yearMonth = `${(today.getFullYear() + 543).toString().slice(-2)}${String(today.getMonth() + 1).padStart(2, "0")}`;
   const prefix = `PMT-${yearMonth}-`;
-  const sameMonth = paymentBatches.filter((row) =>
-    `${row.reference_no || ""}`.startsWith(prefix)
-  );
-  const next = sameMonth.length + 1;
+  const referencePattern = new RegExp(`^${prefix}(\\d+)$`);
+  const maxSerial = paymentBatches.reduce((max, row) => {
+    const match = `${row.reference_no || ""}`.match(referencePattern);
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 0);
+  const next = maxSerial + 1;
   return `${prefix}${String(next).padStart(3, "0")}`;
 }
 

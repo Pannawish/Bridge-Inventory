@@ -623,6 +623,89 @@ class RelationalNormalizationTests(APITestCase):
         self.assertEqual(quotation_item.base_quantity, Decimal("2.000"))
 
 
+class ReferenceNumberTests(APITestCase):
+    def setUp(self):
+        self.today = timezone.localdate()
+        self.year_month = f"{self.today.year + 543}"[-2:] + f"{self.today.month:02d}"
+        self.supplier = Supplier.objects.create(company_name="Reference Supplier")
+        self.customer = Customer.objects.create(company_name="Reference Customer")
+        self.product = Product.objects.create(
+            sku="REF-1",
+            product_name="Reference Product",
+        )
+
+    def reference(self, prefix, serial):
+        return f"{prefix}-{self.year_month}-{serial:03d}"
+
+    def test_purchase_sale_and_quotation_duplicate_references_are_advanced(self):
+        Purchase.objects.create(
+            reference_no=self.reference("PO", 3),
+            supplier_name=self.supplier.company_name,
+            transaction_date=self.today,
+        )
+        Sale.objects.create(
+            reference_no=self.reference("TI", 3),
+            customer_name=self.customer.company_name,
+            status=Sale.STATUS_DRAFT,
+            transaction_date=self.today,
+        )
+        Quotation.objects.create(
+            reference_no=self.reference("QT", 3),
+            quotation_date=self.today,
+            valid_until_date=self.today,
+            customer_name=self.customer.company_name,
+        )
+
+        purchase_response = self.client.post(
+            "/api/purchases/",
+            {
+                "reference_no": self.reference("PO", 3),
+                "supplier_name": self.supplier.company_name,
+                "transaction_date": self.today.isoformat(),
+            },
+            format="json",
+        )
+        sale_response = self.client.post(
+            "/api/sales/",
+            {
+                "reference_no": self.reference("TI", 3),
+                "customer_name": self.customer.company_name,
+                "status": Sale.STATUS_DRAFT,
+                "transaction_date": self.today.isoformat(),
+            },
+            format="json",
+        )
+        quotation_response = self.client.post(
+            "/api/quotations/",
+            {
+                "reference_no": self.reference("QT", 3),
+                "quotation_date": self.today.isoformat(),
+                "valid_until_date": self.today.isoformat(),
+                "customer_name": self.customer.company_name,
+                "items": [
+                    {
+                        "product_id": self.product.id,
+                        "product_name": self.product.product_name,
+                        "sku": self.product.sku,
+                        "unit": "pcs",
+                        "quantity": "1",
+                        "sale_price": "10",
+                        "cost_price": "7",
+                        "discounts": ["0"],
+                    }
+                ],
+            },
+            format="json",
+        )
+
+        self.assertEqual(purchase_response.status_code, 201)
+        self.assertEqual(sale_response.status_code, 201)
+        self.assertEqual(quotation_response.status_code, 201)
+        self.assertEqual(purchase_response.data["reference_no"], self.reference("PO", 4))
+        self.assertEqual(sale_response.data["reference_no"], self.reference("TI", 4))
+        self.assertEqual(quotation_response.data["reference_no"], self.reference("QT", 4))
+
+
 class LookupEligibilityTests(APITestCase):
     def setUp(self):
         self.today = timezone.localdate()

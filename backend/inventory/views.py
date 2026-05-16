@@ -212,8 +212,33 @@ def build_next_reference_no(model, prefix):
     today = timezone.localdate()
     year_month = f"{today.year + 543}"[-2:] + f"{today.month:02d}"
     reference_prefix = f"{prefix}-{year_month}-"
-    same_month_count = model.objects.filter(reference_no__startswith=reference_prefix).count()
-    return f"{reference_prefix}{same_month_count + 1:03d}"
+    max_serial = 0
+
+    for reference_no in model.objects.filter(
+        reference_no__startswith=reference_prefix
+    ).values_list("reference_no", flat=True):
+        suffix = f"{reference_no or ''}"[len(reference_prefix):]
+
+        if suffix.isdigit():
+            max_serial = max(max_serial, int(suffix))
+
+    return f"{reference_prefix}{max_serial + 1:03d}"
+
+
+class AutoReferenceNumberMixin:
+    reference_prefix = ""
+
+    def perform_create(self, serializer):
+        model = self.queryset.model
+        reference_no = serializer.validated_data.get("reference_no") or ""
+
+        if not reference_no or model.objects.filter(reference_no=reference_no).exists():
+            serializer.save(
+                reference_no=build_next_reference_no(model, self.reference_prefix)
+            )
+            return
+
+        serializer.save()
 
 
 def build_party_options(names, model):
@@ -590,7 +615,8 @@ class ProductViewSet(InventoryModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
 
-class PurchaseViewSet(InventoryModelViewSet):
+class PurchaseViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
+    reference_prefix = "PO"
     queryset = Purchase.objects.select_related("supplier").prefetch_related(
         "items__product",
         "documents",
@@ -611,7 +637,8 @@ class PurchaseViewSet(InventoryModelViewSet):
     party_filter_param = "supplier"
 
 
-class SaleViewSet(InventoryModelViewSet):
+class SaleViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
+    reference_prefix = "TI"
     queryset = Sale.objects.select_related("customer").prefetch_related(
         "items__product",
         "documents",
@@ -631,14 +658,16 @@ class SaleViewSet(InventoryModelViewSet):
     party_filter_param = "customer"
 
 
-class QuotationViewSet(InventoryModelViewSet):
+class QuotationViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
+    reference_prefix = "QT"
     queryset = Quotation.objects.select_related("customer", "supplier").prefetch_related(
         "line_items__product"
     )
     serializer_class = QuotationSerializer
 
 
-class BillingNoteViewSet(InventoryModelViewSet):
+class BillingNoteViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
+    reference_prefix = "BN"
     queryset = BillingNote.objects.select_related("customer").prefetch_related("lines__sale")
     serializer_class = BillingNoteSerializer
     search_fields = (
@@ -657,7 +686,8 @@ class BillingNoteViewSet(InventoryModelViewSet):
     party_filter_param = "customer"
 
 
-class PaymentBatchViewSet(InventoryModelViewSet):
+class PaymentBatchViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
+    reference_prefix = "PMT"
     queryset = PaymentBatch.objects.select_related("supplier").prefetch_related("lines__purchase")
     serializer_class = PaymentBatchSerializer
     search_fields = (
