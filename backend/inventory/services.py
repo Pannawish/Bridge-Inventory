@@ -289,6 +289,13 @@ def get_sale_item_payload_status(item):
     return status if status in SALE_ITEM_STATUSES else SaleItem.ITEM_PENDING
 
 
+def has_sale_item_payload_status(item):
+    if isinstance(item, dict):
+        return bool(item.get("item_status") or item.get("status"))
+
+    return bool(getattr(item, "item_status", None))
+
+
 def set_sale_item_payload_value(item, field_name, value):
     if isinstance(item, dict):
         item[field_name] = value
@@ -370,7 +377,11 @@ def normalize_sale_items_for_status(items, sale_status):
         return sale_status
 
     today = timezone.localdate()
-    if sale_status in SALE_FULL_TRANSACTION_STATUSES:
+    has_explicit_item_statuses = any(has_sale_item_payload_status(item) for item in items)
+    if (
+        sale_status in SALE_FULL_TRANSACTION_STATUSES - {Sale.STATUS_DRAFT}
+        and not has_explicit_item_statuses
+    ):
         item_status = get_sale_item_status_for_transaction_status(sale_status)
         for item in items:
             set_sale_item_payload_value(item, "item_status", item_status)

@@ -496,6 +496,70 @@ class SaleStockValidationTests(APITestCase):
         self.assertEqual(product_response.status_code, 200)
         self.assertEqual(product_response.data["current_stock"], Decimal("10"))
 
+    def test_draft_sale_update_preserves_cancelled_item_status(self):
+        sale = Sale.objects.create(
+            customer_name="Stock Customer",
+            status=Sale.STATUS_DRAFT,
+            transaction_date=self.today,
+        )
+
+        payload = self.sale_payload(Sale.STATUS_DRAFT, 4)
+        payload["items"].append(
+            {
+                **payload["items"][0],
+                "quantity": "2",
+                "base_quantity": "2",
+                "amount": "2",
+                "item_status": SaleItem.ITEM_PENDING,
+            }
+        )
+        payload["items"][0]["item_status"] = SaleItem.ITEM_CANCELLED
+
+        response = self.client.patch(
+            f"/api/sales/{sale.id}/",
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], Sale.STATUS_DRAFT)
+        self.assertCountEqual(
+            [item["item_status"] for item in response.data["items"]],
+            [SaleItem.ITEM_CANCELLED, SaleItem.ITEM_PENDING],
+        )
+
+    def test_packed_sale_update_preserves_cancelled_item_status(self):
+        sale = Sale.objects.create(
+            customer_name="Stock Customer",
+            status=Sale.STATUS_PACKED,
+            transaction_date=self.today,
+        )
+
+        payload = self.sale_payload(Sale.STATUS_PACKED, 4)
+        payload["items"][0]["item_status"] = SaleItem.ITEM_CANCELLED
+        payload["items"].append(
+            {
+                **payload["items"][0],
+                "quantity": "2",
+                "base_quantity": "2",
+                "amount": "2",
+                "item_status": SaleItem.ITEM_PACKED,
+            }
+        )
+
+        response = self.client.patch(
+            f"/api/sales/{sale.id}/",
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], Sale.STATUS_PACKED)
+        self.assertCountEqual(
+            [item["item_status"] for item in response.data["items"]],
+            [SaleItem.ITEM_CANCELLED, SaleItem.ITEM_PACKED],
+        )
+
     def test_status_patch_to_cancelled_releases_available_stock(self):
         sale = Sale.objects.create(
             customer_name="Stock Customer",
