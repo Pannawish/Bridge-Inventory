@@ -794,10 +794,8 @@ function SupplierPage({
                         </td>
                         <td>
                           <div className="cell-stack">
-                            <strong>
-                              {getSelectedValue(supplier.emails, supplier.selectedEmailIndex)}
-                            </strong>
-                            <span>{getSelectedValue(supplier.tels, supplier.selectedTelIndex)}</span>
+                            <strong>{supplier.procurementName || "-"}</strong>
+                            <span>{supplier.procurementTel || "-"}</span>
                           </div>
                         </td>
                         <td>
@@ -854,12 +852,12 @@ function SupplierPage({
 
                   <div className="mobile-record-grid">
                     <div>
-                      <span>Email</span>
-                      <strong>{getSelectedValue(supplier.emails, supplier.selectedEmailIndex)}</strong>
+                      <span>Procurement Name</span>
+                      <strong>{supplier.procurementName || "-"}</strong>
                     </div>
                     <div>
-                      <span>Phone</span>
-                      <strong>{getSelectedValue(supplier.tels, supplier.selectedTelIndex)}</strong>
+                      <span>Procurement Tel</span>
+                      <strong>{supplier.procurementTel || "-"}</strong>
                     </div>
                     <div>
                       <span>Location</span>
