@@ -11,6 +11,8 @@ from rest_framework.test import APITestCase
 from .models import (
     BillingNote,
     BillingNoteLine,
+    CreditNote,
+    CreditNoteLine,
     Customer,
     PaymentBatch,
     PaymentBatchLine,
@@ -1246,3 +1248,167 @@ class LookupEligibilityTests(APITestCase):
         self.assertEqual(response.data["suppliers"][0]["companyName"], "Alpha Supplier")
         self.assertIn("summary", response.data)
         self.assertTrue(response.data["next_reference_no"].startswith("PMT-"))
+
+
+class CreditNoteTests(APITestCase):
+    def setUp(self):
+        self.today = timezone.localdate()
+        Customer.objects.create(company_name="Alpha Customer")
+
+    def _sale_with_cancelled_item(self, reference_no, customer_name="Alpha Customer"):
+        sale = Sale.objects.create(
+            reference_no=reference_no,
+            customer_name=customer_name,
+            status=Sale.STATUS_PARTIALLY_DELIVERED,
+            transaction_date=self.today,
+            grand_total=Decimal("300"),
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product_name="Delivered Item",
+            item_status=SaleItem.ITEM_DELIVERED,
+            quantity=Decimal("2"),
+            unit_price=Decimal("100"),
+            amount=Decimal("200"),
+        )
+        cancelled = SaleItem.objects.create(
+            sale=sale,
+            product_name="Cancelled Item",
+            sku="CN-SKU-1",
+            item_status=SaleItem.ITEM_CANCELLED,
+            quantity=Decimal("1"),
+            unit_price=Decimal("100"),
+            amount=Decimal("100"),
+        )
+        return sale, cancelled
+
+    def test_credit_note_create_totals_lines_and_snapshots_sale_reference(self):
+        sale, cancelled = self._sale_with_cancelled_item("SO-CN-1")
+
+        payload = {
+            "customer_name": "Alpha Customer",
+            "sale": sale.id,
+            "credit_note_date": str(self.today),
+            "lines": [
+                {
+                    "sale_item": cancelled.id,
+                    "product_name": cancelled.product_name,
+                    "sku": cancelled.sku,
+                    "quantity": "1",
+                    "unit_price": "100",
+                    "amount": "100",
+                }
+            ],
+        }
+        response = self.client.post("/api/credit-notes/", payload, format="json")
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(Decimal(response.data["total_amount"]), Decimal("100"))
+        self.assertEqual(response.data["status"], CreditNote.STATUS_ISSUED)
+        self.assertEqual(response.data["sale_reference_no"], "SO-CN-1")
+        self.assertTrue(response.data["reference_no"].startswith("CN-"))
+
+    def test_credit_note_eligibility_excludes_already_credited_items(self):
+        sale, cancelled = self._sale_with_cancelled_item("SO-CN-2")
+        second_cancelled = SaleItem.objects.create(
+            sale=sale,
+            product_name="Second Cancelled Item",
+            item_status=SaleItem.ITEM_CANCELLED,
+            quantity=Decimal("1"),
+            unit_price=Decimal("50"),
+            amount=Decimal("50"),
+        )
+        credit_note = CreditNote.objects.create(
+            reference_no="CN-EXISTING",
+            customer_name="Alpha Customer",
+            sale=sale,
+            sale_reference_no=sale.reference_no,
+            credit_note_date=self.today,
+            total_amount=Decimal("100"),
+        )
+        CreditNoteLine.objects.create(
+            credit_note=credit_note,
+            sale_item=cancelled,
+            product_name=cancelled.product_name,
+            amount=Decimal("100"),
+        )
+
+        response = self.client.get("/api/eligibility/credit-note-sales/")
+
+        self.assertEqual(response.status_code, 200)
+        sales = {row["id"]: row for row in response.data["sales"]}
+        self.assertIn(sale.id, sales)
+        line_item_ids = {line["sale_item"] for line in sales[sale.id]["cancelled_lines"]}
+        self.assertEqual(line_item_ids, {second_cancelled.id})
+        self.assertTrue(response.data["next_reference_no"].startswith("CN-"))
+
+    def test_billing_note_net_amount_subtracts_active_credit_notes(self):
+        sale, cancelled = self._sale_with_cancelled_item("SO-CN-3")
+        billing_note = BillingNote.objects.create(
+            reference_no="BN-CN-3",
+            customer_name="Alpha Customer",
+            billing_note_date=self.today,
+            status=BillingNote.STATUS_ISSUED,
+            total_amount=Decimal("300"),
+        )
+        BillingNoteLine.objects.create(
+            billing_note=billing_note,
+            sale=sale,
+            amount=Decimal("300"),
+        )
+        active_credit = CreditNote.objects.create(
+            reference_no="CN-ACTIVE-3",
+            customer_name="Alpha Customer",
+            sale=sale,
+            billing_note=billing_note,
+            credit_note_date=self.today,
+            status=CreditNote.STATUS_ISSUED,
+            total_amount=Decimal("100"),
+        )
+        CreditNote.objects.create(
+            reference_no="CN-CANCELLED-3",
+            customer_name="Alpha Customer",
+            sale=sale,
+            billing_note=billing_note,
+            credit_note_date=self.today,
+            status=CreditNote.STATUS_CANCELLED,
+            total_amount=Decimal("75"),
+        )
+
+        response = self.client.get(f"/api/billing-notes/{billing_note.id}/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Decimal(response.data["net_amount"]), Decimal("200"))
+        credit_ids = {row["id"] for row in response.data["credit_notes"]}
+        self.assertIn(active_credit.id, credit_ids)
+
+    def test_credit_note_rejects_billing_note_of_different_customer(self):
+        sale, cancelled = self._sale_with_cancelled_item("SO-CN-4")
+        Customer.objects.create(company_name="Beta Customer")
+        other_billing_note = BillingNote.objects.create(
+            reference_no="BN-OTHER",
+            customer_name="Beta Customer",
+            billing_note_date=self.today,
+            status=BillingNote.STATUS_ISSUED,
+            total_amount=Decimal("500"),
+        )
+
+        payload = {
+            "customer_name": "Alpha Customer",
+            "sale": sale.id,
+            "billing_note": other_billing_note.id,
+            "credit_note_date": str(self.today),
+            "lines": [
+                {
+                    "sale_item": cancelled.id,
+                    "product_name": cancelled.product_name,
+                    "quantity": "1",
+                    "unit_price": "100",
+                    "amount": "100",
+                }
+            ],
+        }
+        response = self.client.post("/api/credit-notes/", payload, format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("billing note", str(response.data.get("error", "")).lower())

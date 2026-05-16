@@ -11,6 +11,8 @@ from inventory.models import (
     BillingNote,
     BillingNoteLine,
     Category,
+    CreditNote,
+    CreditNoteLine,
     Customer,
     PaymentBatch,
     PaymentBatchLine,
@@ -123,6 +125,7 @@ class Command(BaseCommand):
         sales = self.seed_sales(rng, customers, products)
         billing_notes = self.seed_billing_notes(rng, sales)
         payment_batches = self.seed_payment_batches(rng, purchases)
+        credit_notes = self.seed_credit_notes(rng, sales, billing_notes)
 
         if not options["skip_documents"]:
             self.seed_documents(rng, purchases, sales)
@@ -135,11 +138,15 @@ class Command(BaseCommand):
                 f"{len(purchases)} purchases, {len(quotations)} quotations, "
                 f"{len(sales)} sales, "
                 f"{len(billing_notes)} billing notes, "
-                f"{len(payment_batches)} payment batches."
+                f"{len(payment_batches)} payment batches, "
+                f"{len(credit_notes)} credit notes."
             )
         )
 
     def remove_previous_demo_records(self):
+        # Credit notes PROTECT their source sale, so clear them before any sale delete.
+        CreditNote.objects.filter(reference_no__startswith="CN-69").delete()
+        CreditNote.objects.filter(id__startswith="demo-").delete()
         BillingNote.objects.filter(reference_no__startswith="BN-69").delete()
         PaymentBatch.objects.filter(reference_no__startswith="PMT-69").delete()
         Quotation.objects.filter(reference_no__startswith="QT-69").delete()
@@ -772,6 +779,7 @@ class Command(BaseCommand):
         return [SaleItem.ITEM_PENDING] * count
 
     def seed_sales(self, rng, customers, products):
+        CreditNote.objects.filter(reference_no__startswith="CN-69").delete()
         BillingNote.objects.filter(reference_no__startswith="BN-69").delete()
         Sale.objects.filter(reference_no__startswith="TI-69").delete()
         start_date = date(2026, 1, 10)
@@ -1112,6 +1120,70 @@ class Command(BaseCommand):
             PaymentBatch.STATUS_DRAFT: "Draft payment batch prepared for review.",
         }
         return notes[status]
+
+    def seed_credit_notes(self, rng, sales, billing_notes):
+        CreditNote.objects.filter(reference_no__startswith="CN-69").delete()
+
+        billing_notes_by_customer = {}
+        for note in billing_notes:
+            if note.status != BillingNote.STATUS_CANCELLED:
+                billing_notes_by_customer.setdefault(note.customer_name, []).append(note)
+
+        sales_with_cancelled_items = []
+        for sale in sales:
+            cancelled_items = [
+                item
+                for item in sale.items.all()
+                if item.item_status == SaleItem.ITEM_CANCELLED
+            ]
+            if cancelled_items:
+                sales_with_cancelled_items.append((sale, cancelled_items))
+
+        credit_notes = []
+        for serial, (sale, cancelled_items) in enumerate(
+            sales_with_cancelled_items[:8], start=1
+        ):
+            credit_note_date = min(
+                timezone.localdate(),
+                sale.transaction_date + timedelta(days=rng.choice([3, 5, 9])),
+            )
+            customer_billing_notes = billing_notes_by_customer.get(sale.customer_name, [])
+            billing_note = (
+                rng.choice(customer_billing_notes) if customer_billing_notes else None
+            )
+            credit_note = CreditNote.objects.create(
+                reference_no=reference("CN", credit_note_date, serial),
+                customer=sale.customer,
+                customer_name=sale.customer_name,
+                sale=sale,
+                sale_reference_no=sale.reference_no,
+                billing_note=billing_note,
+                credit_note_date=credit_note_date,
+                status=CreditNote.STATUS_ISSUED,
+                note=f"Credit note for cancelled items on {sale.reference_no}.",
+            )
+            line_rows = []
+            total_amount = Decimal("0.00")
+            for item in cancelled_items:
+                amount = money(item.amount)
+                line_rows.append(
+                    CreditNoteLine(
+                        credit_note=credit_note,
+                        sale_item=item,
+                        product_name=item.product_name,
+                        sku=item.sku,
+                        quantity=item.quantity,
+                        unit_price=item.unit_price,
+                        amount=amount,
+                    )
+                )
+                total_amount += amount
+            CreditNoteLine.objects.bulk_create(line_rows)
+            credit_note.total_amount = total_amount
+            credit_note.save(update_fields=["total_amount", "updated_at"])
+            credit_notes.append(credit_note)
+
+        return credit_notes
 
     def seed_documents(self, rng, purchases, sales):
         selected_purchases = [purchase for i, purchase in enumerate(purchases) if i % 4 == 0 and purchase.status != Purchase.STATUS_DRAFT]

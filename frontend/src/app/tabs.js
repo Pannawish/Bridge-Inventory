@@ -36,6 +36,12 @@ export const tabs = [
     description: "Track money the business needs to pay to suppliers.",
   },
   {
+    id: "credit-notes",
+    label: "Credit Notes",
+    shortLabel: "CN",
+    description: "Reduce customer balances for items cancelled after billing.",
+  },
+  {
     id: "suppliers",
     label: "Supplier",
     shortLabel: "SP",

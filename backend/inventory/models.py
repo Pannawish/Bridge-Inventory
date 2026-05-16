@@ -76,6 +76,14 @@ def payment_batch_line_id():
     return make_prefixed_id("payment-batch-line")
 
 
+def credit_note_id():
+    return make_prefixed_id("credit-note")
+
+
+def credit_note_line_id():
+    return make_prefixed_id("credit-note-line")
+
+
 def list_default():
     return []
 
@@ -689,3 +697,86 @@ class PaymentBatchLine(models.Model):
 
     def __str__(self):
         return f"{self.payment_batch_id} / {self.purchase_id}"
+
+
+class CreditNote(TimeStampedModel):
+    STATUS_ISSUED = "issued"
+    STATUS_CANCELLED = "cancelled"
+
+    STATUS_CHOICES = [
+        (STATUS_ISSUED, "Issued"),
+        (STATUS_CANCELLED, "Cancelled"),
+    ]
+
+    id = models.CharField(max_length=80, primary_key=True, default=credit_note_id)
+    reference_no = models.CharField(max_length=80, blank=True)
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.SET_NULL,
+        related_name="credit_notes",
+        blank=True,
+        null=True,
+    )
+    customer_name = models.CharField(max_length=255)
+    sale = models.ForeignKey(
+        Sale,
+        on_delete=models.PROTECT,
+        related_name="credit_notes",
+    )
+    sale_reference_no = models.CharField(max_length=80, blank=True)
+    billing_note = models.ForeignKey(
+        BillingNote,
+        on_delete=models.SET_NULL,
+        related_name="credit_notes",
+        blank=True,
+        null=True,
+    )
+    credit_note_date = models.DateField(default=timezone.localdate)
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_ISSUED)
+    note = models.TextField(blank=True)
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["-credit_note_date", "-created_at"]
+        indexes = [
+            models.Index(fields=["credit_note_date"], name="inv_cn_date_idx"),
+            models.Index(
+                fields=["status", "credit_note_date"],
+                name="inv_cn_status_date",
+            ),
+            models.Index(
+                fields=["customer_name", "credit_note_date"],
+                name="inv_cn_customer_date",
+            ),
+            models.Index(fields=["reference_no"], name="inv_cn_ref_idx"),
+        ]
+
+    def __str__(self):
+        return self.reference_no or self.id
+
+
+class CreditNoteLine(models.Model):
+    id = models.CharField(max_length=80, primary_key=True, default=credit_note_line_id)
+    credit_note = models.ForeignKey(
+        CreditNote,
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    sale_item = models.ForeignKey(
+        SaleItem,
+        on_delete=models.SET_NULL,
+        related_name="credit_note_lines",
+        blank=True,
+        null=True,
+    )
+    product_name = models.CharField(max_length=255)
+    sku = models.CharField(max_length=80, blank=True)
+    quantity = models.DecimalField(max_digits=14, decimal_places=3, default=0)
+    unit_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"{self.credit_note_id} / {self.product_name}"

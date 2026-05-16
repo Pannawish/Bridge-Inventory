@@ -14,6 +14,8 @@ from .models import (
     BillingNote,
     BillingNoteLine,
     Category,
+    CreditNote,
+    CreditNoteLine,
     Customer,
     PaymentBatch,
     PaymentBatchLine,
@@ -28,6 +30,7 @@ from .models import (
 from .serializers import (
     BillingNoteSerializer,
     CategorySerializer,
+    CreditNoteSerializer,
     CustomerSerializer,
     PaymentBatchSerializer,
     ProductSerializer,
@@ -269,6 +272,17 @@ def serialize_sale_lookup(sale):
         "payment_term_days": sale.payment_term_days,
         "payment_date": sale.payment_date,
         "grand_total": sale.grand_total,
+    }
+
+
+def serialize_credit_note_line_option(sale_item):
+    return {
+        "sale_item": sale_item.id,
+        "product_name": sale_item.product_name,
+        "sku": sale_item.sku,
+        "quantity": sale_item.quantity,
+        "unit_price": sale_item.unit_price,
+        "amount": sale_item.amount,
     }
 
 
@@ -668,7 +682,10 @@ class QuotationViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
 
 class BillingNoteViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     reference_prefix = "BN"
-    queryset = BillingNote.objects.select_related("customer").prefetch_related("lines__sale")
+    queryset = BillingNote.objects.select_related("customer").prefetch_related(
+        "lines__sale",
+        "credit_notes",
+    )
     serializer_class = BillingNoteSerializer
     search_fields = (
         "reference_no",
@@ -682,6 +699,28 @@ class BillingNoteViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
         "lines__sale__reference_no",
     )
     date_filter_field = "billing_note_date"
+    party_filter_field = "customer_name"
+    party_filter_param = "customer"
+
+
+class CreditNoteViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
+    reference_prefix = "CN"
+    queryset = CreditNote.objects.select_related(
+        "customer",
+        "sale",
+        "billing_note",
+    ).prefetch_related("lines__sale_item")
+    serializer_class = CreditNoteSerializer
+    search_fields = (
+        "reference_no",
+        "customer_name",
+        "status",
+        "credit_note_date",
+        "note",
+        "sale__reference_no",
+        "billing_note__reference_no",
+    )
+    date_filter_field = "credit_note_date"
     party_filter_field = "customer_name"
     party_filter_param = "customer"
 
@@ -727,6 +766,8 @@ def api_home(request):
                 "/api/eligibility/billing-note-sales/",
                 "/api/payment-batches/",
                 "/api/eligibility/payment-batch-purchases/",
+                "/api/credit-notes/",
+                "/api/eligibility/credit-note-sales/",
                 "/api/chat/",
             ],
         }
@@ -814,6 +855,61 @@ def eligible_billing_note_sales(request):
             "sales": [serialize_sale_lookup(sale) for sale in sales],
             "summary": build_billing_note_summary(),
             "next_reference_no": build_next_reference_no(BillingNote, "BN"),
+        }
+    )
+
+
+@api_view(["GET"])
+def eligible_credit_note_sales(request):
+    credited_item_ids = set(
+        CreditNoteLine.objects.exclude(
+            credit_note__status=CreditNote.STATUS_CANCELLED
+        )
+        .filter(sale_item__isnull=False)
+        .values_list("sale_item_id", flat=True)
+    )
+
+    cancelled_items = (
+        SaleItem.objects.filter(item_status=SaleItem.ITEM_CANCELLED)
+        .exclude(id__in=credited_item_ids)
+        .select_related("sale")
+    )
+
+    cancelled_lines_by_sale_id = {}
+    for item in cancelled_items:
+        cancelled_lines_by_sale_id.setdefault(item.sale_id, []).append(item)
+
+    queryset = Sale.objects.filter(id__in=cancelled_lines_by_sale_id.keys())
+    queryset = apply_text_search(
+        queryset,
+        request,
+        ("reference_no", "customer_name", "status", "transaction_date", "note"),
+    )
+    queryset = apply_date_range(queryset, request, "transaction_date")
+
+    customer = (request.query_params.get("customer") or "").strip()
+    if customer:
+        queryset = queryset.filter(customer_name__iexact=customer)
+
+    sales = list(queryset)
+    customer_names = [sale.customer_name for sale in sales]
+
+    sale_payloads = [
+        {
+            **serialize_sale_lookup(sale),
+            "cancelled_lines": [
+                serialize_credit_note_line_option(item)
+                for item in cancelled_lines_by_sale_id.get(sale.id, [])
+            ],
+        }
+        for sale in sales
+    ]
+
+    return Response(
+        {
+            "customers": build_party_options(customer_names, Customer),
+            "sales": sale_payloads,
+            "next_reference_no": build_next_reference_no(CreditNote, "CN"),
         }
     )
 

@@ -3,6 +3,7 @@ from django.db import transaction
 
 from inventory.models import (
     BillingNote,
+    CreditNote,
     PaymentBatch,
     Purchase,
     PurchaseDocument,
@@ -28,6 +29,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
         counts = {
+            "credit_notes": CreditNote.objects.count(),
             "billing_notes": BillingNote.objects.count(),
             "payment_batches": PaymentBatch.objects.count(),
             "quotations": Quotation.objects.count(),
@@ -46,6 +48,8 @@ class Command(BaseCommand):
 
         with transaction.atomic():
             # Delete dependent finance documents first because their lines protect transactions.
+            # Credit notes PROTECT their source sale, so clear them before sales.
+            CreditNote.objects.all().delete()
             BillingNote.objects.all().delete()
             PaymentBatch.objects.all().delete()
             Quotation.objects.all().delete()

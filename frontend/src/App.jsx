@@ -3,6 +3,7 @@ import { api } from "./api";
 import {
   PAGE_SIZE,
   buildBillingNotePayload,
+  buildCreditNotePayload,
   buildPaymentBatchPayload,
   buildPurchaseUpdatePayload,
   buildSaleUpdatePayload,
@@ -22,6 +23,7 @@ import CategoryPage from "./components/CategoryPage";
 import QuotationPage from "./components/QuotationPage";
 import BillingNotePage from "./components/BillingNotePage";
 import PaymentBatchPage from "./components/PaymentBatchPage";
+import CreditNotePage from "./components/CreditNotePage";
 import { useInventoryData } from "./hooks/useInventoryData";
 import { applyPurchaseStatusToItems } from "./purchaseStatus";
 import { applySaleStatusToItems } from "./saleStatus";
@@ -150,6 +152,14 @@ function App() {
     paymentBatchSummary,
     paymentBatchNextReferenceNo,
     usingMockPaymentBatches,
+    creditNotes,
+    setCreditNotes,
+    creditNoteRows,
+    setCreditNoteRows,
+    creditNotePagination,
+    creditNoteEligibleSales,
+    creditNoteNextReferenceNo,
+    usingMockCreditNotes,
     loading,
     error,
     setError,
@@ -161,8 +171,10 @@ function App() {
     loadSalePage,
     loadBillingNotePage,
     loadPaymentBatchPage,
+    loadCreditNotePage,
     refreshBillingNoteEligibility,
     refreshPaymentBatchEligibility,
+    refreshCreditNoteEligibility,
   } = useInventoryData();
 
   async function handleLoadProductHistory(productId) {
@@ -1063,6 +1075,93 @@ function App() {
     }
   }
 
+  async function handleCreditNoteCreate(nextCreditNote) {
+    setError("");
+
+    if (usingMockCreditNotes) {
+      const resolved = {
+        ...nextCreditNote,
+        id: nextCreditNote.id || `credit-note-mock-${Date.now()}`,
+      };
+      setCreditNotes((rows) => [resolved, ...rows]);
+      setCreditNoteRows((rows) => [resolved, ...rows].slice(0, PAGE_SIZE));
+      setNotice(`Credit note ${resolved.reference_no || resolved.id} created.`);
+      return resolved;
+    }
+
+    try {
+      const saved = await api.createCreditNote(buildCreditNotePayload(nextCreditNote));
+      setCreditNotes((rows) => [saved, ...rows]);
+      setCreditNoteRows((rows) => [saved, ...rows].slice(0, PAGE_SIZE));
+      setNotice(`Credit note ${saved.reference_no || saved.id} created.`);
+      await refreshCreditNoteEligibility();
+      await loadBillingNotePage();
+      return saved;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
+  async function handleCreditNoteUpdate(updated) {
+    setError("");
+
+    if (usingMockCreditNotes) {
+      setCreditNotes((rows) =>
+        rows.map((row) => (row.id === updated.id ? updated : row))
+      );
+      setCreditNoteRows((rows) =>
+        rows.map((row) => (row.id === updated.id ? updated : row))
+      );
+      setNotice(`Credit note ${updated.reference_no || updated.id} updated.`);
+      return updated;
+    }
+
+    try {
+      const saved = await api.updateCreditNote(
+        updated.id,
+        buildCreditNotePayload(updated)
+      );
+      setCreditNotes((rows) =>
+        rows.map((row) => (row.id === updated.id ? saved : row))
+      );
+      setCreditNoteRows((rows) =>
+        rows.map((row) => (row.id === updated.id ? saved : row))
+      );
+      setNotice(`Credit note ${saved.reference_no || saved.id} updated.`);
+      await refreshCreditNoteEligibility();
+      await loadBillingNotePage();
+      return saved;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
+  async function handleCreditNoteDelete(deleted) {
+    setError("");
+
+    if (usingMockCreditNotes) {
+      setCreditNotes((rows) => rows.filter((row) => row.id !== deleted.id));
+      setCreditNoteRows((rows) => rows.filter((row) => row.id !== deleted.id));
+      setNotice(`Credit note ${deleted.reference_no || deleted.id} deleted.`);
+      return true;
+    }
+
+    try {
+      await api.deleteCreditNote(deleted.id);
+      setCreditNotes((rows) => rows.filter((row) => row.id !== deleted.id));
+      setCreditNoteRows((rows) => rows.filter((row) => row.id !== deleted.id));
+      setNotice(`Credit note ${deleted.reference_no || deleted.id} deleted.`);
+      await refreshCreditNoteEligibility();
+      await loadBillingNotePage();
+      return true;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
   async function handleAskChat(question) {
     const nextMessages = [...messages, { role: "user", content: question }];
     setMessages(nextMessages);
@@ -1252,6 +1351,21 @@ function App() {
                 onCreatePaymentBatch={handlePaymentBatchCreate}
                 onUpdatePaymentBatch={handlePaymentBatchUpdate}
                 onDeletePaymentBatch={handlePaymentBatchDelete}
+              />
+            ) : null}
+
+            {activeTab === "credit-notes" ? (
+              <CreditNotePage
+                creditNotes={creditNoteRows}
+                allCreditNotes={creditNotes}
+                billingNotes={billingNotes}
+                sales={creditNoteEligibleSales}
+                nextReferenceNo={creditNoteNextReferenceNo}
+                pagination={creditNotePagination}
+                onPageRequest={loadCreditNotePage}
+                onCreateCreditNote={handleCreditNoteCreate}
+                onUpdateCreditNote={handleCreditNoteUpdate}
+                onDeleteCreditNote={handleCreditNoteDelete}
               />
             ) : null}
 

@@ -200,3 +200,23 @@ export function buildPaymentBatchPayload(paymentBatch) {
     })),
   };
 }
+
+export function buildCreditNotePayload(creditNote) {
+  return {
+    reference_no: creditNote.reference_no || "",
+    customer_name: creditNote.customer_name || "",
+    sale: creditNote.sale || null,
+    billing_note: creditNote.billing_note || null,
+    credit_note_date: creditNote.credit_note_date || null,
+    status: creditNote.status || "issued",
+    note: creditNote.note || "",
+    lines: (creditNote.lines || []).map((line) => ({
+      sale_item: line.sale_item || null,
+      product_name: line.product_name || "",
+      sku: line.sku || "",
+      quantity: line.quantity,
+      unit_price: line.unit_price,
+      amount: line.amount,
+    })),
+  };
+}

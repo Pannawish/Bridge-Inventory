@@ -7,6 +7,8 @@ from .models import (
     BillingNote,
     BillingNoteLine,
     Category,
+    CreditNote,
+    CreditNoteLine,
     Customer,
     PaymentBatch,
     PaymentBatchLine,
@@ -1424,9 +1426,17 @@ class BillingNoteLineSerializer(serializers.ModelSerializer):
         }
 
 
+class BillingNoteCreditSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CreditNote
+        fields = ["id", "reference_no", "credit_note_date", "status", "total_amount"]
+
+
 class BillingNoteSerializer(serializers.ModelSerializer):
     lines = BillingNoteLineSerializer(many=True, required=False)
     customer_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    credit_notes = BillingNoteCreditSummarySerializer(many=True, read_only=True)
+    net_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = BillingNote
@@ -1443,6 +1453,8 @@ class BillingNoteSerializer(serializers.ModelSerializer):
             "note",
             "total_amount",
             "lines",
+            "credit_notes",
+            "net_amount",
             "created_at",
             "updated_at",
         ]
@@ -1458,6 +1470,17 @@ class BillingNoteSerializer(serializers.ModelSerializer):
             "created_at": {"read_only": True},
             "updated_at": {"read_only": True},
         }
+
+    def get_net_amount(self, billing_note):
+        credits = sum(
+            (
+                credit_note.total_amount
+                for credit_note in billing_note.credit_notes.all()
+                if credit_note.status != CreditNote.STATUS_CANCELLED
+            ),
+            Decimal("0"),
+        )
+        return billing_note.total_amount - credits
 
     def validate(self, attrs):
         customer_id_value = attrs.pop("customer_id", None)
@@ -1842,4 +1865,177 @@ class PaymentBatchSerializer(serializers.ModelSerializer):
 
             if validated_data.get("status") != PaymentBatch.STATUS_CANCELLED:
                 self._recompute_status_and_dates(instance)
+        return instance
+
+
+class CreditNoteLineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CreditNoteLine
+        fields = [
+            "id",
+            "sale_item",
+            "product_name",
+            "sku",
+            "quantity",
+            "unit_price",
+            "amount",
+        ]
+        extra_kwargs = {
+            "id": {"read_only": True},
+            "sale_item": {"required": False, "allow_null": True},
+            "sku": {"required": False, "allow_blank": True},
+            "quantity": {"required": False},
+            "unit_price": {"required": False},
+            "amount": {"required": False},
+        }
+
+
+class CreditNoteSerializer(serializers.ModelSerializer):
+    lines = CreditNoteLineSerializer(many=True, required=False)
+    customer_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    sale_reference_no = serializers.CharField(read_only=True)
+    billing_note_reference_no = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CreditNote
+        fields = [
+            "id",
+            "reference_no",
+            "customer_id",
+            "customer_name",
+            "sale",
+            "sale_reference_no",
+            "billing_note",
+            "billing_note_reference_no",
+            "credit_note_date",
+            "status",
+            "note",
+            "total_amount",
+            "lines",
+            "created_at",
+            "updated_at",
+        ]
+        extra_kwargs = {
+            "id": {"required": False},
+            "reference_no": {"required": False, "allow_blank": True},
+            "billing_note": {"required": False, "allow_null": True},
+            "note": {"required": False, "allow_blank": True},
+            "status": {"required": False},
+            "total_amount": {"required": False},
+            "created_at": {"read_only": True},
+            "updated_at": {"read_only": True},
+        }
+
+    def get_billing_note_reference_no(self, credit_note):
+        if not credit_note.billing_note_id:
+            return ""
+        return credit_note.billing_note.reference_no
+
+    def _sale_matches_customer(self, sale, customer, customer_name):
+        if customer and sale.customer_id:
+            return sale.customer_id == customer.id
+        return sale.customer_name == customer_name
+
+    def _billing_note_matches_customer(self, billing_note, customer, customer_name):
+        if customer and billing_note.customer_id:
+            return billing_note.customer_id == customer.id
+        return billing_note.customer_name == customer_name
+
+    def validate(self, attrs):
+        customer_id_value = attrs.pop("customer_id", None)
+        should_resolve_customer = (
+            customer_id_value is not None
+            or "customer_name" in attrs
+            or self.instance is None
+        )
+        if should_resolve_customer:
+            attrs["customer"] = resolve_customer(
+                customer_id=customer_id_value,
+                customer_name=attrs.get(
+                    "customer_name",
+                    getattr(self.instance, "customer_name", ""),
+                ),
+            )
+
+        customer = attrs.get("customer", getattr(self.instance, "customer", None))
+        customer_name = attrs.get(
+            "customer_name", getattr(self.instance, "customer_name", "")
+        )
+
+        sale = attrs.get("sale", getattr(self.instance, "sale", None))
+        if sale is not None and not self._sale_matches_customer(
+            sale, customer, customer_name
+        ):
+            raise serializers.ValidationError(
+                {"sale": "The selected sale belongs to a different customer."}
+            )
+
+        billing_note = attrs.get(
+            "billing_note", getattr(self.instance, "billing_note", None)
+        )
+        if billing_note is not None and not self._billing_note_matches_customer(
+            billing_note, customer, customer_name
+        ):
+            raise serializers.ValidationError(
+                {"billing_note": "The billing note must belong to the same customer."}
+            )
+
+        return attrs
+
+    def _replace_lines(self, credit_note, lines):
+        credit_note.lines.all().delete()
+        rows = []
+        total = Decimal("0")
+        for line in lines:
+            amount = decimal_or_zero(line.get("amount"))
+            rows.append(
+                CreditNoteLine(
+                    credit_note=credit_note,
+                    sale_item=line.get("sale_item"),
+                    product_name=line.get("product_name", ""),
+                    sku=line.get("sku", ""),
+                    quantity=decimal_or_zero(line.get("quantity")),
+                    unit_price=decimal_or_zero(line.get("unit_price")),
+                    amount=amount,
+                )
+            )
+            total += amount
+
+        CreditNoteLine.objects.bulk_create(rows)
+        credit_note.total_amount = total
+        credit_note.save(update_fields=["total_amount", "updated_at"])
+        return rows
+
+    def create(self, validated_data):
+        lines_data = validated_data.pop("lines", [])
+        if not lines_data:
+            raise serializers.ValidationError(
+                {"lines": "Add at least one cancelled item to the credit note."}
+            )
+        if not validated_data.get("customer_name"):
+            raise serializers.ValidationError({"customer_name": "Customer is required."})
+
+        sale = validated_data.get("sale")
+        validated_data["sale_reference_no"] = sale.reference_no if sale else ""
+
+        with transaction.atomic():
+            credit_note = CreditNote.objects.create(**validated_data)
+            self._replace_lines(credit_note, lines_data)
+        return credit_note
+
+    def update(self, instance, validated_data):
+        lines_data = validated_data.pop("lines", None)
+        with transaction.atomic():
+            for field, value in validated_data.items():
+                setattr(instance, field, value)
+            if validated_data.get("sale"):
+                instance.sale_reference_no = validated_data["sale"].reference_no
+            instance.save()
+
+            if lines_data is not None:
+                if not lines_data:
+                    raise serializers.ValidationError(
+                        {"lines": "A credit note must contain at least one line."}
+                    )
+                self._replace_lines(instance, lines_data)
         return instance

@@ -73,6 +73,9 @@ export const api = {
   getEligiblePaymentBatchPurchases(params) {
     return request("/eligibility/payment-batch-purchases/", { params });
   },
+  getEligibleCreditNoteSales(params) {
+    return request("/eligibility/credit-note-sales/", { params });
+  },
   getSuppliers(params) {
     return request("/suppliers/", { params });
   },
@@ -192,6 +195,18 @@ export const api = {
   },
   deletePaymentBatch(id) {
     return request(`/payment-batches/${id}/`, { method: "DELETE" });
+  },
+  getCreditNotes(params) {
+    return request("/credit-notes/", { params });
+  },
+  createCreditNote(payload) {
+    return request("/credit-notes/", { method: "POST", body: payload });
+  },
+  updateCreditNote(id, payload) {
+    return request(`/credit-notes/${id}/`, { method: "PATCH", body: payload });
+  },
+  deleteCreditNote(id) {
+    return request(`/credit-notes/${id}/`, { method: "DELETE" });
   },
   askChat(question) {
     return request("/chat/", { method: "POST", body: { question } });

@@ -59,6 +59,12 @@ export function useInventoryData() {
   const [paymentBatchSummary, setPaymentBatchSummary] = useState(null);
   const [paymentBatchNextReferenceNo, setPaymentBatchNextReferenceNo] = useState("");
   const [usingMockPaymentBatches, setUsingMockPaymentBatches] = useState(false);
+  const [creditNotes, setCreditNotes] = useState([]);
+  const [creditNoteRows, setCreditNoteRows] = useState([]);
+  const [creditNotePagination, setCreditNotePagination] = useState(null);
+  const [creditNoteEligibleSales, setCreditNoteEligibleSales] = useState([]);
+  const [creditNoteNextReferenceNo, setCreditNoteNextReferenceNo] = useState("");
+  const [usingMockCreditNotes, setUsingMockCreditNotes] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -168,6 +174,27 @@ export function useInventoryData() {
     return response;
   }, []);
 
+  const loadCreditNotePage = useCallback(async (params = {}) => {
+    try {
+      const response = await api.getCreditNotes(buildListParams(params));
+      const rows = getCollectionRows(response);
+      setCreditNotes(rows);
+      setCreditNoteRows(rows);
+      setCreditNotePagination(getCollectionPagination(response));
+      return response;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }, []);
+
+  const loadCreditNoteEligibility = useCallback(async () => {
+    const response = await api.getEligibleCreditNoteSales();
+    setCreditNoteEligibleSales(Array.isArray(response?.sales) ? response.sales : []);
+    setCreditNoteNextReferenceNo(response?.next_reference_no || "");
+    return response;
+  }, []);
+
   const refreshBillingNoteEligibility = useCallback(async () => {
     try {
       await loadBillingNoteEligibility();
@@ -184,6 +211,14 @@ export function useInventoryData() {
     }
   }, [loadPaymentBatchEligibility]);
 
+  const refreshCreditNoteEligibility = useCallback(async () => {
+    try {
+      await loadCreditNoteEligibility();
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  }, [loadCreditNoteEligibility]);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -197,6 +232,7 @@ export function useInventoryData() {
       api.getQuotations(),
       api.getEligibleBillingNoteSales(),
       api.getEligiblePaymentBatchPurchases(),
+      api.getEligibleCreditNoteSales(),
       api.getSuppliers(buildListParams()),
       api.getCustomers(buildListParams()),
       api.getProducts(buildListParams()),
@@ -204,6 +240,7 @@ export function useInventoryData() {
       api.getSales(buildListParams()),
       api.getBillingNotes(buildListParams()),
       api.getPaymentBatches(buildListParams()),
+      api.getCreditNotes(buildListParams()),
     ]);
 
     const [
@@ -215,6 +252,7 @@ export function useInventoryData() {
       quotationResult,
       billingNoteEligibilityResult,
       paymentBatchEligibilityResult,
+      creditNoteEligibilityResult,
       supplierPageResult,
       customerPageResult,
       productPageResult,
@@ -222,6 +260,7 @@ export function useInventoryData() {
       salePageResult,
       billingNotePageResult,
       paymentBatchPageResult,
+      creditNotePageResult,
     ] = results;
     const failures = [];
 
@@ -398,6 +437,35 @@ export function useInventoryData() {
       failures.push("payment-batches");
     }
 
+    if (creditNoteEligibilityResult.status === "fulfilled") {
+      setCreditNoteEligibleSales(
+        Array.isArray(creditNoteEligibilityResult.value?.sales)
+          ? creditNoteEligibilityResult.value.sales
+          : []
+      );
+      setCreditNoteNextReferenceNo(
+        creditNoteEligibilityResult.value?.next_reference_no || ""
+      );
+    } else {
+      setCreditNoteEligibleSales([]);
+      setCreditNoteNextReferenceNo("");
+      failures.push("credit-note-eligibility");
+    }
+
+    if (creditNotePageResult.status === "fulfilled") {
+      const creditNoteRowsAll = getCollectionRows(creditNotePageResult.value);
+      setCreditNotes(creditNoteRowsAll);
+      setCreditNoteRows(creditNoteRowsAll);
+      setCreditNotePagination(getCollectionPagination(creditNotePageResult.value));
+      setUsingMockCreditNotes(false);
+    } else {
+      setCreditNotes([]);
+      setCreditNoteRows([]);
+      setCreditNotePagination(null);
+      setUsingMockCreditNotes(true);
+      failures.push("credit-notes");
+    }
+
     if (failures.length) {
       setError(
         failures.includes("dashboard")
@@ -465,6 +533,14 @@ export function useInventoryData() {
     paymentBatchSummary,
     paymentBatchNextReferenceNo,
     usingMockPaymentBatches,
+    creditNotes,
+    setCreditNotes,
+    creditNoteRows,
+    setCreditNoteRows,
+    creditNotePagination,
+    creditNoteEligibleSales,
+    creditNoteNextReferenceNo,
+    usingMockCreditNotes,
     loading,
     error,
     setError,
@@ -476,7 +552,9 @@ export function useInventoryData() {
     loadSalePage,
     loadBillingNotePage,
     loadPaymentBatchPage,
+    loadCreditNotePage,
     refreshBillingNoteEligibility,
     refreshPaymentBatchEligibility,
+    refreshCreditNoteEligibility,
   };
 }

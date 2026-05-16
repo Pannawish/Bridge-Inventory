@@ -504,6 +504,10 @@ function BillingNoteDetailModal({
   }
 
   const isCancelled = draft.status === "cancelled";
+  const creditTotal = (draft.credit_notes || [])
+    .filter((credit) => credit.status !== "cancelled")
+    .reduce((acc, credit) => acc + (Number(credit.total_amount) || 0), 0);
+  const netPayable = (Number(draft.total_amount) || 0) - creditTotal;
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -697,6 +701,60 @@ function BillingNoteDetailModal({
             </table>
           </div>
         </div>
+
+        {(draft.credit_notes || []).length > 0 ? (
+          <>
+            <div className="line-items-header">
+              <div>
+                <p className="eyebrow">Credit Notes</p>
+                <h4>Applied Customer Credits</h4>
+              </div>
+              <span>{(draft.credit_notes || []).length} applied</span>
+            </div>
+
+            <div className="transaction-table-window">
+              <div className="table-scroll partner-line-scroll desktop-table">
+                <table className="transaction-history-table partner-line-table">
+                  <thead>
+                    <tr>
+                      <th>Reference</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th>Credit Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(draft.credit_notes || []).map((credit) => (
+                      <tr key={credit.id} className="partner-table-row">
+                        <td>{credit.reference_no || credit.id}</td>
+                        <td>{formatDate(credit.credit_note_date)}</td>
+                        <td>
+                          <StatusPill status={credit.status} />
+                        </td>
+                        <td>{fmt(credit.total_amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="sales-summary-card">
+              <div className="sales-summary-row">
+                <span>Total Billed</span>
+                <span>{fmt(draft.total_amount)}</span>
+              </div>
+              <div className="sales-summary-row">
+                <span>Less Credit Notes</span>
+                <span>{fmt(creditTotal)}</span>
+              </div>
+              <div className="sales-summary-row sales-summary-grand">
+                <strong>Net Payable</strong>
+                <strong>{fmt(netPayable)}</strong>
+              </div>
+            </div>
+          </>
+        ) : null}
 
         <div className="supplier-modal-actions">
           <button

@@ -14,6 +14,7 @@ router.register("sales", views.SaleViewSet, basename="sale")
 router.register("quotations", views.QuotationViewSet, basename="quotation")
 router.register("billing-notes", views.BillingNoteViewSet, basename="billing-note")
 router.register("payment-batches", views.PaymentBatchViewSet, basename="payment-batch")
+router.register("credit-notes", views.CreditNoteViewSet, basename="credit-note")
 
 urlpatterns = [
     path("", views.api_home, name="api_home"),
@@ -35,6 +36,11 @@ urlpatterns = [
         "eligibility/payment-batch-purchases/",
         views.eligible_payment_batch_purchases,
         name="eligible_payment_batch_purchases",
+    ),
+    path(
+        "eligibility/credit-note-sales/",
+        views.eligible_credit_note_sales,
+        name="eligible_credit_note_sales",
     ),
     path("chat/", views.chat, name="chat"),
 ]

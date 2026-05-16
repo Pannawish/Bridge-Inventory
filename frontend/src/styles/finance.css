@@ -112,3 +112,89 @@
   border-top: 1px solid var(--line);
 }
 
+/* Credit note create card — keep the cancelled-items table inside the card. */
+.credit-note-create-card {
+  overflow: hidden;
+}
+
+.credit-note-create-card .form-layout,
+.credit-note-create-card .form-grid,
+.credit-note-create-card label,
+.credit-note-create-card select,
+.credit-note-create-card input,
+.credit-note-create-card textarea {
+  min-width: 0;
+}
+
+.credit-note-create-table-window {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.credit-note-create-scroll {
+  max-height: clamp(220px, 34vh, 420px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.transaction-table-window table.credit-note-create-table {
+  width: 100%;
+  min-width: 640px;
+  table-layout: fixed;
+}
+
+.credit-note-create-table th,
+.credit-note-create-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.credit-note-create-table td {
+  white-space: nowrap;
+}
+
+.credit-note-create-table th:first-child,
+.credit-note-create-table td:first-child {
+  text-align: center;
+}
+
+.credit-note-create-table th:last-child,
+.credit-note-create-table td:last-child,
+.credit-note-create-table th:nth-child(5),
+.credit-note-create-table td:nth-child(5) {
+  text-align: right;
+}
+
+.credit-note-create-card .supplier-modal-actions {
+  position: static;
+  margin: 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.credit-note-select-col {
+  width: 44px;
+}
+
+.credit-note-product-col {
+  width: 30%;
+}
+
+.credit-note-sku-col {
+  width: 16%;
+}
+
+.credit-note-qty-col {
+  width: 16%;
+}
+
+.credit-note-price-col {
+  width: 19%;
+}
+
+.credit-note-amount-col {
+  width: 19%;
+}
+
