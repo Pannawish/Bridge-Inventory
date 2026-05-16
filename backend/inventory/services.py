@@ -30,6 +30,8 @@ SALE_PARTIAL_TRANSACTION_STATUSES = {
     "partially_delivered",
 }
 SALE_ITEM_STATUSES = {"pending", "packed", "shipped", "delivered", "cancelled"}
+PURCHASE_ITEM_STATUSES = {"pending", "received", "cancelled"}
+PURCHASE_FULL_TRANSACTION_STATUSES = {"draft", "ordered", "received", "cancelled"}
 SAFETY_STOCK_DAYS = 7
 CHAT_STOP_WORDS = {
     "about",
@@ -266,6 +268,115 @@ def apply_purchase_status_to_items(purchase):
         purchase.items.update(item_status=PurchaseItem.ITEM_CANCELLED, received_date=None)
     elif purchase.status in {Purchase.STATUS_DRAFT, Purchase.STATUS_ORDERED}:
         purchase.items.update(item_status=PurchaseItem.ITEM_PENDING, received_date=None)
+
+
+def set_item_payload_value(item, field_name, value):
+    if isinstance(item, dict):
+        item[field_name] = value
+    else:
+        setattr(item, field_name, value)
+
+
+def get_item_payload_value(item, field_name):
+    if isinstance(item, dict):
+        return item.get(field_name)
+
+    return getattr(item, field_name)
+
+
+def get_purchase_item_status_for_transaction_status(status):
+    if status == Purchase.STATUS_RECEIVED:
+        return PurchaseItem.ITEM_RECEIVED
+    if status == Purchase.STATUS_CANCELLED:
+        return PurchaseItem.ITEM_CANCELLED
+    return PurchaseItem.ITEM_PENDING
+
+
+def get_purchase_item_payload_status(item):
+    if isinstance(item, dict):
+        status = item.get("item_status") or item.get("status")
+    else:
+        status = item.item_status
+
+    return status if status in PURCHASE_ITEM_STATUSES else PurchaseItem.ITEM_PENDING
+
+
+def has_purchase_item_payload_status(item):
+    if isinstance(item, dict):
+        return bool(item.get("item_status") or item.get("status"))
+
+    return bool(getattr(item, "item_status", None))
+
+
+def apply_purchase_item_status_dates(item, item_status, today=None):
+    today = today or timezone.localdate()
+
+    if item_status == PurchaseItem.ITEM_RECEIVED:
+        received_date = get_item_payload_value(item, "received_date")
+        set_item_payload_value(item, "received_date", received_date or today)
+        return
+
+    set_item_payload_value(item, "received_date", None)
+
+
+def get_purchase_status_from_item_statuses(
+    item_statuses,
+    fallback_status=Purchase.STATUS_ORDERED,
+):
+    if not item_statuses:
+        return fallback_status or Purchase.STATUS_ORDERED
+
+    active_statuses = [
+        status for status in item_statuses if status != PurchaseItem.ITEM_CANCELLED
+    ]
+
+    if all(status == PurchaseItem.ITEM_CANCELLED for status in item_statuses):
+        return Purchase.STATUS_CANCELLED
+
+    if not active_statuses:
+        return Purchase.STATUS_CANCELLED
+
+    if all(status == PurchaseItem.ITEM_RECEIVED for status in active_statuses):
+        return Purchase.STATUS_RECEIVED
+
+    if any(status == PurchaseItem.ITEM_RECEIVED for status in active_statuses):
+        return Purchase.STATUS_PARTIALLY_RECEIVED
+
+    if fallback_status == Purchase.STATUS_DRAFT:
+        return Purchase.STATUS_DRAFT
+
+    return Purchase.STATUS_ORDERED
+
+
+def get_purchase_status_from_items(items, fallback_status=Purchase.STATUS_ORDERED):
+    return get_purchase_status_from_item_statuses(
+        [get_purchase_item_payload_status(item) for item in items or []],
+        fallback_status=fallback_status,
+    )
+
+
+def normalize_purchase_items_for_status(items, purchase_status):
+    if items is None:
+        return purchase_status
+
+    today = timezone.localdate()
+    has_explicit_item_statuses = any(has_purchase_item_payload_status(item) for item in items)
+    if (
+        purchase_status in PURCHASE_FULL_TRANSACTION_STATUSES
+        and not has_explicit_item_statuses
+    ):
+        item_status = get_purchase_item_status_for_transaction_status(purchase_status)
+        for item in items:
+            set_item_payload_value(item, "item_status", item_status)
+            apply_purchase_item_status_dates(item, item_status, today)
+        return purchase_status
+
+    for item in items:
+        item_status = get_purchase_item_payload_status(item)
+        set_item_payload_value(item, "item_status", item_status)
+        apply_purchase_item_status_dates(item, item_status, today)
+
+    return get_purchase_status_from_items(items, fallback_status=purchase_status)
 
 
 def get_sale_item_status_for_transaction_status(status):

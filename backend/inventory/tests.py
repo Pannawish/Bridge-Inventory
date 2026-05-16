@@ -596,6 +596,99 @@ class SaleStockValidationTests(APITestCase):
         self.assertEqual(product_response.status_code, 200)
         self.assertEqual(product_response.data["current_stock"], Decimal("10"))
 
+    def test_cancelled_sale_item_can_be_restored_to_pending(self):
+        sale = Sale.objects.create(
+            customer_name="Stock Customer",
+            status=Sale.STATUS_CANCELLED,
+            transaction_date=self.today,
+        )
+
+        payload = self.sale_payload(Sale.STATUS_CANCELLED, 4)
+        payload["items"][0]["item_status"] = SaleItem.ITEM_PENDING
+
+        response = self.client.patch(
+            f"/api/sales/{sale.id}/",
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], Sale.STATUS_DRAFT)
+        self.assertEqual(response.data["items"][0]["item_status"], SaleItem.ITEM_PENDING)
+
+
+class PurchaseItemStatusTests(APITestCase):
+    def setUp(self):
+        self.product = Product.objects.create(
+            sku="PURCH-STATUS-1",
+            product_name="Purchase Status Product",
+            stock_base_unit="pcs",
+            default_purchase_unit="pcs",
+        )
+        self.today = timezone.localdate()
+
+    def purchase_payload(self, status, quantity):
+        return {
+            "supplier_name": "Purchase Status Supplier",
+            "status": status,
+            "transaction_date": self.today.isoformat(),
+            "items": [
+                {
+                    "product_id": self.product.id,
+                    "product_name": self.product.product_name,
+                    "sku": self.product.sku,
+                    "unit": "pcs",
+                    "base_unit": "pcs",
+                    "conversion_factor": "1",
+                    "quantity": str(quantity),
+                    "base_quantity": str(quantity),
+                    "unit_cost": "1",
+                    "amount": str(quantity),
+                }
+            ],
+        }
+
+    def test_cancelled_purchase_item_can_be_restored_to_pending(self):
+        purchase = Purchase.objects.create(
+            supplier_name="Purchase Status Supplier",
+            status=Purchase.STATUS_CANCELLED,
+            transaction_date=self.today,
+        )
+
+        payload = self.purchase_payload(Purchase.STATUS_CANCELLED, 4)
+        payload["items"][0]["item_status"] = PurchaseItem.ITEM_PENDING
+
+        response = self.client.patch(
+            f"/api/purchases/{purchase.id}/",
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], Purchase.STATUS_ORDERED)
+        self.assertEqual(response.data["items"][0]["item_status"], PurchaseItem.ITEM_PENDING)
+
+    def test_cancelled_purchase_item_can_be_restored_to_received(self):
+        purchase = Purchase.objects.create(
+            supplier_name="Purchase Status Supplier",
+            status=Purchase.STATUS_CANCELLED,
+            transaction_date=self.today,
+        )
+
+        payload = self.purchase_payload(Purchase.STATUS_CANCELLED, 4)
+        payload["items"][0]["item_status"] = PurchaseItem.ITEM_RECEIVED
+
+        response = self.client.patch(
+            f"/api/purchases/{purchase.id}/",
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], Purchase.STATUS_RECEIVED)
+        self.assertEqual(response.data["items"][0]["item_status"], PurchaseItem.ITEM_RECEIVED)
+        self.assertIsNotNone(response.data["items"][0]["received_date"])
+
 
 class RelationalNormalizationTests(APITestCase):
     def setUp(self):

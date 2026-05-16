@@ -670,6 +670,8 @@ class PurchaseSerializer(serializers.ModelSerializer):
         return validate_percentage_discount(value, "Bill discount")
 
     def validate(self, attrs):
+        from .services import normalize_purchase_items_for_status
+
         supplier_id_value = attrs.pop("supplier_id", None)
         should_resolve_supplier = (
             supplier_id_value is not None
@@ -685,6 +687,18 @@ class PurchaseSerializer(serializers.ModelSerializer):
                     getattr(self.instance, "supplier_name", ""),
                 ),
             )
+
+        purchase_status = attrs.get(
+            "status",
+            getattr(self.instance, "status", Purchase.STATUS_ORDERED),
+        )
+        items_submitted = "items" in attrs
+        if items_submitted:
+            purchase_status = normalize_purchase_items_for_status(
+                attrs.get("items") or [],
+                purchase_status,
+            )
+            attrs["status"] = purchase_status
 
         return attrs
 

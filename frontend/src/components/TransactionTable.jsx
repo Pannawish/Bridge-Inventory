@@ -822,7 +822,6 @@ function TransactionTable({
                                   onChange={(event) =>
                                     handleSaleItemStatusChange(itemIndex, event.target.value)
                                   }
-                                  disabled={itemStatus === "cancelled"}
                                   aria-label={`Change ${item.product_name} sales status`}
                                 >
                                   {itemStatusOptions.map((status) => (
@@ -933,10 +932,7 @@ function TransactionTable({
                                   onChange={(event) =>
                                     handlePurchaseItemStatusChange(itemIndex, event.target.value)
                                   }
-                                  disabled={
-                                    ["draft", "cancelled"].includes(selectedRow.status) ||
-                                    storedStatus === "cancelled"
-                                  }
+                                  disabled={selectedRow.status === "draft"}
                                   aria-label={`Change ${item.product_name} receiving status`}
                                 >
                                   {itemStatusOptions.map((status) => (

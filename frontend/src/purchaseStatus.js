@@ -106,28 +106,33 @@ export function getPurchaseItemStatusCounts(
 export function getPurchaseStatusFromItems(purchase) {
   const items = purchase.items || [];
 
-  if (purchase.status === "draft" || !items.length) {
+  if (!items.length) {
     return purchase.status || "draft";
   }
 
   const storedStatuses = items.map((item) =>
     getStoredPurchaseItemStatus(item, purchase.status)
   );
+  const activeStatuses = storedStatuses.filter((status) => status !== "cancelled");
 
   if (storedStatuses.every((status) => status === "cancelled")) {
     return "cancelled";
   }
 
-  if (storedStatuses.every((status) => status === "received")) {
+  if (!activeStatuses.length) {
+    return "cancelled";
+  }
+
+  if (activeStatuses.every((status) => status === "received")) {
     return "received";
   }
 
-  if (storedStatuses.some((status) => status === "received")) {
+  if (activeStatuses.some((status) => status === "received")) {
     return "partially_received";
   }
 
-  if (purchase.status === "cancelled") {
-    return "cancelled";
+  if (purchase.status === "draft") {
+    return "draft";
   }
 
   return "ordered";
