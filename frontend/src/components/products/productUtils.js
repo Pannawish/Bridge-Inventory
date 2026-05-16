@@ -285,7 +285,7 @@ export function renderDiscounts(item) {
     const activeDiscounts = item.discounts.filter((discount) => Number(discount) > 0);
 
     if (activeDiscounts.length) {
-      return activeDiscounts.map((discount) => `${Number(discount)}%`).join(" → ");
+      return activeDiscounts.map((discount) => `${Number(discount)}%`).join("|");
     }
   }
 

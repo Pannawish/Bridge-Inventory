@@ -64,7 +64,7 @@ function renderDiscounts(item) {
   if (Array.isArray(item.discounts)) {
     const active = item.discounts.filter((d) => Number(d) > 0);
     if (active.length > 0) {
-      return active.map((d) => `${Number(d)}%`).join(" → ");
+      return active.map((d) => `${Number(d)}%`).join("|");
     }
     return "—";
   }
