@@ -134,6 +134,8 @@ class BusinessPartner(TimeStampedModel):
 
 class Supplier(BusinessPartner):
     id = models.CharField(max_length=80, primary_key=True, default=supplier_id)
+    procurement_name = models.CharField(max_length=255, blank=True, default="")
+    procurement_tel = models.CharField(max_length=80, blank=True, default="")
 
     class Meta:
         ordering = ["company_name"]

@@ -183,6 +183,26 @@
   grid-area: operations;
 }
 
+.supplier-contact-editor-layout {
+  grid-template-areas:
+    "identity"
+    "procurement"
+    "contact"
+    "operations";
+}
+
+.supplier-contact-editor-layout .contact-editor-section:nth-child(2) {
+  grid-area: procurement;
+}
+
+.supplier-contact-editor-layout .contact-editor-section:nth-child(3) {
+  grid-area: contact;
+}
+
+.supplier-contact-editor-layout .contact-editor-section:nth-child(4) {
+  grid-area: operations;
+}
+
 .contact-editor-section-heading {
   display: flex;
   align-items: flex-start;

@@ -203,11 +203,24 @@ class BusinessPartnerSerializer(serializers.ModelSerializer):
 
 
 class SupplierSerializer(BusinessPartnerSerializer):
+    procurementName = serializers.CharField(
+        source="procurement_name",
+        required=False,
+        allow_blank=True,
+    )
+    procurementTel = serializers.CharField(
+        source="procurement_tel",
+        required=False,
+        allow_blank=True,
+    )
+
     class Meta:
         model = Supplier
         fields = [
             "id",
             "companyName",
+            "procurementName",
+            "procurementTel",
             "locations",
             "selectedLocationIndex",
             "emails",

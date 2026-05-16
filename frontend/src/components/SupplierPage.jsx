@@ -4,12 +4,15 @@ import {
   getContactFieldError,
   getRequiredFieldError,
   getRequiredListError,
+  isValidTel,
 } from "./contactValidation";
 
 function createSupplier(overrides = {}) {
   return {
     id: `supplier-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     companyName: "",
+    procurementName: "",
+    procurementTel: "",
     locations: [""],
     selectedLocationIndex: 0,
     emails: [""],
@@ -32,6 +35,8 @@ const defaultSuppliers = [
   createSupplier({
     id: "supplier-1",
     companyName: "Bangkok Office Supply",
+    procurementName: "Nattapong Srisai",
+    procurementTel: "02-123-4567",
     locations: ["Bangkok HQ", "Lat Krabang Branch", "Nonthaburi Warehouse"],
     selectedLocationIndex: 0,
     emails: ["sales@bangkokoffice.co.th", "support@bangkokoffice.co.th"],
@@ -53,6 +58,8 @@ const defaultSuppliers = [
   createSupplier({
     id: "supplier-2",
     companyName: "Learning Tools Co.",
+    procurementName: "Mayuree Tan",
+    procurementTel: "035-555-220",
     locations: ["Pathum Thani Office", "Ayutthaya Fulfillment Center"],
     selectedLocationIndex: 0,
     emails: ["contact@learningtools.co.th"],
@@ -71,6 +78,8 @@ const defaultSuppliers = [
   createSupplier({
     id: "supplier-3",
     companyName: "Eco Paper Mart",
+    procurementName: "Krit Phanich",
+    procurementTel: "02-745-1188",
     locations: ["Samut Prakan Depot", "Bang Na Sales Office"],
     selectedLocationIndex: 1,
     emails: ["orders@ecopapermart.co.th", "accounts@ecopapermart.co.th"],
@@ -92,6 +101,8 @@ const defaultSuppliers = [
   createSupplier({
     id: "supplier-4",
     companyName: "Metro Storage & Filing",
+    procurementName: "Siriporn W.",
+    procurementTel: "086-678-9900",
     locations: ["Rama III Showroom", "Min Buri Warehouse"],
     selectedLocationIndex: 0,
     emails: ["sales@metrostorage.example", "dispatch@metrostorage.example"],
@@ -110,6 +121,8 @@ const defaultSuppliers = [
   createSupplier({
     id: "supplier-5",
     companyName: "Classroom Essentials Ltd.",
+    procurementName: "Anan Chaiyaporn",
+    procurementTel: "053-220-441",
     locations: ["Chiang Mai Office", "Lampang Cross-dock"],
     selectedLocationIndex: 0,
     emails: ["support@classroomessentials.co.th"],
@@ -157,6 +170,8 @@ function normalizeSupplier(supplier) {
   return {
     id: supplier.id || createSupplier().id,
     companyName: `${supplier.companyName ?? ""}`,
+    procurementName: `${supplier.procurementName ?? ""}`,
+    procurementTel: `${supplier.procurementTel ?? ""}`,
     locations,
     selectedLocationIndex: clampIndex(locations, supplier.selectedLocationIndex),
     emails,
@@ -211,6 +226,8 @@ function getContactListKeyForIndex(indexKey) {
 
 const SUPPLIER_REQUIRED_FIELDS = {
   companyName: "Supplier company name",
+  procurementName: "Procurement name",
+  procurementTel: "Procurement tel",
   taxpayerId: "Supplier taxpayer identification number",
   termType: "Payment term",
   billingNoteDate: "Credit term",
@@ -239,6 +256,24 @@ function getSupplierOptionError(listKey, value) {
   );
 }
 
+function getSupplierTextFieldError(key, value) {
+  if (key === "remark") {
+    return "";
+  }
+
+  const requiredError = getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS[key], value);
+
+  if (requiredError) {
+    return requiredError;
+  }
+
+  if (key === "procurementTel" && !isValidTel(value)) {
+    return "Enter a valid telephone number.";
+  }
+
+  return "";
+}
+
 function getFirstInvalidSupplierOptionIndex(supplier, listKey) {
   return (supplier[listKey] || []).findIndex((value) => getSupplierOptionError(listKey, value));
 }
@@ -246,6 +281,11 @@ function getFirstInvalidSupplierOptionIndex(supplier, listKey) {
 function getSupplierFormErrors(supplier) {
   return {
     companyName: getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS.companyName, supplier.companyName),
+    procurementName: getRequiredFieldError(
+      SUPPLIER_REQUIRED_FIELDS.procurementName,
+      supplier.procurementName
+    ),
+    procurementTel: getSupplierTextFieldError("procurementTel", supplier.procurementTel),
     taxpayerId: getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS.taxpayerId, supplier.taxpayerId),
     branches:
       getRequiredListError(SUPPLIER_REQUIRED_OPTIONS.branches, supplier.branches) ||
@@ -382,6 +422,8 @@ function SupplierPage({
       const matchesSearch =
         !normalizedSearch ||
         supplier.companyName.toLowerCase().includes(normalizedSearch) ||
+        supplier.procurementName.toLowerCase().includes(normalizedSearch) ||
+        supplier.procurementTel.toLowerCase().includes(normalizedSearch) ||
         supplier.taxpayerId.toLowerCase().includes(normalizedSearch) ||
         supplier.locations.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
         supplier.emails.some((item) => item.toLowerCase().includes(normalizedSearch)) ||
@@ -462,10 +504,7 @@ function SupplierPage({
     updateDraftSupplier((supplier) => ({ ...supplier, [key]: value }));
     setFormErrors((currentErrors) => ({
       ...currentErrors,
-      [key]:
-        key === "remark"
-          ? ""
-          : getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS[key], value),
+      [key]: getSupplierTextFieldError(key, value),
     }));
   }
 
@@ -884,7 +923,7 @@ function SupplierPage({
                 handleSaveSupplier();
               }}
             >
-              <div className="contact-editor-layout">
+              <div className="contact-editor-layout supplier-contact-editor-layout">
                 <section className="contact-editor-section">
                   <div className="contact-editor-section-heading">
                     <div>
@@ -940,6 +979,51 @@ function SupplierPage({
                         onDelete={() => deleteOption("branches", "selectedBranchIndex")}
                       />
                     </div>
+                  </div>
+                </section>
+
+                <section className="contact-editor-section">
+                  <div className="contact-editor-section-heading">
+                    <div>
+                      <p className="eyebrow">Procurement</p>
+                      <h4>Procurement Department</h4>
+                    </div>
+                    <span>Purchasing contact</span>
+                  </div>
+
+                  <div className="contact-editor-grid">
+                    <label>
+                      <span className="required-label">Procurement Name</span>
+                      <input
+                        required
+                        value={draftSupplier.procurementName}
+                        onChange={(event) =>
+                          updateTextField("procurementName", event.target.value)
+                        }
+                        placeholder="Procurement contact name"
+                        aria-invalid={formErrors.procurementName ? "true" : undefined}
+                      />
+                      {formErrors.procurementName ? (
+                        <span className="field-error-text">{formErrors.procurementName}</span>
+                      ) : null}
+                    </label>
+
+                    <label>
+                      <span className="required-label">Procurement Tel</span>
+                      <input
+                        required
+                        type="tel"
+                        value={draftSupplier.procurementTel}
+                        onChange={(event) =>
+                          updateTextField("procurementTel", event.target.value)
+                        }
+                        placeholder="Procurement telephone number"
+                        aria-invalid={formErrors.procurementTel ? "true" : undefined}
+                      />
+                      {formErrors.procurementTel ? (
+                        <span className="field-error-text">{formErrors.procurementTel}</span>
+                      ) : null}
+                    </label>
                   </div>
                 </section>
 
