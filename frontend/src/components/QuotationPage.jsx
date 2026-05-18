@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import EligiblePartyCombobox from "./EligiblePartyCombobox";
 import PurchaseForm from "./PurchaseForm";
 import SalesForm from "./SalesForm";
 import {
@@ -375,11 +376,15 @@ function QuotationForm({
   );
   const [formError, setFormError] = useState("");
   const customerOptions = useMemo(
-    () => normalizePartnerOptions(customers, form.customer_name),
+    () => normalizePartnerOptions(customers, form.customer_name).map(
+      (customer) => customer.companyName
+    ),
     [customers, form.customer_name]
   );
   const supplierOptions = useMemo(
-    () => normalizePartnerOptions(suppliers, form.supplier_name),
+    () => normalizePartnerOptions(suppliers, form.supplier_name).map(
+      (supplier) => supplier.companyName
+    ),
     [form.supplier_name, suppliers]
   );
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item, "sale_price"), 0);
@@ -624,35 +629,25 @@ function QuotationForm({
             />
           </label>
 
-          <label>
-            Customer Name
-            <select
-              value={form.customer_name}
-              onChange={(event) => updateForm("customer_name", event.target.value)}
-            >
-              <option value="">Select customer</option>
-              {customerOptions.map((customer) => (
-                <option key={customer.id} value={customer.companyName}>
-                  {customer.companyName}
-                </option>
-              ))}
-            </select>
-          </label>
+          <EligiblePartyCombobox
+            id="quotation-customer"
+            label="Customer Name"
+            value={form.customer_name}
+            options={customerOptions}
+            placeholder="Search customer"
+            emptyMessage="No customers found."
+            onChange={(nextCustomerName) => updateForm("customer_name", nextCustomerName)}
+          />
 
-          <label>
-            Supplier Name
-            <select
-              value={form.supplier_name}
-              onChange={(event) => updateForm("supplier_name", event.target.value)}
-            >
-              <option value="">Select supplier</option>
-              {supplierOptions.map((supplier) => (
-                <option key={supplier.id} value={supplier.companyName}>
-                  {supplier.companyName}
-                </option>
-              ))}
-            </select>
-          </label>
+          <EligiblePartyCombobox
+            id="quotation-supplier"
+            label="Supplier Name"
+            value={form.supplier_name}
+            options={supplierOptions}
+            placeholder="Search supplier"
+            emptyMessage="No suppliers found."
+            onChange={(nextSupplierName) => updateForm("supplier_name", nextSupplierName)}
+          />
 
           <label className="full-width">
             Note
