@@ -1576,3 +1576,102 @@ class CreditNoteTests(APITestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("billing note", str(response.data.get("error", "")).lower())
+
+
+class QuotationSupplierTests(APITestCase):
+    def setUp(self):
+        self.today = timezone.localdate()
+        self.product = Product.objects.create(
+            sku="QT-SUP-1",
+            product_name="Sourced Product",
+            stock_base_unit="pcs",
+            default_purchase_unit="pcs",
+            default_sales_unit="pcs",
+        )
+        self.customer = Customer.objects.create(company_name="Sourcing Customer")
+        self.supplier_a = Supplier.objects.create(company_name="Supplier A")
+        self.supplier_b = Supplier.objects.create(company_name="Supplier B")
+
+    def test_quotation_item_records_multiple_supplier_options(self):
+        payload = {
+            "reference_no": "QT-SUP-TEST",
+            "quotation_date": self.today.isoformat(),
+            "valid_until_date": self.today.isoformat(),
+            "customer_name": self.customer.company_name,
+            "vat_mode": "not_included",
+            "items": [
+                {
+                    "product_id": self.product.id,
+                    "product_name": self.product.product_name,
+                    "sku": self.product.sku,
+                    "unit": "pcs",
+                    "quantity": "10",
+                    "sale_price": "100",
+                    "discounts": ["0"],
+                    "supplier_options": [
+                        {
+                            "supplier_id": self.supplier_a.id,
+                            "supplier_name": "Supplier A",
+                            "cost_price": "70",
+                        },
+                        {
+                            "supplier_id": self.supplier_b.id,
+                            "supplier_name": "Supplier B",
+                            "cost_price": "60",
+                        },
+                    ],
+                }
+            ],
+        }
+        response = self.client.post("/api/quotations/", payload, format="json")
+
+        self.assertEqual(response.status_code, 201, response.data)
+        item = response.data["items"][0]
+        self.assertEqual(len(item["supplier_options"]), 2)
+        self.assertEqual(
+            {option["supplier_name"] for option in item["supplier_options"]},
+            {"Supplier A", "Supplier B"},
+        )
+        # Headline cost_price falls back to the cheapest recorded supplier.
+        self.assertEqual(Decimal(item["cost_price"]), Decimal("60"))
+
+        quotation_item = QuotationItem.objects.get(quotation_id=response.data["id"])
+        self.assertEqual(quotation_item.supplier_options.count(), 2)
+        self.assertEqual(
+            quotation_item.supplier_options.first().supplier_id,
+            self.supplier_a.id,
+        )
+
+    def test_sale_item_stores_supplier_and_unit_cost(self):
+        payload = {
+            "reference_no": "TI-SUP-TEST",
+            "customer_name": self.customer.company_name,
+            "status": Sale.STATUS_DRAFT,
+            "transaction_date": self.today.isoformat(),
+            "vat_mode": "not_included",
+            "items": [
+                {
+                    "product_id": self.product.id,
+                    "product_name": self.product.product_name,
+                    "sku": self.product.sku,
+                    "unit": "pcs",
+                    "quantity": "5",
+                    "unit_price": "100",
+                    "supplier_id": self.supplier_a.id,
+                    "supplier_name": "Supplier A",
+                    "unit_cost": "70",
+                    "discounts": ["0"],
+                }
+            ],
+        }
+        response = self.client.post("/api/sales/", payload, format="json")
+
+        self.assertEqual(response.status_code, 201, response.data)
+        item = response.data["items"][0]
+        self.assertEqual(item["supplier_name"], "Supplier A")
+        self.assertEqual(item["supplier_id"], self.supplier_a.id)
+        self.assertEqual(Decimal(item["unit_cost"]), Decimal("70"))
+
+        sale_item = SaleItem.objects.get(sale_id=response.data["id"])
+        self.assertEqual(sale_item.supplier_id, self.supplier_a.id)
+        self.assertEqual(sale_item.unit_cost, Decimal("70"))

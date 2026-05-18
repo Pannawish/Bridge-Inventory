@@ -433,7 +433,8 @@ label textarea:focus,
   grid-template-columns: 38px minmax(220px, 1.7fr) minmax(90px, 0.65fr) minmax(90px, 0.65fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) auto;
   grid-template-areas:
     "index product unit qty price amount action"
-    ". discounts discounts discounts discounts discounts discounts";
+    ". discounts discounts discounts discounts discounts discounts"
+    ". supplier supplier supplier cost cost cost";
   align-items: start;
   min-width: 820px;
   padding: 14px;
@@ -459,7 +460,8 @@ label textarea:focus,
   grid-template-columns: 38px minmax(0, 1.8fr) minmax(82px, 0.6fr) minmax(82px, 0.6fr) minmax(110px, 0.8fr) auto;
   grid-template-areas:
     "index product unit qty amount action"
-    ". sale cost discounts discounts action";
+    ". sale discounts discounts discounts action"
+    ". suppliers suppliers suppliers suppliers suppliers";
   align-items: start;
   min-width: 0;
   padding: 14px;
@@ -594,6 +596,14 @@ label textarea:focus,
   grid-area: amount;
 }
 
+.sales-item-supplier {
+  grid-area: supplier;
+}
+
+.sales-item-cost {
+  grid-area: cost;
+}
+
 .sales-item-remove {
   grid-area: action;
   justify-self: end;
@@ -616,8 +626,53 @@ label textarea:focus,
   grid-area: sale;
 }
 
-.quotation-item-cost {
-  grid-area: cost;
+.quotation-item-suppliers {
+  grid-area: suppliers;
+  width: 100%;
+  max-width: 100%;
+}
+
+.quotation-supplier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.quotation-supplier-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.quotation-supplier-row .supplier-combobox-field {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.quotation-supplier-cost {
+  display: grid;
+  gap: 7px;
+  flex: 0 0 130px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.quotation-supplier-cost > span {
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.quotation-supplier-remove {
+  flex: 0 0 auto;
+}
+
+.quotation-supplier-add {
+  align-self: flex-start;
 }
 
 .quotation-item-discounts {

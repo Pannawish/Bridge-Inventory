@@ -1277,6 +1277,7 @@ function SalesHistoryPage({
   sales,
   allSales = sales,
   products = [],
+  suppliers = [],
   purchases = [],
   enableStockValidation = true,
   pagination = null,
@@ -1454,6 +1455,7 @@ function SalesHistoryPage({
         <SalesForm
           products={products}
           customers={customers}
+          suppliers={suppliers}
           purchases={purchases}
           sales={allSales}
           enableStockValidation={enableStockValidation}

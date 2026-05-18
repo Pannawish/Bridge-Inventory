@@ -1,0 +1,179 @@
+import { useMemo, useState } from "react";
+import { formatMoney as fmt } from "../format";
+
+function getItemKey(item, index) {
+  return item.line_id || item.id || `q-item-${index}`;
+}
+
+/**
+ * Step shown after the user clicks Purchase/Sale on a quotation: pick which
+ * products to convert and, for each, which recorded supplier to source from.
+ */
+export default function QuotationConvertSelect({ quotation, type, onBack, onContinue }) {
+  const isPurchase = type === "purchase";
+  const items = useMemo(
+    () => (Array.isArray(quotation.items) ? quotation.items : []),
+    [quotation.items]
+  );
+
+  const [selectedKeys, setSelectedKeys] = useState(() => {
+    const initial = new Set();
+    items.forEach((item, index) => {
+      const hasSupplier = (item.supplier_options || []).length > 0;
+      if (!isPurchase || hasSupplier) {
+        initial.add(getItemKey(item, index));
+      }
+    });
+    return initial;
+  });
+  const [supplierIndexByKey, setSupplierIndexByKey] = useState(() => {
+    const map = {};
+    items.forEach((item, index) => {
+      map[getItemKey(item, index)] = 0;
+    });
+    return map;
+  });
+  const [error, setError] = useState("");
+
+  function toggle(key, disabled) {
+    if (disabled) {
+      return;
+    }
+    setSelectedKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  function handleContinue() {
+    const rows = [];
+    items.forEach((item, index) => {
+      const key = getItemKey(item, index);
+      if (!selectedKeys.has(key)) {
+        return;
+      }
+      const options = item.supplier_options || [];
+      rows.push({ item, option: options[supplierIndexByKey[key]] || null });
+    });
+
+    if (!rows.length) {
+      setError("Select at least one product.");
+      return;
+    }
+    if (isPurchase && rows.some((row) => !row.option)) {
+      setError("Every selected product needs a supplier to build a purchase order.");
+      return;
+    }
+
+    onContinue(rows);
+  }
+
+  return (
+    <section className="section-card">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Quotation {quotation.reference_no}</p>
+          <h3>Select Products to {isPurchase ? "Purchase" : "Sell"}</h3>
+        </div>
+        <button
+          className="secondary-button table-action-button"
+          type="button"
+          onClick={onBack}
+        >
+          Back
+        </button>
+      </div>
+
+      <p className="empty-copy">
+        {isPurchase
+          ? "Pick the supplier for each product. Products are grouped into one purchase order per supplier."
+          : "Pick the supplier each product is sourced from. Its cost is recorded on the sales order."}
+      </p>
+
+      <div className="transaction-table-window">
+        <div className="table-scroll">
+          <table className="transaction-history-table">
+            <thead>
+              <tr>
+                <th />
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Sale Price</th>
+                <th>Supplier (Cost)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, index) => {
+                const key = getItemKey(item, index);
+                const options = item.supplier_options || [];
+                const disabled = isPurchase && options.length === 0;
+                const checked = selectedKeys.has(key);
+
+                return (
+                  <tr
+                    key={key}
+                    className={checked ? "partner-table-row active" : "partner-table-row"}
+                  >
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={disabled}
+                        onChange={() => toggle(key, disabled)}
+                      />
+                    </td>
+                    <td>
+                      {item.product_name || "—"}
+                      {item.sku ? ` (${item.sku})` : ""}
+                    </td>
+                    <td>
+                      {item.quantity} {item.unit}
+                    </td>
+                    <td>{fmt(item.sale_price)}</td>
+                    <td>
+                      {options.length ? (
+                        <select
+                          value={supplierIndexByKey[key]}
+                          onChange={(event) =>
+                            setSupplierIndexByKey((current) => ({
+                              ...current,
+                              [key]: Number(event.target.value),
+                            }))
+                          }
+                        >
+                          {options.map((option, optionIndex) => (
+                            <option key={option.id || optionIndex} value={optionIndex}>
+                              {option.supplier_name || "—"} — {fmt(option.cost_price)}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="empty-copy">No supplier recorded</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {error ? <div className="error-banner">{error}</div> : null}
+
+      <div className="supplier-modal-actions">
+        <button className="secondary-button" type="button" onClick={onBack}>
+          Cancel
+        </button>
+        <button className="primary-button" type="button" onClick={handleContinue}>
+          Continue
+        </button>
+      </div>
+    </section>
+  );
+}

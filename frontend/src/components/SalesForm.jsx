@@ -89,6 +89,8 @@ function emptyItem() {
     unit: "pcs",
     quantity: 1,
     unit_price: "",
+    supplier_name: "",
+    unit_cost: "",
     discounts: [""],
   };
 }
@@ -112,6 +114,8 @@ function createInitialItems(prefill = {}) {
     unit: item.unit || "pcs",
     quantity: item.quantity ?? 1,
     unit_price: item.unit_price ?? item.sale_price ?? "",
+    supplier_name: item.supplier_name || "",
+    unit_cost: item.unit_cost ?? item.cost_price ?? "",
     discounts: Array.isArray(item.discounts)
       ? item.discounts
       : Number(item.discount) > 0
@@ -192,6 +196,7 @@ function showStockAlert(message) {
 function SalesForm({
   products,
   customers = defaultCustomerOptions,
+  suppliers = [],
   purchases = [],
   sales = [],
   enableStockValidation = true,
@@ -227,6 +232,18 @@ function SalesForm({
       customer.companyName.toLowerCase().includes(normalizedQuery)
     );
   }, [customerQuery, customers]);
+
+  const supplierNameOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (suppliers || [])
+            .map((supplier) => `${supplier.companyName ?? supplier.name ?? ""}`.trim())
+            .filter(Boolean)
+        )
+      ).sort((left, right) => left.localeCompare(right)),
+    [suppliers]
+  );
 
   useEffect(() => {
     setForm((currentForm) => {
@@ -1046,6 +1063,32 @@ function SalesForm({
                   </div>
                 </div>
 
+                <label className="purchase-item-field sales-item-supplier">
+                  <span>Supplier (Source)</span>
+                  <input
+                    list="sales-supplier-options"
+                    value={item.supplier_name}
+                    onChange={(event) =>
+                      updateItem(index, "supplier_name", event.target.value)
+                    }
+                    placeholder="Optional"
+                  />
+                </label>
+
+                <label className="purchase-item-field sales-item-cost">
+                  <span>Unit Cost</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.unit_cost}
+                    onChange={(event) =>
+                      updateItem(index, "unit_cost", event.target.value)
+                    }
+                    placeholder="0.00"
+                  />
+                </label>
+
                 <button
                   className="danger-button sales-item-remove"
                   type="button"
@@ -1057,6 +1100,11 @@ function SalesForm({
               </div>
             );
           })}
+          <datalist id="sales-supplier-options">
+            {supplierNameOptions.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
         </div>
 
         <AllItemsDiscountControl

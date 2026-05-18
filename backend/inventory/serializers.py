@@ -20,6 +20,7 @@ from .models import (
     PurchaseItem,
     Quotation,
     QuotationItem,
+    QuotationItemSupplier,
     Sale,
     SaleDocument,
     SaleItem,
@@ -823,6 +824,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
 
 class SaleItemSerializer(serializers.ModelSerializer):
     product_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    supplier_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     line_total = serializers.SerializerMethodField()
 
     class Meta:
@@ -832,6 +834,9 @@ class SaleItemSerializer(serializers.ModelSerializer):
             "product_id",
             "product_name",
             "sku",
+            "supplier_id",
+            "supplier_name",
+            "unit_cost",
             "item_status",
             "shipped_date",
             "delivered_date",
@@ -848,6 +853,8 @@ class SaleItemSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "id": {"read_only": True},
             "sku": {"required": False, "allow_blank": True},
+            "supplier_name": {"required": False, "allow_blank": True},
+            "unit_cost": {"required": False},
             "shipped_date": {"required": False, "allow_null": True},
             "delivered_date": {"required": False, "allow_null": True},
             "unit": {"required": False, "allow_blank": True},
@@ -873,6 +880,12 @@ class SaleItemSerializer(serializers.ModelSerializer):
             sku=attrs.get("sku", ""),
             product_name=attrs.get("product_name", ""),
         )
+        supplier_id_value = attrs.pop("supplier_id", None)
+        attrs["supplier"] = resolve_supplier(
+            supplier_id=supplier_id_value,
+            supplier_name=attrs.get("supplier_name", ""),
+        )
+        attrs["unit_cost"] = decimal_or_zero(attrs.get("unit_cost"))
         quantity = decimal_or_zero(attrs.get("quantity", 0))
         factor = decimal_or_zero(attrs.get("conversion_factor", 1)) or Decimal("1")
         attrs["quantity"] = quantity
@@ -1200,6 +1213,38 @@ class QuotationSerializer(serializers.ModelSerializer):
                     )
                 discounts.append(str(discount_value))
 
+            raw_supplier_options = item.get("supplier_options")
+            if not isinstance(raw_supplier_options, list):
+                raw_supplier_options = []
+
+            supplier_options = []
+            for option in raw_supplier_options:
+                if not isinstance(option, dict):
+                    continue
+                option_supplier_id = str(
+                    option.get("supplier_id") or option.get("supplierId") or ""
+                ).strip()
+                option_supplier_name = str(
+                    option.get("supplier_name") or option.get("supplierName") or ""
+                ).strip()
+                if not (option_supplier_id or option_supplier_name):
+                    continue
+                option_cost = decimal_or_none(option.get("cost_price"))
+                if option_cost is None or option_cost < 0:
+                    raise serializers.ValidationError(
+                        f"Item {index} supplier "
+                        f"'{option_supplier_name or option_supplier_id}' "
+                        "requires a cost price of 0 or more."
+                    )
+                supplier_options.append(
+                    {
+                        "supplier_id": option_supplier_id,
+                        "supplier_name": option_supplier_name,
+                        "cost_price": str(option_cost),
+                        "note": str(option.get("note") or "").strip(),
+                    }
+                )
+
             normalized_item = {
                 **item,
                 "product_id": product_id,
@@ -1222,6 +1267,7 @@ class QuotationSerializer(serializers.ModelSerializer):
                 "sale_price": str(sale_price),
                 "cost_price": "" if cost_price is None else str(cost_price),
                 "discounts": discounts or ["0"],
+                "supplier_options": supplier_options,
             }
             normalized_items.append(normalized_item)
 
@@ -1267,6 +1313,17 @@ class QuotationSerializer(serializers.ModelSerializer):
             "discounts": discounts,
             "sale_amount": str(sale_amount),
             "cost_amount": str(cost_amount),
+            "supplier_options": [
+                {
+                    "id": option.id,
+                    "supplier_id": option.supplier_id or "",
+                    "supplier_name": option.supplier_name,
+                    "cost_price": str(option.cost_price),
+                    "note": option.note,
+                    "position": option.position,
+                }
+                for option in item.supplier_options.all()
+            ],
         }
 
     def to_representation(self, instance):
@@ -1331,6 +1388,7 @@ class QuotationSerializer(serializers.ModelSerializer):
 
         quotation.line_items.all().delete()
         rows = []
+        options_by_index = []
         for position, item in enumerate(items):
             product = resolve_product(
                 product_id=item.get("product_id"),
@@ -1348,6 +1406,14 @@ class QuotationSerializer(serializers.ModelSerializer):
                 or item.get("unit")
                 or "pcs"
             )
+            supplier_options = item.get("supplier_options") or []
+            option_costs = [
+                decimal_or_zero(option.get("cost_price")) for option in supplier_options
+            ]
+            # Headline cost_price is the cheapest recorded supplier, else the legacy value.
+            headline_cost = min(option_costs) if option_costs else decimal_or_none(
+                item.get("cost_price")
+            )
             rows.append(
                 QuotationItem(
                     quotation=quotation,
@@ -1361,12 +1427,38 @@ class QuotationSerializer(serializers.ModelSerializer):
                     quantity=quantity,
                     base_quantity=base_quantity,
                     sale_price=decimal_or_zero(item.get("sale_price")),
-                    cost_price=decimal_or_none(item.get("cost_price")),
+                    cost_price=headline_cost,
                     discounts=item.get("discounts") or ["0"],
                 )
             )
+            options_by_index.append(supplier_options)
 
         QuotationItem.objects.bulk_create(rows)
+
+        supplier_rows = []
+        for quotation_item, supplier_options in zip(rows, options_by_index):
+            for option_position, option in enumerate(supplier_options):
+                supplier = resolve_supplier(
+                    supplier_id=option.get("supplier_id"),
+                    supplier_name=option.get("supplier_name", ""),
+                )
+                supplier_rows.append(
+                    QuotationItemSupplier(
+                        quotation_item=quotation_item,
+                        supplier=supplier,
+                        supplier_name=(
+                            option.get("supplier_name")
+                            or (supplier.company_name if supplier else "")
+                        ),
+                        cost_price=decimal_or_zero(option.get("cost_price")),
+                        position=option_position,
+                        note=option.get("note") or "",
+                    )
+                )
+
+        if supplier_rows:
+            QuotationItemSupplier.objects.bulk_create(supplier_rows)
+
         if hasattr(quotation, "_prefetched_objects_cache"):
             quotation._prefetched_objects_cache = {}
 

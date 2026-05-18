@@ -277,6 +277,21 @@ function App() {
     }
   }
 
+  // Quotation multi-PO wizard: create one purchase order without leaving the wizard.
+  async function handleQuotationPurchaseCreate(formData) {
+    setError("");
+
+    try {
+      const saved = await api.createPurchase(formData);
+      setNotice(`Purchase order ${saved?.reference_no || ""} created.`.trim());
+      await loadPurchasePage();
+      return saved;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
   async function handleSalesCreateFromHistory(formData) {
     setError("");
 
@@ -1305,7 +1320,8 @@ function App() {
                 enableSaleStockValidation={usingMockPurchases && usingMockSales}
                 onSaveQuotation={handleQuotationSave}
                 onDeleteQuotation={handleQuotationDelete}
-                onCreatePurchase={handlePurchaseCreateFromHistory}
+                onCreatePurchaseFromQuotation={handleQuotationPurchaseCreate}
+                onViewPurchases={() => setActiveTab("purchase-history")}
                 onCreateSale={handleSalesCreateFromHistory}
               />
             ) : null}
@@ -1315,6 +1331,7 @@ function App() {
                 sales={saleRows}
                 allSales={sales}
                 products={activeProducts}
+                suppliers={suppliers}
                 purchases={usingMockPurchases ? purchases : []}
                 enableStockValidation={usingMockPurchases && usingMockSales}
                 pagination={salePagination}

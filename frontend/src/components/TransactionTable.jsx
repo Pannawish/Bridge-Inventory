@@ -834,8 +834,11 @@ function TransactionTable({
                         <th>Qty</th>
                         <th>Base Qty</th>
                         <th>Unit Price</th>
+                        <th>Supplier</th>
+                        <th>Unit Cost</th>
                         <th>Discounts</th>
                         <th>Amount</th>
+                        <th>Margin</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -906,10 +909,26 @@ function TransactionTable({
                             <td>{quantityDetails.enteredLabel}</td>
                             <td>{quantityDetails.baseLabel}</td>
                             <td>{item.unit_price ? formatCurrency(item.unit_price) : "—"}</td>
+                            <td>{item.supplier_name || "—"}</td>
+                            <td>
+                              {Number(item.unit_cost) > 0
+                                ? formatCurrency(item.unit_cost)
+                                : "—"}
+                            </td>
                             <td>
                               <DiscountBreakdown item={item} transaction={selectedRow} />
                             </td>
                             <td>{formatCurrency(amount)}</td>
+                            <td>
+                              {(() => {
+                                const lineCost =
+                                  Number(item.unit_cost || 0) *
+                                  Number(item.quantity || 0);
+                                return lineCost > 0
+                                  ? formatCurrency(amount - lineCost)
+                                  : "—";
+                              })()}
+                            </td>
                           </tr>
                         );
                       })}

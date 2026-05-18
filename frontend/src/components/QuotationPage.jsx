@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import EligiblePartyCombobox from "./EligiblePartyCombobox";
-import PurchaseForm from "./PurchaseForm";
 import SalesForm from "./SalesForm";
+import QuotationConvertSelect from "./QuotationConvertSelect";
+import MultiPurchaseWizard from "./MultiPurchaseWizard";
 import {
   buildConvertedItemFields,
   getProductDefaultSalesUnit,
@@ -69,6 +70,14 @@ function getNextQuotationReference(quotations = [], dateString = getToday()) {
   return `${prefix}-${`${nextSerial}`.padStart(3, "0")}`;
 }
 
+function emptySupplierOption() {
+  return {
+    option_id: `qopt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    supplier_name: "",
+    cost_price: "",
+  };
+}
+
 function emptyItem() {
   return {
     line_id: `quotation-item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -79,7 +88,7 @@ function emptyItem() {
     unit: "pcs",
     quantity: 1,
     sale_price: "",
-    cost_price: "",
+    supplier_options: [],
     discounts: [""],
   };
 }
@@ -210,7 +219,6 @@ function createInitialForm(referenceNo) {
     quotation_date: today,
     valid_until_date: addDays(today, 30),
     customer_name: "",
-    supplier_name: "",
     vat_mode: "not_included",
     note: "",
   };
@@ -222,10 +230,22 @@ function createEditForm(quotation) {
     quotation_date: quotation.quotation_date || getToday(),
     valid_until_date: quotation.valid_until_date || "",
     customer_name: quotation.customer_name || "",
-    supplier_name: quotation.supplier_name || "",
     vat_mode: quotation.vat_mode || "not_included",
     note: quotation.note || "",
   };
+}
+
+function normalizeSupplierOptions(item) {
+  const sourceOptions = Array.isArray(item?.supplier_options)
+    ? item.supplier_options
+    : [];
+
+  return sourceOptions.map((option, index) => ({
+    option_id: option.id || option.option_id || `qopt-edit-${index}`,
+    supplier_name: option.supplier_name || option.supplierName || "",
+    cost_price:
+      option.cost_price ?? option.costPrice ?? option.cost ?? "",
+  }));
 }
 
 function createEditItems(quotation) {
@@ -247,7 +267,7 @@ function createEditItems(quotation) {
     unit: item.unit || "pcs",
     quantity: item.quantity ?? 1,
     sale_price: item.sale_price ?? item.unit_price ?? "",
-    cost_price: item.cost_price ?? item.unit_cost ?? "",
+    supplier_options: normalizeSupplierOptions(item),
     discounts: normalizeDiscounts(item),
   }));
 }
@@ -336,38 +356,57 @@ function getQuotationPartnerOptions(quotations, key, partners = []) {
   return [...optionMap.values()].sort((left, right) => left.localeCompare(right));
 }
 
-function buildPurchasePrefill(quotation) {
+function buildConversionItemBase(item) {
   return {
-    supplier_name: quotation.supplier_name || "",
-    transaction_date: quotation.quotation_date || getToday(),
-    vat_mode: quotation.vat_mode || "not_included",
-    note: quotation.note || "",
-    items: (quotation.items || []).map((item) => ({
-      product_id: item.product_id || "",
-      product_name: item.product_name || "",
-      sku: item.sku || "",
-      unit: item.unit || "pcs",
-      quantity: item.quantity ?? 1,
-      unit_cost: item.cost_price ?? "",
-      discounts: normalizeDiscounts(item),
-    })),
+    product_id: item.product_id || "",
+    product_name: item.product_name || "",
+    sku: item.sku || "",
+    unit: item.unit || "pcs",
+    quantity: item.quantity ?? 1,
+    discounts: normalizeDiscounts(item),
   };
 }
 
-function buildSalesPrefill(quotation) {
+// rows: [{ item, option }] from QuotationConvertSelect. One purchase order per supplier.
+function buildPurchaseGroups(quotation, rows) {
+  const groupsBySupplier = new Map();
+
+  rows.forEach(({ item, option }) => {
+    const supplierName = option?.supplier_name || "Unassigned Supplier";
+
+    if (!groupsBySupplier.has(supplierName)) {
+      groupsBySupplier.set(supplierName, {
+        supplier_name: supplierName,
+        prefill: {
+          supplier_name: supplierName,
+          transaction_date: quotation.quotation_date || getToday(),
+          vat_mode: quotation.vat_mode || "not_included",
+          note: `From quotation ${quotation.reference_no || ""}`.trim(),
+          items: [],
+        },
+      });
+    }
+
+    groupsBySupplier.get(supplierName).prefill.items.push({
+      ...buildConversionItemBase(item),
+      unit_cost: option?.cost_price ?? "",
+    });
+  });
+
+  return [...groupsBySupplier.values()];
+}
+
+function buildSalesPrefillFromRows(quotation, rows) {
   return {
     customer_name: quotation.customer_name || "",
     transaction_date: quotation.quotation_date || getToday(),
     vat_mode: quotation.vat_mode || "not_included",
-    note: quotation.note || "",
-    items: (quotation.items || []).map((item) => ({
-      product_id: item.product_id || "",
-      product_name: item.product_name || "",
-      sku: item.sku || "",
-      unit: item.unit || "pcs",
-      quantity: item.quantity ?? 1,
+    note: `From quotation ${quotation.reference_no || ""}`.trim(),
+    items: rows.map(({ item, option }) => ({
+      ...buildConversionItemBase(item),
       unit_price: item.sale_price ?? "",
-      discounts: normalizeDiscounts(item),
+      supplier_name: option?.supplier_name || "",
+      unit_cost: option?.cost_price ?? "",
     })),
   };
 }
@@ -400,10 +439,8 @@ function QuotationForm({
     [customers, form.customer_name]
   );
   const supplierOptions = useMemo(
-    () => normalizePartnerOptions(suppliers, form.supplier_name).map(
-      (supplier) => supplier.companyName
-    ),
-    [form.supplier_name, suppliers]
+    () => normalizePartnerOptions(suppliers).map((supplier) => supplier.companyName),
+    [suppliers]
   );
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item, "sale_price"), 0);
   const vatSummary = computeVatSummary(itemTotal, form.vat_mode);
@@ -507,6 +544,55 @@ function QuotationForm({
     setItems((currentItems) => currentItems.filter((_, index) => index !== itemIndex));
   }
 
+  function addSupplierOption(itemIndex) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex
+          ? {
+              ...item,
+              supplier_options: [
+                ...(item.supplier_options || []),
+                emptySupplierOption(),
+              ],
+            }
+          : item
+      )
+    );
+  }
+
+  function removeSupplierOption(itemIndex, optionIndex) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex
+          ? {
+              ...item,
+              supplier_options: (item.supplier_options || []).filter(
+                (_, currentOptionIndex) => currentOptionIndex !== optionIndex
+              ),
+            }
+          : item
+      )
+    );
+  }
+
+  function updateSupplierOption(itemIndex, optionIndex, key, value) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex
+          ? {
+              ...item,
+              supplier_options: (item.supplier_options || []).map(
+                (option, currentOptionIndex) =>
+                  currentOptionIndex === optionIndex
+                    ? { ...option, [key]: value }
+                    : option
+              ),
+            }
+          : item
+      )
+    );
+  }
+
   function addDiscount(itemIndex) {
     setItems((currentItems) =>
       currentItems.map((item, index) =>
@@ -572,6 +658,23 @@ function QuotationForm({
       return;
     }
 
+    for (let itemIndex = 0; itemIndex < items.length; itemIndex += 1) {
+      const options = items[itemIndex].supplier_options || [];
+      for (const option of options) {
+        const hasSupplierName = `${option.supplier_name ?? ""}`.trim();
+        const missingCost =
+          option.cost_price === "" ||
+          option.cost_price === null ||
+          option.cost_price === undefined;
+        if (hasSupplierName && missingCost) {
+          setFormError(
+            `Enter a cost price for supplier "${option.supplier_name}" on item ${itemIndex + 1}.`
+          );
+          return;
+        }
+      }
+    }
+
     const normalizedItems = items.map((item, index) => {
       const selectedProduct = products.find((product) => `${product.id}` === `${item.product_id}`);
 
@@ -597,6 +700,13 @@ function QuotationForm({
         "sale"
       );
 
+      const supplierOptionRows = (item.supplier_options || [])
+        .filter((option) => `${option.supplier_name ?? ""}`.trim())
+        .map((option) => ({
+          supplier_name: `${option.supplier_name}`.trim(),
+          cost_price: option.cost_price,
+        }));
+
       return {
         line_id: item.line_id,
         product_id: selectedProduct.id,
@@ -605,10 +715,9 @@ function QuotationForm({
         ...convertedFields,
         quantity: Number(item.quantity) || 0,
         sale_price: item.sale_price,
-        cost_price: item.cost_price === undefined || item.cost_price === null ? "" : item.cost_price,
         discounts,
+        supplier_options: supplierOptionRows,
         sale_amount: computeAmount(item, "sale_price"),
-        cost_amount: item.cost_price === "" ? 0 : computeAmount(item, "cost_price"),
       };
     });
 
@@ -619,7 +728,6 @@ function QuotationForm({
         quotation_date: form.quotation_date,
         valid_until_date: form.valid_until_date,
         customer_name: form.customer_name,
-        supplier_name: form.supplier_name,
         vat_mode: form.vat_mode,
         note: form.note,
         items: normalizedItems,
@@ -699,16 +807,6 @@ function QuotationForm({
             placeholder="Search customer"
             emptyMessage="No customers found."
             onChange={(nextCustomerName) => updateForm("customer_name", nextCustomerName)}
-          />
-
-          <EligiblePartyCombobox
-            id="quotation-supplier"
-            label="Supplier Name"
-            value={form.supplier_name}
-            options={supplierOptions}
-            placeholder="Search supplier"
-            emptyMessage="No suppliers found."
-            onChange={(nextSupplierName) => updateForm("supplier_name", nextSupplierName)}
           />
 
           <label className="full-width">
@@ -846,18 +944,6 @@ function QuotationForm({
                   />
                 </label>
 
-                <label className="purchase-item-field quotation-item-cost">
-                  <span>Cost Price</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.cost_price}
-                    onChange={(event) => updateItem(index, "cost_price", event.target.value)}
-                    placeholder="Optional"
-                  />
-                </label>
-
                 <div className="purchase-item-field quotation-item-discounts">
                   <span>Discounts</span>
                   <div className="sales-discount-cell">
@@ -914,6 +1000,64 @@ function QuotationForm({
                 >
                   Remove
                 </button>
+
+                <div className="purchase-item-field quotation-item-suppliers">
+                  <span>Suppliers (cost comparison)</span>
+                  <div className="quotation-supplier-list">
+                    {(item.supplier_options || []).map((option, optionIndex) => (
+                      <div className="quotation-supplier-row" key={option.option_id}>
+                        <EligiblePartyCombobox
+                          id={`quotation-item-${item.line_id}-supplier-${option.option_id}`}
+                          label="Supplier"
+                          value={option.supplier_name}
+                          options={supplierOptions}
+                          placeholder="Search supplier"
+                          emptyMessage="No suppliers found."
+                          onChange={(nextSupplierName) =>
+                            updateSupplierOption(
+                              index,
+                              optionIndex,
+                              "supplier_name",
+                              nextSupplierName
+                            )
+                          }
+                        />
+                        <label className="quotation-supplier-cost">
+                          <span>Cost Price</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={option.cost_price}
+                            onChange={(event) =>
+                              updateSupplierOption(
+                                index,
+                                optionIndex,
+                                "cost_price",
+                                event.target.value
+                              )
+                            }
+                            placeholder="0.00"
+                          />
+                        </label>
+                        <button
+                          className="danger-button quotation-supplier-remove"
+                          type="button"
+                          onClick={() => removeSupplierOption(index, optionIndex)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      className="secondary-button quotation-supplier-add"
+                      type="button"
+                      onClick={() => addSupplierOption(index)}
+                    >
+                      + Add Supplier
+                    </button>
+                  </div>
+                </div>
               </div>
             );
           })}
@@ -1001,13 +1145,13 @@ function QuotationPage({
   enableSaleStockValidation = true,
   onSaveQuotation,
   onDeleteQuotation,
-  onCreatePurchase,
+  onCreatePurchaseFromQuotation,
+  onViewPurchases,
   onCreateSale,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState("");
-  const [selectedSupplier, setSelectedSupplier] = useState("");
   const [stateFilter, setStateFilter] = useState("all");
   const [vatFilter, setVatFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -1022,13 +1166,8 @@ function QuotationPage({
     () => getQuotationPartnerOptions(quotations, "customer_name", customers),
     [customers, quotations]
   );
-  const supplierOptions = useMemo(
-    () => getQuotationPartnerOptions(quotations, "supplier_name", suppliers),
-    [quotations, suppliers]
-  );
   const activeFilterCount =
     (selectedCustomer ? 1 : 0) +
-    (selectedSupplier ? 1 : 0) +
     (stateFilter === "all" ? 0 : 1) +
     (vatFilter === "all" ? 0 : 1) +
     (dateFrom ? 1 : 0) +
@@ -1043,9 +1182,6 @@ function QuotationPage({
           const matchesCustomer = selectedCustomer
             ? quotation.customer_name === selectedCustomer
             : true;
-          const matchesSupplier = selectedSupplier
-            ? quotation.supplier_name === selectedSupplier
-            : true;
           const matchesState =
             stateFilter === "all" ||
             getQuotationState(quotation).toLowerCase() === stateFilter;
@@ -1059,7 +1195,6 @@ function QuotationPage({
           return (
             matchesSearch &&
             matchesCustomer &&
-            matchesSupplier &&
             matchesState &&
             matchesVat &&
             matchesDateRange
@@ -1072,7 +1207,6 @@ function QuotationPage({
       normalizedSearch,
       quotations,
       selectedCustomer,
-      selectedSupplier,
       stateFilter,
       vatFilter,
     ]
@@ -1083,7 +1217,6 @@ function QuotationPage({
   function resetFilters() {
     setSearchTerm("");
     setSelectedCustomer("");
-    setSelectedSupplier("");
     setStateFilter("all");
     setVatFilter("all");
     setDateFrom("");
@@ -1112,15 +1245,28 @@ function QuotationPage({
     );
   }
 
+  function handleConvertContinue(rows) {
+    setConversion((current) => {
+      if (!current) {
+        return current;
+      }
+      if (current.type === "purchase") {
+        return {
+          ...current,
+          step: "purchase-wizard",
+          groups: buildPurchaseGroups(current.quotation, rows),
+        };
+      }
+      return {
+        ...current,
+        step: "sale-form",
+        salePrefill: buildSalesPrefillFromRows(current.quotation, rows),
+      };
+    });
+  }
+
   async function handlePurchaseCreate(formData) {
-    const saved = await onCreatePurchase?.(formData);
-
-    if (saved === false) {
-      return false;
-    }
-
-    setConversion(null);
-    return true;
+    return onCreatePurchaseFromQuotation?.(formData);
   }
 
   async function handleSaleCreate(formData) {
@@ -1179,34 +1325,25 @@ function QuotationPage({
     );
   }
 
-  if (conversion?.type === "purchase") {
+  if (conversion && conversion.step === "purchase-wizard") {
     return (
-      <div className="stack-layout">
-        <section className="section-card quotation-link-card">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Quotation Link</p>
-              <h3>Create Purchase from {conversion.quotation.reference_no}</h3>
-            </div>
-            <button className="secondary-button" type="button" onClick={() => setConversion(null)}>
-              Back
-            </button>
-          </div>
-        </section>
-        <PurchaseForm
-          key={`purchase-from-${conversion.quotation.id}`}
-          products={products}
-          suppliers={suppliers}
-          purchases={purchases}
-          prefill={buildPurchasePrefill(conversion.quotation)}
-          onSubmit={handlePurchaseCreate}
-          onCancel={() => setConversion(null)}
-        />
-      </div>
+      <MultiPurchaseWizard
+        key={`purchase-wizard-${conversion.quotation.id}`}
+        groups={conversion.groups}
+        products={products}
+        suppliers={suppliers}
+        purchases={purchases}
+        onCreatePurchase={handlePurchaseCreate}
+        onCancel={() => setConversion(null)}
+        onViewPurchases={() => {
+          setConversion(null);
+          onViewPurchases?.();
+        }}
+      />
     );
   }
 
-  if (conversion?.type === "sale") {
+  if (conversion && conversion.step === "sale-form") {
     return (
       <div className="stack-layout">
         <section className="section-card quotation-link-card">
@@ -1215,7 +1352,11 @@ function QuotationPage({
               <p className="eyebrow">Quotation Link</p>
               <h3>Create Sale from {conversion.quotation.reference_no}</h3>
             </div>
-            <button className="secondary-button" type="button" onClick={() => setConversion(null)}>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => setConversion(null)}
+            >
               Back
             </button>
           </div>
@@ -1224,12 +1365,27 @@ function QuotationPage({
           key={`sale-from-${conversion.quotation.id}`}
           products={products}
           customers={customers}
+          suppliers={suppliers}
           purchases={purchases}
           sales={sales}
           enableStockValidation={enableSaleStockValidation}
-          prefill={buildSalesPrefill(conversion.quotation)}
+          prefill={conversion.salePrefill}
           onSubmit={handleSaleCreate}
           onCancel={() => setConversion(null)}
+        />
+      </div>
+    );
+  }
+
+  if (conversion) {
+    return (
+      <div className="stack-layout">
+        <QuotationConvertSelect
+          key={`convert-${conversion.type}-${conversion.quotation.id}`}
+          quotation={conversion.quotation}
+          type={conversion.type}
+          onBack={() => setConversion(null)}
+          onContinue={handleConvertContinue}
         />
       </div>
     );
@@ -1252,7 +1408,7 @@ function QuotationPage({
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search quotation, customer, supplier, date, note, or item"
+              placeholder="Search quotation, customer, date, note, or item"
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
@@ -1290,21 +1446,6 @@ function QuotationPage({
                   {customerOptions.map((customerName) => (
                     <option key={customerName} value={customerName}>
                       {customerName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">Supplier</span>
-                <select
-                  value={selectedSupplier}
-                  onChange={(event) => setSelectedSupplier(event.target.value)}
-                >
-                  <option value="">All suppliers</option>
-                  {supplierOptions.map((supplierName) => (
-                    <option key={supplierName} value={supplierName}>
-                      {supplierName}
                     </option>
                   ))}
                 </select>
@@ -1401,7 +1542,6 @@ function QuotationPage({
                   <col className="quotation-col-index" />
                   <col className="quotation-col-reference" />
                   <col className="quotation-col-party" />
-                  <col className="quotation-col-party" />
                   <col className="quotation-col-dates" />
                   <col className="quotation-col-items" />
                   <col className="quotation-col-total" />
@@ -1412,7 +1552,6 @@ function QuotationPage({
                     <th className="table-index-cell">#</th>
                     <th>Quotation</th>
                     <th>Customer</th>
-                    <th>Supplier</th>
                     <th>Dates</th>
                     <th>Items</th>
                     <th>Total</th>
@@ -1438,12 +1577,6 @@ function QuotationPage({
                           <div className="cell-stack">
                             <strong>{quotation.customer_name || "—"}</strong>
                             <span>Customer</span>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="cell-stack">
-                            <strong>{quotation.supplier_name || "—"}</strong>
-                            <span>Supplier</span>
                           </div>
                         </td>
                         <td>
@@ -1498,10 +1631,6 @@ function QuotationPage({
                     </div>
 
                     <div className="mobile-record-grid">
-                      <div>
-                        <span>Supplier</span>
-                        <strong>{quotation.supplier_name || "—"}</strong>
-                      </div>
                       <div>
                         <span>Date</span>
                         <strong>{quotation.quotation_date || "—"}</strong>
@@ -1611,10 +1740,6 @@ function QuotationPage({
                 <strong>{viewingQuotation.customer_name || "—"}</strong>
               </div>
               <div>
-                <p className="detail-label">Supplier</p>
-                <strong>{viewingQuotation.supplier_name || "—"}</strong>
-              </div>
-              <div>
                 <p className="detail-label">Quotation Date</p>
                 <strong>{viewingQuotation.quotation_date || "—"}</strong>
               </div>
@@ -1648,7 +1773,7 @@ function QuotationPage({
                       <th>Qty</th>
                       <th>Unit</th>
                       <th>Sale Price</th>
-                      <th>Cost Price</th>
+                      <th>Suppliers (Cost)</th>
                       <th>Discounts</th>
                       <th>Sale Amount</th>
                     </tr>
@@ -1660,6 +1785,9 @@ function QuotationPage({
                       const discountLabel = activeDiscounts.length
                         ? activeDiscounts.map((d) => `${Number(d)}%`).join("|")
                         : "—";
+                      const supplierOptionList = Array.isArray(item.supplier_options)
+                        ? item.supplier_options
+                        : [];
 
                       return (
                         <tr key={item.line_id || index}>
@@ -1669,7 +1797,22 @@ function QuotationPage({
                           <td>{item.quantity ?? "—"}</td>
                           <td>{item.unit || "—"}</td>
                           <td>{item.sale_price !== "" && item.sale_price != null ? fmt(item.sale_price) : "—"}</td>
-                          <td>{item.cost_price !== "" && item.cost_price != null ? fmt(item.cost_price) : "—"}</td>
+                          <td>
+                            {supplierOptionList.length ? (
+                              <div className="quotation-supplier-summary">
+                                {supplierOptionList.map((option) => (
+                                  <span
+                                    key={option.id || option.option_id || option.supplier_name}
+                                    className="quotation-supplier-chip"
+                                  >
+                                    {option.supplier_name || "—"}: {fmt(option.cost_price)}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
                           <td>
                             <div className="tx-discount-breakdown">
                               <span className="tx-discount-breakdown-row">

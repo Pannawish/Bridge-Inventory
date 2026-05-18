@@ -617,3 +617,74 @@
   gap: 10px;
 }
 
+/* Quotation → purchase order wizard */
+.wizard-step-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+
+.wizard-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.wizard-step.active {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.wizard-step-index {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  font-weight: 800;
+}
+
+.wizard-step-name {
+  font-weight: 700;
+}
+
+.wizard-step-state {
+  color: var(--muted);
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.wizard-nav-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.wizard-finish {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+/* Quotation detail — per-item supplier comparison */
+.quotation-supplier-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quotation-supplier-chip {
+  font-size: 0.82rem;
+}
+

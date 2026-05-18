@@ -676,7 +676,8 @@ class SaleViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
 class QuotationViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     reference_prefix = "QT"
     queryset = Quotation.objects.select_related("customer", "supplier").prefetch_related(
-        "line_items__product"
+        "line_items__product",
+        "line_items__supplier_options",
     )
     serializer_class = QuotationSerializer
 

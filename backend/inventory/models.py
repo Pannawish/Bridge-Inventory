@@ -60,6 +60,10 @@ def quotation_item_id():
     return make_prefixed_id("quotation-item")
 
 
+def quotation_item_supplier_id():
+    return make_prefixed_id("quotation-item-supplier")
+
+
 def billing_note_id():
     return make_prefixed_id("billing-note")
 
@@ -449,6 +453,15 @@ class SaleItem(models.Model):
     )
     product_name = models.CharField(max_length=255)
     sku = models.CharField(max_length=80, blank=True)
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.SET_NULL,
+        related_name="sourced_sale_items",
+        blank=True,
+        null=True,
+    )
+    supplier_name = models.CharField(max_length=255, blank=True)
+    unit_cost = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     item_status = models.CharField(
         max_length=40,
         choices=ITEM_STATUS_CHOICES,
@@ -551,6 +564,36 @@ class QuotationItem(models.Model):
 
     def __str__(self):
         return self.product_name
+
+
+class QuotationItemSupplier(models.Model):
+    id = models.CharField(
+        max_length=80,
+        primary_key=True,
+        default=quotation_item_supplier_id,
+    )
+    quotation_item = models.ForeignKey(
+        QuotationItem,
+        on_delete=models.CASCADE,
+        related_name="supplier_options",
+    )
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.SET_NULL,
+        related_name="quotation_item_options",
+        blank=True,
+        null=True,
+    )
+    supplier_name = models.CharField(max_length=255, blank=True)
+    cost_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    position = models.PositiveIntegerField(default=0)
+    note = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["position", "id"]
+
+    def __str__(self):
+        return f"{self.quotation_item_id} / {self.supplier_name}"
 
 
 class BillingNote(TimeStampedModel):
