@@ -618,6 +618,15 @@ class SaleStockValidationTests(APITestCase):
         self.assertEqual(response.data["status"], Sale.STATUS_DRAFT)
         self.assertEqual(response.data["items"][0]["item_status"], SaleItem.ITEM_PENDING)
 
+    def test_sale_accepts_customer_po_reference(self):
+        payload = self.sale_payload(Sale.STATUS_DRAFT, 4)
+        payload["customer_po_reference"] = "CPO-12345"
+
+        response = self.client.post("/api/sales/", payload, format="json")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["customer_po_reference"], "CPO-12345")
+
 
 class PurchaseItemStatusTests(APITestCase):
     def setUp(self):

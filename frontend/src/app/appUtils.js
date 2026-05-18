@@ -154,6 +154,7 @@ export function buildSaleUpdatePayload(sale) {
   return buildTransactionFormData(sale, [
     "reference_no",
     "customer_name",
+    "customer_po_reference",
     "status",
     "payment_term_type",
     "payment_term_days",

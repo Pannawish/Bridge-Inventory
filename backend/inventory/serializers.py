@@ -908,6 +908,7 @@ class SaleSerializer(serializers.ModelSerializer):
             "reference_no",
             "customer_id",
             "customer_name",
+            "customer_po_reference",
             "status",
             "payment_term_type",
             "payment_term_days",
@@ -930,6 +931,7 @@ class SaleSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "id": {"required": False},
             "reference_no": {"required": False, "allow_blank": True},
+            "customer_po_reference": {"required": False, "allow_blank": True},
             "payment_term_type": {"required": False, "allow_blank": True},
             "payment_term_days": {"required": False, "allow_blank": True},
             "payment_date": {"required": False, "allow_null": True},

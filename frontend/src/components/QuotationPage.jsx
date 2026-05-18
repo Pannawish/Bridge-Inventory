@@ -73,18 +73,31 @@ function emptyItem() {
   return {
     line_id: `quotation-item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     product_id: "",
+    product_query: "",
     product_name: "",
     sku: "",
     unit: "pcs",
     quantity: 1,
     sale_price: "",
     cost_price: "",
-    discounts: [0],
+    discounts: [""],
   };
 }
 
 function getProductName(product) {
   return product?.name || product?.productName || product?.product_name || product?.sku || `Product ${product?.id}`;
+}
+
+function getProductSearchNames(product) {
+  const mainName = `${getProductName(product)}`.trim();
+  const subNames = Array.isArray(product?.subNames) ? product.subNames : [];
+
+  return [mainName, ...subNames]
+    .map((name) => `${name ?? ""}`.trim())
+    .filter(
+      (name, index, names) =>
+        name && names.findIndex((item) => item.toLowerCase() === name.toLowerCase()) === index
+    );
 }
 
 function getProductSku(product) {
@@ -122,7 +135,7 @@ function normalizeDiscounts(item) {
     return [item.discount];
   }
 
-  return [0];
+  return [""];
 }
 
 function computeAmount(item, priceKey = "sale_price") {
@@ -226,6 +239,9 @@ function createEditItems(quotation) {
     ...emptyItem(),
     line_id: item.line_id || item.id || `quotation-edit-${quotation.id}-${index}`,
     product_id: item.product_id || item.productId || "",
+    product_query: item.sku
+      ? `${item.product_name || item.productName || item.name || ""} (${item.sku || item.SKU})`
+      : item.product_name || item.productName || item.name || "",
     product_name: item.product_name || item.productName || item.name || "",
     sku: item.sku || item.SKU || "",
     unit: item.unit || "pcs",
@@ -375,6 +391,8 @@ function QuotationForm({
     quotation ? createEditItems(quotation) : [emptyItem()]
   );
   const [formError, setFormError] = useState("");
+  const [openProductIndex, setOpenProductIndex] = useState(null);
+  const [itemErrors, setItemErrors] = useState({});
   const customerOptions = useMemo(
     () => normalizePartnerOptions(customers, form.customer_name).map(
       (customer) => customer.companyName
@@ -422,22 +440,63 @@ function QuotationForm({
     );
   }
 
-  function updateProduct(itemIndex, productId) {
-    const selectedProduct = products.find((product) => `${product.id}` === `${productId}`);
+  function getFilteredProducts(query) {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return products;
+    }
+
+    return products.filter((product) => {
+      const matchesName = getProductSearchNames(product).some((name) =>
+        name.toLowerCase().includes(normalizedQuery)
+      );
+      const sku = getProductSku(product).toLowerCase();
+      const displayId = `${product.productDisplayId || product.id || ""}`.toLowerCase();
+
+      return matchesName || sku.includes(normalizedQuery) || displayId.includes(normalizedQuery);
+    });
+  }
+
+  function updateProductQuery(itemIndex, value) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex
+          ? {
+              ...item,
+              product_id: "",
+              product_query: value,
+              product_name: "",
+              sku: "",
+              unit: "pcs",
+            }
+          : item
+      )
+    );
+    setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
+    setOpenProductIndex(itemIndex);
+  }
+
+  function selectProduct(itemIndex, product) {
+    const productName = getProductName(product);
+    const sku = getProductSku(product);
 
     setItems((currentItems) =>
       currentItems.map((item, index) =>
         index === itemIndex
           ? {
               ...item,
-              product_id: selectedProduct?.id || "",
-              product_name: selectedProduct ? getProductName(selectedProduct) : "",
-              sku: selectedProduct ? getProductSku(selectedProduct) : "",
-              unit: selectedProduct ? getProductDefaultSalesUnit(selectedProduct) : "pcs",
+              product_id: product.id,
+              product_query: sku ? `${productName} (${sku})` : productName,
+              product_name: productName,
+              sku,
+              unit: getProductDefaultSalesUnit(product),
             }
           : item
       )
     );
+    setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
+    setOpenProductIndex(null);
   }
 
   function addItem() {
@@ -452,7 +511,7 @@ function QuotationForm({
     setItems((currentItems) =>
       currentItems.map((item, index) =>
         index === itemIndex
-          ? { ...item, discounts: [...normalizeDiscounts(item), 0] }
+          ? { ...item, discounts: [...normalizeDiscounts(item), ""] }
           : item
       )
     );
@@ -471,7 +530,7 @@ function QuotationForm({
 
         return {
           ...item,
-          discounts: nextDiscounts.length ? nextDiscounts : [0],
+          discounts: nextDiscounts.length ? nextDiscounts : [""],
         };
       })
     );
@@ -496,6 +555,7 @@ function QuotationForm({
   async function handleSubmit(event) {
     event.preventDefault();
     setFormError("");
+    setItemErrors({});
 
     if (!form.quotation_date) {
       setFormError("Quotation date is required.");
@@ -513,9 +573,11 @@ function QuotationForm({
     }
 
     const normalizedItems = items.map((item, index) => {
-      const selectedProduct = findProductForItem(item, products);
+      const selectedProduct = products.find((product) => `${product.id}` === `${item.product_id}`);
 
       if (!selectedProduct) {
+        setItemErrors({ [index]: "Select an existing product from the list." });
+        setOpenProductIndex(index);
         throw new Error(`Select an existing product for item ${index + 1}.`);
       }
 
@@ -669,6 +731,7 @@ function QuotationForm({
 
           {items.map((item, index) => {
             const selectedProduct = findProductForItem(item, products);
+            const filteredProducts = getFilteredProducts(item.product_query);
             const unitOptions = selectedProduct ? getProductUnitConversions(selectedProduct) : [];
             const saleAmount = computeAmount(item, "sale_price");
 
@@ -680,22 +743,64 @@ function QuotationForm({
 
                 <label className="purchase-item-field quotation-item-product">
                   <span className="required-label">Product</span>
-                  <select
-                    value={item.product_id}
-                    onChange={(event) => updateProduct(index, event.target.value)}
-                    required
-                  >
-                    <option value="">Select product</option>
-                    {products.map((product) => {
-                      const sku = getProductSku(product);
+                  <div className="supplier-combobox">
+                    <input
+                      value={item.product_query}
+                      onChange={(event) => updateProductQuery(index, event.target.value)}
+                      onFocus={() => setOpenProductIndex(index)}
+                      onBlur={() => {
+                        window.setTimeout(() => setOpenProductIndex(null), 120);
+                      }}
+                      placeholder="Search existing product"
+                      autoComplete="off"
+                      aria-expanded={openProductIndex === index}
+                      aria-controls={`quotation-product-list-${item.line_id}`}
+                      aria-invalid={itemErrors[index] ? "true" : "false"}
+                      required
+                    />
 
-                      return (
-                        <option key={product.id} value={product.id}>
-                          {sku ? `${getProductName(product)} (${sku})` : getProductName(product)}
-                        </option>
-                      );
-                    })}
-                  </select>
+                    {openProductIndex === index ? (
+                      <div
+                        className="supplier-combobox-menu"
+                        id={`quotation-product-list-${item.line_id}`}
+                        role="listbox"
+                      >
+                        {filteredProducts.length ? (
+                          filteredProducts.map((product) => {
+                            const productName = getProductName(product);
+                            const sku = getProductSku(product);
+
+                            return (
+                              <button
+                                key={product.id}
+                                type="button"
+                                className={
+                                  `${product.id}` === `${item.product_id}`
+                                    ? "supplier-combobox-option active"
+                                    : "supplier-combobox-option"
+                                }
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                  selectProduct(index, product);
+                                }}
+                                role="option"
+                                aria-selected={`${product.id}` === `${item.product_id}`}
+                              >
+                                {sku ? `${productName} (${sku})` : productName}
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div className="supplier-combobox-empty">
+                            No product found. Add it in Product page first.
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                  {itemErrors[index] ? (
+                    <span className="field-error-text">{itemErrors[index]}</span>
+                  ) : null}
                 </label>
 
                 <label className="purchase-item-field quotation-item-unit">
@@ -1553,7 +1658,7 @@ function QuotationPage({
                       const discounts = normalizeDiscounts(item);
                       const activeDiscounts = discounts.filter((d) => Number(d) > 0);
                       const discountLabel = activeDiscounts.length
-                        ? activeDiscounts.map((d) => `${Number(d)}%`).join(" → ")
+                        ? activeDiscounts.map((d) => `${Number(d)}%`).join("|")
                         : "—";
 
                       return (
@@ -1565,7 +1670,14 @@ function QuotationPage({
                           <td>{item.unit || "—"}</td>
                           <td>{item.sale_price !== "" && item.sale_price != null ? fmt(item.sale_price) : "—"}</td>
                           <td>{item.cost_price !== "" && item.cost_price != null ? fmt(item.cost_price) : "—"}</td>
-                          <td><span className="tx-discount-label">{discountLabel}</span></td>
+                          <td>
+                            <div className="tx-discount-breakdown">
+                              <span className="tx-discount-breakdown-row">
+                                <span className="tx-discount-type">Item</span>
+                                <span className="tx-discount-label">{discountLabel}</span>
+                              </span>
+                            </div>
+                          </td>
                           <td>{fmt(computeAmount(item, "sale_price"))}</td>
                         </tr>
                       );

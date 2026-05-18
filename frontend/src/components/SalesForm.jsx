@@ -66,6 +66,7 @@ function createInitialForm(referenceNo, prefill = {}) {
   return {
     reference_no: referenceNo,
     customer_name: prefill.customer_name || "",
+    customer_po_reference: prefill.customer_po_reference || "",
     status: "draft",
     transaction_date: prefill.transaction_date || prefill.quotation_date || getToday(),
     note: prefill.note || "",
@@ -79,13 +80,16 @@ function emptyItem() {
   return {
     line_id: `sales-item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     product_id: "",
+    product_query: "",
+    product_name: "",
+    sku: "",
     item_status: "pending",
     shipped_date: "",
     delivered_date: "",
     unit: "pcs",
     quantity: 1,
     unit_price: "",
-    discounts: [0],
+    discounts: [""],
   };
 }
 
@@ -100,6 +104,9 @@ function createInitialItems(prefill = {}) {
     ...emptyItem(),
     line_id: `sales-prefill-${Date.now()}-${index}`,
     product_id: item.product_id || item.productId || "",
+    product_query: item.sku
+      ? `${item.product_name || item.productName || item.name || ""} (${item.sku || item.SKU})`
+      : item.product_name || item.productName || item.name || "",
     product_name: item.product_name || item.productName || item.name || "",
     sku: item.sku || item.SKU || "",
     unit: item.unit || "pcs",
@@ -109,7 +116,7 @@ function createInitialItems(prefill = {}) {
       ? item.discounts
       : Number(item.discount) > 0
         ? [item.discount]
-        : [0],
+        : [""],
   }));
 }
 
@@ -156,6 +163,18 @@ function getProductName(product) {
   return product.name || product.productName || product.product_name || product.sku || `Product ${product.id}`;
 }
 
+function getProductSearchNames(product) {
+  const mainName = `${getProductName(product)}`.trim();
+  const subNames = Array.isArray(product.subNames) ? product.subNames : [];
+
+  return [mainName, ...subNames]
+    .map((name) => `${name ?? ""}`.trim())
+    .filter(
+      (name, index, names) =>
+        name && names.findIndex((item) => item.toLowerCase() === name.toLowerCase()) === index
+    );
+}
+
 function getProductSku(product) {
   return product.sku || product.SKU || "";
 }
@@ -194,6 +213,8 @@ function SalesForm({
   const [customerOpen, setCustomerOpen] = useState(false);
   const [customerError, setCustomerError] = useState("");
   const [statusError, setStatusError] = useState("");
+  const [openProductIndex, setOpenProductIndex] = useState(null);
+  const [itemErrors, setItemErrors] = useState({});
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
   const filteredCustomers = useMemo(() => {
     const normalizedQuery = customerQuery.trim().toLowerCase();
@@ -310,27 +331,70 @@ function SalesForm({
     );
   }
 
-  function updateProduct(itemIndex, productId) {
-    const selectedProduct = products.find((product) => `${product.id}` === `${productId}`);
+  function getFilteredProducts(query) {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return products;
+    }
+
+    return products.filter((product) => {
+      const matchesName = getProductSearchNames(product).some((name) =>
+        name.toLowerCase().includes(normalizedQuery)
+      );
+      const sku = getProductSku(product).toLowerCase();
+      const displayId = `${product.productDisplayId || product.id || ""}`.toLowerCase();
+
+      return matchesName || sku.includes(normalizedQuery) || displayId.includes(normalizedQuery);
+    });
+  }
+
+  function updateProductQuery(itemIndex, value) {
+    setItems((current) =>
+      current.map((item, i) =>
+        i === itemIndex
+          ? {
+              ...item,
+              product_id: "",
+              product_query: value,
+              product_name: "",
+              sku: "",
+              unit: "pcs",
+            }
+          : item
+      )
+    );
+    setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
+    setOpenProductIndex(itemIndex);
+  }
+
+  function selectProduct(itemIndex, product) {
+    const productName = getProductName(product);
+    const sku = getProductSku(product);
 
     setItems((current) =>
       current.map((item, i) =>
         i === itemIndex
           ? {
               ...item,
-              product_id: productId,
-              unit: selectedProduct ? getProductUnit(selectedProduct) : "pcs",
+              product_id: product.id,
+              product_query: sku ? `${productName} (${sku})` : productName,
+              product_name: productName,
+              sku,
+              unit: getProductUnit(product),
             }
           : item
       )
     );
+    setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
+    setOpenProductIndex(null);
   }
 
   function addDiscount(itemIndex) {
     setItems((current) =>
       current.map((item, i) =>
         i === itemIndex
-          ? { ...item, discounts: [...item.discounts, 0] }
+          ? { ...item, discounts: [...item.discounts, ""] }
           : item
       )
     );
@@ -341,7 +405,7 @@ function SalesForm({
       current.map((item, i) => {
         if (i !== itemIndex) return item;
         const next = item.discounts.filter((_, di) => di !== discountIndex);
-        return { ...item, discounts: next.length === 0 ? [0] : next };
+        return { ...item, discounts: next.length === 0 ? [""] : next };
       })
     );
   }
@@ -448,6 +512,7 @@ function SalesForm({
 
   async function handleSubmit(event) {
     event.preventDefault();
+    setItemErrors({});
 
     const customerName = resolveCustomerName();
     const requestedStatus =
@@ -461,9 +526,23 @@ function SalesForm({
       return;
     }
 
+    const nextItemErrors = {};
+    items.forEach((item, index) => {
+      if (!item.product_id) {
+        nextItemErrors[index] = "Select an existing product from the list.";
+      }
+    });
+
+    if (Object.keys(nextItemErrors).length) {
+      setItemErrors(nextItemErrors);
+      setOpenProductIndex(Number(Object.keys(nextItemErrors)[0]));
+      return;
+    }
+
     const formData = new FormData();
     formData.append("reference_no", form.reference_no);
     formData.append("customer_name", customerName);
+    formData.append("customer_po_reference", form.customer_po_reference);
     formData.append("status", requestedStatus);
     formData.append("transaction_date", form.transaction_date);
     formData.append("note", form.note);
@@ -524,6 +603,8 @@ function SalesForm({
     setCustomerQuery("");
     setCustomerError("");
     setStatusError("");
+    setOpenProductIndex(null);
+    setItemErrors({});
     setDraggedItemIndex(null);
   }
 
@@ -690,6 +771,15 @@ function SalesForm({
             />
           </label>
 
+          <label>
+            Customer's PO Reference
+            <input
+              value={form.customer_po_reference}
+              onChange={(event) => updateForm("customer_po_reference", event.target.value)}
+              placeholder="Optional customer PO reference"
+            />
+          </label>
+
           <label className="full-width">
             Notes
             <textarea
@@ -760,6 +850,7 @@ function SalesForm({
 
           {items.map((item, index) => {
             const amount = computeAmount(item, activeAllItemsDiscount);
+            const filteredProducts = getFilteredProducts(item.product_query);
             const selectedProduct = products.find(
               (product) => `${product.id}` === `${item.product_id}`
             );
@@ -798,20 +889,64 @@ function SalesForm({
 
                 <label className="purchase-item-field sales-item-product">
                   <span className="required-label">Product</span>
-                  <select
-                    value={item.product_id}
-                    onChange={(event) => updateProduct(index, event.target.value)}
-                    required
-                  >
-                    <option value="">Select product</option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {getProductSku(product)
-                          ? `${getProductName(product)} (${getProductSku(product)})`
-                          : getProductName(product)}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="supplier-combobox">
+                    <input
+                      value={item.product_query}
+                      onChange={(event) => updateProductQuery(index, event.target.value)}
+                      onFocus={() => setOpenProductIndex(index)}
+                      onBlur={() => {
+                        window.setTimeout(() => setOpenProductIndex(null), 120);
+                      }}
+                      placeholder="Search existing product"
+                      autoComplete="off"
+                      aria-expanded={openProductIndex === index}
+                      aria-controls={`sales-product-list-${item.line_id}`}
+                      aria-invalid={itemErrors[index] ? "true" : "false"}
+                      required
+                    />
+
+                    {openProductIndex === index ? (
+                      <div
+                        className="supplier-combobox-menu"
+                        id={`sales-product-list-${item.line_id}`}
+                        role="listbox"
+                      >
+                        {filteredProducts.length ? (
+                          filteredProducts.map((product) => {
+                            const productName = getProductName(product);
+                            const sku = getProductSku(product);
+
+                            return (
+                              <button
+                                key={product.id}
+                                type="button"
+                                className={
+                                  `${product.id}` === `${item.product_id}`
+                                    ? "supplier-combobox-option active"
+                                    : "supplier-combobox-option"
+                                }
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                  selectProduct(index, product);
+                                }}
+                                role="option"
+                                aria-selected={`${product.id}` === `${item.product_id}`}
+                              >
+                                {sku ? `${productName} (${sku})` : productName}
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div className="supplier-combobox-empty">
+                            No product found. Add it in Product page first.
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                  {itemErrors[index] ? (
+                    <span className="field-error-text">{itemErrors[index]}</span>
+                  ) : null}
                 </label>
 
                 <label className="purchase-item-field sales-item-unit">

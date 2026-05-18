@@ -315,6 +315,18 @@ function TransactionTable({
     setHasUnsavedItemChanges(true);
   }
 
+  function handleSaleCustomerPoReferenceChange(nextValue) {
+    setSelectedRow((currentRow) =>
+      currentRow
+        ? {
+            ...currentRow,
+            customer_po_reference: nextValue,
+          }
+        : currentRow
+    );
+    setHasUnsavedItemChanges(true);
+  }
+
   async function handleSavePurchaseUpdates() {
     const saved = await onPurchaseItemStatusChange?.(selectedRow);
 
@@ -405,6 +417,9 @@ function TransactionTable({
                 <col className="history-col-status" />
                 <col className="history-col-date" />
                 <col className="history-col-items" />
+                {type === "sale" ? (
+                  <col className="history-col-tax" />
+                ) : null}
                 {type === "purchase" ? (
                   <>
                     <col className="history-col-tax" />
@@ -422,7 +437,10 @@ function TransactionTable({
                   <th>Date</th>
                   <th>Items</th>
                   {type === "sale" ? (
-                    <th>Grand Total</th>
+                    <>
+                      <th>Customer's PO Ref.</th>
+                      <th>Grand Total</th>
+                    </>
                   ) : (
                     <>
                       <th>Tax Inv.</th>
@@ -484,9 +502,12 @@ function TransactionTable({
                         </div>
                       </td>
                       {type === "sale" ? (
-                        <td>
-                          <strong>{formatCurrency(getRowGrandTotal(row))}</strong>
-                        </td>
+                        <>
+                          <td>{row.customer_po_reference || "—"}</td>
+                          <td>
+                            <strong>{formatCurrency(getRowGrandTotal(row))}</strong>
+                          </td>
+                        </>
                       ) : (
                         <>
                           <td>{row.supplier_tax_invoice || "—"}</td>
@@ -581,6 +602,12 @@ function TransactionTable({
                         <span className="history-item-count">{itemCount}</span>
                       </div>
                     </div>
+                    {type === "sale" ? (
+                      <div>
+                        <span>Customer's PO Reference</span>
+                        <strong>{row.customer_po_reference || "—"}</strong>
+                      </div>
+                    ) : null}
                     <div>
                       <span>Documents</span>
                       <strong>
@@ -727,6 +754,20 @@ function TransactionTable({
                     value={selectedRow.supplier_tax_invoice || ""}
                     onChange={(event) => handlePurchaseTaxInvoiceChange(event.target.value)}
                     placeholder="Enter supplier tax invoice"
+                  />
+                </div>
+              ) : null}
+              {type === "sale" ? (
+                <div className="purchase-tax-invoice-field">
+                  <p className="detail-label">Customer's PO Reference</p>
+                  <input
+                    className="purchase-tax-invoice-input"
+                    type="text"
+                    value={selectedRow.customer_po_reference || ""}
+                    onChange={(event) =>
+                      handleSaleCustomerPoReferenceChange(event.target.value)
+                    }
+                    placeholder="Enter customer PO reference"
                   />
                 </div>
               ) : null}

@@ -390,6 +390,7 @@ class Sale(TimeStampedModel):
         null=True,
     )
     customer_name = models.CharField(max_length=255)
+    customer_po_reference = models.CharField(max_length=120, blank=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_DRAFT)
     payment_term_type = models.CharField(max_length=20, blank=True, default="")
     payment_term_days = models.CharField(max_length=20, blank=True, default="")

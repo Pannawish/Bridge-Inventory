@@ -63,6 +63,7 @@ function saleMatchesQuery(sale, query) {
     sale.payment_date,
     sale.payment_term_type,
     sale.payment_term_days,
+    sale.customer_po_reference,
     sale.note,
     ...(sale.items || []).flatMap((item) => [
       item.product_name,
@@ -383,6 +384,7 @@ function createEditForm(sale) {
   return {
     reference_no: sale.reference_no || "",
     customer_name: sale.customer_name || "",
+    customer_po_reference: sale.customer_po_reference || "",
     status: sale.status || "draft",
     payment_term_type: sale.payment_term_type || "",
     payment_term_days: sale.payment_term_days || "",
@@ -734,6 +736,7 @@ function SalesEditForm({
       ...saleWithItems,
       reference_no: form.reference_no,
       customer_name: customerName,
+      customer_po_reference: form.customer_po_reference,
       status: getSaleStatusFromItems(saleWithItems),
       payment_term_type: form.payment_term_type,
       payment_term_days: form.payment_term_type === "credit" ? form.payment_term_days : "",
@@ -914,6 +917,15 @@ function SalesEditForm({
               value={computePaymentDate(form.transaction_date, form.payment_term_type, form.payment_term_days)}
               readOnly
               placeholder="Set payment term above"
+            />
+          </label>
+
+          <label>
+            Customer's PO Reference
+            <input
+              value={form.customer_po_reference}
+              onChange={(event) => updateForm("customer_po_reference", event.target.value)}
+              placeholder="Optional customer PO reference"
             />
           </label>
 

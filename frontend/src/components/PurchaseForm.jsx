@@ -76,7 +76,7 @@ function emptyItem() {
     received_date: "",
     quantity: 1,
     unit_cost: "",
-    discounts: [0],
+    discounts: [""],
   };
 }
 
@@ -199,7 +199,7 @@ function createInitialItems(prefill = {}) {
         ? item.discounts
         : Number(item.discount) > 0
           ? [item.discount]
-          : [0],
+          : [""],
     };
   });
 }
@@ -333,7 +333,7 @@ function PurchaseForm({
     setItems((currentItems) =>
       currentItems.map((item, index) =>
         index === itemIndex
-          ? { ...item, discounts: [...(item.discounts || [0]), 0] }
+          ? { ...item, discounts: [...(item.discounts || [""]), ""] }
           : item
       )
     );
@@ -346,13 +346,13 @@ function PurchaseForm({
           return item;
         }
 
-        const nextDiscounts = (item.discounts || [0]).filter(
+        const nextDiscounts = (item.discounts || [""]).filter(
           (_, currentDiscountIndex) => currentDiscountIndex !== discountIndex
         );
 
         return {
           ...item,
-          discounts: nextDiscounts.length ? nextDiscounts : [0],
+          discounts: nextDiscounts.length ? nextDiscounts : [""],
         };
       })
     );
@@ -365,7 +365,7 @@ function PurchaseForm({
           return item;
         }
 
-        const nextDiscounts = (item.discounts || [0]).map((discount, currentDiscountIndex) =>
+        const nextDiscounts = (item.discounts || [""]).map((discount, currentDiscountIndex) =>
           currentDiscountIndex === discountIndex ? value : discount
         );
 
@@ -996,7 +996,7 @@ function PurchaseForm({
                 <div className="purchase-item-field purchase-item-discounts">
                   <span>Discounts</span>
                   <div className="sales-discount-cell">
-                    {(item.discounts || [0]).map((discount, discountIndex) => (
+                    {(item.discounts || [""]).map((discount, discountIndex) => (
                       <div key={discountIndex} className="sales-discount-entry">
                         {discountIndex > 0 ? (
                           <span className="sales-discount-chain-label">then</span>
@@ -1014,7 +1014,7 @@ function PurchaseForm({
                           placeholder="0"
                         />
                         <span className="sales-discount-pct">%</span>
-                        {(item.discounts || [0]).length > 1 ? (
+                        {(item.discounts || [""]).length > 1 ? (
                           <button
                             className="sales-discount-remove"
                             type="button"

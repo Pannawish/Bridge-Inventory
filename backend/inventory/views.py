@@ -661,6 +661,7 @@ class SaleViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     search_fields = (
         "reference_no",
         "customer_name",
+        "customer_po_reference",
         "status",
         "transaction_date",
         "note",
