@@ -81,6 +81,31 @@ def resolve_product(product_id=None, sku="", product_name=""):
     return None
 
 
+def validate_active_products_for_create(items, label):
+    inactive_products = []
+
+    for item in items or []:
+        product = item.get("product") if isinstance(item, dict) else getattr(item, "product", None)
+        if product is None and isinstance(item, dict):
+            product = resolve_product(
+                product_id=item.get("product_id") or item.get("productId"),
+                sku=item.get("sku", ""),
+                product_name=item.get("product_name")
+                or item.get("productName")
+                or item.get("name")
+                or "",
+            )
+
+        if product is not None and not product.is_active:
+            inactive_products.append(product.product_name or product.sku or product.id)
+
+    if inactive_products:
+        product_list = ", ".join(inactive_products)
+        raise serializers.ValidationError(
+            {"items": f"Disabled products cannot be used in new {label}: {product_list}."}
+        )
+
+
 def resolve_supplier(supplier_id=None, supplier_name=""):
     supplier_id = str(supplier_id or "").strip()
     supplier_name = str(supplier_name or "").strip()
@@ -287,6 +312,7 @@ class ProductUnitConversionSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     productDisplayId = serializers.IntegerField(source="product_display_id", required=False)
+    isActive = serializers.BooleanField(source="is_active", required=False)
     previousSkus = serializers.JSONField(source="previous_skus", required=False)
     productName = serializers.CharField(source="product_name")
     subNames = serializers.JSONField(source="sub_names", required=False)
@@ -344,6 +370,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "productDisplayId",
+            "isActive",
             "sku",
             "previousSkus",
             "productName",
@@ -695,6 +722,9 @@ class PurchaseSerializer(serializers.ModelSerializer):
             getattr(self.instance, "status", Purchase.STATUS_ORDERED),
         )
         items_submitted = "items" in attrs
+        if self.instance is None:
+            validate_active_products_for_create(attrs.get("items") or [], "purchase")
+
         if items_submitted:
             purchase_status = normalize_purchase_items_for_status(
                 attrs.get("items") or [],
@@ -1002,6 +1032,9 @@ class SaleSerializer(serializers.ModelSerializer):
         if items is None:
             items = current_items
 
+        if self.instance is None:
+            validate_active_products_for_create(items or [], "sale")
+
         if items_submitted:
             sale_status = normalize_sale_items_for_status(items or [], sale_status)
             attrs["status"] = sale_status
@@ -1284,6 +1317,9 @@ class QuotationSerializer(serializers.ModelSerializer):
 
         if self.instance is None and not attrs.get("items"):
             raise serializers.ValidationError({"items": "Add at least one quotation item."})
+
+        if self.instance is None:
+            validate_active_products_for_create(attrs.get("items") or [], "quotation")
 
         return attrs
 

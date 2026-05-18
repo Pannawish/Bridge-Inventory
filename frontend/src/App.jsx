@@ -37,6 +37,10 @@ function appendProductJson(formData, key, value) {
   formData.append(key, JSON.stringify(Array.isArray(value) ? value : []));
 }
 
+function isProductActive(product) {
+  return product?.isActive ?? product?.is_active ?? true;
+}
+
 function buildProductSavePayload(product) {
   const formData = new FormData();
   const productPictures = Array.isArray(product.productPictures) ? product.productPictures : [];
@@ -57,6 +61,7 @@ function buildProductSavePayload(product) {
     "categoryId",
     "category",
     "detail",
+    "isActive",
   ].forEach((field) => {
     if (product[field] !== undefined) {
       formData.append(field, product[field] ?? "");
@@ -255,6 +260,7 @@ function App() {
   }
 
   const activeTabMeta = tabs.find((tab) => tab.id === activeTab) || tabs[0];
+  const activeProducts = products.filter(isProductActive);
 
   async function handlePurchaseCreateFromHistory(formData) {
     setError("");
@@ -1274,7 +1280,7 @@ function App() {
 
             {activeTab === "purchase-history" ? (
               <PurchaseHistoryPage
-                products={products}
+                products={activeProducts}
                 suppliers={suppliers}
                 purchases={purchaseRows}
                 allPurchases={purchases}
@@ -1291,7 +1297,7 @@ function App() {
             {activeTab === "quotations" ? (
               <QuotationPage
                 quotations={quotations}
-                products={products}
+                products={activeProducts}
                 suppliers={suppliers}
                 customers={customers}
                 purchases={purchases}
@@ -1308,7 +1314,7 @@ function App() {
               <SalesHistoryPage
                 sales={saleRows}
                 allSales={sales}
-                products={products}
+                products={activeProducts}
                 purchases={usingMockPurchases ? purchases : []}
                 enableStockValidation={usingMockPurchases && usingMockSales}
                 pagination={salePagination}

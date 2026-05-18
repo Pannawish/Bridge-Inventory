@@ -184,6 +184,7 @@ class Product(TimeStampedModel):
     category_name = models.CharField(max_length=255, blank=True)
     detail = models.TextField(blank=True)
     reorder_level = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         ordering = ["product_display_id", "product_name"]
@@ -194,6 +195,7 @@ class Product(TimeStampedModel):
             ),
             models.Index(fields=["product_name"], name="inv_prod_name_idx"),
             models.Index(fields=["category_name"], name="inv_prod_catname_idx"),
+            models.Index(fields=["is_active", "product_name"], name="inv_prod_active_name"),
         ]
 
     def __str__(self):

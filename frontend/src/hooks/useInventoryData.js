@@ -228,7 +228,7 @@ export function useInventoryData() {
       api.getSupplierLookups(),
       api.getCustomerLookups(),
       api.getCategories(),
-      api.getProductLookups(),
+      api.getProductLookups({ include_disabled: "true" }),
       api.getQuotations(),
       api.getEligibleBillingNoteSales(),
       api.getEligiblePaymentBatchPurchases(),

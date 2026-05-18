@@ -785,6 +785,10 @@ def product_lookups(request):
         "unit_conversions",
         "pictures",
     )
+    include_disabled = str(request.query_params.get("include_disabled") or "").lower()
+    if include_disabled not in {"1", "true", "yes"}:
+        queryset = queryset.filter(is_active=True)
+
     queryset = apply_text_search(
         queryset,
         request,

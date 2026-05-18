@@ -35,6 +35,7 @@ import {
   getProductSubNames,
   getTransactionDocuments,
   isValidSku,
+  isProductActive,
   itemMatchesProduct,
   normalizeProduct,
   normalizeSku,
@@ -65,6 +66,7 @@ function createProduct(overrides = {}) {
     categoryId: "",
     category: "",
     detail: "",
+    isActive: true,
     productPictures: [],
     selectedPictureId: "",
     removePictureIds: [],
@@ -1068,6 +1070,44 @@ function ProductsPage({
     setCategoryComboboxOpen(false);
   }
 
+  async function handleDisableProduct() {
+    if (!draftProduct) {
+      return;
+    }
+
+    const existingProduct = getExistingProduct(draftProduct);
+    if (!existingProduct) {
+      setProductFormError("Only saved products can be disabled.");
+      return;
+    }
+
+    if (!isProductActive(existingProduct)) {
+      setProductFormError("This product is already disabled.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Disable product ${getProductDisplayName(draftProduct) || "this product"}? It will no longer be available for new sales, purchases, or quotations.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const savedProduct = await onSaveProduct?.({
+      ...normalizeProduct(draftProduct),
+      isActive: false,
+    });
+
+    if (savedProduct === false) {
+      return;
+    }
+
+    setDraftProduct(null);
+    setCategoryQuery("");
+    setCategoryComboboxOpen(false);
+  }
+
   function getPurchaseHistory(product) {
     return purchases.flatMap((purchase) =>
       (purchase.items || [])
@@ -1128,6 +1168,7 @@ function ProductsPage({
     : null;
   const draftExistingProduct = draftProduct ? getExistingProduct(draftProduct) : null;
   const draftProductHasHistory = getCachedProductHasTransactionHistory(draftExistingProduct);
+  const isDraftProductActive = isProductActive(draftExistingProduct || draftProduct);
   const isDraftHistoryLoading =
     Boolean(draftExistingProduct) &&
     productHistoryLoadingId === `${draftExistingProduct.id}`;
@@ -1138,10 +1179,18 @@ function ProductsPage({
       ? "Only saved products can be deleted."
       : isDraftHistoryLoading
         ? "Checking transaction history before delete is available."
-        : draftProductHasHistory
-          ? PRODUCT_DELETE_HISTORY_MESSAGE
-          : "";
+        : "";
   const isProductDeleteDisabled = Boolean(productDeleteDisabledReason);
+  const productDisableDisabledReason = !draftProduct
+    ? ""
+    : !draftExistingProduct
+      ? "Only saved products can be disabled."
+      : isDraftHistoryLoading
+        ? "Checking transaction history before disable is available."
+        : !isDraftProductActive
+          ? "This product is already disabled."
+          : "";
+  const isProductDisableDisabled = Boolean(productDisableDisabledReason);
   const viewingProductPictures = viewingProduct ? getProductPictures(viewingProduct) : [];
   const selectedViewingPicture =
     viewingProductPictures.find((picture) => picture.id === viewingPictureId) ||
@@ -1287,7 +1336,10 @@ function ProductsPage({
                       <td>
                         <div className="transaction-reference-cell">
                           <strong>{getProductDisplayName(product)}</strong>
-                          <span>{product.sku ? `SKU ${product.sku}` : "SKU not set"}</span>
+                          <span>
+                            {product.sku ? `SKU ${product.sku}` : "SKU not set"}
+                            {!isProductActive(product) ? " · Disabled" : ""}
+                          </span>
                         </div>
                       </td>
                       <td>
@@ -2380,20 +2432,40 @@ function ProductsPage({
 
               <div className="supplier-modal-actions">
                 <div className="product-delete-action">
-                  <button
-                    className="danger-button"
-                    type="button"
-                    onClick={handleDeleteProduct}
-                    disabled={isProductDeleteDisabled}
-                    title={productDeleteDisabledReason || undefined}
-                  >
-                    Delete Product
-                  </button>
-                  {productDeleteDisabledReason ? (
-                    <span className="field-helper-text product-delete-helper">
-                      {productDeleteDisabledReason}
-                    </span>
-                  ) : null}
+                  {draftProductHasHistory ? (
+                    <>
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        onClick={handleDisableProduct}
+                        disabled={isProductDisableDisabled}
+                        title={productDisableDisabledReason || undefined}
+                      >
+                        Disable Product
+                      </button>
+                      <span className="field-helper-text product-delete-helper">
+                        {productDisableDisabledReason ||
+                          "This product has transaction history, so it cannot be deleted. Disable it to remove it from new sales, purchases, and quotations."}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className="danger-button"
+                        type="button"
+                        onClick={handleDeleteProduct}
+                        disabled={isProductDeleteDisabled}
+                        title={productDeleteDisabledReason || undefined}
+                      >
+                        Delete Product
+                      </button>
+                      {productDeleteDisabledReason ? (
+                        <span className="field-helper-text product-delete-helper">
+                          {productDeleteDisabledReason}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
                 </div>
                 <button className="secondary-button" type="button" onClick={closeProductEditor}>
                   Cancel

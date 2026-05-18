@@ -905,6 +905,106 @@ class LookupEligibilityTests(APITestCase):
         self.assertEqual(response.data[0]["sku"], "LOOKUP-1")
         self.assertEqual(response.data[0]["current_stock"], Decimal("7"))
 
+    def test_product_lookup_excludes_disabled_products_by_default(self):
+        active = Product.objects.create(
+            sku="LOOKUP-ACTIVE",
+            product_name="Active Lookup Product",
+        )
+        disabled = Product.objects.create(
+            sku="LOOKUP-DISABLED",
+            product_name="Disabled Lookup Product",
+            is_active=False,
+        )
+
+        response = self.client.get("/api/lookups/products/")
+        include_disabled_response = self.client.get(
+            "/api/lookups/products/",
+            {"include_disabled": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([row["id"] for row in response.data], [active.id])
+        self.assertEqual(include_disabled_response.status_code, 200)
+        self.assertCountEqual(
+            [row["id"] for row in include_disabled_response.data],
+            [active.id, disabled.id],
+        )
+
+    def test_disabled_product_cannot_be_used_in_new_transactions(self):
+        product = Product.objects.create(
+            sku="DISABLED-TX",
+            product_name="Disabled Transaction Product",
+            is_active=False,
+        )
+        purchase_payload = {
+            "supplier_name": "Disabled Supplier",
+            "transaction_date": self.today.isoformat(),
+            "items": [
+                {
+                    "product_id": product.id,
+                    "product_name": product.product_name,
+                    "sku": product.sku,
+                    "unit": "pcs",
+                    "base_unit": "pcs",
+                    "conversion_factor": "1",
+                    "quantity": "1",
+                    "base_quantity": "1",
+                    "unit_cost": "2",
+                    "amount": "2",
+                }
+            ],
+        }
+        sale_payload = {
+            "customer_name": "Disabled Customer",
+            "transaction_date": self.today.isoformat(),
+            "items": [
+                {
+                    "product_id": product.id,
+                    "product_name": product.product_name,
+                    "sku": product.sku,
+                    "unit": "pcs",
+                    "base_unit": "pcs",
+                    "conversion_factor": "1",
+                    "quantity": "1",
+                    "base_quantity": "1",
+                    "unit_price": "3",
+                    "amount": "3",
+                }
+            ],
+        }
+        quotation_payload = {
+            "customer_name": "Disabled Customer",
+            "supplier_name": "Disabled Supplier",
+            "quotation_date": self.today.isoformat(),
+            "items": [
+                {
+                    "product_id": product.id,
+                    "product_name": product.product_name,
+                    "sku": product.sku,
+                    "unit": "pcs",
+                    "quantity": "1",
+                    "sale_price": "3",
+                    "cost_price": "2",
+                    "discounts": ["0"],
+                }
+            ],
+        }
+
+        purchase_response = self.client.post("/api/purchases/", purchase_payload, format="json")
+        sale_response = self.client.post("/api/sales/", sale_payload, format="json")
+        quotation_response = self.client.post(
+            "/api/quotations/",
+            quotation_payload,
+            format="json",
+        )
+
+        self.assertEqual(purchase_response.status_code, 400)
+        self.assertEqual(sale_response.status_code, 400)
+        self.assertEqual(quotation_response.status_code, 400)
+        self.assertIn("Disabled products cannot be used", str(purchase_response.data))
+        self.assertIn("Disabled products cannot be used", str(sale_response.data))
+        self.assertIn("Disabled products cannot be used", str(quotation_response.data))
+
     def test_dashboard_stock_report_includes_backend_transaction_metrics(self):
         product = Product.objects.create(
             sku="DASH-STOCK",
@@ -1112,6 +1212,43 @@ class LookupEligibilityTests(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("purchase, sales, or quotation history", response.data["error"])
         self.assertTrue(Product.objects.filter(pk=product.id).exists())
+
+    def test_product_with_transaction_history_can_be_disabled(self):
+        product = Product.objects.create(
+            sku="DISABLE-BLOCKED",
+            product_name="Disable Product",
+        )
+        purchase = Purchase.objects.create(
+            reference_no="PO-DISABLE-BLOCKED",
+            supplier_name="History Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today,
+        )
+        PurchaseItem.objects.create(
+            purchase=purchase,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("3"),
+            base_quantity=Decimal("3"),
+            unit_cost=Decimal("2"),
+            amount=Decimal("6"),
+        )
+
+        response = self.client.patch(
+            f"/api/products/{product.id}/",
+            {"isActive": False},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["isActive"])
+        product.refresh_from_db()
+        self.assertFalse(product.is_active)
 
     def test_billing_note_eligibility_excludes_sales_already_on_active_note(self):
         Customer.objects.create(company_name="Alpha Customer")

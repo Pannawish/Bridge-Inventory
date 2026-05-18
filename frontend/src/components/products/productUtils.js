@@ -66,6 +66,10 @@ export function getProductDisplayName(product) {
   return getProductAllNames(product)[0] || product?.sku || `Product ${product?.id || ""}`.trim();
 }
 
+export function isProductActive(product) {
+  return product?.isActive ?? product?.is_active ?? true;
+}
+
 export function getProductPictures(product) {
   const sourcePictures = Array.isArray(product?.productPictures)
     ? product.productPictures
@@ -211,6 +215,7 @@ export function normalizeProduct(product) {
     categoryId: `${product.categoryId ?? ""}`,
     category: `${product.category ?? ""}`,
     detail: `${product.detail ?? ""}`,
+    isActive: isProductActive(product),
     productPictures,
     selectedPictureId: selectedPicture?.id || "",
     removePictureIds: Array.isArray(product.removePictureIds) ? product.removePictureIds : [],
