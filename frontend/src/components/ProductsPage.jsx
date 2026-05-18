@@ -1108,6 +1108,36 @@ function ProductsPage({
     setCategoryComboboxOpen(false);
   }
 
+  async function handleEnableProduct() {
+    if (!draftProduct) {
+      return;
+    }
+
+    const existingProduct = getExistingProduct(draftProduct);
+    if (!existingProduct) {
+      setProductFormError("Only saved products can be enabled.");
+      return;
+    }
+
+    if (isProductActive(existingProduct)) {
+      setProductFormError("This product is already enabled.");
+      return;
+    }
+
+    const savedProduct = await onSaveProduct?.({
+      ...normalizeProduct(draftProduct),
+      isActive: true,
+    });
+
+    if (savedProduct === false) {
+      return;
+    }
+
+    setDraftProduct(null);
+    setCategoryQuery("");
+    setCategoryComboboxOpen(false);
+  }
+
   function getPurchaseHistory(product) {
     return purchases.flatMap((purchase) =>
       (purchase.items || [])
@@ -1191,6 +1221,14 @@ function ProductsPage({
           ? "This product is already disabled."
           : "";
   const isProductDisableDisabled = Boolean(productDisableDisabledReason);
+  const productEnableDisabledReason = !draftProduct
+    ? ""
+    : !draftExistingProduct
+      ? "Only saved products can be enabled."
+      : isDraftProductActive
+        ? "This product is already enabled."
+        : "";
+  const isProductEnableDisabled = Boolean(productEnableDisabledReason);
   const viewingProductPictures = viewingProduct ? getProductPictures(viewingProduct) : [];
   const selectedViewingPicture =
     viewingProductPictures.find((picture) => picture.id === viewingPictureId) ||
@@ -2431,42 +2469,60 @@ function ProductsPage({
               </div>
 
               <div className="supplier-modal-actions">
-                <div className="product-delete-action">
-                  {draftProductHasHistory ? (
-                    <>
-                      <button
-                        className="secondary-button"
-                        type="button"
-                        onClick={handleDisableProduct}
-                        disabled={isProductDisableDisabled}
-                        title={productDisableDisabledReason || undefined}
-                      >
-                        Disable Product
-                      </button>
-                      <span className="field-helper-text product-delete-helper">
-                        {productDisableDisabledReason ||
-                          "This product has transaction history, so it cannot be deleted. Disable it to remove it from new sales, purchases, and quotations."}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        className="danger-button"
-                        type="button"
-                        onClick={handleDeleteProduct}
-                        disabled={isProductDeleteDisabled}
-                        title={productDeleteDisabledReason || undefined}
-                      >
-                        Delete Product
-                      </button>
-                      {productDeleteDisabledReason ? (
+                {draftExistingProduct ? (
+                  <div className="product-delete-action">
+                    {!isDraftProductActive ? (
+                      <>
+                        <button
+                          className="primary-button"
+                          type="button"
+                          onClick={handleEnableProduct}
+                          disabled={isProductEnableDisabled}
+                          title={productEnableDisabledReason || undefined}
+                        >
+                          Enable Product
+                        </button>
                         <span className="field-helper-text product-delete-helper">
-                          {productDeleteDisabledReason}
+                          {productEnableDisabledReason ||
+                            "Enable this product to make it available for new sales, purchases, and quotations again."}
                         </span>
-                      ) : null}
-                    </>
-                  )}
-                </div>
+                      </>
+                    ) : draftProductHasHistory ? (
+                      <>
+                        <button
+                          className="secondary-button"
+                          type="button"
+                          onClick={handleDisableProduct}
+                          disabled={isProductDisableDisabled}
+                          title={productDisableDisabledReason || undefined}
+                        >
+                          Disable Product
+                        </button>
+                        <span className="field-helper-text product-delete-helper">
+                          {productDisableDisabledReason ||
+                            "This product has transaction history, so it cannot be deleted. Disable it to remove it from new sales, purchases, and quotations."}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          className="danger-button"
+                          type="button"
+                          onClick={handleDeleteProduct}
+                          disabled={isProductDeleteDisabled}
+                          title={productDeleteDisabledReason || undefined}
+                        >
+                          Delete Product
+                        </button>
+                        {productDeleteDisabledReason ? (
+                          <span className="field-helper-text product-delete-helper">
+                            {productDeleteDisabledReason}
+                          </span>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+                ) : null}
                 <button className="secondary-button" type="button" onClick={closeProductEditor}>
                   Cancel
                 </button>

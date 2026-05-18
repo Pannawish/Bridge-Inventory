@@ -1250,6 +1250,24 @@ class LookupEligibilityTests(APITestCase):
         product.refresh_from_db()
         self.assertFalse(product.is_active)
 
+    def test_disabled_product_can_be_enabled_again(self):
+        product = Product.objects.create(
+            sku="ENABLE-AGAIN",
+            product_name="Enable Product",
+            is_active=False,
+        )
+
+        response = self.client.patch(
+            f"/api/products/{product.id}/",
+            {"isActive": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["isActive"])
+        product.refresh_from_db()
+        self.assertTrue(product.is_active)
+
     def test_billing_note_eligibility_excludes_sales_already_on_active_note(self):
         Customer.objects.create(company_name="Alpha Customer")
         available = Sale.objects.create(
