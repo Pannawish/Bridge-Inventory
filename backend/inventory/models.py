@@ -279,6 +279,13 @@ class Purchase(TimeStampedModel):
     total_before_vat = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     vat_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     grand_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    source_quotation = models.ForeignKey(
+        "Quotation",
+        on_delete=models.SET_NULL,
+        related_name="derived_purchases",
+        blank=True,
+        null=True,
+    )
 
     class Meta:
         ordering = ["-transaction_date", "-created_at"]
@@ -407,6 +414,13 @@ class Sale(TimeStampedModel):
     total_before_vat = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     vat_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     grand_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    source_quotation = models.ForeignKey(
+        "Quotation",
+        on_delete=models.SET_NULL,
+        related_name="derived_sales",
+        blank=True,
+        null=True,
+    )
 
     class Meta:
         ordering = ["-transaction_date", "-created_at"]

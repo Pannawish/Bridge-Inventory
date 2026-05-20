@@ -280,3 +280,154 @@
   background: var(--accent);
 }
 
+/* ── Document reference chips ────────────────────────────── */
+
+.doc-ref-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 12px 0 0;
+}
+
+.doc-ref-group-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0 0 2px;
+}
+
+.doc-ref-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.doc-ref-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px 5px 8px;
+  border-radius: 8px;
+  border: 1.5px solid var(--line);
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.doc-ref-chip:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.doc-ref-chip-icon {
+  font-size: 0.88em;
+  line-height: 1;
+}
+
+.doc-ref-chip-arrow {
+  font-size: 0.72em;
+  color: var(--muted);
+  margin-left: 1px;
+}
+
+/* per-type accent colours */
+.doc-ref-chip--quotation    { --chip-color: #7c6fcd; }
+.doc-ref-chip--purchase     { --chip-color: #2d8cf0; }
+.doc-ref-chip--sale         { --chip-color: #19be6b; }
+.doc-ref-chip--billing-note { --chip-color: #f0a500; }
+.doc-ref-chip--credit-note  { --chip-color: #ed4014; }
+.doc-ref-chip--payment-batch { --chip-color: #2db7f5; }
+
+.doc-ref-chip--quotation:hover,
+.doc-ref-chip--purchase:hover,
+.doc-ref-chip--sale:hover,
+.doc-ref-chip--billing-note:hover,
+.doc-ref-chip--credit-note:hover,
+.doc-ref-chip--payment-batch:hover {
+  border-color: var(--chip-color);
+  background: color-mix(in srgb, var(--chip-color) 8%, var(--bg));
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--chip-color) 20%, transparent);
+}
+
+/* ── Document reference modal ────────────────────────────── */
+
+.doc-ref-modal-backdrop {
+  z-index: 500;
+}
+
+.doc-ref-modal {
+  width: min(400px, 95vw);
+  padding: 20px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.doc-ref-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.doc-ref-modal-ref {
+  margin: 4px 0 0;
+  font-size: 1.2rem;
+}
+
+.doc-ref-modal-loading,
+.doc-ref-modal-error {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.doc-ref-modal-error {
+  color: var(--danger, #ed4014);
+}
+
+.doc-ref-modal-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  margin: 0;
+}
+
+.doc-ref-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.doc-ref-modal-field dt {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.doc-ref-modal-field dd {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.doc-ref-modal-footer {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.doc-ref-modal-footer .secondary-button {
+  width: 100%;
+}
+

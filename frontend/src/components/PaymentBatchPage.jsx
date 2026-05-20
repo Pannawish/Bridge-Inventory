@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatMoney as fmt } from "../format";
 import EligiblePartyCombobox from "./EligiblePartyCombobox";
 import PaginationControls from "./PaginationControls";
+import DocumentRefChip from "./DocumentRefChip";
+import DocumentRefModal from "./DocumentRefModal";
 
 const STATUS_LABELS = {
   draft: "Draft",
@@ -417,6 +419,7 @@ function PaymentBatchDetailModal({
   onDelete,
 }) {
   const [draft, setDraft] = useState(paymentBatch);
+  const [docRefModal, setDocRefModal] = useState(null);
 
   useEffect(() => {
     setDraft(paymentBatch);
@@ -654,7 +657,19 @@ function PaymentBatchDetailModal({
                         onChange={() => toggleLinePaid(line.id)}
                       />
                     </td>
-                    <td>{line.purchase_reference_no || line.purchase}</td>
+                    <td>
+                      <DocumentRefChip
+                        label={line.purchase_reference_no || line.purchase_id || line.purchase}
+                        docType="purchase"
+                        onClick={() =>
+                          setDocRefModal({
+                            docType: "purchase",
+                            docId: line.purchase_id || line.purchase,
+                            referenceNo: line.purchase_reference_no || line.purchase_id || line.purchase,
+                          })
+                        }
+                      />
+                    </td>
                     <td>{formatDate(line.purchase_transaction_date)}</td>
                     <td>
                       {line.purchase_payment_term_type === "credit"
@@ -722,6 +737,15 @@ function PaymentBatchDetailModal({
         </div>
       </form>
       </div>
+
+      {docRefModal && (
+        <DocumentRefModal
+          docType={docRefModal.docType}
+          docId={docRefModal.docId}
+          referenceNo={docRefModal.referenceNo}
+          onClose={() => setDocRefModal(null)}
+        />
+      )}
     </div>
   );
 }

@@ -22,6 +22,8 @@ import {
 import { formatSaleStockIssueMessage, getSaleStockIssues } from "../saleStock";
 import { getItemQuantityDetails } from "../unitConversion";
 import { formatDate } from "../format";
+import DocumentRefChip from "./DocumentRefChip";
+import DocumentRefModal from "./DocumentRefModal";
 
 const VAT_RATE = 0.07;
 
@@ -199,6 +201,7 @@ function TransactionTable({
   const [selectedRow, setSelectedRow] = useState(null);
   const [hasUnsavedItemChanges, setHasUnsavedItemChanges] = useState(false);
   const [showAllRows, setShowAllRows] = useState(false);
+  const [docRefModal, setDocRefModal] = useState(null);
   const title = type === "purchase" ? "Purchases" : "Sales";
   const personKey = type === "purchase" ? "supplier_name" : "customer_name";
   const statuses = type === "purchase" ? purchaseStatuses : saleStatuses;
@@ -778,6 +781,74 @@ function TransactionTable({
               </div>
             </div>
 
+            {/* Document reference chips */}
+            {(selectedRow.source_quotation_reference_no ||
+              (selectedRow.billing_note_links || []).length > 0 ||
+              (selectedRow.credit_note_links || []).length > 0) && (
+              <div className="doc-ref-group">
+                {selectedRow.source_quotation_reference_no ? (
+                  <>
+                    <p className="doc-ref-group-label">Source Quotation</p>
+                    <div className="doc-ref-chips">
+                      <DocumentRefChip
+                        label={selectedRow.source_quotation_reference_no}
+                        docType="quotation"
+                        onClick={() =>
+                          setDocRefModal({
+                            docType: "quotation",
+                            docId: selectedRow.source_quotation_id,
+                            referenceNo: selectedRow.source_quotation_reference_no,
+                          })
+                        }
+                      />
+                    </div>
+                  </>
+                ) : null}
+                {(selectedRow.billing_note_links || []).length > 0 ? (
+                  <>
+                    <p className="doc-ref-group-label">Billing Notes</p>
+                    <div className="doc-ref-chips">
+                      {selectedRow.billing_note_links.map((link) => (
+                        <DocumentRefChip
+                          key={link.id}
+                          label={link.reference_no || link.id}
+                          docType="billing-note"
+                          onClick={() =>
+                            setDocRefModal({
+                              docType: "billing-note",
+                              docId: link.id,
+                              referenceNo: link.reference_no || link.id,
+                            })
+                          }
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+                {(selectedRow.credit_note_links || []).length > 0 ? (
+                  <>
+                    <p className="doc-ref-group-label">Credit Notes</p>
+                    <div className="doc-ref-chips">
+                      {selectedRow.credit_note_links.map((link) => (
+                        <DocumentRefChip
+                          key={link.id}
+                          label={link.reference_no || link.id}
+                          docType="credit-note"
+                          onClick={() =>
+                            setDocRefModal({
+                              docType: "credit-note",
+                              docId: link.id,
+                              referenceNo: link.reference_no || link.id,
+                            })
+                          }
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            )}
+
             <div className="detail-items">
               <p className="detail-label">Items</p>
               {type === "purchase" ? (
@@ -1096,6 +1167,15 @@ function TransactionTable({
           </div>
         </div>
       ) : null}
+
+      {docRefModal && (
+        <DocumentRefModal
+          docType={docRefModal.docType}
+          docId={docRefModal.docId}
+          referenceNo={docRefModal.referenceNo}
+          onClose={() => setDocRefModal(null)}
+        />
+      )}
     </section>
   );
 }

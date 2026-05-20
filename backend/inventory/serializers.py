@@ -633,6 +633,10 @@ class PurchaseSerializer(serializers.ModelSerializer):
         required=False,
     )
     remove_document = serializers.BooleanField(write_only=True, required=False, default=False)
+    source_quotation_id = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+    source_quotation_reference_no = serializers.SerializerMethodField()
 
     class Meta:
         model = Purchase
@@ -660,6 +664,8 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "vat_amount",
             "grand_total",
             "items",
+            "source_quotation_id",
+            "source_quotation_reference_no",
         ]
         extra_kwargs = {
             "id": {"required": False},
@@ -696,6 +702,11 @@ class PurchaseSerializer(serializers.ModelSerializer):
 
         return documents
 
+    def get_source_quotation_reference_no(self, purchase):
+        if not purchase.source_quotation_id:
+            return ""
+        return purchase.source_quotation.reference_no or ""
+
     def validate_bill_discount(self, value):
         return validate_percentage_discount(value, "Bill discount")
 
@@ -717,6 +728,16 @@ class PurchaseSerializer(serializers.ModelSerializer):
                     getattr(self.instance, "supplier_name", ""),
                 ),
             )
+
+        source_quotation_id_value = attrs.pop("source_quotation_id", None)
+        if source_quotation_id_value:
+            try:
+                from .models import Quotation
+                attrs["source_quotation"] = Quotation.objects.get(pk=source_quotation_id_value)
+            except Quotation.DoesNotExist:
+                attrs["source_quotation"] = None
+        elif source_quotation_id_value is not None:
+            attrs["source_quotation"] = None
 
         purchase_status = attrs.get(
             "status",
@@ -913,6 +934,12 @@ class SaleSerializer(serializers.ModelSerializer):
         required=False,
     )
     remove_document = serializers.BooleanField(write_only=True, required=False, default=False)
+    source_quotation_id = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+    source_quotation_reference_no = serializers.SerializerMethodField()
+    billing_note_links = serializers.SerializerMethodField()
+    credit_note_links = serializers.SerializerMethodField()
 
     class Meta:
         model = Sale
@@ -940,6 +967,10 @@ class SaleSerializer(serializers.ModelSerializer):
             "vat_amount",
             "grand_total",
             "items",
+            "source_quotation_id",
+            "source_quotation_reference_no",
+            "billing_note_links",
+            "credit_note_links",
         ]
         extra_kwargs = {
             "id": {"required": False},
@@ -978,6 +1009,28 @@ class SaleSerializer(serializers.ModelSerializer):
             documents.insert(0, build_legacy_document_payload(request, sale.document))
 
         return documents
+
+    def get_source_quotation_reference_no(self, sale):
+        if not sale.source_quotation_id:
+            return ""
+        return sale.source_quotation.reference_no or ""
+
+    def get_billing_note_links(self, sale):
+        seen = set()
+        links = []
+        for line in sale.billing_note_lines.all():
+            bn = line.billing_note
+            if bn.id not in seen:
+                seen.add(bn.id)
+                links.append({"id": bn.id, "reference_no": bn.reference_no or ""})
+        return links
+
+    def get_credit_note_links(self, sale):
+        return [
+            {"id": cn.id, "reference_no": cn.reference_no or ""}
+            for cn in sale.credit_notes.all()
+            if cn.status != "cancelled"
+        ]
 
     def _add_documents(self, sale, documents):
         for document in documents:
@@ -1034,6 +1087,16 @@ class SaleSerializer(serializers.ModelSerializer):
                     getattr(self.instance, "customer_name", ""),
                 ),
             )
+
+        source_quotation_id_value = attrs.pop("source_quotation_id", None)
+        if source_quotation_id_value:
+            try:
+                from .models import Quotation
+                attrs["source_quotation"] = Quotation.objects.get(pk=source_quotation_id_value)
+            except Quotation.DoesNotExist:
+                attrs["source_quotation"] = None
+        elif source_quotation_id_value is not None:
+            attrs["source_quotation"] = None
 
         sale_status = attrs.get("status", getattr(self.instance, "status", Sale.STATUS_DRAFT))
         current_sale_status = getattr(self.instance, "status", Sale.STATUS_DRAFT)
@@ -1137,6 +1200,8 @@ class QuotationSerializer(serializers.ModelSerializer):
     items = serializers.JSONField(required=False, write_only=True)
     customer_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     supplier_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    derived_purchase_links = serializers.SerializerMethodField()
+    derived_sale_links = serializers.SerializerMethodField()
 
     class Meta:
         model = Quotation
@@ -1155,6 +1220,8 @@ class QuotationSerializer(serializers.ModelSerializer):
             "total_before_vat",
             "vat_amount",
             "grand_total",
+            "derived_purchase_links",
+            "derived_sale_links",
         ]
         extra_kwargs = {
             "id": {"required": False},
@@ -1331,6 +1398,18 @@ class QuotationSerializer(serializers.ModelSerializer):
         line_items = list(instance.line_items.all())
         data["items"] = [self._serialize_item(item) for item in line_items]
         return data
+
+    def get_derived_purchase_links(self, quotation):
+        return [
+            {"id": p.id, "reference_no": p.reference_no or ""}
+            for p in quotation.derived_purchases.all()
+        ]
+
+    def get_derived_sale_links(self, quotation):
+        return [
+            {"id": s.id, "reference_no": s.reference_no or ""}
+            for s in quotation.derived_sales.all()
+        ]
 
     def validate(self, attrs):
         customer_id_value = attrs.pop("customer_id", None)

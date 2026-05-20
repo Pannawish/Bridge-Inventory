@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatMoney as fmt } from "../format";
 import EligiblePartyCombobox from "./EligiblePartyCombobox";
 import PaginationControls from "./PaginationControls";
+import DocumentRefChip from "./DocumentRefChip";
+import DocumentRefModal from "./DocumentRefModal";
 
 const STATUS_LABELS = {
   draft: "Draft",
@@ -660,7 +662,19 @@ function BillingNoteDetailModal({
                         onChange={() => toggleLineReceived(line.id)}
                       />
                     </td>
-                    <td>{line.sale_reference_no || line.sale}</td>
+                    <td>
+                      <DocumentRefChip
+                        label={line.sale_reference_no || line.sale_id || line.sale}
+                        docType="sale"
+                        onClick={() =>
+                          setDocRefModal({
+                            docType: "sale",
+                            docId: line.sale_id || line.sale,
+                            referenceNo: line.sale_reference_no || line.sale_id || line.sale,
+                          })
+                        }
+                      />
+                    </td>
                     <td>{formatDate(line.sale_transaction_date)}</td>
                     <td>
                       {line.sale_payment_term_type === "credit"
@@ -726,7 +740,19 @@ function BillingNoteDetailModal({
                   <tbody>
                     {(draft.credit_notes || []).map((credit) => (
                       <tr key={credit.id} className="partner-table-row">
-                        <td>{credit.reference_no || credit.id}</td>
+                        <td>
+                          <DocumentRefChip
+                            label={credit.reference_no || credit.id}
+                            docType="credit-note"
+                            onClick={() =>
+                              setDocRefModal({
+                                docType: "credit-note",
+                                docId: credit.id,
+                                referenceNo: credit.reference_no || credit.id,
+                              })
+                            }
+                          />
+                        </td>
                         <td>{formatDate(credit.credit_note_date)}</td>
                         <td>
                           <StatusPill status={credit.status} />
@@ -807,6 +833,7 @@ function BillingNotePage({
   const [showAllRows, setShowAllRows] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activeBillingNote, setActiveBillingNote] = useState(null);
+  const [docRefModal, setDocRefModal] = useState(null);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const isServerPaginated = Boolean(pagination && onPageRequest);
@@ -1181,6 +1208,15 @@ function BillingNotePage({
           onDelete={handleDelete}
         />
       ) : null}
+
+      {docRefModal && (
+        <DocumentRefModal
+          docType={docRefModal.docType}
+          docId={docRefModal.docId}
+          referenceNo={docRefModal.referenceNo}
+          onClose={() => setDocRefModal(null)}
+        />
+      )}
     </div>
   );
 }

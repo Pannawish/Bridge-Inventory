@@ -94,6 +94,12 @@ export default function QuotationConvertSelect({ quotation, type, onBack, onCont
           ? "Pick the supplier for each product. Products are grouped into one purchase order per supplier."
           : "Pick the supplier each product is sourced from. Its cost is recorded on the sales order."}
       </p>
+      {isPurchase && items.some((item, index) => (item.supplier_options || []).length === 0) && (
+        <div className="notice-banner">
+          Some items are greyed out because they have no supplier recorded in the quotation.
+          To include them, go back and add a supplier + cost price to those items first.
+        </div>
+      )}
 
       <div className="transaction-table-window">
         <div className="table-scroll">
@@ -125,6 +131,7 @@ export default function QuotationConvertSelect({ quotation, type, onBack, onCont
                         checked={checked}
                         disabled={disabled}
                         onChange={() => toggle(key, disabled)}
+                        title={disabled ? "Add a supplier + cost price to this item in the quotation to include it in a PO" : undefined}
                       />
                     </td>
                     <td>
@@ -153,7 +160,9 @@ export default function QuotationConvertSelect({ quotation, type, onBack, onCont
                           ))}
                         </select>
                       ) : (
-                        <span className="empty-copy">No supplier recorded</span>
+                        <span className="empty-copy" style={{ color: "var(--danger, #ed4014)" }}>
+                          No supplier — cannot include in PO
+                        </span>
                       )}
                     </td>
                   </tr>

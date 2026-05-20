@@ -3,6 +3,8 @@ import EligiblePartyCombobox from "./EligiblePartyCombobox";
 import SalesForm from "./SalesForm";
 import QuotationConvertSelect from "./QuotationConvertSelect";
 import MultiPurchaseWizard from "./MultiPurchaseWizard";
+import DocumentRefChip from "./DocumentRefChip";
+import DocumentRefModal from "./DocumentRefModal";
 import {
   buildConvertedItemFields,
   getProductDefaultSalesUnit,
@@ -1161,6 +1163,7 @@ function QuotationPage({
   const [showNewQuotationForm, setShowNewQuotationForm] = useState(false);
   const [showAllRows, setShowAllRows] = useState(false);
   const [conversion, setConversion] = useState(null);
+  const [docRefModal, setDocRefModal] = useState(null);
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const customerOptions = useMemo(
     () => getQuotationPartnerOptions(quotations, "customer_name", customers),
@@ -1266,10 +1269,16 @@ function QuotationPage({
   }
 
   async function handlePurchaseCreate(formData) {
+    if (conversion?.quotation?.id && formData instanceof FormData) {
+      formData.append("source_quotation_id", conversion.quotation.id);
+    }
     return onCreatePurchaseFromQuotation?.(formData);
   }
 
   async function handleSaleCreate(formData) {
+    if (conversion?.quotation?.id && formData instanceof FormData) {
+      formData.append("source_quotation_id", conversion.quotation.id);
+    }
     const saved = await onCreateSale?.(formData);
 
     if (saved === false) {
@@ -1761,6 +1770,42 @@ function QuotationPage({
               </div>
             </div>
 
+            {((viewingQuotation.derived_purchase_links || []).length > 0 ||
+              (viewingQuotation.derived_sale_links || []).length > 0) && (
+              <div className="doc-ref-group">
+                {(viewingQuotation.derived_purchase_links || []).length > 0 && (
+                  <>
+                    <p className="doc-ref-group-label">Purchase Orders Created</p>
+                    <div className="doc-ref-chips">
+                      {viewingQuotation.derived_purchase_links.map((link) => (
+                        <DocumentRefChip
+                          key={link.id}
+                          label={link.reference_no || link.id}
+                          docType="purchase"
+                          onClick={() => setDocRefModal({ docType: "purchase", docId: link.id, referenceNo: link.reference_no || link.id })}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+                {(viewingQuotation.derived_sale_links || []).length > 0 && (
+                  <>
+                    <p className="doc-ref-group-label">Sales Created</p>
+                    <div className="doc-ref-chips">
+                      {viewingQuotation.derived_sale_links.map((link) => (
+                        <DocumentRefChip
+                          key={link.id}
+                          label={link.reference_no || link.id}
+                          docType="sale"
+                          onClick={() => setDocRefModal({ docType: "sale", docId: link.id, referenceNo: link.reference_no || link.id })}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="detail-items">
               <p className="detail-label">Items</p>
               <div className="table-scroll">
@@ -1872,6 +1917,15 @@ function QuotationPage({
           </div>
         </div>
       ) : null}
+
+      {docRefModal && (
+        <DocumentRefModal
+          docType={docRefModal.docType}
+          docId={docRefModal.docId}
+          referenceNo={docRefModal.referenceNo}
+          onClose={() => setDocRefModal(null)}
+        />
+      )}
     </div>
   );
 }

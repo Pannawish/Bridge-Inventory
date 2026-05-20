@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatMoney as fmt } from "../format";
 import EligiblePartyCombobox from "./EligiblePartyCombobox";
 import PaginationControls from "./PaginationControls";
+import DocumentRefChip from "./DocumentRefChip";
+import DocumentRefModal from "./DocumentRefModal";
 
 const STATUS_LABELS = {
   issued: "Issued",
@@ -369,6 +371,7 @@ function CreateCreditNoteModal({
 
 function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDelete }) {
   const [draft, setDraft] = useState(creditNote);
+  const [docRefModal, setDocRefModal] = useState(null);
 
   useEffect(() => {
     setDraft(creditNote);
@@ -437,7 +440,22 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
 
             <label>
               Source Sale
-              <input value={draft.sale_reference_no || draft.sale || ""} disabled />
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input value={draft.sale_reference_no || draft.sale || ""} disabled style={{ flex: 1 }} />
+                {draft.sale && (
+                  <DocumentRefChip
+                    label={draft.sale_reference_no || draft.sale}
+                    docType="sale"
+                    onClick={() =>
+                      setDocRefModal({
+                        docType: "sale",
+                        docId: draft.sale,
+                        referenceNo: draft.sale_reference_no || draft.sale,
+                      })
+                    }
+                  />
+                )}
+              </div>
             </label>
 
             <label>
@@ -453,20 +471,36 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
 
             <label>
               Applied to Billing Note
-              <select
-                value={draft.billing_note || ""}
-                onChange={(event) =>
-                  updateField("billing_note", event.target.value || null)
-                }
-              >
-                <option value="">Not applied to a billing note</option>
-                {billingNoteOptions.map((billingNote) => (
-                  <option key={billingNote.id} value={billingNote.id}>
-                    {(billingNote.reference_no || billingNote.id) +
-                      ` — ${fmt(billingNote.total_amount)}`}
-                  </option>
-                ))}
-              </select>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <select
+                  value={draft.billing_note || ""}
+                  onChange={(event) =>
+                    updateField("billing_note", event.target.value || null)
+                  }
+                  style={{ flex: 1 }}
+                >
+                  <option value="">Not applied to a billing note</option>
+                  {billingNoteOptions.map((billingNote) => (
+                    <option key={billingNote.id} value={billingNote.id}>
+                      {(billingNote.reference_no || billingNote.id) +
+                        ` — ${fmt(billingNote.total_amount)}`}
+                    </option>
+                  ))}
+                </select>
+                {draft.billing_note && (
+                  <DocumentRefChip
+                    label={draft.billing_note_reference_no || draft.billing_note}
+                    docType="billing-note"
+                    onClick={() =>
+                      setDocRefModal({
+                        docType: "billing-note",
+                        docId: draft.billing_note,
+                        referenceNo: draft.billing_note_reference_no || draft.billing_note,
+                      })
+                    }
+                  />
+                )}
+              </div>
             </label>
 
             <label>
@@ -555,6 +589,15 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
           </div>
         </form>
       </div>
+
+      {docRefModal && (
+        <DocumentRefModal
+          docType={docRefModal.docType}
+          docId={docRefModal.docId}
+          referenceNo={docRefModal.referenceNo}
+          onClose={() => setDocRefModal(null)}
+        />
+      )}
     </div>
   );
 }

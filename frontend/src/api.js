@@ -127,6 +127,9 @@ export const api = {
   getPurchases(params) {
     return request("/purchases/", { params });
   },
+  getPurchase(id) {
+    return request(`/purchases/${id}/`);
+  },
   createPurchase(formData) {
     return request("/purchases/", { method: "POST", body: formData });
   },
@@ -144,6 +147,9 @@ export const api = {
   },
   getSales(params) {
     return request("/sales/", { params });
+  },
+  getSale(id) {
+    return request(`/sales/${id}/`);
   },
   createSale(formData) {
     return request("/sales/", { method: "POST", body: formData });
@@ -163,6 +169,9 @@ export const api = {
   getQuotations(params) {
     return request("/quotations/", { params });
   },
+  getQuotation(id) {
+    return request(`/quotations/${id}/`);
+  },
   createQuotation(payload) {
     return request("/quotations/", { method: "POST", body: payload });
   },
@@ -174,6 +183,9 @@ export const api = {
   },
   getBillingNotes(params) {
     return request("/billing-notes/", { params });
+  },
+  getBillingNote(id) {
+    return request(`/billing-notes/${id}/`);
   },
   createBillingNote(payload) {
     return request("/billing-notes/", { method: "POST", body: payload });
@@ -187,6 +199,9 @@ export const api = {
   getPaymentBatches(params) {
     return request("/payment-batches/", { params });
   },
+  getPaymentBatch(id) {
+    return request(`/payment-batches/${id}/`);
+  },
   createPaymentBatch(payload) {
     return request("/payment-batches/", { method: "POST", body: payload });
   },
@@ -198,6 +213,9 @@ export const api = {
   },
   getCreditNotes(params) {
     return request("/credit-notes/", { params });
+  },
+  getCreditNote(id) {
+    return request(`/credit-notes/${id}/`);
   },
   createCreditNote(payload) {
     return request("/credit-notes/", { method: "POST", body: payload });
