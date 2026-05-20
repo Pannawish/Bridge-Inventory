@@ -1244,44 +1244,116 @@
   max-width: 100%;
 }
 
+.detail-item-table-sale th,
+.detail-item-table-sale td {
+  padding: 7px 4px;
+  font-size: 0.72rem;
+}
+
+.detail-item-table-sale th {
+  font-size: 0.58rem;
+  letter-spacing: 0.02em;
+}
+
+.detail-item-table-sale .status-select,
+.detail-item-table-sale .received-date-input {
+  padding: 7px 5px;
+  font-size: 0.68rem;
+}
+
+.detail-item-table-sale .tx-discount-breakdown-row {
+  gap: 4px;
+}
+
+.detail-item-table-sale .tx-discount-type {
+  font-size: 0.58rem;
+}
+
+.detail-item-table-sale .tx-discount-label {
+  font-size: 0.7rem;
+}
+
 .detail-item-table-sale th:nth-child(1),
 .detail-item-table-sale td:nth-child(1),
 .detail-item-table-purchase th:nth-child(1),
 .detail-item-table-purchase td:nth-child(1) {
-  width: 3.2%;
+  width: 2.6%;
 }
 
 .detail-item-table-sale th:nth-child(2),
 .detail-item-table-sale td:nth-child(2) {
-  width: 18%;
+  width: 14.2%;
 }
 
 .detail-item-table-sale th:nth-child(3),
 .detail-item-table-sale td:nth-child(3) {
-  width: 13%;
+  width: 8.3%;
 }
 
 .detail-item-table-sale th:nth-child(4),
 .detail-item-table-sale td:nth-child(4),
 .detail-item-table-sale th:nth-child(5),
 .detail-item-table-sale td:nth-child(5) {
-  width: 11%;
+  width: 7.8%;
 }
 
 .detail-item-table-sale th:nth-child(6),
-.detail-item-table-sale td:nth-child(6),
+.detail-item-table-sale td:nth-child(6) {
+  width: 6.1%;
+}
+
 .detail-item-table-sale th:nth-child(7),
-.detail-item-table-sale td:nth-child(7),
+.detail-item-table-sale td:nth-child(7) {
+  width: 6.7%;
+}
+
 .detail-item-table-sale th:nth-child(8),
 .detail-item-table-sale td:nth-child(8) {
-  width: 9%;
+  width: 7%;
 }
 
 .detail-item-table-sale th:nth-child(9),
-.detail-item-table-sale td:nth-child(9),
+.detail-item-table-sale td:nth-child(9) {
+  width: 8.6%;
+}
+
 .detail-item-table-sale th:nth-child(10),
 .detail-item-table-sale td:nth-child(10) {
+  width: 7%;
+}
+
+.detail-item-table-sale th:nth-child(11),
+.detail-item-table-sale td:nth-child(11) {
   width: 8%;
+}
+
+.detail-item-table-sale th:nth-child(12),
+.detail-item-table-sale td:nth-child(12) {
+  width: 6.4%;
+}
+
+.detail-item-table-sale th:nth-child(13),
+.detail-item-table-sale td:nth-child(13) {
+  width: 5.5%;
+}
+
+.detail-item-table-sale td:nth-child(2),
+.detail-item-table-sale td:nth-child(6),
+.detail-item-table-sale td:nth-child(7),
+.detail-item-table-sale td:nth-child(9),
+.detail-item-table-sale td:nth-child(11),
+.detail-item-table-sale td:nth-child(11) .tx-discount-label {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.detail-item-table-sale td:nth-child(2),
+.detail-item-table-sale td:nth-child(6),
+.detail-item-table-sale td:nth-child(7),
+.detail-item-table-sale td:nth-child(9),
+.detail-item-table-sale td:nth-child(11) .tx-discount-breakdown-row {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .detail-item-table-purchase th:nth-child(2),

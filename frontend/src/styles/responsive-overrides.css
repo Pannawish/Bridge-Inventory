@@ -3,16 +3,28 @@
     width: min(900px, calc(100vw - 32px));
   }
 
+  .transaction-detail-modal-sale {
+    width: min(1260px, calc(100vw - 32px));
+  }
+
   .transaction-detail-modal .table-scroll {
     overflow-x: auto;
+  }
+
+  .transaction-detail-modal-sale .table-scroll {
+    overflow-x: visible;
   }
 
   .detail-item-table {
     table-layout: auto;
   }
 
+  .transaction-detail-modal-sale .detail-item-table {
+    table-layout: fixed;
+  }
+
   .detail-item-table-sale {
-    min-width: 1120px;
+    min-width: 0;
   }
 
   .detail-item-table-purchase {
@@ -44,6 +56,41 @@
 
   .detail-item-table .purchase-item-status-control {
     min-width: 142px;
+  }
+
+  .transaction-detail-modal-sale .detail-item-table-sale th,
+  .transaction-detail-modal-sale .detail-item-table-sale td {
+    padding: 7px 4px;
+    font-size: 0.72rem;
+  }
+
+  .transaction-detail-modal-sale .detail-item-table-sale th {
+    font-size: 0.58rem;
+  }
+
+  .transaction-detail-modal-sale .detail-item-table-sale .status-select,
+  .transaction-detail-modal-sale .detail-item-table-sale .received-date-input {
+    min-width: 0;
+    padding: 7px 5px;
+    font-size: 0.68rem;
+  }
+
+  .transaction-detail-modal-sale .detail-item-table-sale .purchase-item-status-control {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 1099px) {
+  .transaction-detail-modal-sale .table-scroll {
+    overflow-x: auto;
+  }
+
+  .transaction-detail-modal-sale .detail-item-table {
+    table-layout: auto;
+  }
+
+  .detail-item-table-sale {
+    min-width: 1120px;
   }
 }
 
