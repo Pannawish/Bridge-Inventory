@@ -198,3 +198,85 @@
   width: 19%;
 }
 
+.credit-note-prompt-modal {
+  width: min(960px, 100%);
+}
+
+.credit-note-prompt-modal .section-heading {
+  align-items: flex-start;
+}
+
+.credit-note-prompt-subtitle {
+  margin: 6px 0 0;
+  max-width: 640px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.credit-note-prompt-table-window {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.credit-note-prompt-table-window .table-scroll {
+  max-height: clamp(180px, 30vh, 360px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.transaction-table-window table.credit-note-prompt-table {
+  width: 100%;
+  min-width: 640px;
+  table-layout: fixed;
+}
+
+.credit-note-prompt-table th,
+.credit-note-prompt-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.credit-note-prompt-table td {
+  white-space: nowrap;
+}
+
+.credit-note-prompt-table th:first-child,
+.credit-note-prompt-table td:first-child {
+  text-align: center;
+}
+
+.credit-note-prompt-table th:last-child,
+.credit-note-prompt-table td:last-child,
+.credit-note-prompt-table th:nth-child(5),
+.credit-note-prompt-table td:nth-child(5) {
+  text-align: right;
+}
+
+.credit-note-prompt-actions {
+  position: static;
+  margin: 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.sidebar-nav-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: auto;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: var(--accent);
+}
+
+.sidebar-nav-button.active .sidebar-nav-badge {
+  background: var(--accent);
+}
+

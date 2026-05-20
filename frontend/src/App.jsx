@@ -7,6 +7,9 @@ import {
   buildPaymentBatchPayload,
   buildPurchaseUpdatePayload,
   buildSaleUpdatePayload,
+  countCancelledSaleItems,
+  countPendingCreditNoteLines,
+  findUncreditedCancelledSaleLines,
   isMockQuotationId,
   mergeSavedQuotation,
   removeMockQuotationId,
@@ -24,6 +27,7 @@ import QuotationPage from "./components/QuotationPage";
 import BillingNotePage from "./components/BillingNotePage";
 import PaymentBatchPage from "./components/PaymentBatchPage";
 import CreditNotePage from "./components/CreditNotePage";
+import CreditNotePrompt from "./components/CreditNotePrompt";
 import { useInventoryData } from "./hooks/useInventoryData";
 import { applyPurchaseStatusToItems } from "./purchaseStatus";
 import { applySaleStatusToItems } from "./saleStatus";
@@ -94,6 +98,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
+  const [creditNotePrompt, setCreditNotePrompt] = useState(null);
   const [messages, setMessages] = useState([
     {
       role: "assistant",
@@ -261,6 +266,9 @@ function App() {
 
   const activeTabMeta = tabs.find((tab) => tab.id === activeTab) || tabs[0];
   const activeProducts = products.filter(isProductActive);
+  const tabBadges = {
+    "credit-notes": countPendingCreditNoteLines(creditNoteEligibleSales),
+  };
 
   async function handlePurchaseCreateFromHistory(formData) {
     setError("");
@@ -445,13 +453,15 @@ function App() {
         currentRows.map((row) => (row.id === saleId ? updatedSale : row))
       );
       setNotice(`Sale ${sale.reference_no} status updated to ${updatedSale.status}.`);
+      maybeOpenCreditNotePrompt(sale, updatedSale);
       return;
     }
 
     try {
-      await api.updateSaleStatus(saleId, nextStatus);
+      const updatedSale = await api.updateSaleStatus(saleId, nextStatus);
       setNotice(`Sale ${sale.reference_no} status updated to ${nextStatus}.`);
       await loadData();
+      maybeOpenCreditNotePrompt(sale, updatedSale);
     } catch (requestError) {
       setError(requestError.message);
     }
@@ -459,11 +469,12 @@ function App() {
 
   async function handleSaleUpdate(updatedSale) {
     setError("");
+    const previousSale = sales.find((row) => row.id === updatedSale.id);
     const { sale: normalizedSale, issues, forcedDraft } = normalizeSaleForAvailableStock(
       updatedSale,
       {
         excludeSaleId: updatedSale.id,
-        currentSale: sales.find((row) => row.id === updatedSale.id),
+        currentSale: previousSale,
       }
     );
     const successNotice = forcedDraft
@@ -478,6 +489,7 @@ function App() {
         currentRows.map((row) => (row.id === normalizedSale.id ? normalizedSale : row))
       );
       setNotice(successNotice);
+      maybeOpenCreditNotePrompt(previousSale, normalizedSale);
       return true;
     }
 
@@ -486,24 +498,54 @@ function App() {
         normalizedSale.id,
         buildSaleUpdatePayload(normalizedSale)
       );
+      const resolvedSale = savedSale || normalizedSale;
       setSales((currentRows) =>
         currentRows.map((row) =>
-          row.id === normalizedSale.id ? savedSale || normalizedSale : row
+          row.id === normalizedSale.id ? resolvedSale : row
         )
       );
       setSaleRows((currentRows) =>
         currentRows.map((row) =>
-          row.id === normalizedSale.id ? savedSale || normalizedSale : row
+          row.id === normalizedSale.id ? resolvedSale : row
         )
       );
       setNotice(successNotice);
       await refreshBillingNoteEligibility();
       await loadData();
+      maybeOpenCreditNotePrompt(previousSale, resolvedSale);
       return true;
     } catch (requestError) {
       showWarning(requestError.message || "Sale update failed.");
       return false;
     }
+  }
+
+  function maybeOpenCreditNotePrompt(previousSale, nextSale) {
+    if (!nextSale) {
+      return;
+    }
+    const prevCount = countCancelledSaleItems(previousSale);
+    const nextCount = countCancelledSaleItems(nextSale);
+    if (nextCount <= prevCount) {
+      return;
+    }
+    const lines = findUncreditedCancelledSaleLines(nextSale, creditNotes);
+    if (!lines.length) {
+      return;
+    }
+    setCreditNotePrompt({
+      sale: nextSale,
+      newlyCancelledLines: lines,
+    });
+  }
+
+  async function handleCreditNotePromptCreate(payload) {
+    const created = await handleCreditNoteCreate(payload);
+    if (created === false) {
+      return false;
+    }
+    setCreditNotePrompt(null);
+    return created;
   }
 
   async function handlePurchaseUpdate(updatedPurchase) {
@@ -1223,16 +1265,27 @@ function App() {
           </div>
 
           <nav className="sidebar-nav">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                className={tab.id === activeTab ? "sidebar-nav-button active" : "sidebar-nav-button"}
-                onClick={() => handleTabSelect(tab.id)}
-              >
-                <span className="sidebar-nav-text">{tab.label}</span>
-              </button>
-            ))}
+            {tabs.map((tab) => {
+              const badgeCount = tabBadges[tab.id] || 0;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  className={tab.id === activeTab ? "sidebar-nav-button active" : "sidebar-nav-button"}
+                  onClick={() => handleTabSelect(tab.id)}
+                >
+                  <span className="sidebar-nav-text">{tab.label}</span>
+                  {badgeCount > 0 ? (
+                    <span
+                      className="sidebar-nav-badge"
+                      aria-label={`${badgeCount} pending`}
+                    >
+                      {badgeCount}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
           </nav>
         </div>
       </aside>
@@ -1444,6 +1497,18 @@ function App() {
           </>
         )}
       </main>
+
+      {creditNotePrompt ? (
+        <CreditNotePrompt
+          sale={creditNotePrompt.sale}
+          newlyCancelledLines={creditNotePrompt.newlyCancelledLines}
+          billingNotes={billingNotes}
+          creditNotes={creditNotes}
+          nextReferenceNo={creditNoteNextReferenceNo}
+          onClose={() => setCreditNotePrompt(null)}
+          onCreate={handleCreditNotePromptCreate}
+        />
+      ) : null}
     </div>
   );
 }

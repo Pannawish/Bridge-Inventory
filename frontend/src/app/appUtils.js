@@ -221,3 +221,50 @@ export function buildCreditNotePayload(creditNote) {
     })),
   };
 }
+
+export function countCancelledSaleItems(sale) {
+  return (sale?.items || []).filter((item) => item.item_status === "cancelled")
+    .length;
+}
+
+export function getCreditedSaleItemIds(creditNotes = []) {
+  const credited = new Set();
+  (creditNotes || []).forEach((note) => {
+    if (note.status === "cancelled") {
+      return;
+    }
+    (note.lines || []).forEach((line) => {
+      if (line.sale_item) {
+        credited.add(line.sale_item);
+      }
+    });
+  });
+  return credited;
+}
+
+export function findUncreditedCancelledSaleLines(sale, creditNotes = []) {
+  const credited = getCreditedSaleItemIds(creditNotes);
+  return (sale?.items || [])
+    .filter(
+      (item) =>
+        item.item_status === "cancelled" &&
+        item.id !== undefined &&
+        item.id !== null &&
+        !credited.has(item.id)
+    )
+    .map((item) => ({
+      sale_item: item.id,
+      product_name: item.product_name,
+      sku: item.sku,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      amount: item.amount,
+    }));
+}
+
+export function countPendingCreditNoteLines(eligibleSales = []) {
+  return (eligibleSales || []).reduce(
+    (sum, sale) => sum + (sale.cancelled_lines || []).length,
+    0
+  );
+}
