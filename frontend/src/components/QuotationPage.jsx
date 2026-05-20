@@ -8,12 +8,12 @@ import {
   getProductDefaultSalesUnit,
   getProductUnitConversions,
 } from "../unitConversion";
-import { formatMoney as fmt } from "../format";
+import { formatDate, formatMoney as fmt } from "../format";
 
 const VAT_RATE = 0.07;
 const vatOptions = [
-  { value: "included", label: "VAT Included" },
-  { value: "not_included", label: "VAT Not Included" },
+  { value: "included", label: "Include VAT" },
+  { value: "not_included", label: "Exclude VAT" },
 ];
 
 function getToday() {
@@ -1470,8 +1470,8 @@ function QuotationPage({
                   onChange={(event) => setVatFilter(event.target.value)}
                 >
                   <option value="all">All VAT settings</option>
-                  <option value="included">VAT included</option>
-                  <option value="not_included">VAT not included</option>
+                  <option value="included">Include VAT</option>
+                  <option value="not_included">Exclude VAT</option>
                   <option value="none">No VAT</option>
                 </select>
               </label>
@@ -1633,11 +1633,11 @@ function QuotationPage({
                     <div className="mobile-record-grid">
                       <div>
                         <span>Date</span>
-                        <strong>{quotation.quotation_date || "—"}</strong>
+                        <strong>{formatDate(quotation.quotation_date)}</strong>
                       </div>
                       <div>
                         <span>Valid Until</span>
-                        <strong>{quotation.valid_until_date || "—"}</strong>
+                        <strong>{formatDate(quotation.valid_until_date)}</strong>
                       </div>
                       <div>
                         <span>Total</span>
@@ -1741,11 +1741,11 @@ function QuotationPage({
               </div>
               <div>
                 <p className="detail-label">Quotation Date</p>
-                <strong>{viewingQuotation.quotation_date || "—"}</strong>
+                <strong>{formatDate(viewingQuotation.quotation_date)}</strong>
               </div>
               <div>
                 <p className="detail-label">Valid Until</p>
-                <strong>{viewingQuotation.valid_until_date || "—"}</strong>
+                <strong>{formatDate(viewingQuotation.valid_until_date)}</strong>
               </div>
               <div>
                 <p className="detail-label">Status</p>

@@ -21,6 +21,7 @@ import {
 } from "../saleStatus";
 import { formatSaleStockIssueMessage, getSaleStockIssues } from "../saleStock";
 import { getItemQuantityDetails } from "../unitConversion";
+import { formatDate } from "../format";
 
 const VAT_RATE = 0.07;
 
@@ -495,7 +496,7 @@ function TransactionTable({
                           ))}
                         </select>
                       </td>
-                      <td>{row.transaction_date}</td>
+                      <td>{formatDate(row.transaction_date)}</td>
                       <td>
                         <div className="history-item-summary history-item-quantity-only">
                           <span className="history-item-count">{itemCount}</span>
@@ -577,7 +578,7 @@ function TransactionTable({
                   <div className="mobile-record-grid">
                     <div>
                       <span>Date</span>
-                      <strong>{row.transaction_date}</strong>
+                      <strong>{formatDate(row.transaction_date)}</strong>
                     </div>
                     {type === "sale" ? (
                       <div>
@@ -715,7 +716,7 @@ function TransactionTable({
               </div>
               <div>
                 <p className="detail-label">Transaction Date</p>
-                <strong>{selectedRow.transaction_date || "—"}</strong>
+                <strong>{formatDate(selectedRow.transaction_date)}</strong>
               </div>
               <div>
                 <p className="detail-label">Payment Term</p>
@@ -729,7 +730,7 @@ function TransactionTable({
               </div>
               <div>
                 <p className="detail-label">Payment Date</p>
-                <strong>{selectedRow.payment_date || "—"}</strong>
+                <strong>{formatDate(selectedRow.payment_date)}</strong>
               </div>
               <div>
                 <p className="detail-label">Documents</p>
@@ -982,7 +983,7 @@ function TransactionTable({
                             <td className="table-index-cell">{itemIndex + 1}</td>
                             <td>{item.product_name}</td>
                             <td>{item.sku || "—"}</td>
-                            <td>{item.expected_delivery_date || "—"}</td>
+                            <td>{formatDate(item.expected_delivery_date)}</td>
                             <td>{formatPurchaseLeadTime(item, selectedRow)}</td>
                             <td>
                               <div className="purchase-item-status-control">

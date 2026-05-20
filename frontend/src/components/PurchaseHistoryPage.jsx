@@ -20,8 +20,8 @@ import { formatMoney as fmt } from "../format";
 const VAT_RATE = 0.07;
 const statusOptions = purchaseStatuses;
 const vatOptions = [
-  { value: "included", label: "VAT Included" },
-  { value: "not_included", label: "VAT Not Included" },
+  { value: "included", label: "Include VAT" },
+  { value: "not_included", label: "Exclude VAT" },
 ];
 const defaultSupplierOptions = [];
 

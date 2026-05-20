@@ -44,6 +44,7 @@ import {
   renderDiscounts,
   resolveProductCategoryId,
 } from "./products/productUtils";
+import { formatDate } from "../format";
 
 const PRODUCT_DELETE_HISTORY_MESSAGE =
   "This product cannot be deleted because it already has purchase, sales, or quotation history.";
@@ -1533,7 +1534,7 @@ function ProductsPage({
                         </div>
                         <div>
                           <p className="detail-label">Transaction Date</p>
-                          <strong>{transaction.transaction_date || "—"}</strong>
+                          <strong>{formatDate(transaction.transaction_date)}</strong>
                         </div>
                         <div>
                           <p className="detail-label">Payment Term</p>
@@ -1547,7 +1548,7 @@ function ProductsPage({
                         </div>
                         <div>
                           <p className="detail-label">Payment Date</p>
-                          <strong>{transaction.payment_date || "—"}</strong>
+                          <strong>{formatDate(transaction.payment_date)}</strong>
                         </div>
                         <div>
                           <p className="detail-label">Documents</p>
@@ -1610,7 +1611,7 @@ function ProductsPage({
                                       <td className="table-index-cell">{itemIndex + 1}</td>
                                       <td>{item.product_name}</td>
                                       <td>{item.sku || "—"}</td>
-                                      <td>{item.expected_delivery_date || "—"}</td>
+                                      <td>{formatDate(item.expected_delivery_date)}</td>
                                       <td>{formatPurchaseLeadTime(item, transaction)}</td>
                                       <td>
                                         <span
@@ -1624,7 +1625,7 @@ function ProductsPage({
                                           )}
                                         </span>
                                       </td>
-                                      <td>{item.received_date || "—"}</td>
+                                      <td>{formatDate(item.received_date)}</td>
                                       <td>{quantityDetails.enteredLabel}</td>
                                       <td>{quantityDetails.baseLabel}</td>
                                       <td>
@@ -1910,7 +1911,7 @@ function ProductsPage({
                                     <td className="table-index-cell">{rowNumber}</td>
                                     <td>{purchase.reference_no}</td>
                                     <td>{purchase.supplier_name}</td>
-                                    <td>{purchase.transaction_date}</td>
+                                    <td>{formatDate(purchase.transaction_date)}</td>
                                     <td>{quantityDetails.enteredLabel}</td>
                                     <td>{quantityDetails.baseLabel}</td>
                                     <td>
@@ -2015,7 +2016,7 @@ function ProductsPage({
                                     <td className="table-index-cell">{rowNumber}</td>
                                     <td>{sale.reference_no}</td>
                                     <td>{sale.customer_name}</td>
-                                    <td>{sale.transaction_date}</td>
+                                    <td>{formatDate(sale.transaction_date)}</td>
                                     <td>{quantityDetails.enteredLabel}</td>
                                     <td>{quantityDetails.baseLabel}</td>
                                     <td>
