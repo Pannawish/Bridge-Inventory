@@ -637,6 +637,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
         required=False, allow_blank=True, allow_null=True
     )
     source_quotation_reference_no = serializers.SerializerMethodField()
+    payment_batch_links = serializers.SerializerMethodField()
 
     class Meta:
         model = Purchase
@@ -666,6 +667,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "items",
             "source_quotation_id",
             "source_quotation_reference_no",
+            "payment_batch_links",
         ]
         extra_kwargs = {
             "id": {"required": False},
@@ -706,6 +708,18 @@ class PurchaseSerializer(serializers.ModelSerializer):
         if not purchase.source_quotation_id:
             return ""
         return purchase.source_quotation.reference_no or ""
+
+    def get_payment_batch_links(self, purchase):
+        seen = set()
+        links = []
+        for line in purchase.payment_batch_lines.all():
+            batch = line.payment_batch
+            if batch.status == PaymentBatch.STATUS_CANCELLED:
+                continue
+            if batch.id not in seen:
+                seen.add(batch.id)
+                links.append({"id": batch.id, "reference_no": batch.reference_no or ""})
+        return links
 
     def validate_bill_discount(self, value):
         return validate_percentage_discount(value, "Bill discount")

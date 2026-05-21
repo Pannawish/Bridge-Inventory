@@ -634,6 +634,7 @@ class PurchaseViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     queryset = Purchase.objects.select_related("supplier").prefetch_related(
         "items__product",
         "documents",
+        "payment_batch_lines__payment_batch",
     )
     serializer_class = PurchaseSerializer
     search_fields = (
@@ -656,6 +657,8 @@ class SaleViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     queryset = Sale.objects.select_related("customer").prefetch_related(
         "items__product",
         "documents",
+        "billing_note_lines__billing_note",
+        "credit_notes",
     )
     serializer_class = SaleSerializer
     search_fields = (
@@ -678,6 +681,8 @@ class QuotationViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     queryset = Quotation.objects.select_related("customer", "supplier").prefetch_related(
         "line_items__product",
         "line_items__supplier_options",
+        "derived_purchases",
+        "derived_sales",
     )
     serializer_class = QuotationSerializer
 

@@ -387,6 +387,35 @@ function TransactionTable({
     setHasUnsavedItemChanges(false);
   }
 
+  function renderRefCell(label, docType, links) {
+    const validLinks = (links || []).filter((link) => link && link.id);
+    return (
+      <div>
+        <p className="detail-label">{label}</p>
+        {validLinks.length ? (
+          <div className="doc-ref-chips">
+            {validLinks.map((link) => (
+              <DocumentRefChip
+                key={`${docType}-${link.id}`}
+                label={link.reference_no || link.id}
+                docType={docType}
+                onClick={() =>
+                  setDocRefModal({
+                    docType,
+                    docId: link.id,
+                    referenceNo: link.reference_no || link.id,
+                  })
+                }
+              />
+            ))}
+          </div>
+        ) : (
+          <strong>—</strong>
+        )}
+      </div>
+    );
+  }
+
   return (
     <section className="section-card">
       <div className="section-heading">
@@ -775,79 +804,50 @@ function TransactionTable({
                   />
                 </div>
               ) : null}
+              {type === "purchase" ? (
+                <>
+                  {renderRefCell(
+                    "Source Quotation",
+                    "quotation",
+                    selectedRow.source_quotation_id
+                      ? [
+                          {
+                            id: selectedRow.source_quotation_id,
+                            reference_no: selectedRow.source_quotation_reference_no,
+                          },
+                        ]
+                      : []
+                  )}
+                  {renderRefCell(
+                    "Payment Batch",
+                    "payment-batch",
+                    selectedRow.payment_batch_links
+                  )}
+                </>
+              ) : null}
+              {type === "sale" ? (
+                <>
+                  {renderRefCell(
+                    "Source Quotation",
+                    "quotation",
+                    selectedRow.source_quotation_id
+                      ? [
+                          {
+                            id: selectedRow.source_quotation_id,
+                            reference_no: selectedRow.source_quotation_reference_no,
+                          },
+                        ]
+                      : []
+                  )}
+                  {renderRefCell("Billing Notes", "billing-note", selectedRow.billing_note_links)}
+                  {renderRefCell("Credit Notes", "credit-note", selectedRow.credit_note_links)}
+                </>
+              ) : null}
               <div className="full-width">
                 <p className="detail-label">Notes</p>
                 <strong>{selectedRow.note || "—"}</strong>
               </div>
             </div>
-
-            {/* Document reference chips */}
-            {(selectedRow.source_quotation_reference_no ||
-              (selectedRow.billing_note_links || []).length > 0 ||
-              (selectedRow.credit_note_links || []).length > 0) && (
-              <div className="doc-ref-group">
-                {selectedRow.source_quotation_reference_no ? (
-                  <>
-                    <p className="doc-ref-group-label">Source Quotation</p>
-                    <div className="doc-ref-chips">
-                      <DocumentRefChip
-                        label={selectedRow.source_quotation_reference_no}
-                        docType="quotation"
-                        onClick={() =>
-                          setDocRefModal({
-                            docType: "quotation",
-                            docId: selectedRow.source_quotation_id,
-                            referenceNo: selectedRow.source_quotation_reference_no,
-                          })
-                        }
-                      />
-                    </div>
-                  </>
-                ) : null}
-                {(selectedRow.billing_note_links || []).length > 0 ? (
-                  <>
-                    <p className="doc-ref-group-label">Billing Notes</p>
-                    <div className="doc-ref-chips">
-                      {selectedRow.billing_note_links.map((link) => (
-                        <DocumentRefChip
-                          key={link.id}
-                          label={link.reference_no || link.id}
-                          docType="billing-note"
-                          onClick={() =>
-                            setDocRefModal({
-                              docType: "billing-note",
-                              docId: link.id,
-                              referenceNo: link.reference_no || link.id,
-                            })
-                          }
-                        />
-                      ))}
-                    </div>
-                  </>
-                ) : null}
-                {(selectedRow.credit_note_links || []).length > 0 ? (
-                  <>
-                    <p className="doc-ref-group-label">Credit Notes</p>
-                    <div className="doc-ref-chips">
-                      {selectedRow.credit_note_links.map((link) => (
-                        <DocumentRefChip
-                          key={link.id}
-                          label={link.reference_no || link.id}
-                          docType="credit-note"
-                          onClick={() =>
-                            setDocRefModal({
-                              docType: "credit-note",
-                              docId: link.id,
-                              referenceNo: link.reference_no || link.id,
-                            })
-                          }
-                        />
-                      ))}
-                    </div>
-                  </>
-                ) : null}
-              </div>
-            )}
 
             <div className="detail-items">
               <p className="detail-label">Items</p>

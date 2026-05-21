@@ -383,7 +383,7 @@ function buildPurchaseGroups(quotation, rows) {
           supplier_name: supplierName,
           transaction_date: quotation.quotation_date || getToday(),
           vat_mode: quotation.vat_mode || "not_included",
-          note: `From quotation ${quotation.reference_no || ""}`.trim(),
+          note: "",
           items: [],
         },
       });
@@ -403,7 +403,7 @@ function buildSalesPrefillFromRows(quotation, rows) {
     customer_name: quotation.customer_name || "",
     transaction_date: quotation.quotation_date || getToday(),
     vat_mode: quotation.vat_mode || "not_included",
-    note: `From quotation ${quotation.reference_no || ""}`.trim(),
+    note: "",
     items: rows.map(({ item, option }) => ({
       ...buildConversionItemBase(item),
       unit_price: item.sale_price ?? "",
@@ -1764,47 +1764,43 @@ function QuotationPage({
                   </span>
                 </strong>
               </div>
-              <div className="full-width">
+              <div>
                 <p className="detail-label">Note</p>
                 <strong>{viewingQuotation.note || "—"}</strong>
               </div>
-            </div>
-
-            {((viewingQuotation.derived_purchase_links || []).length > 0 ||
-              (viewingQuotation.derived_sale_links || []).length > 0) && (
-              <div className="doc-ref-group">
-                {(viewingQuotation.derived_purchase_links || []).length > 0 && (
-                  <>
-                    <p className="doc-ref-group-label">Purchase Orders Created</p>
-                    <div className="doc-ref-chips">
-                      {viewingQuotation.derived_purchase_links.map((link) => (
-                        <DocumentRefChip
-                          key={link.id}
-                          label={link.reference_no || link.id}
-                          docType="purchase"
-                          onClick={() => setDocRefModal({ docType: "purchase", docId: link.id, referenceNo: link.reference_no || link.id })}
-                        />
-                      ))}
-                    </div>
-                  </>
+              <div>
+                <p className="detail-label">Purchase Orders Created</p>
+                {(viewingQuotation.derived_purchase_links || []).length > 0 ? (
+                  <div className="doc-ref-chips">
+                    {viewingQuotation.derived_purchase_links.map((link) => (
+                      <DocumentRefChip
+                        key={link.id}
+                        label={link.reference_no || link.id}
+                        docType="purchase"
+                        onClick={() => setDocRefModal({ docType: "purchase", docId: link.id, referenceNo: link.reference_no || link.id })}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <strong>—</strong>
                 )}
-                {(viewingQuotation.derived_sale_links || []).length > 0 && (
-                  <>
-                    <p className="doc-ref-group-label">Sales Created</p>
-                    <div className="doc-ref-chips">
-                      {viewingQuotation.derived_sale_links.map((link) => (
-                        <DocumentRefChip
-                          key={link.id}
-                          label={link.reference_no || link.id}
-                          docType="sale"
-                          onClick={() => setDocRefModal({ docType: "sale", docId: link.id, referenceNo: link.reference_no || link.id })}
-                        />
-                      ))}
-                    </div>
-                  </>
+                <p className="detail-label" style={{ marginTop: "10px" }}>Sales Created</p>
+                {(viewingQuotation.derived_sale_links || []).length > 0 ? (
+                  <div className="doc-ref-chips">
+                    {viewingQuotation.derived_sale_links.map((link) => (
+                      <DocumentRefChip
+                        key={link.id}
+                        label={link.reference_no || link.id}
+                        docType="sale"
+                        onClick={() => setDocRefModal({ docType: "sale", docId: link.id, referenceNo: link.reference_no || link.id })}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <strong>—</strong>
                 )}
               </div>
-            )}
+            </div>
 
             <div className="detail-items">
               <p className="detail-label">Items</p>

@@ -359,28 +359,11 @@
 
 /* ── Document reference modal ────────────────────────────── */
 
-.doc-ref-modal-backdrop {
-  z-index: 500;
-}
-
-.doc-ref-modal {
-  width: min(400px, 95vw);
-  padding: 20px 24px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.doc-ref-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.doc-ref-modal-ref {
-  margin: 4px 0 0;
-  font-size: 1.2rem;
+/* Compound selector (and high value) so it always beats .modal-backdrop
+   (z-index 100) and the detail card (101) it is nested inside, regardless
+   of stylesheet load order. */
+.modal-backdrop.doc-ref-modal-backdrop {
+  z-index: 1000;
 }
 
 .doc-ref-modal-loading,
@@ -388,46 +371,30 @@
   color: var(--muted);
   font-size: 0.88rem;
   margin: 0;
+  padding: 12px 0;
 }
 
 .doc-ref-modal-error {
   color: var(--danger, #ed4014);
 }
 
-.doc-ref-modal-fields {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px 16px;
-  margin: 0;
-}
-
-.doc-ref-modal-field {
+.doc-ref-modal-related {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-}
-
-.doc-ref-modal-field dt {
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-}
-
-.doc-ref-modal-field dd {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text);
-}
-
-.doc-ref-modal-footer {
+  gap: 10px;
   border-top: 1px solid var(--line);
   padding-top: 12px;
 }
 
-.doc-ref-modal-footer .secondary-button {
-  width: 100%;
+.doc-ref-related-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.doc-ref-empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 

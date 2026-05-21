@@ -622,6 +622,20 @@ function CreditNotePage({
   const [showAllRows, setShowAllRows] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activeCreditNote, setActiveCreditNote] = useState(null);
+  const [docRefModal, setDocRefModal] = useState(null);
+
+  function renderListRef(docType, docId, referenceNo) {
+    if (!docId) return "—";
+    return (
+      <DocumentRefChip
+        label={referenceNo || docId}
+        docType={docType}
+        onClick={() =>
+          setDocRefModal({ docType, docId, referenceNo: referenceNo || docId })
+        }
+      />
+    );
+  }
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const isServerPaginated = Boolean(pagination && onPageRequest);
@@ -905,8 +919,14 @@ function CreditNotePage({
                       <td className="table-index-cell">{index + 1}</td>
                       <td>{note.reference_no || note.id}</td>
                       <td>{note.customer_name}</td>
-                      <td>{note.sale_reference_no || note.sale || "—"}</td>
-                      <td>{note.billing_note_reference_no || "—"}</td>
+                      <td>{renderListRef("sale", note.sale, note.sale_reference_no)}</td>
+                      <td>
+                        {renderListRef(
+                          "billing-note",
+                          note.billing_note,
+                          note.billing_note_reference_no
+                        )}
+                      </td>
                       <td>{formatDate(note.credit_note_date)}</td>
                       <td>
                         <StatusPill status={note.status} />
@@ -943,11 +963,19 @@ function CreditNotePage({
                   <div className="mobile-record-grid">
                     <div>
                       <span>Sale Ref</span>
-                      <strong>{note.sale_reference_no || note.sale || "—"}</strong>
+                      <strong>
+                        {renderListRef("sale", note.sale, note.sale_reference_no)}
+                      </strong>
                     </div>
                     <div>
                       <span>Billing Note</span>
-                      <strong>{note.billing_note_reference_no || "—"}</strong>
+                      <strong>
+                        {renderListRef(
+                          "billing-note",
+                          note.billing_note,
+                          note.billing_note_reference_no
+                        )}
+                      </strong>
                     </div>
                     <div>
                       <span>Date</span>
@@ -987,6 +1015,15 @@ function CreditNotePage({
           onDelete={handleDelete}
         />
       ) : null}
+
+      {docRefModal && (
+        <DocumentRefModal
+          docType={docRefModal.docType}
+          docId={docRefModal.docId}
+          referenceNo={docRefModal.referenceNo}
+          onClose={() => setDocRefModal(null)}
+        />
+      )}
     </div>
   );
 }

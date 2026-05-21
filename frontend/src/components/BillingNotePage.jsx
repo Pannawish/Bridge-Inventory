@@ -417,6 +417,7 @@ function BillingNoteDetailModal({
   onDelete,
 }) {
   const [draft, setDraft] = useState(billingNote);
+  const [docRefModal, setDocRefModal] = useState(null);
 
   useEffect(() => {
     setDraft(billingNote);
@@ -808,6 +809,15 @@ function BillingNoteDetailModal({
         </div>
       </form>
       </div>
+
+      {docRefModal && (
+        <DocumentRefModal
+          docType={docRefModal.docType}
+          docId={docRefModal.docId}
+          referenceNo={docRefModal.referenceNo}
+          onClose={() => setDocRefModal(null)}
+        />
+      )}
     </div>
   );
 }
@@ -833,7 +843,6 @@ function BillingNotePage({
   const [showAllRows, setShowAllRows] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activeBillingNote, setActiveBillingNote] = useState(null);
-  const [docRefModal, setDocRefModal] = useState(null);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const isServerPaginated = Boolean(pagination && onPageRequest);
@@ -1208,15 +1217,6 @@ function BillingNotePage({
           onDelete={handleDelete}
         />
       ) : null}
-
-      {docRefModal && (
-        <DocumentRefModal
-          docType={docRefModal.docType}
-          docId={docRefModal.docId}
-          referenceNo={docRefModal.referenceNo}
-          onClose={() => setDocRefModal(null)}
-        />
-      )}
     </div>
   );
 }
