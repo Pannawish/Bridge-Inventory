@@ -775,7 +775,7 @@ export const mockSales = [
 export const mockQuotations = [
   {
     id: "quotation-1",
-    reference_no: "QT-6904-001",
+    reference_no: "QT-000001",
     quotation_date: "2026-04-08",
     valid_until_date: "2026-06-08",
     customer_name: "Faculty of Engineering",
@@ -822,7 +822,7 @@ export const mockQuotations = [
   },
   {
     id: "quotation-2",
-    reference_no: "QT-6904-002",
+    reference_no: "QT-000002",
     quotation_date: "2026-04-12",
     valid_until_date: "2026-05-12",
     customer_name: "Student Council",
@@ -885,7 +885,7 @@ export const mockQuotations = [
   },
   {
     id: "quotation-3",
-    reference_no: "QT-6904-003",
+    reference_no: "QT-000003",
     quotation_date: "2026-04-18",
     valid_until_date: "2026-06-18",
     customer_name: "Library Office",
@@ -932,7 +932,7 @@ export const mockQuotations = [
   },
   {
     id: "quotation-4",
-    reference_no: "QT-6903-004",
+    reference_no: "QT-000004",
     quotation_date: "2026-03-20",
     valid_until_date: "2026-04-03",
     customer_name: "Admissions Office",

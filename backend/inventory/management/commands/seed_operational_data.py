@@ -23,6 +23,7 @@ from inventory.models import (
     PurchaseItem,
     Quotation,
     QuotationItem,
+    QuotationItemSupplier,
     Sale,
     SaleDocument,
     SaleItem,
@@ -122,7 +123,8 @@ class Command(BaseCommand):
         products = self.seed_products(categories)
         purchases = self.seed_purchases(rng, suppliers, products)
         quotations = self.seed_quotations(rng, suppliers, customers, products)
-        sales = self.seed_sales(rng, customers, products)
+        sales = self.seed_sales(rng, customers, products, suppliers)
+        self.link_quotation_documents(rng, quotations, purchases, sales)
         billing_notes = self.seed_billing_notes(rng, sales)
         payment_batches = self.seed_payment_batches(rng, purchases)
         credit_notes = self.seed_credit_notes(rng, sales, billing_notes)
@@ -149,7 +151,7 @@ class Command(BaseCommand):
         CreditNote.objects.filter(id__startswith="demo-").delete()
         BillingNote.objects.filter(reference_no__startswith="BN-69").delete()
         PaymentBatch.objects.filter(reference_no__startswith="PMT-69").delete()
-        Quotation.objects.filter(reference_no__startswith="QT-69").delete()
+        Quotation.objects.filter(id__startswith="demo-qt-").delete()
         BillingNote.objects.filter(id__startswith="demo-").delete()
         PaymentBatch.objects.filter(id__startswith="demo-").delete()
         Quotation.objects.filter(id__startswith="demo-").delete()
@@ -463,6 +465,9 @@ class Command(BaseCommand):
             "PENCIL-2B": "Pencils",
             "ENVELOPE-C5": "Envelopes",
         }
+        # A couple of retired products so the "inactive / disabled product"
+        # case is visible in the products directory and lookups.
+        inactive_skus = {"SIGN-STAND-A4", "FOAMBOARD-A1"}
         products = []
         for display_id, spec in enumerate(product_specs, start=1001):
             sku, name, category_name, base_unit, purchase_unit, sales_unit, reorder, cost, price, conversions = spec
@@ -482,6 +487,7 @@ class Command(BaseCommand):
                     "category_name": category.name,
                     "detail": f"{name} used for purchasing, stock, sales, and reporting workflows.",
                     "reorder_level": decimal(reorder),
+                    "is_active": sku not in inactive_skus,
                 },
             )
             ProductUnitConversion.objects.filter(product=product).delete()
@@ -540,6 +546,9 @@ class Command(BaseCommand):
             + [Purchase.STATUS_DRAFT] * 8
             + [Purchase.STATUS_CANCELLED] * 6
         )
+        # Spread the statuses across the timeline so the current month also has
+        # received purchases (stock, payment batches) and not only drafts.
+        rng.shuffle(purchase_statuses)
         vat_modes = ["not_included", "included", "none", "not_included", "not_included"]
         purchases = []
         day_span = max(1, (latest_transaction_date - start_date).days)
@@ -663,7 +672,7 @@ class Command(BaseCommand):
         return f"{notes[status]} {suffix}"
 
     def seed_quotations(self, rng, suppliers, customers, products):
-        Quotation.objects.filter(reference_no__startswith="QT-69").delete()
+        Quotation.objects.filter(id__startswith="demo-qt-").delete()
         start_date = date(2026, 1, 12)
         latest_quotation_date = timezone.localdate()
         quotation_count = 18
@@ -680,7 +689,7 @@ class Command(BaseCommand):
             customer = customers[index % len(customers)]
             supplier = suppliers[(index * 2) % len(suppliers)]
             vat_mode = vat_modes[index % len(vat_modes)]
-            ref = reference("QT", quotation_date, index)
+            ref = f"QT-{index:06d}"
             item_count = rng.choice([1, 2, 2, 3, 4])
             selected_products = rng.sample(products, item_count)
             line_specs = []
@@ -718,6 +727,7 @@ class Command(BaseCommand):
 
             total_before_vat, vat_amount, grand_total = transaction_totals(line_amounts, vat_mode)
             quotation = Quotation.objects.create(
+                id=f"demo-qt-{index}",
                 reference_no=ref,
                 quotation_date=quotation_date,
                 valid_until_date=quotation_date + timedelta(days=rng.choice([14, 30, 45, 60])),
@@ -755,9 +765,79 @@ class Command(BaseCommand):
                     )
                 )
             QuotationItem.objects.bulk_create(rows)
+
+            # Multiple supplier options per line (same product priced from
+            # several suppliers) so the quotation -> purchase conversion can
+            # show the "choose supplier" case.
+            option_rows = []
+            for row, item in zip(rows, line_specs):
+                option_count = rng.choice([1, 2, 2, 3])
+                option_suppliers = rng.sample(
+                    suppliers, min(option_count, len(suppliers))
+                )
+                for position, option_supplier in enumerate(option_suppliers):
+                    option_cost = money(
+                        item["cost_price"] * decimal(rng.uniform(0.88, 1.12))
+                    )
+                    option_rows.append(
+                        QuotationItemSupplier(
+                            quotation_item=row,
+                            supplier=option_supplier,
+                            supplier_name=option_supplier.company_name,
+                            cost_price=option_cost,
+                            position=position,
+                            note="Preferred" if position == 0 else "",
+                        )
+                    )
+            if option_rows:
+                QuotationItemSupplier.objects.bulk_create(option_rows)
             quotations.append(quotation)
 
         return quotations
+
+    def link_quotation_documents(self, rng, quotations, purchases, sales):
+        """Point a subset of purchases and sales back to quotations so the
+        document-reference chips (Source Quotation on a PO/sale, and
+        "Purchase Orders Created" / "Sales Created" on a quotation) have data.
+        Plenty of documents are left unlinked so the empty "—" case also shows.
+        """
+        linkable_purchases = [
+            purchase
+            for purchase in purchases
+            if purchase.status != Purchase.STATUS_CANCELLED
+            and purchase.source_quotation_id is None
+        ]
+        linkable_sales = [
+            sale
+            for sale in sales
+            if sale.status != Sale.STATUS_CANCELLED
+            and sale.source_quotation_id is None
+        ]
+
+        def take_match(pool, attr, value):
+            # Prefer a same-party document, else fall back to any remaining one.
+            for idx, doc in enumerate(pool):
+                if getattr(doc, attr) == value:
+                    return pool.pop(idx)
+            return pool.pop(0) if pool else None
+
+        for quotation in quotations[:12]:
+            for _ in range(rng.choice([1, 1, 2])):
+                purchase = take_match(
+                    linkable_purchases, "supplier_name", quotation.supplier_name
+                )
+                if purchase is None:
+                    break
+                purchase.source_quotation = quotation
+                purchase.save(update_fields=["source_quotation", "updated_at"])
+            for _ in range(rng.choice([1, 1, 2])):
+                sale = take_match(
+                    linkable_sales, "customer_name", quotation.customer_name
+                )
+                if sale is None:
+                    break
+                sale.source_quotation = quotation
+                sale.save(update_fields=["source_quotation", "updated_at"])
 
     def sale_item_statuses(self, status, count):
         if status == Sale.STATUS_DRAFT:
@@ -778,11 +858,12 @@ class Command(BaseCommand):
             return [SaleItem.ITEM_DELIVERED if i % 2 == 0 else SaleItem.ITEM_SHIPPED for i in range(count)]
         return [SaleItem.ITEM_PENDING] * count
 
-    def seed_sales(self, rng, customers, products):
+    def seed_sales(self, rng, customers, products, suppliers):
         CreditNote.objects.filter(reference_no__startswith="CN-69").delete()
         BillingNote.objects.filter(reference_no__startswith="BN-69").delete()
         Sale.objects.filter(reference_no__startswith="TI-69").delete()
         start_date = date(2026, 1, 10)
+        latest_transaction_date = timezone.localdate()
         sale_statuses = (
             [Sale.STATUS_DELIVERED] * 42
             + [Sale.STATUS_SHIPPED] * 12
@@ -793,10 +874,18 @@ class Command(BaseCommand):
             + [Sale.STATUS_DRAFT] * 10
             + [Sale.STATUS_CANCELLED] * 8
         )
+        # Mix statuses across the whole timeline (instead of all-delivered first)
+        # so every month — including the current one — has a realistic spread.
+        rng.shuffle(sale_statuses)
         vat_modes = ["not_included", "included", "none", "not_included"]
         sales = []
+        day_span = max(1, (latest_transaction_date - start_date).days)
         for index, status in enumerate(sale_statuses, start=1):
-            transaction_date = start_date + timedelta(days=index + rng.randint(0, 3))
+            day_offset = round((index - 1) * day_span / max(1, len(sale_statuses) - 1))
+            transaction_date = min(
+                latest_transaction_date,
+                start_date + timedelta(days=day_offset),
+            )
             customer = customers[index % len(customers)]
             ref = reference("TI", transaction_date, index)
             vat_mode = vat_modes[index % len(vat_modes)]
@@ -830,6 +919,20 @@ class Command(BaseCommand):
                 if item_status == SaleItem.ITEM_DELIVERED:
                     delivered_date = (shipped_date or transaction_date) + timedelta(days=rng.choice([0, 1, 2, 3]))
                 amount = line_amount(quantity, unit_price, discounts)
+                # Record the source supplier and that supplier's unit cost on
+                # the line so margin, the Sales detail Supplier/Unit Cost
+                # columns, and below-cost warnings all have data. ~12% of
+                # active lines are deliberately sold below cost to exercise the
+                # loss case on the dashboard and the sales form warning.
+                source_supplier = rng.choice(suppliers)
+                base_cost = product._seed_cost * conversion.factor_to_base
+                effective_unit_price = (
+                    amount / decimal(quantity) if quantity else decimal(unit_price)
+                )
+                if item_status != SaleItem.ITEM_CANCELLED and rng.random() < 0.12:
+                    unit_cost = money(effective_unit_price * decimal(rng.uniform(1.05, 1.30)))
+                else:
+                    unit_cost = money(base_cost * decimal(rng.uniform(0.80, 0.97)))
                 line_amounts.append(amount)
                 line_specs.append(
                     {
@@ -842,6 +945,8 @@ class Command(BaseCommand):
                         "item_status": item_status,
                         "shipped_date": shipped_date,
                         "delivered_date": delivered_date,
+                        "supplier": source_supplier,
+                        "unit_cost": unit_cost,
                     }
                 )
             total_before_vat, vat_amount, grand_total = transaction_totals(line_amounts, vat_mode)
@@ -869,6 +974,9 @@ class Command(BaseCommand):
                     product=product,
                     product_name=product.product_name,
                     sku=product.sku,
+                    supplier=item["supplier"],
+                    supplier_name=item["supplier"].company_name,
+                    unit_cost=item["unit_cost"],
                     item_status=item["item_status"],
                     shipped_date=item["shipped_date"],
                     delivered_date=item["delivered_date"],
@@ -1151,6 +1259,17 @@ class Command(BaseCommand):
             billing_note = (
                 rng.choice(customer_billing_notes) if customer_billing_notes else None
             )
+            # Cover both credit-note states; every 4th note is cancelled.
+            cn_status = (
+                CreditNote.STATUS_CANCELLED
+                if serial % 4 == 0
+                else CreditNote.STATUS_ISSUED
+            )
+            cn_note = (
+                f"Credit note cancelled after review on {sale.reference_no}."
+                if cn_status == CreditNote.STATUS_CANCELLED
+                else f"Credit note for cancelled items on {sale.reference_no}."
+            )
             credit_note = CreditNote.objects.create(
                 reference_no=reference("CN", credit_note_date, serial),
                 customer=sale.customer,
@@ -1159,8 +1278,8 @@ class Command(BaseCommand):
                 sale_reference_no=sale.reference_no,
                 billing_note=billing_note,
                 credit_note_date=credit_note_date,
-                status=CreditNote.STATUS_ISSUED,
-                note=f"Credit note for cancelled items on {sale.reference_no}.",
+                status=cn_status,
+                note=cn_note,
             )
             line_rows = []
             total_amount = Decimal("0.00")

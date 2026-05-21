@@ -229,17 +229,36 @@ def build_next_reference_no(model, prefix):
     return f"{reference_prefix}{max_serial + 1:03d}"
 
 
+def build_next_sequential_reference_no(model, prefix):
+    """Sequential format: PREFIX-000001, PREFIX-000002 … (count-up only, never resets by month)."""
+    pattern = f"{prefix}-"
+    max_serial = 0
+
+    for reference_no in model.objects.filter(
+        reference_no__startswith=pattern
+    ).values_list("reference_no", flat=True):
+        suffix = f"{reference_no or ''}"[len(pattern):]
+
+        if suffix.isdigit() and len(suffix) == 6:
+            max_serial = max(max_serial, int(suffix))
+
+    return f"{pattern}{max_serial + 1:06d}"
+
+
 class AutoReferenceNumberMixin:
     reference_prefix = ""
+    sequential_reference = False
 
     def perform_create(self, serializer):
         model = self.queryset.model
         reference_no = serializer.validated_data.get("reference_no") or ""
 
         if not reference_no or model.objects.filter(reference_no=reference_no).exists():
-            serializer.save(
-                reference_no=build_next_reference_no(model, self.reference_prefix)
-            )
+            if self.sequential_reference:
+                ref = build_next_sequential_reference_no(model, self.reference_prefix)
+            else:
+                ref = build_next_reference_no(model, self.reference_prefix)
+            serializer.save(reference_no=ref)
             return
 
         serializer.save()
@@ -702,6 +721,7 @@ class SaleViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
 
 class QuotationViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     reference_prefix = "QT"
+    sequential_reference = True
     queryset = Quotation.objects.select_related("customer", "supplier").prefetch_related(
         "line_items__product",
         "line_items__supplier_options",

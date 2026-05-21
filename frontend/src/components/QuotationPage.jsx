@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import EligiblePartyCombobox from "./EligiblePartyCombobox";
 import SalesForm from "./SalesForm";
 import QuotationConvertSelect from "./QuotationConvertSelect";
@@ -46,37 +46,14 @@ function addDays(dateString, days) {
   return formatDateInputValue(date);
 }
 
-function getQuotationReferencePrefix(date = new Date()) {
-  const buddhistYear = date.getFullYear() + 543;
-  const yearSuffix = `${buddhistYear}`.slice(-2);
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-
-  return `QT-${yearSuffix}${month}`;
-}
-
-function getReferenceDate(dateString = "") {
-  const [year, month, day] = `${dateString}`.split("-").map(Number);
-  const parsedDate =
-    year && month && day ? new Date(year, month - 1, day) : new Date();
-
-  return Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
-}
-
-function getNextQuotationReference(quotations = [], dateString = getToday()) {
-  const prefix = getQuotationReferencePrefix(getReferenceDate(dateString));
-  const referencePattern = new RegExp(`^${prefix}-(\\d+)$`);
+function getNextQuotationReference(quotations = []) {
+  const referencePattern = /^QT-(\d{6})$/;
   const maxSerial = quotations.reduce((max, quotation) => {
     const match = `${quotation.reference_no || ""}`.match(referencePattern);
-
-    if (!match) {
-      return max;
-    }
-
-    return Math.max(max, Number(match[1]));
+    return match ? Math.max(max, Number(match[1])) : max;
   }, 0);
-  const nextSerial = maxSerial + 1;
 
-  return `${prefix}-${`${nextSerial}`.padStart(3, "0")}`;
+  return `QT-${String(maxSerial + 1).padStart(6, "0")}`;
 }
 
 function emptySupplierOption() {
@@ -431,7 +408,6 @@ function QuotationForm({
 }) {
   const isEditing = Boolean(quotation);
   const initialReference = quotation?.reference_no || getNextQuotationReference(quotations);
-  const lastGeneratedReference = useRef(initialReference);
   const [form, setForm] = useState(() =>
     quotation ? createEditForm(quotation) : createInitialForm(initialReference)
   );
@@ -459,23 +435,14 @@ function QuotationForm({
   }
 
   function handleQuotationDateChange(value) {
-    setForm((currentForm) => {
-      const nextReference = getNextQuotationReference(quotations, value);
-      const shouldRefreshReference =
-        !isEditing && currentForm.reference_no === lastGeneratedReference.current;
-
-      lastGeneratedReference.current = nextReference;
-
-      return {
-        ...currentForm,
-        reference_no: shouldRefreshReference ? nextReference : currentForm.reference_no,
-        quotation_date: value,
-        valid_until_date:
-          currentForm.valid_until_date && currentForm.valid_until_date < value
-            ? value
-            : currentForm.valid_until_date,
-      };
-    });
+    setForm((currentForm) => ({
+      ...currentForm,
+      quotation_date: value,
+      valid_until_date:
+        currentForm.valid_until_date && currentForm.valid_until_date < value
+          ? value
+          : currentForm.valid_until_date,
+    }));
   }
 
   function updateItem(itemIndex, key, value) {
