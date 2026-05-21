@@ -104,6 +104,17 @@ export function useInventoryData() {
     }
   }, []);
 
+  const reloadDashboard = useCallback(async (period = "month") => {
+    try {
+      const response = await api.getDashboard({ period });
+      setDashboard(response);
+      return response;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }, []);
+
   const loadPurchasePage = useCallback(async (params = {}) => {
     try {
       const response = await api.getPurchases(buildListParams(params));
@@ -545,6 +556,7 @@ export function useInventoryData() {
     error,
     setError,
     loadData,
+    reloadDashboard,
     loadSupplierPage,
     loadCustomerPage,
     loadProductPage,

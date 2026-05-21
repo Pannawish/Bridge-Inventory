@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "./PaginationControls";
+import { FilterPresets, ActiveFilterChips } from "./FilterControls";
 import {
   getContactFieldError,
   getRequiredFieldError,
   getRequiredListError,
   isValidTel,
 } from "./contactValidation";
+
+const SUPPLIER_PROFILE_OPTIONS = [
+  { value: "missing-tax-id", label: "Missing tax ID" },
+  { value: "has-email", label: "Has email" },
+  { value: "has-phone", label: "Has phone" },
+  { value: "has-note", label: "Has internal note" },
+];
 
 function createSupplier(overrides = {}) {
   return {
@@ -483,6 +491,25 @@ function SupplierPage({
     setFilterOpen(false);
   }
 
+  const quickPresets = SUPPLIER_PROFILE_OPTIONS.map((option) => ({
+    label: option.label,
+    active: profileFilter === option.value,
+    onClick: () =>
+      setProfileFilter((current) =>
+        current === option.value ? "all" : option.value
+      ),
+  }));
+  const activeChips = [
+    profileFilter !== "all" && {
+      key: "profile",
+      label: `Profile: ${
+        SUPPLIER_PROFILE_OPTIONS.find((option) => option.value === profileFilter)
+          ?.label || profileFilter
+      }`,
+      onRemove: () => setProfileFilter("all"),
+    },
+  ].filter(Boolean);
+
   function openSupplierEditor(supplier) {
     setSelectedSupplierId(supplier.id);
     setDraftSupplier(normalizeSupplier(supplier));
@@ -701,6 +728,9 @@ function SupplierPage({
           </button>
         </div>
 
+        <FilterPresets presets={quickPresets} />
+        <ActiveFilterChips chips={activeChips} onClearAll={resetFilters} />
+
         {filterOpen ? (
           <div className="history-filter-panel">
             <div className="history-filter-grid">
@@ -711,10 +741,11 @@ function SupplierPage({
                   onChange={(event) => setProfileFilter(event.target.value)}
                 >
                   <option value="all">All suppliers</option>
-                  <option value="missing-tax-id">Missing tax ID</option>
-                  <option value="has-email">Has email</option>
-                  <option value="has-phone">Has phone</option>
-                  <option value="has-note">Has internal note</option>
+                  {SUPPLIER_PROFILE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>

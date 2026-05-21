@@ -42,6 +42,7 @@ from .serializers import (
 from .services import (
     SALE_STOCK_DEDUCTED_STATUSES,
     answer_inventory_question,
+    build_dashboard_overview,
     build_dashboard_summary,
     get_available_stock_by_product_id,
 )
@@ -377,6 +378,7 @@ class InventoryModelViewSet(viewsets.ModelViewSet):
     date_filter_field = None
     party_filter_field = None
     party_filter_param = None
+    amount_filter_field = None
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -413,6 +415,21 @@ class InventoryModelViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(**{f"{self.date_filter_field}__gte": date_from})
             if date_to:
                 queryset = queryset.filter(**{f"{self.date_filter_field}__lte": date_to})
+
+        if self.amount_filter_field:
+            for param, op in (("amount_min", "gte"), ("amount_max", "lte")):
+                raw = (params.get(param) or "").strip()
+                if not raw:
+                    continue
+                try:
+                    amount = Decimal(raw)
+                except (InvalidOperation, ValueError):
+                    continue
+                queryset = queryset.filter(**{f"{self.amount_filter_field}__{op}": amount})
+
+        vat_mode = (params.get("vat_mode") or "").strip()
+        if vat_mode and hasattr(queryset.model, "vat_mode"):
+            queryset = queryset.filter(vat_mode=vat_mode)
 
         return queryset
 
@@ -577,9 +594,10 @@ class ProductViewSet(InventoryModelViewSet):
             )
 
         stock_filter = (params.get("stock_filter") or params.get("stock") or "").strip()
-        if stock_filter in {"in-stock", "out-of-stock"}:
+        if stock_filter in {"in-stock", "out-of-stock", "low-stock"}:
             product_ids = list(queryset.values_list("id", flat=True))
             stock_by_product_id = get_available_stock_by_product_id(product_ids=product_ids)
+            reorder_by_product_id = dict(queryset.values_list("id", "reorder_level"))
             matching_ids = []
             for product_id in product_ids:
                 stock_quantity = stock_by_product_id.get(product_id, Decimal("0"))
@@ -587,6 +605,10 @@ class ProductViewSet(InventoryModelViewSet):
                     matching_ids.append(product_id)
                 elif stock_filter == "out-of-stock" and stock_quantity <= 0:
                     matching_ids.append(product_id)
+                elif stock_filter == "low-stock":
+                    reorder_level = reorder_by_product_id.get(product_id) or Decimal("0")
+                    if stock_quantity > 0 and reorder_level > 0 and stock_quantity <= reorder_level:
+                        matching_ids.append(product_id)
             queryset = queryset.filter(id__in=matching_ids)
 
         if stock_filter in {"selling", "no-sales"}:
@@ -650,6 +672,7 @@ class PurchaseViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     date_filter_field = "transaction_date"
     party_filter_field = "supplier_name"
     party_filter_param = "supplier"
+    amount_filter_field = "grand_total"
 
 
 class SaleViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
@@ -674,6 +697,7 @@ class SaleViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     date_filter_field = "transaction_date"
     party_filter_field = "customer_name"
     party_filter_param = "customer"
+    amount_filter_field = "grand_total"
 
 
 class QuotationViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
@@ -708,6 +732,7 @@ class BillingNoteViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     date_filter_field = "billing_note_date"
     party_filter_field = "customer_name"
     party_filter_param = "customer"
+    amount_filter_field = "total_amount"
 
 
 class CreditNoteViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
@@ -730,6 +755,7 @@ class CreditNoteViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     date_filter_field = "credit_note_date"
     party_filter_field = "customer_name"
     party_filter_param = "customer"
+    amount_filter_field = "total_amount"
 
 
 class PaymentBatchViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
@@ -750,6 +776,7 @@ class PaymentBatchViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     date_filter_field = "batch_date"
     party_filter_field = "supplier_name"
     party_filter_param = "supplier"
+    amount_filter_field = "total_amount"
 
 
 @api_view(["GET"])
@@ -783,7 +810,10 @@ def api_home(request):
 
 @api_view(["GET"])
 def dashboard(request):
-    return Response(build_dashboard_summary(request))
+    period = (request.query_params.get("period") or "month").strip()
+    data = build_dashboard_summary(request)
+    data["overview"] = build_dashboard_overview(period)
+    return Response(data)
 
 
 @api_view(["GET"])

@@ -147,3 +147,209 @@
   gap: 20px;
 }
 
+/* ── Money & Cost overview ─────────────────────────────── */
+.dashboard-period {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-period-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dashboard-period-select {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dashboard-finance-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 14px;
+}
+
+.dashboard-loss-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 16px;
+  border: 1px solid #f1c4ca;
+  border-radius: 12px;
+  background: #fff8f9;
+  color: #b42318;
+  font-size: 0.92rem;
+}
+
+.dashboard-loss-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.dashboard-finance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+/* Trend chart */
+.dashboard-trend-sub {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.dashboard-trend-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 150px;
+  padding-top: 8px;
+}
+
+.dashboard-trend-col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+
+.dashboard-trend-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+}
+
+.dashboard-trend-bar {
+  width: 16px;
+  min-height: 2px;
+  border-radius: 5px 5px 0 0;
+  transition: height 0.2s ease;
+}
+
+.dashboard-trend-bar.sales {
+  background: #19be6b;
+}
+
+.dashboard-trend-bar.purchases {
+  background: #2d8cf0;
+}
+
+.dashboard-trend-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.dashboard-trend-legend {
+  display: flex;
+  gap: 18px;
+  margin-top: 12px;
+}
+
+.dashboard-trend-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.dashboard-trend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.dashboard-trend-dot.sales {
+  background: #19be6b;
+}
+
+.dashboard-trend-dot.purchases {
+  background: #2d8cf0;
+}
+
+/* Top lists */
+.dashboard-toplist-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-toplist-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 8px;
+  border-radius: 10px;
+}
+
+.dashboard-toplist-row:nth-child(odd) {
+  background: var(--panel-muted, #f7f9fc);
+}
+
+.dashboard-toplist-rank {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, #fff);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.dashboard-toplist-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-toplist-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  color: var(--text);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dashboard-toplist-value small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.dashboard-toplist-value small.tone-danger {
+  color: #b42318;
+}
+
+.dashboard-toplist-value small.tone-positive {
+  color: #1f9d57;
+}
+

@@ -15,6 +15,12 @@ import {
   getProductUnitOptions,
 } from "../unitConversion";
 import { computePaymentDate, formatMoney as fmt } from "../format";
+import {
+  FilterPresets,
+  ActiveFilterChips,
+  RangeField,
+  withinRange,
+} from "./FilterControls";
 
 const VAT_RATE = 0.07;
 const statusOptions = saleStatuses;
@@ -26,6 +32,15 @@ const defaultCustomerOptions = [];
 
 function getToday() {
   return new Date().toISOString().split("T")[0];
+}
+
+function daysAgoString(days) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function getDocumentName(documentUrl = "") {
@@ -1297,6 +1312,9 @@ function SalesHistoryPage({
   const [customerFilterOpen, setCustomerFilterOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [amountMin, setAmountMin] = useState("");
+  const [amountMax, setAmountMax] = useState("");
+  const [vatFilter, setVatFilter] = useState("all");
   const [editingSale, setEditingSale] = useState(null);
   const [showNewSaleForm, setShowNewSaleForm] = useState(false);
   const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -1306,7 +1324,10 @@ function SalesHistoryPage({
     (selectedCustomer ? 1 : 0) +
     (selectedStatuses.length === statusOptions.length ? 0 : 1) +
     (dateFrom ? 1 : 0) +
-    (dateTo ? 1 : 0);
+    (dateTo ? 1 : 0) +
+    (amountMin ? 1 : 0) +
+    (amountMax ? 1 : 0) +
+    (vatFilter === "all" ? 0 : 1);
   const customerOptions = useMemo(
     () => buildCustomerFilterOptions(allSales, customers),
     [allSales, customers]
@@ -1341,10 +1362,21 @@ function SalesHistoryPage({
         dateFrom,
         dateTo
       );
+      const matchesAmount = withinRange(sale.grand_total, amountMin, amountMax);
+      const matchesVat = vatFilter === "all" || sale.vat_mode === vatFilter;
 
-      return matchesSearch && matchesStatus && matchesCustomer && matchesDateRange;
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesCustomer &&
+        matchesDateRange &&
+        matchesAmount &&
+        matchesVat
+      );
     }).sort(sortRecentTransactions);
   }, [
+    amountMin,
+    amountMax,
     dateFrom,
     dateTo,
     isServerPaginated,
@@ -1352,6 +1384,7 @@ function SalesHistoryPage({
     sales,
     selectedCustomer,
     selectedStatuses,
+    vatFilter,
   ]);
   const totalSalesCount = pagination?.count ?? sales.length;
 
@@ -1368,6 +1401,9 @@ function SalesHistoryPage({
       customer: selectedCustomer,
       dateFrom,
       dateTo,
+      amountMin,
+      amountMax,
+      vatMode: vatFilter === "all" ? "" : vatFilter,
     };
   }
 
@@ -1382,6 +1418,8 @@ function SalesHistoryPage({
 
     return () => window.clearTimeout(timeoutId);
   }, [
+    amountMin,
+    amountMax,
     dateFrom,
     dateTo,
     isServerPaginated,
@@ -1389,6 +1427,7 @@ function SalesHistoryPage({
     searchTerm,
     selectedCustomer,
     selectedStatusKey,
+    vatFilter,
   ]);
 
   function selectCustomerFilter(customer) {
@@ -1412,9 +1451,83 @@ function SalesHistoryPage({
     setCustomerFilterQuery("");
     setDateFrom("");
     setDateTo("");
+    setAmountMin("");
+    setAmountMax("");
+    setVatFilter("all");
     setFilterOpen(false);
     setCustomerFilterOpen(false);
   }
+
+  const vatLabels = { included: "Include VAT", not_included: "Exclude VAT" };
+  const last30Active = dateFrom === daysAgoString(30) && !dateTo;
+  const onlyStatus = (status) =>
+    selectedStatuses.length === 1 && selectedStatuses[0] === status;
+  const quickPresets = [
+    {
+      label: "Last 30 days",
+      active: last30Active,
+      onClick: () => {
+        setDateFrom(last30Active ? "" : daysAgoString(30));
+        setDateTo("");
+      },
+    },
+    statusOptions.includes("pending") && {
+      label: "Pending",
+      active: onlyStatus("pending"),
+      onClick: () =>
+        setSelectedStatuses(onlyStatus("pending") ? statusOptions : ["pending"]),
+    },
+    statusOptions.includes("delivered") && {
+      label: "Delivered",
+      active: onlyStatus("delivered"),
+      onClick: () =>
+        setSelectedStatuses(
+          onlyStatus("delivered") ? statusOptions : ["delivered"]
+        ),
+    },
+  ].filter(Boolean);
+  const activeChips = [
+    selectedCustomer && {
+      key: "customer",
+      label: `Customer: ${selectedCustomer}`,
+      onRemove: () => {
+        setSelectedCustomer("");
+        setCustomerFilterQuery("");
+      },
+    },
+    selectedStatuses.length !== statusOptions.length && {
+      key: "status",
+      label: `Status: ${
+        selectedStatuses.length ? selectedStatuses.join(", ") : "None"
+      }`,
+      onRemove: () => setSelectedStatuses(statusOptions),
+    },
+    vatFilter !== "all" && {
+      key: "vat",
+      label: `VAT: ${vatLabels[vatFilter] || vatFilter}`,
+      onRemove: () => setVatFilter("all"),
+    },
+    dateFrom && {
+      key: "dateFrom",
+      label: `From ${dateFrom}`,
+      onRemove: () => setDateFrom(""),
+    },
+    dateTo && {
+      key: "dateTo",
+      label: `To ${dateTo}`,
+      onRemove: () => setDateTo(""),
+    },
+    amountMin && {
+      key: "amountMin",
+      label: `Min ฿${amountMin}`,
+      onRemove: () => setAmountMin(""),
+    },
+    amountMax && {
+      key: "amountMax",
+      label: `Max ฿${amountMax}`,
+      onRemove: () => setAmountMax(""),
+    },
+  ].filter(Boolean);
 
   async function handleSave(updatedSale) {
     const saved = await onSaleUpdate?.(updatedSale);
@@ -1528,6 +1641,9 @@ function SalesHistoryPage({
           </button>
         </div>
 
+        <FilterPresets presets={quickPresets} />
+        <ActiveFilterChips chips={activeChips} onClearAll={resetFilters} />
+
         {filterOpen ? (
           <div className="history-filter-panel">
             <div className="history-filter-grid">
@@ -1602,6 +1718,30 @@ function SalesHistoryPage({
                   value={dateTo}
                   onChange={(event) => setDateTo(event.target.value)}
                 />
+              </label>
+
+              <RangeField
+                title="Amount (฿)"
+                prefix="฿"
+                minValue={amountMin}
+                maxValue={amountMax}
+                onMinChange={setAmountMin}
+                onMaxChange={setAmountMax}
+              />
+
+              <label className="history-filter-field">
+                <span className="history-filter-title">VAT</span>
+                <select
+                  value={vatFilter}
+                  onChange={(event) => setVatFilter(event.target.value)}
+                >
+                  <option value="all">All VAT settings</option>
+                  {vatOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
 

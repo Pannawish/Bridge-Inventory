@@ -52,8 +52,8 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  getDashboard() {
-    return request("/dashboard/");
+  getDashboard(params) {
+    return request("/dashboard/", { params });
   },
   getProductLookups(params) {
     return request("/lookups/products/", { params });

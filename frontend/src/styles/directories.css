@@ -121,6 +121,130 @@
   accent-color: var(--accent);
 }
 
+/* ── Quick-filter presets ──────────────────────────────── */
+.history-filter-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.history-filter-presets-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-right: 2px;
+}
+
+.history-filter-preset {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.history-filter-preset:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, #fff);
+}
+
+.history-filter-preset.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+/* ── Active filter chips ───────────────────────────────── */
+.history-filter-chipbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.history-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px 5px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 10%, #fff);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.history-filter-chip:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, #fff);
+}
+
+.history-filter-chip-remove {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.history-filter-chip:hover .history-filter-chip-remove {
+  background: var(--accent);
+  color: #fff;
+}
+
+.history-filter-clear-all {
+  border: none;
+  background: none;
+  padding: 5px 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.history-filter-clear-all:hover {
+  color: var(--accent);
+}
+
+/* ── Min–max range field ───────────────────────────────── */
+.history-filter-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-filter-range input {
+  width: 100%;
+  min-width: 0;
+}
+
+.history-filter-range-prefix {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.history-filter-range-sep {
+  color: var(--muted);
+}
+
 .transaction-table-window {
   width: 100%;
 }

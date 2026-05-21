@@ -604,6 +604,18 @@ label textarea:focus,
   grid-area: cost;
 }
 
+.sales-cost-input.below-cost {
+  border-color: #ed4014;
+  background: #fff8f9;
+}
+
+.sales-below-cost-warning {
+  margin-top: 4px;
+  color: #b42318;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
 .sales-item-remove {
   grid-area: action;
   justify-self: end;

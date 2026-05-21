@@ -42,6 +42,9 @@ export function buildListParams({
   profileFilter = "",
   dateFrom = "",
   dateTo = "",
+  amountMin = "",
+  amountMax = "",
+  vatMode = "",
 } = {}) {
   return {
     page,
@@ -55,6 +58,9 @@ export function buildListParams({
     profile_filter: profileFilter,
     date_from: dateFrom,
     date_to: dateTo,
+    amount_min: amountMin,
+    amount_max: amountMax,
+    vat_mode: vatMode,
   };
 }
 

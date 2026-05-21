@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getPurchaseItemDisplayStatus,
   getStoredPurchaseItemStatus,
@@ -590,7 +590,107 @@ function createProductStockRows(products, stockReport, lowStockItems, purchases,
   });
 }
 
-function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
+const PERIOD_OPTIONS = [
+  { value: "month", label: "This month" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "6m", label: "Last 6 months" },
+  { value: "year", label: "This year" },
+];
+
+function TopList({ title, eyebrow, rows, emptyText }) {
+  return (
+    <article className="section-card dashboard-toplist">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">{eyebrow}</p>
+          <h3>{title}</h3>
+        </div>
+      </div>
+      {!rows || rows.length === 0 ? (
+        <p className="empty-copy">{emptyText}</p>
+      ) : (
+        <ol className="dashboard-toplist-rows">
+          {rows.map((row, index) => (
+            <li className="dashboard-toplist-row" key={`${row.name}-${index}`}>
+              <span className="dashboard-toplist-rank">{index + 1}</span>
+              <span className="dashboard-toplist-name" title={row.name}>
+                {row.name}
+              </span>
+              <span className="dashboard-toplist-value">
+                {formatCurrency(row.value)}
+                {row.sub ? (
+                  <small className={row.subTone ? `tone-${row.subTone}` : ""}>
+                    {row.sub}
+                  </small>
+                ) : null}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </article>
+  );
+}
+
+function SalesPurchaseTrend({ trend }) {
+  const series = trend || [];
+  const max = Math.max(
+    1,
+    ...series.flatMap((point) => [point.sales || 0, point.purchases || 0])
+  );
+  return (
+    <article className="section-card dashboard-trend-card">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Trend</p>
+          <h3>Sales vs Purchases</h3>
+        </div>
+        <span className="dashboard-trend-sub">Last 6 months</span>
+      </div>
+      {series.length === 0 ? (
+        <p className="empty-copy">No transactions yet.</p>
+      ) : (
+        <>
+          <div className="dashboard-trend-chart">
+            {series.map((point) => (
+              <div className="dashboard-trend-col" key={point.month}>
+                <div className="dashboard-trend-bars">
+                  <div
+                    className="dashboard-trend-bar sales"
+                    style={{ height: `${((point.sales || 0) / max) * 100}%` }}
+                    title={`Sales ${formatCurrency(point.sales)}`}
+                  />
+                  <div
+                    className="dashboard-trend-bar purchases"
+                    style={{ height: `${((point.purchases || 0) / max) * 100}%` }}
+                    title={`Purchases ${formatCurrency(point.purchases)}`}
+                  />
+                </div>
+                <span className="dashboard-trend-label">{point.label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="dashboard-trend-legend">
+            <span>
+              <i className="dashboard-trend-dot sales" /> Sales
+            </span>
+            <span>
+              <i className="dashboard-trend-dot purchases" /> Purchases
+            </span>
+          </div>
+        </>
+      )}
+    </article>
+  );
+}
+
+function Dashboard({
+  dashboard,
+  products = [],
+  purchases = [],
+  sales = [],
+  onPeriodChange,
+}) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [stockFilter, setStockFilter] = useState("all");
@@ -603,6 +703,16 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
   const [showStockInfo, setShowStockInfo] = useState(false);
   const [showAllStockRows, setShowAllStockRows] = useState(false);
   const [attentionPage, setAttentionPage] = useState(0);
+  const overview = dashboard.overview || {};
+  const [period, setPeriod] = useState(overview.period || "month");
+  const didMountPeriod = useRef(false);
+  useEffect(() => {
+    if (!didMountPeriod.current) {
+      didMountPeriod.current = true;
+      return;
+    }
+    onPeriodChange?.(period);
+  }, [period, onPeriodChange]);
   const metrics = dashboard.metrics || {};
   const lowStockItems = dashboard.low_stock_items || [];
   const stockReport = dashboard.stock_report || [];
@@ -827,8 +937,142 @@ function Dashboard({ dashboard, products = [], purchases = [], sales = [] }) {
     setSortMetric("available_stock");
     setSortOrder("low-to-high");
   };
+  const ar = overview.ar || {};
+  const ap = overview.ap || {};
+  const periodMetrics = overview.period_metrics || {};
+  const netPosition = Number(overview.net_position || 0);
+  const grossMargin = Number(periodMetrics.gross_margin || 0);
+  const belowCostCount = Number(periodMetrics.below_cost_count || 0);
+  const topProductRows = (overview.top_products || []).map((row) => ({
+    name: row.product_name || "—",
+    value: row.revenue,
+    sub: `margin ${formatCurrency(row.margin)}`,
+    subTone: Number(row.margin) < 0 ? "danger" : "positive",
+  }));
+  const topCustomerRows = (overview.top_customers || []).map((row) => ({
+    name: row.name,
+    value: row.total,
+  }));
+  const topSupplierRows = (overview.top_suppliers || []).map((row) => ({
+    name: row.name,
+    value: row.total,
+  }));
+  const lossProductRows = (overview.loss_products || []).map((row) => ({
+    name: row.product_name || "—",
+    value: row.revenue,
+    sub: `loss ${formatCurrency(row.margin)}`,
+    subTone: "danger",
+  }));
+
   return (
     <div className="stack-layout dashboard-page">
+      <section className="section-card dashboard-finance-card">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Overview</p>
+            <h3>Money &amp; Cost Overview</h3>
+          </div>
+          <label className="dashboard-period">
+            <span className="dashboard-period-label">Period</span>
+            <select
+              className="dashboard-period-select"
+              value={period}
+              onChange={(event) => setPeriod(event.target.value)}
+            >
+              {PERIOD_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="dashboard-finance-kpis">
+          <DashboardKpi
+            label="AR — customers owe us"
+            value={formatCurrency(ar.outstanding)}
+            helper={`${formatCurrency(ar.overdue)} overdue`}
+            tone={Number(ar.overdue || 0) > 0 ? "warning" : "neutral"}
+          />
+          <DashboardKpi
+            label="AP — we owe suppliers"
+            value={formatCurrency(ap.outstanding)}
+            helper={`${formatCurrency(ap.overdue)} overdue`}
+            tone={Number(ap.overdue || 0) > 0 ? "warning" : "neutral"}
+          />
+          <DashboardKpi
+            label="Net position"
+            value={formatCurrency(netPosition)}
+            helper="AR outstanding − AP outstanding"
+            tone={netPosition >= 0 ? "positive" : "danger"}
+          />
+          <DashboardKpi
+            label={`Sales · ${overview.period_label || ""}`}
+            value={formatCurrency(periodMetrics.sales_total)}
+            helper={`${formatNumber(periodMetrics.sales_count)} sales`}
+          />
+          <DashboardKpi
+            label={`Purchases · ${overview.period_label || ""}`}
+            value={formatCurrency(periodMetrics.purchase_total)}
+            helper={`${formatNumber(periodMetrics.purchase_count)} purchases`}
+          />
+          <DashboardKpi
+            label="Gross margin"
+            value={formatCurrency(grossMargin)}
+            helper={`${formatNumber(periodMetrics.margin_pct)}% of sales`}
+            tone={grossMargin < 0 ? "danger" : "positive"}
+          />
+        </div>
+
+        {belowCostCount > 0 ? (
+          <div className="dashboard-loss-banner">
+            <span className="dashboard-loss-icon" aria-hidden="true">
+              ⚠
+            </span>
+            <span>
+              <strong>{formatNumber(belowCostCount)}</strong> sale line
+              {belowCostCount === 1 ? "" : "s"} sold below cost this period —{" "}
+              <strong>{formatCurrency(periodMetrics.below_cost_amount)}</strong>{" "}
+              under cost.
+            </span>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="dashboard-finance-grid">
+        <SalesPurchaseTrend trend={overview.trend} />
+        <TopList
+          eyebrow="Top"
+          title="Top Products by Sales"
+          rows={topProductRows}
+          emptyText="No sales in this period."
+        />
+      </section>
+
+      <section className="dashboard-finance-grid">
+        <TopList
+          eyebrow="Top"
+          title="Top Customers"
+          rows={topCustomerRows}
+          emptyText="No sales in this period."
+        />
+        <TopList
+          eyebrow="Top"
+          title="Top Suppliers"
+          rows={topSupplierRows}
+          emptyText="No purchases in this period."
+        />
+        {lossProductRows.length > 0 ? (
+          <TopList
+            eyebrow="Watch"
+            title="Sold Below Cost"
+            rows={lossProductRows}
+            emptyText="No below-cost sales."
+          />
+        ) : null}
+      </section>
+
       <section className="dashboard-summary-grid" aria-label="Dashboard summary">
         <DashboardKpi
           label="Inventory value"

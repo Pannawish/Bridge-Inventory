@@ -4,6 +4,12 @@ import EligiblePartyCombobox from "./EligiblePartyCombobox";
 import PaginationControls from "./PaginationControls";
 import DocumentRefChip from "./DocumentRefChip";
 import DocumentRefModal from "./DocumentRefModal";
+import {
+  FilterPresets,
+  ActiveFilterChips,
+  RangeField,
+  withinRange,
+} from "./FilterControls";
 
 const STATUS_LABELS = {
   draft: "Draft",
@@ -22,6 +28,15 @@ const STATUS_OPTIONS = [
 
 function getToday() {
   return new Date().toISOString().split("T")[0];
+}
+
+function daysAgoString(days) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function formatStatus(status) {
@@ -839,6 +854,8 @@ function BillingNotePage({
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [amountMin, setAmountMin] = useState("");
+  const [amountMax, setAmountMax] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [showAllRows, setShowAllRows] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -861,9 +878,21 @@ function BillingNotePage({
       if (!billingNoteInDateRange(note, dateFrom, dateTo)) {
         return false;
       }
+      if (!withinRange(note.total_amount, amountMin, amountMax)) {
+        return false;
+      }
       return true;
     });
-  }, [billingNotes, dateFrom, dateTo, isServerPaginated, normalizedSearch, statusFilter]);
+  }, [
+    amountMin,
+    amountMax,
+    billingNotes,
+    dateFrom,
+    dateTo,
+    isServerPaginated,
+    normalizedSearch,
+    statusFilter,
+  ]);
 
   const compactRows = 5;
   const shouldShowViewAll = !isServerPaginated && filtered.length > compactRows;
@@ -889,15 +918,76 @@ function BillingNotePage({
   }, [allBillingNotes]);
   const summary = serverSummary || computedSummary;
 
-  const activeFilterCount = (statusFilter !== "all" ? 1 : 0) + (dateFrom || dateTo ? 1 : 0);
+  const activeFilterCount =
+    (statusFilter !== "all" ? 1 : 0) +
+    (dateFrom || dateTo ? 1 : 0) +
+    (amountMin ? 1 : 0) +
+    (amountMax ? 1 : 0);
 
   function resetFilters() {
     setSearchTerm("");
     setStatusFilter("all");
     setDateFrom("");
     setDateTo("");
+    setAmountMin("");
+    setAmountMax("");
     setFilterOpen(false);
   }
+
+  const last30Active = dateFrom === daysAgoString(30) && !dateTo;
+  const quickPresets = [
+    {
+      label: "Last 30 days",
+      active: last30Active,
+      onClick: () => {
+        setDateFrom(last30Active ? "" : daysAgoString(30));
+        setDateTo("");
+      },
+    },
+    {
+      label: "Awaiting payment",
+      active: statusFilter === "issued",
+      onClick: () =>
+        setStatusFilter((current) =>
+          current === "issued" ? "all" : "issued"
+        ),
+    },
+    {
+      label: "Fully received",
+      active: statusFilter === "fully_received",
+      onClick: () =>
+        setStatusFilter((current) =>
+          current === "fully_received" ? "all" : "fully_received"
+        ),
+    },
+  ];
+  const activeChips = [
+    statusFilter !== "all" && {
+      key: "status",
+      label: `Status: ${formatStatus(statusFilter)}`,
+      onRemove: () => setStatusFilter("all"),
+    },
+    dateFrom && {
+      key: "dateFrom",
+      label: `From ${dateFrom}`,
+      onRemove: () => setDateFrom(""),
+    },
+    dateTo && {
+      key: "dateTo",
+      label: `To ${dateTo}`,
+      onRemove: () => setDateTo(""),
+    },
+    amountMin && {
+      key: "amountMin",
+      label: `Min ฿${amountMin}`,
+      onRemove: () => setAmountMin(""),
+    },
+    amountMax && {
+      key: "amountMax",
+      label: `Max ฿${amountMax}`,
+      onRemove: () => setAmountMax(""),
+    },
+  ].filter(Boolean);
 
   function getPageRequestParams(page = 1) {
     return {
@@ -906,6 +996,8 @@ function BillingNotePage({
       status: statusFilter === "all" ? "" : statusFilter,
       dateFrom,
       dateTo,
+      amountMin,
+      amountMax,
     };
   }
 
@@ -919,7 +1011,16 @@ function BillingNotePage({
     }, 250);
 
     return () => window.clearTimeout(timeoutId);
-  }, [dateFrom, dateTo, isServerPaginated, onPageRequest, searchTerm, statusFilter]);
+  }, [
+    amountMin,
+    amountMax,
+    dateFrom,
+    dateTo,
+    isServerPaginated,
+    onPageRequest,
+    searchTerm,
+    statusFilter,
+  ]);
 
   async function handleCreate(payload) {
     const saved = await onCreateBillingNote?.(payload);
@@ -1031,6 +1132,9 @@ function BillingNotePage({
           </button>
         </div>
 
+        <FilterPresets presets={quickPresets} />
+        <ActiveFilterChips chips={activeChips} onClearAll={resetFilters} />
+
         {filterOpen ? (
           <div className="history-filter-panel">
             <div className="history-filter-grid">
@@ -1064,6 +1168,14 @@ function BillingNotePage({
                   onChange={(event) => setDateTo(event.target.value)}
                 />
               </label>
+              <RangeField
+                title="Amount (฿)"
+                prefix="฿"
+                minValue={amountMin}
+                maxValue={amountMax}
+                onMinChange={setAmountMin}
+                onMaxChange={setAmountMax}
+              />
             </div>
           </div>
         ) : null}

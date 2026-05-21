@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "./PaginationControls";
+import { FilterPresets, ActiveFilterChips } from "./FilterControls";
 import {
   getCategoryLeafLabel,
   getCategoryOptions,
@@ -428,6 +429,16 @@ function ProductsPage({
         return metrics.totalUnits <= 0;
       }
 
+      if (stockFilter === "low-stock") {
+        const reorderLevel =
+          Number(product.reorderLevel ?? product.reorder_level ?? 0) || 0;
+        return (
+          metrics.totalUnits > 0 &&
+          reorderLevel > 0 &&
+          metrics.totalUnits <= reorderLevel
+        );
+      }
+
       if (stockFilter === "selling") {
         return metrics.activeSalesCount > 0;
       }
@@ -561,6 +572,51 @@ function ProductsPage({
     setCategoryFilter("all");
     setStockFilter("all");
   }
+
+  const stockLabels = {
+    "in-stock": "In stock",
+    "low-stock": "Low stock",
+    "out-of-stock": "Out of stock",
+    selling: "Has sales",
+    "no-sales": "No sales yet",
+    "no-purchases": "No received purchases",
+  };
+  const toggleStock = (value) =>
+    setStockFilter((current) => (current === value ? "all" : value));
+  const quickPresets = [
+    {
+      label: "In stock",
+      active: stockFilter === "in-stock",
+      onClick: () => toggleStock("in-stock"),
+    },
+    {
+      label: "Low stock",
+      active: stockFilter === "low-stock",
+      onClick: () => toggleStock("low-stock"),
+    },
+    {
+      label: "Out of stock",
+      active: stockFilter === "out-of-stock",
+      onClick: () => toggleStock("out-of-stock"),
+    },
+    {
+      label: "No sales yet",
+      active: stockFilter === "no-sales",
+      onClick: () => toggleStock("no-sales"),
+    },
+  ];
+  const activeChips = [
+    categoryFilter !== "all" && {
+      key: "category",
+      label: `Category: ${categoryFilter}`,
+      onRemove: () => setCategoryFilter("all"),
+    },
+    stockFilter !== "all" && {
+      key: "stock",
+      label: stockLabels[stockFilter] || stockFilter,
+      onRemove: () => setStockFilter("all"),
+    },
+  ].filter(Boolean);
 
   function updateDraftField(key, value) {
     setDraftProduct((prev) => {
@@ -1287,6 +1343,9 @@ function ProductsPage({
           </button>
         </div>
 
+        <FilterPresets presets={quickPresets} />
+        <ActiveFilterChips chips={activeChips} onClearAll={resetProductFilters} />
+
         {showProductFilters ? (
           <div className="history-filter-panel">
             <div className="history-filter-grid">
@@ -1313,6 +1372,7 @@ function ProductsPage({
                 >
                   <option value="all">All products</option>
                   <option value="in-stock">In stock</option>
+                  <option value="low-stock">Low stock</option>
                   <option value="out-of-stock">Out of stock</option>
                   <option value="selling">Has sales</option>
                   <option value="no-sales">No sales yet</option>

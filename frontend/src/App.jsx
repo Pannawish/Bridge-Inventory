@@ -174,6 +174,7 @@ function App() {
     error,
     setError,
     loadData,
+    reloadDashboard,
     loadSupplierPage,
     loadCustomerPage,
     loadProductPage,
@@ -1343,6 +1344,7 @@ function App() {
                 products={products}
                 purchases={usingMockPurchases ? purchases : []}
                 sales={usingMockSales ? sales : []}
+                onPeriodChange={reloadDashboard}
               />
             ) : null}
 

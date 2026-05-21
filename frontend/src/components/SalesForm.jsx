@@ -132,6 +132,53 @@ function computeAmount(item, transactionDiscount = null) {
   );
 }
 
+// Latest unit cost for a product from a given supplier's most recent purchase,
+// so the sale line can default to the real cost of stock bought from that
+// supplier. The user can still override it.
+function getLatestSupplierCost(purchases, productId, supplierName) {
+  if (!productId || !supplierName) {
+    return null;
+  }
+  const wantSupplier = `${supplierName}`.trim().toLowerCase();
+  let best = null;
+  (purchases || []).forEach((purchase) => {
+    if (purchase.status === "cancelled") {
+      return;
+    }
+    if (`${purchase.supplier_name ?? ""}`.trim().toLowerCase() !== wantSupplier) {
+      return;
+    }
+    const date = `${purchase.transaction_date ?? ""}`;
+    (purchase.items || []).forEach((purchaseItem) => {
+      const pid = `${purchaseItem.product_id ?? purchaseItem.productId ?? ""}`;
+      if (pid !== `${productId}`) {
+        return;
+      }
+      const cost = Number(purchaseItem.unit_cost);
+      if (!Number.isFinite(cost) || cost <= 0) {
+        return;
+      }
+      if (!best || date > best.date) {
+        best = { date, cost };
+      }
+    });
+  });
+  return best ? best.cost : null;
+}
+
+// Loss amount on a line when the realised price (after discounts) is below the
+// recorded unit cost. Returns 0 when the line is profitable or cost is unknown.
+function getLineLoss(item, transactionDiscount = null) {
+  const quantity = Number(item.quantity) || 0;
+  const unitCost = Number(item.unit_cost) || 0;
+  if (quantity <= 0 || unitCost <= 0 || !item.unit_price) {
+    return 0;
+  }
+  const amount = computeAmount(item, transactionDiscount);
+  const lineCost = unitCost * quantity;
+  return amount < lineCost ? lineCost - amount : 0;
+}
+
 function computeVatSummary(itemTotal, vatMode) {
   if (vatMode === "included") {
     const totalBeforeVat = itemTotal / (1 + VAT_RATE);
@@ -390,21 +437,51 @@ function SalesForm({
     const sku = getProductSku(product);
 
     setItems((current) =>
-      current.map((item, i) =>
-        i === itemIndex
-          ? {
-              ...item,
-              product_id: product.id,
-              product_query: sku ? `${productName} (${sku})` : productName,
-              product_name: productName,
-              sku,
-              unit: getProductUnit(product),
-            }
-          : item
-      )
+      current.map((item, i) => {
+        if (i !== itemIndex) {
+          return item;
+        }
+        const updated = {
+          ...item,
+          product_id: product.id,
+          product_query: sku ? `${productName} (${sku})` : productName,
+          product_name: productName,
+          sku,
+          unit: getProductUnit(product),
+        };
+        const suggestedCost = getLatestSupplierCost(
+          purchases,
+          product.id,
+          item.supplier_name
+        );
+        if (suggestedCost != null) {
+          updated.unit_cost = `${suggestedCost}`;
+        }
+        return updated;
+      })
     );
     setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
     setOpenProductIndex(null);
+  }
+
+  function updateSupplier(itemIndex, supplierName) {
+    setItems((current) =>
+      current.map((item, i) => {
+        if (i !== itemIndex) {
+          return item;
+        }
+        const next = { ...item, supplier_name: supplierName };
+        const suggestedCost = getLatestSupplierCost(
+          purchases,
+          item.product_id,
+          supplierName
+        );
+        if (suggestedCost != null) {
+          next.unit_cost = `${suggestedCost}`;
+        }
+        return next;
+      })
+    );
   }
 
   function addDiscount(itemIndex) {
@@ -554,6 +631,30 @@ function SalesForm({
       setItemErrors(nextItemErrors);
       setOpenProductIndex(Number(Object.keys(nextItemErrors)[0]));
       return;
+    }
+
+    const belowCostItems = items.filter(
+      (item) =>
+        item.product_id &&
+        item.quantity &&
+        item.unit_price &&
+        getLineLoss(item, activeAllItemsDiscount) > 0
+    );
+    if (belowCostItems.length) {
+      const lines = belowCostItems
+        .map(
+          (item) =>
+            `• ${item.product_name || "Item"} — below cost by ${fmt(
+              getLineLoss(item, activeAllItemsDiscount)
+            )}`
+        )
+        .join("\n");
+      const confirmed = window.confirm(
+        `${belowCostItems.length} item(s) are priced below cost:\n\n${lines}\n\nSave this sale anyway?`
+      );
+      if (!confirmed) {
+        return;
+      }
     }
 
     const formData = new FormData();
@@ -867,6 +968,7 @@ function SalesForm({
 
           {items.map((item, index) => {
             const amount = computeAmount(item, activeAllItemsDiscount);
+            const lineLoss = getLineLoss(item, activeAllItemsDiscount);
             const filteredProducts = getFilteredProducts(item.product_query);
             const selectedProduct = products.find(
               (product) => `${product.id}` === `${item.product_id}`
@@ -1069,7 +1171,7 @@ function SalesForm({
                     list="sales-supplier-options"
                     value={item.supplier_name}
                     onChange={(event) =>
-                      updateItem(index, "supplier_name", event.target.value)
+                      updateSupplier(index, event.target.value)
                     }
                     placeholder="Optional"
                   />
@@ -1081,12 +1183,18 @@ function SalesForm({
                     type="number"
                     min="0"
                     step="0.01"
+                    className={lineLoss > 0 ? "sales-cost-input below-cost" : undefined}
                     value={item.unit_cost}
                     onChange={(event) =>
                       updateItem(index, "unit_cost", event.target.value)
                     }
                     placeholder="0.00"
                   />
+                  {lineLoss > 0 ? (
+                    <span className="sales-below-cost-warning">
+                      ⚠ Below cost by {fmt(lineLoss)}
+                    </span>
+                  ) : null}
                 </label>
 
                 <button

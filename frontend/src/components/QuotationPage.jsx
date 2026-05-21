@@ -5,6 +5,7 @@ import QuotationConvertSelect from "./QuotationConvertSelect";
 import MultiPurchaseWizard from "./MultiPurchaseWizard";
 import DocumentRefChip from "./DocumentRefChip";
 import DocumentRefModal from "./DocumentRefModal";
+import { FilterPresets, ActiveFilterChips, RangeField, withinRange } from "./FilterControls";
 import {
   buildConvertedItemFields,
   getProductDefaultSalesUnit,
@@ -28,6 +29,12 @@ function formatDateInputValue(date) {
   const day = `${date.getDate()}`.padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+function daysAgoInputValue(days) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return formatDateInputValue(date);
 }
 
 function addDays(dateString, days) {
@@ -1158,6 +1165,8 @@ function QuotationPage({
   const [vatFilter, setVatFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [amountMin, setAmountMin] = useState("");
+  const [amountMax, setAmountMax] = useState("");
   const [viewingQuotation, setViewingQuotation] = useState(null);
   const [editingQuotation, setEditingQuotation] = useState(null);
   const [showNewQuotationForm, setShowNewQuotationForm] = useState(false);
@@ -1174,7 +1183,9 @@ function QuotationPage({
     (stateFilter === "all" ? 0 : 1) +
     (vatFilter === "all" ? 0 : 1) +
     (dateFrom ? 1 : 0) +
-    (dateTo ? 1 : 0);
+    (dateTo ? 1 : 0) +
+    (amountMin ? 1 : 0) +
+    (amountMax ? 1 : 0);
   const filteredQuotations = useMemo(
     () =>
       quotations
@@ -1194,17 +1205,25 @@ function QuotationPage({
             dateFrom,
             dateTo
           );
+          const matchesAmount = withinRange(
+            quotation.grand_total,
+            amountMin,
+            amountMax
+          );
 
           return (
             matchesSearch &&
             matchesCustomer &&
             matchesState &&
             matchesVat &&
-            matchesDateRange
+            matchesDateRange &&
+            matchesAmount
           );
         })
         .sort(sortRecentQuotations),
     [
+      amountMin,
+      amountMax,
       dateFrom,
       dateTo,
       normalizedSearch,
@@ -1224,8 +1243,78 @@ function QuotationPage({
     setVatFilter("all");
     setDateFrom("");
     setDateTo("");
+    setAmountMin("");
+    setAmountMax("");
     setFilterOpen(false);
   }
+
+  const vatLabels = {
+    included: "Include VAT",
+    not_included: "Exclude VAT",
+    none: "No VAT",
+  };
+  const quickPresets = [
+    {
+      label: "Valid only",
+      active: stateFilter === "valid",
+      onClick: () =>
+        setStateFilter((current) => (current === "valid" ? "all" : "valid")),
+    },
+    {
+      label: "Expired",
+      active: stateFilter === "expired",
+      onClick: () =>
+        setStateFilter((current) =>
+          current === "expired" ? "all" : "expired"
+        ),
+    },
+    {
+      label: "Last 30 days",
+      active: dateFrom === daysAgoInputValue(30) && !dateTo,
+      onClick: () => {
+        const last30 = dateFrom === daysAgoInputValue(30) && !dateTo;
+        setDateFrom(last30 ? "" : daysAgoInputValue(30));
+        setDateTo("");
+      },
+    },
+  ];
+  const activeChips = [
+    selectedCustomer && {
+      key: "customer",
+      label: `Customer: ${selectedCustomer}`,
+      onRemove: () => setSelectedCustomer(""),
+    },
+    stateFilter !== "all" && {
+      key: "state",
+      label: `State: ${stateFilter === "valid" ? "Valid" : "Expired"}`,
+      onRemove: () => setStateFilter("all"),
+    },
+    vatFilter !== "all" && {
+      key: "vat",
+      label: `VAT: ${vatLabels[vatFilter] || vatFilter}`,
+      onRemove: () => setVatFilter("all"),
+    },
+    dateFrom && {
+      key: "dateFrom",
+      label: `From ${dateFrom}`,
+      onRemove: () => setDateFrom(""),
+    },
+    dateTo && {
+      key: "dateTo",
+      label: `To ${dateTo}`,
+      onRemove: () => setDateTo(""),
+    },
+    amountMin && {
+      key: "amountMin",
+      label: `Min ฿${amountMin}`,
+      onRemove: () => setAmountMin(""),
+    },
+    amountMax && {
+      key: "amountMax",
+      label: `Max ฿${amountMax}`,
+      onRemove: () => setAmountMax(""),
+    },
+  ].filter(Boolean);
 
   async function handleDelete(quotation) {
     const confirmed = window.confirm(
@@ -1442,6 +1531,9 @@ function QuotationPage({
           </button>
         </div>
 
+        <FilterPresets presets={quickPresets} />
+        <ActiveFilterChips chips={activeChips} onClearAll={resetFilters} />
+
         {filterOpen ? (
           <div className="history-filter-panel">
             <div className="history-filter-grid">
@@ -1502,6 +1594,15 @@ function QuotationPage({
                   onChange={(event) => setDateTo(event.target.value)}
                 />
               </label>
+
+              <RangeField
+                title="Amount (฿)"
+                prefix="฿"
+                minValue={amountMin}
+                maxValue={amountMax}
+                onMinChange={setAmountMin}
+                onMaxChange={setAmountMax}
+              />
             </div>
           </div>
         ) : null}

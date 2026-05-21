@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { FilterPresets, ActiveFilterChips } from "./FilterControls";
 
 export const CATEGORY_STORAGE_KEY = "inventory-management-categories";
 
@@ -570,6 +571,52 @@ function CategoryPage({
     setFilterOpen(false);
   }
 
+  const levelLabels = {
+    root: "Root categories",
+    subcategory: "Subcategories",
+    deep: "Deep nested",
+  };
+  const usageLabels = {
+    assigned: "Assigned to products",
+    unassigned: "No assigned products",
+    "has-children": "Has subcategories",
+    leaf: "Leaf categories",
+  };
+  const quickPresets = [
+    {
+      label: "Root only",
+      active: levelFilter === "root",
+      onClick: () =>
+        setLevelFilter((current) => (current === "root" ? "all" : "root")),
+    },
+    {
+      label: "Unassigned",
+      active: usageFilter === "unassigned",
+      onClick: () =>
+        setUsageFilter((current) =>
+          current === "unassigned" ? "all" : "unassigned"
+        ),
+    },
+    {
+      label: "Leaf categories",
+      active: usageFilter === "leaf",
+      onClick: () =>
+        setUsageFilter((current) => (current === "leaf" ? "all" : "leaf")),
+    },
+  ];
+  const activeChips = [
+    levelFilter !== "all" && {
+      key: "level",
+      label: `Level: ${levelLabels[levelFilter] || levelFilter}`,
+      onRemove: () => setLevelFilter("all"),
+    },
+    usageFilter !== "all" && {
+      key: "usage",
+      label: `Use: ${usageLabels[usageFilter] || usageFilter}`,
+      onRemove: () => setUsageFilter("all"),
+    },
+  ].filter(Boolean);
+
   async function handleSaveCategory(event) {
     event.preventDefault();
 
@@ -696,6 +743,9 @@ function CategoryPage({
             Reset Filter
           </button>
         </div>
+
+        <FilterPresets presets={quickPresets} />
+        <ActiveFilterChips chips={activeChips} onClearAll={resetFilters} />
 
         {filterOpen ? (
           <div className="history-filter-panel">
