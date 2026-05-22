@@ -104,6 +104,49 @@
   gap: 10px;
 }
 
+.history-filter-status-group {
+  display: grid;
+  gap: 12px;
+}
+
+.history-filter-status-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+}
+
+.history-filter-status-presets,
+.history-filter-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-filter-status-action {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.history-filter-status-action:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.history-filter-status-action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .history-filter-option {
   display: inline-flex;
   align-items: center;
@@ -119,6 +162,12 @@
 .history-filter-option input {
   width: auto;
   accent-color: var(--accent);
+}
+
+.history-filter-status-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
 /* ── Quick-filter presets ──────────────────────────────── */
@@ -426,4 +475,3 @@
   max-height: 430px;
   padding-right: 4px;
 }
-

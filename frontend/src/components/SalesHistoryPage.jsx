@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "./PaginationControls";
 import SalesForm from "./SalesForm";
+import StatusFilterGroup from "./StatusFilterGroup";
 import TransactionTable from "./TransactionTable";
 import {
   applySaleStatusToItems,
@@ -24,6 +25,22 @@ import {
 
 const VAT_RATE = 0.07;
 const statusOptions = saleStatuses;
+const saleStatusPresets = [
+  { label: "All", statuses: statusOptions },
+  {
+    label: "Open",
+    statuses: [
+      "draft",
+      "partially_packed",
+      "packed",
+      "partially_shipped",
+      "shipped",
+      "partially_delivered",
+    ],
+  },
+  { label: "Delivered", statuses: ["delivered"] },
+  { label: "Cancelled / Returned", statuses: ["cancelled", "returned"] },
+];
 const vatOptions = [
   { value: "included", label: "Include VAT" },
   { value: "not_included", label: "Exclude VAT" },
@@ -1436,14 +1453,6 @@ function SalesHistoryPage({
     setCustomerFilterOpen(false);
   }
 
-  function toggleStatus(status) {
-    setSelectedStatuses((currentStatuses) =>
-      currentStatuses.includes(status)
-        ? currentStatuses.filter((currentStatus) => currentStatus !== status)
-        : [...currentStatuses, status]
-    );
-  }
-
   function resetFilters() {
     setSearchTerm("");
     setSelectedStatuses(statusOptions);
@@ -1460,8 +1469,6 @@ function SalesHistoryPage({
 
   const vatLabels = { included: "Include VAT", not_included: "Exclude VAT" };
   const last30Active = dateFrom === daysAgoString(30) && !dateTo;
-  const onlyStatus = (status) =>
-    selectedStatuses.length === 1 && selectedStatuses[0] === status;
   const quickPresets = [
     {
       label: "Last 30 days",
@@ -1470,20 +1477,6 @@ function SalesHistoryPage({
         setDateFrom(last30Active ? "" : daysAgoString(30));
         setDateTo("");
       },
-    },
-    statusOptions.includes("pending") && {
-      label: "Pending",
-      active: onlyStatus("pending"),
-      onClick: () =>
-        setSelectedStatuses(onlyStatus("pending") ? statusOptions : ["pending"]),
-    },
-    statusOptions.includes("delivered") && {
-      label: "Delivered",
-      active: onlyStatus("delivered"),
-      onClick: () =>
-        setSelectedStatuses(
-          onlyStatus("delivered") ? statusOptions : ["delivered"]
-        ),
     },
   ].filter(Boolean);
   const activeChips = [
@@ -1498,7 +1491,9 @@ function SalesHistoryPage({
     selectedStatuses.length !== statusOptions.length && {
       key: "status",
       label: `Status: ${
-        selectedStatuses.length ? selectedStatuses.join(", ") : "None"
+        selectedStatuses.length
+          ? selectedStatuses.map(formatSalesStatusLabel).join(", ")
+          : "None"
       }`,
       onRemove: () => setSelectedStatuses(statusOptions),
     },
@@ -1745,19 +1740,14 @@ function SalesHistoryPage({
               </label>
             </div>
 
-            <p className="history-filter-title">Sales Status</p>
-            <div className="history-filter-options">
-              {statusOptions.map((status) => (
-                <label className="history-filter-option" key={status}>
-                  <input
-                    type="checkbox"
-                    checked={selectedStatuses.includes(status)}
-                    onChange={() => toggleStatus(status)}
-                  />
-                  <span>{status}</span>
-                </label>
-              ))}
-            </div>
+            <StatusFilterGroup
+              title="Sales Status"
+              statuses={statusOptions}
+              selectedStatuses={selectedStatuses}
+              presets={saleStatusPresets}
+              formatStatusLabel={formatSalesStatusLabel}
+              onChange={setSelectedStatuses}
+            />
           </div>
         ) : null}
       </section>

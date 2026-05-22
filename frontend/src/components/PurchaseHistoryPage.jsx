@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import PurchaseForm from "./PurchaseForm";
 import PaginationControls from "./PaginationControls";
+import StatusFilterGroup from "./StatusFilterGroup";
 import TransactionTable from "./TransactionTable";
 import {
   formatStatusLabel,
@@ -25,6 +26,12 @@ import {
 
 const VAT_RATE = 0.07;
 const statusOptions = purchaseStatuses;
+const purchaseStatusPresets = [
+  { label: "All", statuses: statusOptions },
+  { label: "Open", statuses: ["draft", "ordered", "partially_received"] },
+  { label: "Received", statuses: ["received"] },
+  { label: "Cancelled", statuses: ["cancelled"] },
+];
 const vatOptions = [
   { value: "included", label: "Include VAT" },
   { value: "not_included", label: "Exclude VAT" },
@@ -1413,14 +1420,6 @@ function PurchaseHistoryPage({
     setSupplierFilterOpen(false);
   }
 
-  function toggleStatus(status) {
-    setSelectedStatuses((currentStatuses) =>
-      currentStatuses.includes(status)
-        ? currentStatuses.filter((currentStatus) => currentStatus !== status)
-        : [...currentStatuses, status]
-    );
-  }
-
   function resetFilters() {
     setSearchTerm("");
     setSelectedStatuses(statusOptions);
@@ -1437,8 +1436,6 @@ function PurchaseHistoryPage({
 
   const vatLabels = { included: "Include VAT", not_included: "Exclude VAT" };
   const last30Active = dateFrom === daysAgoString(30) && !dateTo;
-  const onlyStatus = (status) =>
-    selectedStatuses.length === 1 && selectedStatuses[0] === status;
   const quickPresets = [
     {
       label: "Last 30 days",
@@ -1447,20 +1444,6 @@ function PurchaseHistoryPage({
         setDateFrom(last30Active ? "" : daysAgoString(30));
         setDateTo("");
       },
-    },
-    statusOptions.includes("pending") && {
-      label: "Pending",
-      active: onlyStatus("pending"),
-      onClick: () =>
-        setSelectedStatuses(onlyStatus("pending") ? statusOptions : ["pending"]),
-    },
-    statusOptions.includes("received") && {
-      label: "Received",
-      active: onlyStatus("received"),
-      onClick: () =>
-        setSelectedStatuses(
-          onlyStatus("received") ? statusOptions : ["received"]
-        ),
     },
   ].filter(Boolean);
   const activeChips = [
@@ -1718,19 +1701,14 @@ function PurchaseHistoryPage({
               </label>
             </div>
 
-            <p className="history-filter-title">Purchase Status</p>
-            <div className="history-filter-options">
-              {statusOptions.map((status) => (
-                <label className="history-filter-option" key={status}>
-                  <input
-                    type="checkbox"
-                    checked={selectedStatuses.includes(status)}
-                    onChange={() => toggleStatus(status)}
-                  />
-                  <span>{formatStatusLabel(status)}</span>
-                </label>
-              ))}
-            </div>
+            <StatusFilterGroup
+              title="Purchase Status"
+              statuses={statusOptions}
+              selectedStatuses={selectedStatuses}
+              presets={purchaseStatusPresets}
+              formatStatusLabel={formatStatusLabel}
+              onChange={setSelectedStatuses}
+            />
           </div>
         ) : null}
       </section>
