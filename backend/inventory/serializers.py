@@ -376,6 +376,9 @@ class ProductSerializer(serializers.ModelSerializer):
         min_value=0,
     )
     current_stock = serializers.SerializerMethodField()
+    average_unit_cost = serializers.SerializerMethodField()
+    received_purchase_count = serializers.SerializerMethodField()
+    active_sales_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -402,6 +405,9 @@ class ProductSerializer(serializers.ModelSerializer):
             "selected_picture_index",
             "reorder_level",
             "current_stock",
+            "average_unit_cost",
+            "received_purchase_count",
+            "active_sales_count",
         ]
         extra_kwargs = {
             "id": {"required": False},
@@ -409,6 +415,21 @@ class ProductSerializer(serializers.ModelSerializer):
             "detail": {"required": False, "allow_blank": True},
             "reorder_level": {"required": False},
         }
+
+    def get_metric_snapshot(self, product):
+        from .services import get_product_metric_snapshots
+
+        metrics_by_product_id = self.context.get("product_metrics_by_product_id")
+        if metrics_by_product_id is None:
+            metrics_by_product_id = {}
+            self.context["product_metrics_by_product_id"] = metrics_by_product_id
+
+        if product.id not in metrics_by_product_id:
+            metrics_by_product_id.update(
+                get_product_metric_snapshots(product_ids=[product.id])
+            )
+
+        return metrics_by_product_id.get(product.id, {})
 
     def get_selected_picture(self, product):
         pictures = list(product.pictures.all())
@@ -430,14 +451,16 @@ class ProductSerializer(serializers.ModelSerializer):
         return selected_picture.id if selected_picture else ""
 
     def get_current_stock(self, product):
-        from .services import get_available_stock_by_product_id
+        return self.get_metric_snapshot(product).get("current_stock", Decimal("0"))
 
-        stock_by_product_id = self.context.get("current_stock_by_product_id")
-        if stock_by_product_id is None:
-            stock_by_product_id = get_available_stock_by_product_id()
-            self.context["current_stock_by_product_id"] = stock_by_product_id
+    def get_average_unit_cost(self, product):
+        return self.get_metric_snapshot(product).get("average_unit_cost", Decimal("0"))
 
-        return stock_by_product_id.get(product.id, Decimal("0"))
+    def get_received_purchase_count(self, product):
+        return self.get_metric_snapshot(product).get("received_purchase_count", 0)
+
+    def get_active_sales_count(self, product):
+        return self.get_metric_snapshot(product).get("active_sales_count", 0)
 
     def validate_previousSkus(self, value):
         return clean_list(value)

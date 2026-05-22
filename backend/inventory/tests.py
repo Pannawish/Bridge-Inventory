@@ -142,6 +142,64 @@ class InventoryPaginationTests(APITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["sku"], "PAGE-0")
 
+    def test_product_list_includes_average_cost_metrics(self):
+        product = Product.objects.get(sku="PAGE-0")
+        purchase = Purchase.objects.create(
+            reference_no="PO-AVG-COST",
+            supplier_name="Cost Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date="2026-05-01",
+        )
+        PurchaseItem.objects.create(
+            purchase=purchase,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("5"),
+            base_quantity=Decimal("5"),
+            unit_cost=Decimal("4"),
+            amount=Decimal("20"),
+        )
+        sale = Sale.objects.create(
+            reference_no="SO-AVG-COST",
+            customer_name="Cost Customer",
+            status=Sale.STATUS_PACKED,
+            transaction_date="2026-05-02",
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=SaleItem.ITEM_PACKED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("2"),
+            base_quantity=Decimal("2"),
+            unit_price=Decimal("8"),
+            unit_cost=Decimal("4"),
+            amount=Decimal("16"),
+        )
+
+        response = self.client.get(
+            "/api/products/",
+            {"page": 1, "page_size": 10, "search": "PAGE-0"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        row = response.data["results"][0]
+        self.assertEqual(row["sku"], "PAGE-0")
+        self.assertEqual(Decimal(row["average_unit_cost"]), Decimal("4"))
+        self.assertEqual(Decimal(row["current_stock"]), Decimal("3"))
+        self.assertEqual(row["received_purchase_count"], 1)
+        self.assertEqual(row["active_sales_count"], 1)
+
     def test_supplier_search_and_profile_filter_apply_before_pagination(self):
         from .models import Supplier
 

@@ -109,23 +109,34 @@ def compute_date_span_days(dates):
     return max(1, (max(dates) - min(dates)).days + 1)
 
 
-def get_available_stock_by_product_id(product_ids=None, exclude_sale_id=None):
+def get_product_metric_snapshots(product_ids=None, exclude_sale_id=None):
     product_ids = {product_id for product_id in product_ids or [] if product_id}
     received = {}
+    received_value = {}
+    received_purchase_count = {}
     committed = {}
+    active_sales_count = {}
 
     purchase_items = PurchaseItem.objects.select_related("product").filter(
-        item_status=PurchaseItem.ITEM_RECEIVED,
         product_id__isnull=False,
     )
     if product_ids:
         purchase_items = purchase_items.filter(product_id__in=product_ids)
 
     for item in purchase_items:
-        received[item.product_id] = received.get(item.product_id, Decimal("0")) + item.base_quantity
+        if item.item_status != PurchaseItem.ITEM_RECEIVED:
+            continue
+
+        quantity = item.base_quantity or Decimal("0")
+        received[item.product_id] = received.get(item.product_id, Decimal("0")) + quantity
+        received_value[item.product_id] = (
+            received_value.get(item.product_id, Decimal("0")) + (item.amount or Decimal("0"))
+        )
+        received_purchase_count[item.product_id] = (
+            received_purchase_count.get(item.product_id, 0) + 1
+        )
 
     sale_items = SaleItem.objects.select_related("product").filter(
-        item_status__in=SALE_STOCK_DEDUCTED_STATUSES,
         product_id__isnull=False,
     )
     if product_ids:
@@ -134,18 +145,46 @@ def get_available_stock_by_product_id(product_ids=None, exclude_sale_id=None):
         sale_items = sale_items.exclude(sale_id=exclude_sale_id)
 
     for item in sale_items:
-        committed[item.product_id] = committed.get(item.product_id, Decimal("0")) + item.base_quantity
+        if item.item_status not in SALE_STOCK_DEDUCTED_STATUSES:
+            continue
+
+        quantity = item.base_quantity or Decimal("0")
+        committed[item.product_id] = committed.get(item.product_id, Decimal("0")) + quantity
+        active_sales_count[item.product_id] = active_sales_count.get(item.product_id, 0) + 1
 
     products = Product.objects.all()
     if product_ids:
         products = products.filter(id__in=product_ids)
 
-    stock = {}
+    metrics = {}
     for product in products:
-        stock[product.id] = max(
-            Decimal("0"),
-            received.get(product.id, Decimal("0")) - committed.get(product.id, Decimal("0")),
+        received_units = received.get(product.id, Decimal("0"))
+        average_unit_cost = (
+            received_value.get(product.id, Decimal("0")) / received_units
+            if received_units > 0
+            else Decimal("0")
         )
+        metrics[product.id] = {
+            "current_stock": max(
+                Decimal("0"),
+                received_units - committed.get(product.id, Decimal("0")),
+            ),
+            "average_unit_cost": average_unit_cost,
+            "received_purchase_count": received_purchase_count.get(product.id, 0),
+            "active_sales_count": active_sales_count.get(product.id, 0),
+        }
+
+    return metrics
+
+
+def get_available_stock_by_product_id(product_ids=None, exclude_sale_id=None):
+    metrics = get_product_metric_snapshots(
+        product_ids=product_ids,
+        exclude_sale_id=exclude_sale_id,
+    )
+    stock = {}
+    for product_id, snapshot in metrics.items():
+        stock[product_id] = snapshot.get("current_stock", Decimal("0"))
 
     return stock
 

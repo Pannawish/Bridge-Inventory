@@ -46,6 +46,7 @@ from .services import (
     build_dashboard_segment,
     build_dashboard_summary,
     get_available_stock_by_product_id,
+    get_product_metric_snapshots,
 )
 
 
@@ -660,6 +661,22 @@ class ProductViewSet(InventoryModelViewSet):
 
         return queryset
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+
+        if self.action == "list":
+            product_ids = list(self.get_queryset().values_list("id", flat=True))
+            context["product_metrics_by_product_id"] = get_product_metric_snapshots(
+                product_ids=product_ids
+            )
+        elif self.action == "retrieve":
+            product_id = self.kwargs.get(self.lookup_field or "pk")
+            context["product_metrics_by_product_id"] = get_product_metric_snapshots(
+                product_ids=[product_id]
+            )
+
+        return context
+
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         if product_has_transaction_history(instance):
@@ -862,14 +879,14 @@ def product_lookups(request):
         ("product_name", "sku", "category__name", "category_name", "detail"),
     )
     products = list(queryset)
-    stock_by_product_id = get_available_stock_by_product_id(
+    product_metrics_by_product_id = get_product_metric_snapshots(
         product_ids=[product.id for product in products]
     )
     serializer = ProductSerializer(
         products,
         many=True,
         context={
-            "current_stock_by_product_id": stock_by_product_id,
+            "product_metrics_by_product_id": product_metrics_by_product_id,
             "request": request,
         },
     )
