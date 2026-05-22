@@ -62,6 +62,94 @@
   font-weight: 400;
 }
 
+/* Valid Until Date field */
+.valid-until-field {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.valid-until-days-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.valid-until-days-input {
+  width: 96px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--text);
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.valid-until-days-input:focus {
+  border-color: #c9b6c3;
+  box-shadow: 0 0 0 4px rgba(113, 75, 103, 0.10);
+  outline: none;
+}
+
+.valid-until-days-unit {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.valid-until-type-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.valid-until-day-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.valid-until-day-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.valid-until-day-option:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, #fff);
+}
+
+.valid-until-day-option.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.valid-until-computed-date {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.valid-until-computed-date strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
 .quotation-link-card .section-heading {
   margin-bottom: 0;
 }

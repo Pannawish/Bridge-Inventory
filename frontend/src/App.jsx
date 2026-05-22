@@ -28,6 +28,7 @@ import BillingNotePage from "./components/BillingNotePage";
 import PaymentBatchPage from "./components/PaymentBatchPage";
 import CreditNotePage from "./components/CreditNotePage";
 import CreditNotePrompt from "./components/CreditNotePrompt";
+import TabIcon from "./components/TabIcon";
 import { useInventoryData } from "./hooks/useInventoryData";
 import { applyPurchaseStatusToItems } from "./purchaseStatus";
 import { applySaleStatusToItems } from "./saleStatus";
@@ -96,6 +97,13 @@ function buildProductSavePayload(product) {
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("sidebarCollapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
   const [notice, setNotice] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
   const [creditNotePrompt, setCreditNotePrompt] = useState(null);
@@ -212,6 +220,14 @@ function App() {
     return undefined;
   }, [sidebarOpen]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("sidebarCollapsed", String(sidebarCollapsed));
+    } catch {
+      // ignore persistence failures
+    }
+  }, [sidebarCollapsed]);
+
   function showWarning(message) {
     setNotice("");
     setError("");
@@ -267,9 +283,7 @@ function App() {
 
   const activeTabMeta = tabs.find((tab) => tab.id === activeTab) || tabs[0];
   const activeProducts = products.filter(isProductActive);
-  const tabBadges = {
-    "credit-notes": countPendingCreditNoteLines(creditNoteEligibleSales),
-  };
+  const tabBadges = {};
 
   async function handlePurchaseCreateFromHistory(formData) {
     setError("");
@@ -1250,10 +1264,37 @@ function App() {
   }
 
   return (
-    <div className={sidebarOpen ? "app-shell sidebar-open" : "app-shell"}>
+    <div
+      className={`app-shell${sidebarOpen ? " sidebar-open" : ""}${
+        sidebarCollapsed ? " sidebar-collapsed" : ""
+      }`}
+    >
       <aside className={sidebarOpen ? "sidebar is-open" : "sidebar"}>
         <div className="sidebar-content">
           <div className="sidebar-top">
+            <button
+              type="button"
+              className="sidebar-collapse-toggle"
+              aria-label={sidebarCollapsed ? "Expand menu" : "Collapse menu"}
+              aria-expanded={!sidebarCollapsed}
+              onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
             <h1>Inventory</h1>
             <button
               type="button"
@@ -1272,9 +1313,13 @@ function App() {
                 <button
                   key={tab.id}
                   type="button"
+                  title={tab.label}
                   className={tab.id === activeTab ? "sidebar-nav-button active" : "sidebar-nav-button"}
                   onClick={() => handleTabSelect(tab.id)}
                 >
+                  <span className="sidebar-nav-icon">
+                    <TabIcon tabId={tab.id} />
+                  </span>
                   <span className="sidebar-nav-text">{tab.label}</span>
                   {badgeCount > 0 ? (
                     <span

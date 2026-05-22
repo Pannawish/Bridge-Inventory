@@ -1,3 +1,4 @@
+import datetime
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
@@ -26,6 +27,16 @@ from .models import (
     SaleItem,
     Supplier,
 )
+
+
+def _add_business_days(start_date, days):
+    current = start_date
+    added = 0
+    while added < days:
+        current += datetime.timedelta(days=1)
+        if current.weekday() < 5:  # Monday=0 … Friday=4
+            added += 1
+    return current
 
 
 def clean_list(value):
@@ -1224,6 +1235,8 @@ class QuotationSerializer(serializers.ModelSerializer):
             "reference_no",
             "quotation_date",
             "valid_until_date",
+            "valid_until_days",
+            "valid_until_day_type",
             "customer_id",
             "customer_name",
             "supplier_id",
@@ -1241,6 +1254,8 @@ class QuotationSerializer(serializers.ModelSerializer):
             "id": {"required": False},
             "reference_no": {"required": False, "allow_blank": True},
             "valid_until_date": {"required": False, "allow_null": True},
+            "valid_until_days": {"required": False, "allow_null": True},
+            "valid_until_day_type": {"required": False, "allow_blank": True},
             "customer_name": {"required": False, "allow_blank": True},
             "supplier_name": {"required": False, "allow_blank": True},
             "vat_mode": {"required": False},
@@ -1457,15 +1472,32 @@ class QuotationSerializer(serializers.ModelSerializer):
             )
 
         quotation_date = attrs.get("quotation_date", getattr(self.instance, "quotation_date", None))
-        valid_until_date = attrs.get(
-            "valid_until_date",
-            getattr(self.instance, "valid_until_date", None),
-        )
+        valid_until_days = attrs.get("valid_until_days", getattr(self.instance, "valid_until_days", None))
+        valid_until_day_type = attrs.get(
+            "valid_until_day_type",
+            getattr(self.instance, "valid_until_day_type", "calendar"),
+        ) or "calendar"
 
-        if valid_until_date and quotation_date and valid_until_date < quotation_date:
-            raise serializers.ValidationError(
-                {"valid_until_date": "Valid until date cannot be before quotation date."}
+        if valid_until_days is not None and quotation_date:
+            if valid_until_day_type == "no_valid_date" or valid_until_days == 0:
+                attrs["valid_until_date"] = None
+            elif not (1 <= valid_until_days <= 100):
+                raise serializers.ValidationError(
+                    {"valid_until_days": "Valid until days must be between 1 and 100."}
+                )
+            elif valid_until_day_type == "business":
+                attrs["valid_until_date"] = _add_business_days(quotation_date, valid_until_days)
+            else:
+                attrs["valid_until_date"] = quotation_date + datetime.timedelta(days=valid_until_days)
+        else:
+            valid_until_date = attrs.get(
+                "valid_until_date",
+                getattr(self.instance, "valid_until_date", None),
             )
+            if valid_until_date and quotation_date and valid_until_date < quotation_date:
+                raise serializers.ValidationError(
+                    {"valid_until_date": "Valid until date cannot be before quotation date."}
+                )
 
         if self.instance is None and not attrs.get("items"):
             raise serializers.ValidationError({"items": "Add at least one quotation item."})

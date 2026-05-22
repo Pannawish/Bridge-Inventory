@@ -107,6 +107,29 @@ textarea {
   color: var(--accent);
 }
 
+.sidebar-collapse-toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  background: #f5f7fc;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.sidebar-collapse-toggle:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+}
+
+.sidebar-collapse-toggle svg {
+  display: block;
+}
+
 .mobile-topbar {
   display: none;
   align-items: center;
@@ -221,6 +244,7 @@ textarea {
 .sidebar-nav-button {
   display: flex;
   align-items: center;
+  gap: 12px;
   width: 100%;
   padding: 11px 14px;
   border: none;
@@ -229,6 +253,18 @@ textarea {
   text-align: left;
   background: transparent;
   transition: background 0.18s ease, color 0.18s ease;
+}
+
+.sidebar-nav-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+}
+
+.sidebar-nav-icon svg {
+  display: block;
 }
 
 .primary-button:hover,
@@ -292,6 +328,47 @@ textarea {
   }
 }
 
+@media (min-width: 1024px) {
+  .app-shell.sidebar-collapsed .sidebar {
+    width: 84px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .app-shell.sidebar-collapsed .main-panel {
+    margin-left: 84px;
+    max-width: calc(100vw - 84px);
+  }
+
+  .app-shell.sidebar-collapsed .sidebar h1 {
+    display: none;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-top {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-nav-button {
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 4px;
+    text-align: center;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-nav-button.active {
+    border-left: none;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-nav-text {
+    font-size: 0.6rem;
+    line-height: 1.15;
+    text-align: center;
+    white-space: normal;
+    word-break: break-word;
+  }
+}
+
 @media (max-width: 1023px) {
   .sidebar {
     transform: translateX(-100%);
@@ -314,6 +391,10 @@ textarea {
   .sidebar-close-button {
     display: grid;
     place-items: center;
+  }
+
+  .sidebar-collapse-toggle {
+    display: none;
   }
 
   .mobile-topbar {

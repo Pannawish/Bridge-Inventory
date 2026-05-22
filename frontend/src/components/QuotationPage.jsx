@@ -46,6 +46,32 @@ function addDays(dateString, days) {
   return formatDateInputValue(date);
 }
 
+function addBusinessDays(dateString, days) {
+  const [year, month, day] = `${dateString}`.split("-").map(Number);
+  const date = year && month && day ? new Date(year, month - 1, day) : new Date();
+  let added = 0;
+  while (added < days) {
+    date.setDate(date.getDate() + 1);
+    const dow = date.getDay();
+    if (dow !== 0 && dow !== 6) added += 1;
+  }
+  return formatDateInputValue(date);
+}
+
+function computeValidUntilDate(quotationDate, days, dayType) {
+  const n = Number(days);
+  if (!quotationDate || !n || n < 1) return "";
+  return dayType === "business"
+    ? addBusinessDays(quotationDate, n)
+    : addDays(quotationDate, n);
+}
+
+function formatDisplayDate(dateString) {
+  if (!dateString) return "";
+  const [year, month, day] = `${dateString}`.split("-");
+  return `${day}/${month}/${year.slice(2)}`;
+}
+
 function getNextQuotationReference(quotations = []) {
   const referencePattern = /^QT-(\d{6})$/;
   const maxSerial = quotations.reduce((max, quotation) => {
@@ -203,7 +229,8 @@ function createInitialForm(referenceNo) {
   return {
     reference_no: referenceNo,
     quotation_date: today,
-    valid_until_date: addDays(today, 30),
+    valid_until_days: 30,
+    valid_until_day_type: "calendar",
     customer_name: "",
     vat_mode: "not_included",
     note: "",
@@ -211,10 +238,18 @@ function createInitialForm(referenceNo) {
 }
 
 function createEditForm(quotation) {
+  let days = quotation.valid_until_days;
+  if (!days && quotation.quotation_date && quotation.valid_until_date) {
+    const start = new Date(quotation.quotation_date);
+    const end = new Date(quotation.valid_until_date);
+    const diff = Math.round((end - start) / (1000 * 60 * 60 * 24));
+    days = Math.min(100, Math.max(1, diff));
+  }
   return {
     reference_no: quotation.reference_no || "",
     quotation_date: quotation.quotation_date || getToday(),
-    valid_until_date: quotation.valid_until_date || "",
+    valid_until_days: days || 30,
+    valid_until_day_type: quotation.valid_until_day_type || "calendar",
     customer_name: quotation.customer_name || "",
     vat_mode: quotation.vat_mode || "not_included",
     note: quotation.note || "",
@@ -429,19 +464,49 @@ function QuotationForm({
   );
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item, "sale_price"), 0);
   const vatSummary = computeVatSummary(itemTotal, form.vat_mode);
+  const validUntilDate = useMemo(
+    () => computeValidUntilDate(form.quotation_date, form.valid_until_days, form.valid_until_day_type),
+    [form.quotation_date, form.valid_until_days, form.valid_until_day_type]
+  );
 
   function updateForm(key, value) {
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
   }
 
   function handleQuotationDateChange(value) {
+    updateForm("quotation_date", value);
+  }
+
+  function handleValidUntilDaysChange(rawValue) {
+    if (rawValue === "") {
+      updateForm("valid_until_days", "");
+      return;
+    }
+    const n = parseInt(rawValue, 10);
+    if (isNaN(n)) return;
+    const clamped = Math.min(100, Math.max(0, n));
     setForm((currentForm) => ({
       ...currentForm,
-      quotation_date: value,
-      valid_until_date:
-        currentForm.valid_until_date && currentForm.valid_until_date < value
-          ? value
-          : currentForm.valid_until_date,
+      valid_until_days: clamped,
+      valid_until_day_type:
+        clamped === 0
+          ? "no_valid_date"
+          : currentForm.valid_until_day_type === "no_valid_date"
+          ? "calendar"
+          : currentForm.valid_until_day_type,
+    }));
+  }
+
+  function handleValidUntilDayTypeChange(dayType) {
+    setForm((currentForm) => ({
+      ...currentForm,
+      valid_until_day_type: dayType,
+      valid_until_days:
+        dayType === "no_valid_date"
+          ? 0
+          : Number(currentForm.valid_until_days) === 0
+          ? 30
+          : currentForm.valid_until_days,
     }));
   }
 
@@ -624,13 +689,14 @@ function QuotationForm({
       return;
     }
 
-    if (!form.valid_until_date) {
-      setFormError("Valid until date is required.");
+    const days = Number(form.valid_until_days);
+    const isNoValidDate = form.valid_until_day_type === "no_valid_date";
+    if (!isNoValidDate && (isNaN(days) || days < 1 || days > 100)) {
+      setFormError("Valid until days must be between 1 and 100.");
       return;
     }
-
-    if (form.valid_until_date < form.quotation_date) {
-      setFormError("Valid until date cannot be before quotation date.");
+    if (!isNoValidDate && !validUntilDate) {
+      setFormError("Could not compute a valid until date. Check the quotation date.");
       return;
     }
 
@@ -702,7 +768,9 @@ function QuotationForm({
         ...(quotation || {}),
         reference_no: form.reference_no,
         quotation_date: form.quotation_date,
-        valid_until_date: form.valid_until_date,
+        valid_until_days: Number(form.valid_until_days),
+        valid_until_day_type: form.valid_until_day_type,
+        valid_until_date: form.valid_until_day_type === "no_valid_date" ? null : validUntilDate,
         customer_name: form.customer_name,
         vat_mode: form.vat_mode,
         note: form.note,
@@ -764,16 +832,54 @@ function QuotationForm({
             />
           </label>
 
-          <label>
+          <div className="valid-until-field">
             <span className="required-label">Valid Until Date</span>
-            <input
-              type="date"
-              value={form.valid_until_date}
-              min={form.quotation_date}
-              onChange={(event) => updateForm("valid_until_date", event.target.value)}
-              required
-            />
-          </label>
+            <div className="valid-until-days-row">
+              <input
+                type="number"
+                className="valid-until-days-input"
+                min="0"
+                max="100"
+                step="1"
+                value={form.valid_until_days}
+                onChange={(event) => handleValidUntilDaysChange(event.target.value)}
+              />
+              <span className="valid-until-days-unit">days</span>
+            </div>
+            <div className="valid-until-type-options" role="radiogroup" aria-label="Valid until day type">
+              {[
+                { value: "calendar", label: "Calendar days" },
+                { value: "business", label: "Business days" },
+                { value: "no_valid_date", label: "No Valid Date" },
+              ].map((option) => (
+                <label
+                  key={option.value}
+                  className={
+                    form.valid_until_day_type === option.value
+                      ? "valid-until-day-option active"
+                      : "valid-until-day-option"
+                  }
+                >
+                  <input
+                    type="radio"
+                    name="valid_until_day_type"
+                    value={option.value}
+                    checked={form.valid_until_day_type === option.value}
+                    onChange={() => handleValidUntilDayTypeChange(option.value)}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </div>
+            <p className="valid-until-computed-date">
+              Expires:{" "}
+              <strong>
+                {form.valid_until_day_type === "no_valid_date" || !validUntilDate
+                  ? "—"
+                  : formatDisplayDate(validUntilDate)}
+              </strong>
+            </p>
+          </div>
 
           <EligiblePartyCombobox
             id="quotation-customer"
