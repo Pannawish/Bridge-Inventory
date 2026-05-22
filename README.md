@@ -6,6 +6,17 @@ This repository is built for teams that need something more practical than a gen
 
 If this project is useful to you, give it a star. That helps more builders and operators find it.
 
+## Feature Snapshot
+
+| Area | What is implemented |
+| --- | --- |
+| Products and stock | Product master data, categories, images, supplier options, base units, unit conversions, current stock, and on-demand transaction history. |
+| Quotations | Customer quotations with supplier sourcing, base-unit quantities, stock sufficiency indicators, and conversion into sales or purchase orders. |
+| Purchases | Purchase orders, receiving statuses, expected delivery dates, supplier tax invoice tracking, attachments, base quantity, and base unit cost visibility. |
+| Sales | Stock-aware sales creation, delivery progress, item-level statuses, returned/cancelled flows, and average unit cost guidance. |
+| Finance | Billing notes for customer receivables, payment batches for supplier payables, and credit notes for cancelled or returned sale items. |
+| Dashboard and assistant | Backend-calculated stock metrics, demand and pipeline visibility, and an optional OpenAI-powered inventory assistant. |
+
 ## Why This Project Exists
 
 Many inventory tools handle only one slice of the business well: stock, or purchasing, or invoicing. Real businesses need those pieces to work together.
@@ -57,6 +68,13 @@ This project is designed around a middle-man business model:
 - Django REST Framework
 - MySQL
 
+## Requirements
+
+- Python 3.12 is recommended for local development.
+- MySQL database using `utf8mb4` so Thai and English text are stored safely.
+- Node.js and npm for the React + Vite frontend.
+- Optional `OPENAI_API_KEY` if you want to use the AI inventory assistant.
+
 ## Repository Structure
 
 ```text
@@ -105,6 +123,16 @@ AGENTS.md   Project engineering standards for contributors and coding agents
 
 Read the full backend setup guide in [backend/README.md](backend/README.md).
 
+Before running migrations, create the MySQL database and user described in the backend guide. The default `.env.example` expects:
+
+```env
+MYSQL_DATABASE=inventory_db
+MYSQL_USER=inventory_user
+MYSQL_PASSWORD=inventory_password
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+```
+
 Typical local flow:
 
 ```bash
@@ -137,7 +165,24 @@ If needed, set:
 VITE_API_BASE_URL=http://127.0.0.1:8000/api
 ```
 
-## Useful Backend Commands
+## Configuration Notes
+
+Backend configuration starts from `backend/.env.example` and lives in `backend/.env`. Important local settings include:
+
+- `DJANGO_DEBUG`
+- `DJANGO_ALLOWED_HOSTS`
+- `CORS_ALLOWED_ORIGINS`
+- `INVENTORY_REQUIRE_AUTH`
+- `INVENTORY_DEFAULT_PAGE_SIZE`
+- `INVENTORY_MAX_PAGE_SIZE`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL` (defaults to `gpt-5-mini`)
+
+The AI assistant is optional. Leave `OPENAI_API_KEY` empty if you only need the core inventory workflows.
+
+Frontend configuration can use `frontend/.env` with `VITE_API_BASE_URL` when the API is not running at the default local backend URL.
+
+## Useful Commands
 
 Run checks:
 
@@ -145,6 +190,14 @@ Run checks:
 backend/.venv/bin/python backend/manage.py check
 backend/.venv/bin/python backend/manage.py makemigrations --check --dry-run
 backend/.venv/bin/python backend/manage.py test inventory
+```
+
+Run frontend verification:
+
+```bash
+cd frontend
+npm run build
+npm audit --audit-level=moderate
 ```
 
 Seed operational data:
