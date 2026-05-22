@@ -67,10 +67,10 @@
   flex: 0 0 auto;
   padding: 6px 10px;
   border-radius: 4px;
-  color: var(--accent-deep);
+  color: #185a53;
   font-size: 0.76rem;
   font-weight: 500;
-  background: var(--accent-soft);
+  background: #e8f7f4;
 }
 
 .product-editor-modal label input,
