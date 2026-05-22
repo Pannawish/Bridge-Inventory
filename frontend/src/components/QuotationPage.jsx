@@ -10,8 +10,10 @@ import {
   buildConvertedItemFields,
   getProductDefaultSalesUnit,
   getProductUnitConversions,
+  getUnitValueFromBaseValue,
 } from "../unitConversion";
 import { formatDate, formatMoney as fmt } from "../format";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const VAT_RATE = 0.07;
 const vatOptions = [
@@ -199,6 +201,21 @@ function computeVatSummary(itemTotal, vatMode) {
 
 function isVatEnabled(vatMode) {
   return vatMode !== "none";
+}
+
+function getAverageCostForSelectedUnit(product, unit) {
+  if (!product) {
+    return null;
+  }
+
+  const baseAverageCost = Number(
+    product.average_unit_cost ?? product.averageUnitCost ?? 0
+  );
+  if (!Number.isFinite(baseAverageCost) || baseAverageCost <= 0) {
+    return null;
+  }
+
+  return getUnitValueFromBaseValue(product, unit, baseAverageCost, "sale");
 }
 
 
@@ -441,6 +458,7 @@ function QuotationForm({
   onSave,
   onCancel,
 }) {
+  const { t } = useLanguage();
   const isEditing = Boolean(quotation);
   const initialReference = quotation?.reference_no || getNextQuotationReference(quotations);
   const [form, setForm] = useState(() =>
@@ -914,6 +932,10 @@ function QuotationForm({
             const filteredProducts = getFilteredProducts(item.product_query);
             const unitOptions = selectedProduct ? getProductUnitConversions(selectedProduct) : [];
             const saleAmount = computeAmount(item, "sale_price");
+            const averageCostForSelectedUnit = getAverageCostForSelectedUnit(
+              selectedProduct,
+              item.unit
+            );
 
             return (
               <div className="line-item-row quotation-line-item-row" key={item.line_id}>
@@ -1024,6 +1046,14 @@ function QuotationForm({
                     placeholder="0.00"
                     required
                   />
+                  {averageCostForSelectedUnit ? (
+                    <span className="field-helper-text">
+                      {t("common.avgCostForUnit", {
+                        amount: fmt(averageCostForSelectedUnit),
+                        unit: item.unit || getProductDefaultSalesUnit(selectedProduct),
+                      })}
+                    </span>
+                  ) : null}
                 </label>
 
                 <div className="purchase-item-field quotation-item-discounts">

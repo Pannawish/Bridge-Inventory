@@ -120,6 +120,18 @@ export function getConversionForUnit(product, unit, mode = "purchase") {
   );
 }
 
+export function getUnitValueFromBaseValue(product, unit, baseValue, mode = "purchase") {
+  const numericBaseValue = Number(baseValue);
+  if (!Number.isFinite(numericBaseValue)) {
+    return null;
+  }
+
+  const conversion = getConversionForUnit(product, unit, mode);
+  const factorToBase = normalizeFactor(conversion.factorToBase);
+
+  return numericBaseValue * factorToBase;
+}
+
 export function roundQuantity(value) {
   const quantity = Number(value) || 0;
   return Number(quantity.toFixed(6));

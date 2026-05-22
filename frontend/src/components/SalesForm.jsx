@@ -4,6 +4,7 @@ import { formatSaleStockIssueMessage, getSaleStockIssues } from "../saleStock";
 import {
   buildConvertedItemFields,
   getProductDefaultSalesUnit,
+  getUnitValueFromBaseValue,
   getProductUnitOptions,
 } from "../unitConversion";
 import { computePaymentDate, formatMoney as fmt } from "../format";
@@ -13,6 +14,7 @@ import {
   getActiveTransactionDiscount,
   getEffectiveDiscounts,
 } from "./transactionDiscounts";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const VAT_RATE = 0.07;
 const vatOptions = [
@@ -234,6 +236,21 @@ function getProductUnit(product) {
   return getProductDefaultSalesUnit(product);
 }
 
+function getAverageCostForSelectedUnit(product, unit) {
+  if (!product) {
+    return null;
+  }
+
+  const baseAverageCost = Number(
+    product.average_unit_cost ?? product.averageUnitCost ?? 0
+  );
+  if (!Number.isFinite(baseAverageCost) || baseAverageCost <= 0) {
+    return null;
+  }
+
+  return getUnitValueFromBaseValue(product, unit, baseAverageCost, "sale");
+}
+
 function showStockAlert(message) {
   if (message && typeof window !== "undefined") {
     window.alert(message);
@@ -251,6 +268,7 @@ function SalesForm({
   onCancel = null,
   prefill = null,
 }) {
+  const { t } = useLanguage();
   const nextReferenceNo = useMemo(
     () => getNextSalesReference(sales),
     [sales]
@@ -973,6 +991,10 @@ function SalesForm({
             const selectedProduct = products.find(
               (product) => `${product.id}` === `${item.product_id}`
             );
+            const averageCostForSelectedUnit = getAverageCostForSelectedUnit(
+              selectedProduct,
+              item.unit
+            );
             const unitOptions = selectedProduct
               ? getProductUnitOptions(selectedProduct, "sale")
               : [];
@@ -1115,6 +1137,14 @@ function SalesForm({
                     placeholder="0.00"
                     required
                   />
+                  {averageCostForSelectedUnit ? (
+                    <span className="field-helper-text">
+                      {t("common.avgCostForUnit", {
+                        amount: fmt(averageCostForSelectedUnit),
+                        unit: item.unit || getProductUnit(selectedProduct),
+                      })}
+                    </span>
+                  ) : null}
                 </label>
 
                 <div className="purchase-item-field sales-item-discounts">

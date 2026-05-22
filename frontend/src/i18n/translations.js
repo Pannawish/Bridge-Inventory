@@ -57,6 +57,7 @@ export const translations = {
       viewMore: "View More",
       showRecent: "Show Recent",
       period: "Period",
+      avgCostForUnit: "Avg cost {amount} per {unit}",
     },
     dashboard: {
       financeEyebrow: "Overview",
@@ -143,6 +144,7 @@ export const translations = {
       viewMore: "ดูเพิ่มเติม",
       showRecent: "แสดงล่าสุด",
       period: "ช่วงเวลา",
+      avgCostForUnit: "ต้นทุนเฉลี่ย {amount} ต่อ {unit}",
     },
     dashboard: {
       financeEyebrow: "ภาพรวม",
