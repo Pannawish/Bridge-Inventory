@@ -115,12 +115,13 @@ function DashboardKpi({ label, value, helper, tone = "neutral" }) {
   );
 }
 
-function FinanceBox({ data, period, options, onPeriodChange, loading }) {
+function FinanceBox({ data, metrics, period, options, onPeriodChange, loading }) {
   const { t } = useLanguage();
   const ar = data?.ar || {};
   const ap = data?.ap || {};
   const netPosition = Number(data?.net_position || 0);
   const grossMargin = Number(data?.gross_margin || 0);
+  const totalInventoryValue = Number(metrics?.total_stock_value || 0);
 
   return (
     <section className={`section-card dashboard-finance-card${loading ? " is-refreshing" : ""}`}>
@@ -155,6 +156,11 @@ function FinanceBox({ data, period, options, onPeriodChange, loading }) {
           value={formatCurrency(netPosition)}
           helper={t("dashboard.netHelper")}
           tone={netPosition >= 0 ? "positive" : "danger"}
+        />
+        <DashboardKpi
+          label={t("dashboard.inventoryValue")}
+          value={formatCurrency(totalInventoryValue)}
+          helper={t("dashboard.inventoryValueHelper")}
         />
         <DashboardKpi
           label={t("dashboard.sales")}
@@ -334,6 +340,7 @@ function Dashboard({ dashboard }) {
     <div className="stack-layout dashboard-page">
       <FinanceBox
         data={finance.data}
+        metrics={dashboard?.metrics}
         period={finance.period}
         options={periodOptions}
         onPeriodChange={finance.setPeriod}
