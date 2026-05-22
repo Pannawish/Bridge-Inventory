@@ -165,11 +165,16 @@ label textarea:focus,
 }
 
 .supplier-combobox-field {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
   position: relative;
 }
 
 .supplier-combobox {
   position: relative;
+  min-width: 0;
 }
 
 .supplier-combobox-menu {
