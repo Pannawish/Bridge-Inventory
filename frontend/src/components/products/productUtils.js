@@ -16,6 +16,7 @@ const VAT_RATE = 0.07;
 const SKU_PATTERN = /^\d+$/;
 const CATEGORY_SKU_CODE_WIDTH = 2;
 const PRODUCT_SKU_SERIAL_WIDTH = 4;
+const RECENT_AVERAGE_COST_HISTORY_LIMIT = 3;
 
 export function normalizeUniqueNames(values) {
   const seen = new Set();
@@ -285,6 +286,17 @@ export function computeItemAmount(item, transaction = null) {
   return applyBillDiscount(qty * price * (1 - discount / 100), transaction);
 }
 
+function getPurchaseItemBaseUnitCost(item, transaction = null) {
+  const baseQuantity = getItemBaseQuantity(item);
+
+  if (baseQuantity > 0) {
+    return computeItemAmount(item, transaction) / baseQuantity;
+  }
+
+  const conversionFactor = Number(item?.conversion_factor ?? item?.conversionFactor ?? 1) || 1;
+  return (Number(item?.unit_cost) || 0) / conversionFactor;
+}
+
 export function renderDiscounts(item) {
   if (Array.isArray(item.discounts)) {
     const activeDiscounts = item.discounts.filter((discount) => Number(discount) > 0);
@@ -419,20 +431,48 @@ export function getProductMetrics(product, purchases, sales) {
     (sum, { item }) => sum + getItemBaseQuantity(item),
     0
   );
-  const priceRows = [...receivedPurchaseItems, ...activeSalesItems];
-  const totalPricedUnits = priceRows.reduce(
-    (sum, { item }) => sum + getItemBaseQuantity(item),
-    0
-  );
-  const totalPriceAmount = priceRows.reduce(
-    (sum, { transaction, item }) => sum + computeItemAmount(item, transaction),
+  const recentReceivedPurchaseItems = [...receivedPurchaseItems]
+    .sort((left, right) => {
+      const leftReceivedDate =
+        left.item?.received_date ??
+        left.item?.receivedDate ??
+        left.transaction?.transaction_date ??
+        left.transaction?.transactionDate ??
+        "";
+      const rightReceivedDate =
+        right.item?.received_date ??
+        right.item?.receivedDate ??
+        right.transaction?.transaction_date ??
+        right.transaction?.transactionDate ??
+        "";
+
+      if (leftReceivedDate !== rightReceivedDate) {
+        return rightReceivedDate.localeCompare(leftReceivedDate);
+      }
+
+      const leftTransactionDate =
+        left.transaction?.transaction_date ?? left.transaction?.transactionDate ?? "";
+      const rightTransactionDate =
+        right.transaction?.transaction_date ?? right.transaction?.transactionDate ?? "";
+
+      if (leftTransactionDate !== rightTransactionDate) {
+        return rightTransactionDate.localeCompare(leftTransactionDate);
+      }
+
+      return `${right.item?.id ?? ""}`.localeCompare(`${left.item?.id ?? ""}`);
+    })
+    .slice(0, RECENT_AVERAGE_COST_HISTORY_LIMIT);
+  const totalBaseUnitCost = recentReceivedPurchaseItems.reduce(
+    (sum, { transaction, item }) => sum + getPurchaseItemBaseUnitCost(item, transaction),
     0
   );
   const totalUnits = Math.max(0, purchasedUnits - soldUnits);
 
   return {
     totalUnits,
-    avgPrice: totalPricedUnits > 0 ? totalPriceAmount / totalPricedUnits : 0,
+    avgPrice: recentReceivedPurchaseItems.length > 0
+      ? totalBaseUnitCost / recentReceivedPurchaseItems.length
+      : 0,
     receivedPurchaseCount: receivedPurchaseItems.length,
     activeSalesCount: activeSalesItems.length,
     purchaseItems,

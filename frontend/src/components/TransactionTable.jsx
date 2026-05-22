@@ -20,7 +20,7 @@ import {
   updateSaleItemStatus,
 } from "../saleStatus";
 import { formatSaleStockIssueMessage, getSaleStockIssues } from "../saleStock";
-import { getItemQuantityDetails } from "../unitConversion";
+import { getItemBaseQuantity, getItemQuantityDetails } from "../unitConversion";
 import { formatDate } from "../format";
 import DocumentRefChip from "./DocumentRefChip";
 import DocumentRefModal from "./DocumentRefModal";
@@ -61,6 +61,40 @@ function computeItemAmount(item, transaction = null) {
 
   const disc = Math.min(100, Math.max(0, Number(item.discount) || 0));
   return applyBillDiscount(qty * price * (1 - disc / 100), transaction);
+}
+
+function computePurchaseBaseUnitCostBeforeDiscount(item) {
+  const unitCost = Number(item.unit_cost);
+  if (!Number.isFinite(unitCost)) {
+    return null;
+  }
+
+  const quantity = Number(item.quantity) || 0;
+  const baseQuantity = getItemBaseQuantity(item);
+  const conversionFactor = Number(item.conversion_factor ?? item.conversionFactor);
+  const resolvedFactor =
+    Number.isFinite(conversionFactor) && conversionFactor > 0
+      ? conversionFactor
+      : quantity > 0 && baseQuantity > 0
+        ? baseQuantity / quantity
+        : 1;
+
+  return unitCost / resolvedFactor;
+}
+
+function computePurchaseBaseUnitCostAfterDiscount(item, transaction = null) {
+  const baseQuantity = getItemBaseQuantity(item);
+  if (baseQuantity <= 0) {
+    return null;
+  }
+
+  return computeItemAmount(item, transaction) / baseQuantity;
+}
+
+function formatOptionalCurrency(value) {
+  return value === null || value === undefined || !Number.isFinite(Number(value))
+    ? "—"
+    : formatCurrency(value);
 }
 
 function renderDiscounts(item) {
@@ -1020,6 +1054,18 @@ function TransactionTable({
                         <th>Qty</th>
                         <th>Base Qty</th>
                         <th>Unit Cost</th>
+                        <th>
+                          <span className="compact-column-heading">
+                            <span>Base Cost</span>
+                            <span>Before Disc.</span>
+                          </span>
+                        </th>
+                        <th>
+                          <span className="compact-column-heading">
+                            <span>Base Cost</span>
+                            <span>After Disc.</span>
+                          </span>
+                        </th>
                         <th>Discounts</th>
                         <th>Amount</th>
                         <th />
@@ -1098,6 +1144,16 @@ function TransactionTable({
                             <td>{quantityDetails.enteredLabel}</td>
                             <td>{quantityDetails.baseLabel}</td>
                             <td>{item.unit_cost ? formatCurrency(item.unit_cost) : "—"}</td>
+                            <td>
+                              {formatOptionalCurrency(
+                                computePurchaseBaseUnitCostBeforeDiscount(item)
+                              )}
+                            </td>
+                            <td>
+                              {formatOptionalCurrency(
+                                computePurchaseBaseUnitCostAfterDiscount(item, selectedRow)
+                              )}
+                            </td>
                             <td>
                               <DiscountBreakdown item={item} transaction={selectedRow} />
                             </td>

@@ -28,6 +28,62 @@ function paymentTerm(type, days) {
   return "—";
 }
 
+function getBaseQuantity(item) {
+  if (item?.base_quantity !== undefined && item?.base_quantity !== null) {
+    return Number(item.base_quantity) || 0;
+  }
+
+  const quantity = Number(item?.quantity) || 0;
+  const factor = Number(item?.conversion_factor) || 1;
+  return quantity * factor;
+}
+
+function getItemConversionFactor(item) {
+  const rawFactor = Number(item?.conversion_factor);
+  if (Number.isFinite(rawFactor) && rawFactor > 0) {
+    return rawFactor;
+  }
+
+  const quantity = Number(item?.quantity) || 0;
+  const baseQuantity = getBaseQuantity(item);
+  return quantity > 0 && baseQuantity > 0 ? baseQuantity / quantity : 1;
+}
+
+function formatOptionalMoney(value) {
+  return value === null || value === undefined || !Number.isFinite(Number(value))
+    ? "—"
+    : fmt(value);
+}
+
+function formatQuantityWithUnit(quantity, unit) {
+  const numericQuantity = Number(quantity);
+  const normalizedUnit = `${unit || ""}`.trim();
+
+  if (!Number.isFinite(numericQuantity)) {
+    return "—";
+  }
+
+  return normalizedUnit ? `${numericQuantity} ${normalizedUnit}` : `${numericQuantity}`;
+}
+
+function getSaleBaseUnitPrice(item) {
+  const unitPrice = Number(item?.unit_price);
+  if (!Number.isFinite(unitPrice)) {
+    return null;
+  }
+
+  return unitPrice / getItemConversionFactor(item);
+}
+
+function getSaleBaseUnitPriceAfterDiscount(item) {
+  const baseQuantity = getBaseQuantity(item);
+  if (baseQuantity <= 0) {
+    return null;
+  }
+
+  return (Number(item?.amount) || 0) / baseQuantity;
+}
+
 function quotationLink(id, referenceNo) {
   return id ? [{ id, reference_no: referenceNo || "" }] : [];
 }
@@ -149,6 +205,9 @@ const DOC_CONFIG = {
         "Shipped",
         "Delivered",
         "Qty",
+        "Base Qty",
+        "Base Unit Price",
+        "Base Unit Price After Disc.",
         "Unit Price",
         "Supplier",
         "Unit Cost",
@@ -162,7 +221,10 @@ const DOC_CONFIG = {
         prettyStatus(item.item_status),
         formatDate(item.shipped_date),
         formatDate(item.delivered_date),
-        item.quantity,
+        formatQuantityWithUnit(item.quantity, item.unit),
+        formatQuantityWithUnit(item.base_quantity, item.base_unit),
+        formatOptionalMoney(getSaleBaseUnitPrice(item)),
+        formatOptionalMoney(getSaleBaseUnitPriceAfterDiscount(item)),
         fmt(item.unit_price),
         item.supplier_name || "—",
         Number(item.unit_cost) > 0 ? fmt(item.unit_cost) : "—",

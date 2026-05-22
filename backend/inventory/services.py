@@ -1,7 +1,7 @@
 import json
 import math
 import re
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.conf import settings
@@ -34,6 +34,7 @@ SALE_ITEM_STATUSES = {"pending", "packed", "shipped", "delivered", "cancelled"}
 PURCHASE_ITEM_STATUSES = {"pending", "received", "cancelled"}
 PURCHASE_FULL_TRANSACTION_STATUSES = {"draft", "ordered", "received", "cancelled"}
 SAFETY_STOCK_DAYS = 7
+RECENT_AVERAGE_COST_HISTORY_LIMIT = 3
 CHAT_STOP_WORDS = {
     "about",
     "are",
@@ -109,32 +110,40 @@ def compute_date_span_days(dates):
     return max(1, (max(dates) - min(dates)).days + 1)
 
 
+def get_purchase_item_base_unit_cost(item):
+    base_quantity = item.base_quantity or Decimal("0")
+    if base_quantity > 0:
+        return (item.amount or Decimal("0")) / base_quantity
+
+    conversion_factor = item.conversion_factor or Decimal("1")
+    if conversion_factor > 0:
+        return (item.unit_cost or Decimal("0")) / conversion_factor
+
+    return Decimal("0")
+
+
 def get_product_metric_snapshots(product_ids=None, exclude_sale_id=None):
     product_ids = {product_id for product_id in product_ids or [] if product_id}
     received = {}
-    received_value = {}
     received_purchase_count = {}
+    recent_received_items = {}
     committed = {}
     active_sales_count = {}
 
-    purchase_items = PurchaseItem.objects.select_related("product").filter(
+    purchase_items = PurchaseItem.objects.select_related("product", "purchase").filter(
+        item_status=PurchaseItem.ITEM_RECEIVED,
         product_id__isnull=False,
     )
     if product_ids:
         purchase_items = purchase_items.filter(product_id__in=product_ids)
 
     for item in purchase_items:
-        if item.item_status != PurchaseItem.ITEM_RECEIVED:
-            continue
-
         quantity = item.base_quantity or Decimal("0")
         received[item.product_id] = received.get(item.product_id, Decimal("0")) + quantity
-        received_value[item.product_id] = (
-            received_value.get(item.product_id, Decimal("0")) + (item.amount or Decimal("0"))
-        )
         received_purchase_count[item.product_id] = (
             received_purchase_count.get(item.product_id, 0) + 1
         )
+        recent_received_items.setdefault(item.product_id, []).append(item)
 
     sale_items = SaleItem.objects.select_related("product").filter(
         product_id__isnull=False,
@@ -159,9 +168,23 @@ def get_product_metric_snapshots(product_ids=None, exclude_sale_id=None):
     metrics = {}
     for product in products:
         received_units = received.get(product.id, Decimal("0"))
+        recent_items = sorted(
+            recent_received_items.get(product.id, []),
+            key=lambda item: (
+                item.received_date or item.purchase.transaction_date or date.min,
+                item.purchase.transaction_date or date.min,
+                item.purchase.created_at,
+                item.id,
+            ),
+            reverse=True,
+        )[:RECENT_AVERAGE_COST_HISTORY_LIMIT]
+        recent_base_unit_costs = [
+            get_purchase_item_base_unit_cost(item)
+            for item in recent_items
+        ]
         average_unit_cost = (
-            received_value.get(product.id, Decimal("0")) / received_units
-            if received_units > 0
+            sum(recent_base_unit_costs, Decimal("0")) / Decimal(len(recent_base_unit_costs))
+            if recent_base_unit_costs
             else Decimal("0")
         )
         metrics[product.id] = {

@@ -840,7 +840,7 @@
 .product-history-table-window .transaction-history-table-purchase,
 .product-history-table-window .transaction-history-table-sale {
   width: max-content;
-  min-width: 1152px;
+  min-width: 1312px;
   table-layout: auto;
 }
 
@@ -882,7 +882,11 @@
 }
 
 .product-history-col-money {
-  width: 110px;
+  width: 100px;
+}
+
+.product-history-col-base-cost {
+  width: 86px;
 }
 
 .product-history-col-discount {
@@ -1221,6 +1225,14 @@
   letter-spacing: 0.03em;
 }
 
+.compact-column-heading {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.05;
+  white-space: normal;
+}
+
 .detail-item-table td {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1358,67 +1370,77 @@
 
 .detail-item-table-purchase th:nth-child(2),
 .detail-item-table-purchase td:nth-child(2) {
-  width: 11%;
+  width: 9.5%;
 }
 
 .detail-item-table-purchase th:nth-child(3),
 .detail-item-table-purchase td:nth-child(3) {
-  width: 5.8%;
+  width: 5%;
 }
 
 .detail-item-table-purchase th:nth-child(4),
 .detail-item-table-purchase td:nth-child(4),
 .detail-item-table-purchase th:nth-child(7),
 .detail-item-table-purchase td:nth-child(7) {
-  width: 8%;
+  width: 7%;
 }
 
 .detail-item-table-purchase th:nth-child(5),
 .detail-item-table-purchase td:nth-child(5) {
-  width: 6.5%;
+  width: 5.5%;
 }
 
 .detail-item-table-purchase th:nth-child(6),
 .detail-item-table-purchase td:nth-child(6) {
-  width: 9.5%;
+  width: 8%;
 }
 
 .detail-item-table-purchase th:nth-child(8),
 .detail-item-table-purchase td:nth-child(8) {
-  width: 6%;
+  width: 5.5%;
 }
 
 .detail-item-table-purchase th:nth-child(9),
 .detail-item-table-purchase td:nth-child(9) {
-  width: 6.5%;
+  width: 6%;
 }
 
 .detail-item-table-purchase th:nth-child(10),
 .detail-item-table-purchase td:nth-child(10) {
-  width: 6.8%;
+  width: 6%;
 }
 
 .detail-item-table-purchase th:nth-child(11),
 .detail-item-table-purchase td:nth-child(11) {
-  width: 12%;
+  width: 5.8%;
 }
 
 .detail-item-table-purchase th:nth-child(12),
 .detail-item-table-purchase td:nth-child(12) {
-  width: 7.2%;
+  width: 5.8%;
 }
 
 .detail-item-table-purchase th:nth-child(13),
 .detail-item-table-purchase td:nth-child(13) {
-  width: 9.5%;
+  width: 9%;
 }
 
-.detail-item-table-purchase td:nth-child(11),
-.detail-item-table-purchase td:nth-child(11) .tx-discount-label {
+.detail-item-table-purchase th:nth-child(14),
+.detail-item-table-purchase td:nth-child(14) {
+  width: 6%;
+}
+
+.detail-item-table-purchase th:nth-child(15),
+.detail-item-table-purchase td:nth-child(15) {
+  width: 7.8%;
+}
+
+.detail-item-table-purchase td:nth-child(13),
+.detail-item-table-purchase td:nth-child(13) .tx-discount-label {
   overflow: visible;
   text-overflow: clip;
 }
 
-.detail-item-table-purchase td:nth-child(11) .tx-discount-breakdown-row {
+.detail-item-table-purchase td:nth-child(13) .tx-discount-breakdown-row {
   white-space: normal;
 }

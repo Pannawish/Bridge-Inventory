@@ -142,28 +142,35 @@ class InventoryPaginationTests(APITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["sku"], "PAGE-0")
 
-    def test_product_list_includes_average_cost_metrics(self):
+    def test_product_list_includes_average_cost_metrics_from_last_three_received_purchases(self):
         product = Product.objects.get(sku="PAGE-0")
-        purchase = Purchase.objects.create(
-            reference_no="PO-AVG-COST",
-            supplier_name="Cost Supplier",
-            status=Purchase.STATUS_RECEIVED,
-            transaction_date="2026-05-01",
+        purchase_specs = (
+            (Decimal("1"), Decimal("1"), Decimal("10")),
+            (Decimal("1"), Decimal("5"), Decimal("100")),
+            (Decimal("2"), Decimal("10"), Decimal("300")),
+            (Decimal("1"), Decimal("20"), Decimal("800")),
         )
-        PurchaseItem.objects.create(
-            purchase=purchase,
-            product=product,
-            product_name=product.product_name,
-            sku=product.sku,
-            item_status=PurchaseItem.ITEM_RECEIVED,
-            unit="pcs",
-            base_unit="pcs",
-            conversion_factor=Decimal("1"),
-            quantity=Decimal("5"),
-            base_quantity=Decimal("5"),
-            unit_cost=Decimal("4"),
-            amount=Decimal("20"),
-        )
+        for index, (quantity, conversion_factor, unit_cost) in enumerate(purchase_specs, start=1):
+            purchase = Purchase.objects.create(
+                reference_no=f"PO-AVG-COST-{index}",
+                supplier_name="Cost Supplier",
+                status=Purchase.STATUS_RECEIVED,
+                transaction_date=f"2026-05-0{index}",
+            )
+            PurchaseItem.objects.create(
+                purchase=purchase,
+                product=product,
+                product_name=product.product_name,
+                sku=product.sku,
+                item_status=PurchaseItem.ITEM_RECEIVED,
+                unit="pcs",
+                base_unit="pcs",
+                conversion_factor=conversion_factor,
+                quantity=quantity,
+                base_quantity=quantity * conversion_factor,
+                unit_cost=unit_cost,
+                amount=quantity * unit_cost,
+            )
         sale = Sale.objects.create(
             reference_no="SO-AVG-COST",
             customer_name="Cost Customer",
@@ -195,9 +202,9 @@ class InventoryPaginationTests(APITestCase):
         self.assertEqual(response.data["count"], 1)
         row = response.data["results"][0]
         self.assertEqual(row["sku"], "PAGE-0")
-        self.assertEqual(Decimal(row["average_unit_cost"]), Decimal("4"))
-        self.assertEqual(Decimal(row["current_stock"]), Decimal("3"))
-        self.assertEqual(row["received_purchase_count"], 1)
+        self.assertEqual(Decimal(row["average_unit_cost"]), Decimal("30"))
+        self.assertEqual(Decimal(row["current_stock"]), Decimal("44"))
+        self.assertEqual(row["received_purchase_count"], 4)
         self.assertEqual(row["active_sales_count"], 1)
 
     def test_supplier_search_and_profile_filter_apply_before_pagination(self):

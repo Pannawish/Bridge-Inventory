@@ -16,6 +16,7 @@ import {
   getProductBaseUnit,
   getProductDefaultPurchaseUnit,
   getProductDefaultSalesUnit,
+  getItemBaseQuantity,
   getItemQuantityDetails,
 } from "../unitConversion";
 import {
@@ -93,6 +94,40 @@ function createLocalPagination(count, page, pageSize = PRODUCT_HISTORY_PAGE_SIZE
 function getPaginatedRows(rows, pagination) {
   const start = (pagination.page - 1) * pagination.page_size;
   return rows.slice(start, start + pagination.page_size);
+}
+
+function computePurchaseBaseUnitCostBeforeDiscount(item) {
+  const unitCost = Number(item.unit_cost);
+  if (!Number.isFinite(unitCost)) {
+    return null;
+  }
+
+  const quantity = Number(item.quantity) || 0;
+  const baseQuantity = getItemBaseQuantity(item);
+  const conversionFactor = Number(item.conversion_factor ?? item.conversionFactor);
+  const resolvedFactor =
+    Number.isFinite(conversionFactor) && conversionFactor > 0
+      ? conversionFactor
+      : quantity > 0 && baseQuantity > 0
+        ? baseQuantity / quantity
+        : 1;
+
+  return unitCost / resolvedFactor;
+}
+
+function computePurchaseBaseUnitCostAfterDiscount(item, purchase) {
+  const baseQuantity = getItemBaseQuantity(item);
+  if (baseQuantity <= 0) {
+    return null;
+  }
+
+  return computeItemAmount(item, purchase) / baseQuantity;
+}
+
+function formatOptionalCurrency(value) {
+  return value === null || value === undefined || !Number.isFinite(Number(value))
+    ? "—"
+    : formatCurrency(value);
 }
 
 function DiscountBreakdown({ item, transaction }) {
@@ -1933,6 +1968,8 @@ function ProductsPage({
                               <col className="product-history-col-qty" />
                               <col className="product-history-col-qty" />
                               <col className="product-history-col-money" />
+                              <col className="product-history-col-base-cost" />
+                              <col className="product-history-col-base-cost" />
                               <col className="product-history-col-discount" />
                               <col className="product-history-col-money" />
                               <col className="product-history-col-status" />
@@ -1947,6 +1984,18 @@ function ProductsPage({
                                 <th>Qty</th>
                                 <th>Base Qty</th>
                                 <th>Unit Cost</th>
+                                <th>
+                                  <span className="compact-column-heading">
+                                    <span>Base Cost</span>
+                                    <span>Before Disc.</span>
+                                  </span>
+                                </th>
+                                <th>
+                                  <span className="compact-column-heading">
+                                    <span>Base Cost</span>
+                                    <span>After Disc.</span>
+                                  </span>
+                                </th>
                                 <th>Discounts</th>
                                 <th>Amount</th>
                                 <th>Status</th>
@@ -1978,6 +2027,16 @@ function ProductsPage({
                                       {item.unit_cost !== undefined && item.unit_cost !== null
                                         ? formatCurrency(item.unit_cost)
                                         : "—"}
+                                    </td>
+                                    <td>
+                                      {formatOptionalCurrency(
+                                        computePurchaseBaseUnitCostBeforeDiscount(item)
+                                      )}
+                                    </td>
+                                    <td>
+                                      {formatOptionalCurrency(
+                                        computePurchaseBaseUnitCostAfterDiscount(item, purchase)
+                                      )}
                                     </td>
                                     <td>
                                       <DiscountBreakdown item={item} transaction={purchase} />

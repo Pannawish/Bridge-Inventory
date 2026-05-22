@@ -309,7 +309,7 @@ function App() {
     try {
       const saved = await api.createPurchase(formData);
       setNotice(`Purchase order ${saved?.reference_no || ""} created.`.trim());
-      await loadPurchasePage();
+      await loadData();
       return saved;
     } catch (requestError) {
       setError(requestError.message);
@@ -423,6 +423,7 @@ function App() {
         )
       );
       setNotice(`Purchase ${updatedPurchase.reference_no || updatedPurchase.id} updated.`);
+      await loadData();
       return true;
     } catch (requestError) {
       showWarning(requestError.message || "Purchase update failed.");
@@ -594,6 +595,7 @@ function App() {
       );
       setNotice(`Purchase ${updatedPurchase.reference_no || updatedPurchase.id} updated.`);
       await refreshPaymentBatchEligibility();
+      await loadData();
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -645,6 +647,7 @@ function App() {
         currentRows.filter((row) => row.id !== deletedPurchase.id)
       );
       setNotice(`Purchase ${deletedPurchase.reference_no || deletedPurchase.id} deleted.`);
+      await loadData();
       return true;
     } catch (requestError) {
       setError(requestError.message);
