@@ -766,6 +766,27 @@
 }
 
 /* Quotation detail — per-item supplier comparison */
+.transaction-detail-modal .quotation-detail-scroll {
+  overflow-x: auto;
+}
+
+.quotation-detail-table {
+  min-width: 1320px;
+}
+
+.quotation-detail-table th,
+.quotation-detail-table td {
+  padding: 9px 6px;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  vertical-align: middle;
+}
+
+.quotation-detail-table th {
+  font-size: 0.64rem;
+  letter-spacing: 0.03em;
+}
+
 .quotation-supplier-summary {
   display: flex;
   flex-direction: column;
@@ -776,3 +797,17 @@
   font-size: 0.82rem;
 }
 
+.quotation-detail-stock {
+  display: grid;
+  gap: 4px;
+}
+
+.quotation-detail-stock .status-badge {
+  justify-content: center;
+}
+
+.quotation-detail-stock-meta {
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.2;
+}

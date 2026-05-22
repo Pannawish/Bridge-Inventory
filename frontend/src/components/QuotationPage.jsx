@@ -8,11 +8,14 @@ import DocumentRefModal from "./DocumentRefModal";
 import { FilterPresets, ActiveFilterChips, RangeField, withinRange } from "./FilterControls";
 import {
   buildConvertedItemFields,
+  getItemBaseQuantity,
+  getProductBaseUnit,
   getProductDefaultSalesUnit,
   getProductUnitConversions,
   getUnitValueFromBaseValue,
 } from "../unitConversion";
 import { formatDate, formatMoney as fmt } from "../format";
+import { getAvailableStockByProductId } from "../saleStock";
 import { useLanguage } from "../i18n/LanguageContext";
 
 const VAT_RATE = 0.07;
@@ -161,15 +164,175 @@ function normalizeDiscounts(item) {
   return [""];
 }
 
-function computeAmount(item, priceKey = "sale_price") {
-  const qty = Number(item.quantity) || 0;
-  const price = Number(item[priceKey]) || 0;
-  const multiplier = normalizeDiscounts(item).reduce((acc, discount) => {
+function getDiscountMultiplier(item) {
+  return normalizeDiscounts(item).reduce((acc, discount) => {
     const clamped = Math.min(100, Math.max(0, Number(discount) || 0));
     return acc * (1 - clamped / 100);
   }, 1);
+}
 
-  return qty * price * multiplier;
+function computeAmount(item, priceKey = "sale_price") {
+  const qty = Number(item.quantity) || 0;
+  const price = Number(item[priceKey]) || 0;
+
+  return qty * price * getDiscountMultiplier(item);
+}
+
+function formatStockQuantity(value) {
+  return Number(value || 0).toLocaleString("en-US", {
+    maximumFractionDigits: 6,
+  });
+}
+
+function hasValue(value) {
+  return value !== undefined && value !== null && `${value}`.trim() !== "";
+}
+
+function getQuotationItemBaseQuantity(item, product) {
+  if (hasValue(item?.base_quantity)) {
+    return getItemBaseQuantity(item);
+  }
+
+  if (hasValue(item?.conversion_factor)) {
+    return getItemBaseQuantity(item);
+  }
+
+  if (!product) {
+    return Number(item?.quantity) || 0;
+  }
+
+  return buildConvertedItemFields(
+    product,
+    item?.quantity,
+    item?.unit || getProductDefaultSalesUnit(product),
+    "sale"
+  ).base_quantity;
+}
+
+function getQuotationItemBaseUnit(item, product) {
+  return item?.base_unit || item?.baseUnit || getProductBaseUnit(product);
+}
+
+function getQuotationItemConversionFactor(item, product) {
+  const storedFactor = Number(item?.conversion_factor ?? item?.conversionFactor);
+  if (Number.isFinite(storedFactor) && storedFactor > 0) {
+    return storedFactor;
+  }
+
+  const quantity = Number(item?.quantity) || 0;
+  const baseQuantity = Number(item?.base_quantity ?? item?.baseQuantity);
+  if (quantity > 0 && Number.isFinite(baseQuantity) && baseQuantity > 0) {
+    return baseQuantity / quantity;
+  }
+
+  if (!product) {
+    return 1;
+  }
+
+  return buildConvertedItemFields(
+    product,
+    item?.quantity,
+    item?.unit || getProductDefaultSalesUnit(product),
+    "sale"
+  ).conversion_factor;
+}
+
+function getQuotationBaseSalePrice(item, product, afterDiscount = false) {
+  if (!hasValue(item?.sale_price)) {
+    return null;
+  }
+
+  const salePrice = Number(item?.sale_price);
+  if (!Number.isFinite(salePrice)) {
+    return null;
+  }
+
+  const conversionFactor = getQuotationItemConversionFactor(item, product);
+  if (!(conversionFactor > 0)) {
+    return null;
+  }
+
+  const baseSalePrice = salePrice / conversionFactor;
+  return afterDiscount ? baseSalePrice * getDiscountMultiplier(item) : baseSalePrice;
+}
+
+function formatQuantityWithUnit(quantity, unit) {
+  if (!Number.isFinite(Number(quantity))) {
+    return "—";
+  }
+
+  return `${formatStockQuantity(quantity)} ${unit || ""}`.trim();
+}
+
+function formatOptionalMoney(value) {
+  return Number.isFinite(Number(value)) ? fmt(value) : "—";
+}
+
+function getQuotationStockCoverage(quotation, products = [], purchases = [], sales = []) {
+  const items = Array.isArray(quotation?.items) ? quotation.items : [];
+
+  if (!items.length) {
+    return { allSufficient: false, lines: [] };
+  }
+
+  const availableStockByProductId = getAvailableStockByProductId(products, purchases, sales);
+  const remainingStockByProductId = new Map(availableStockByProductId);
+  const lines = items.map((item) => {
+    const product = findProductForItem(item, products);
+
+    if (!product?.id) {
+      return {
+        status: "unknown",
+        isSufficient: false,
+        metaKey: "quotationDetail.stockUnknownMeta",
+        metaValues: {},
+      };
+    }
+
+    const productId = `${product.id}`;
+    const baseUnit = getQuotationItemBaseUnit(item, product);
+    const requestedBaseQuantity = getQuotationItemBaseQuantity(item, product);
+
+    if (!(requestedBaseQuantity > 0)) {
+      return {
+        status: "unknown",
+        isSufficient: false,
+        metaKey: "quotationDetail.stockUnknownMeta",
+        metaValues: {},
+      };
+    }
+
+    const availableBaseQuantity = remainingStockByProductId.get(productId) || 0;
+    const shortageBaseQuantity = Math.max(0, requestedBaseQuantity - availableBaseQuantity);
+    const isSufficient = availableBaseQuantity >= requestedBaseQuantity;
+
+    remainingStockByProductId.set(
+      productId,
+      Math.max(0, availableBaseQuantity - requestedBaseQuantity)
+    );
+
+    return {
+      status: isSufficient ? "covered" : "short",
+      isSufficient,
+      metaKey: isSufficient
+        ? "quotationDetail.stockAvailableMeta"
+        : "quotationDetail.stockShortageMeta",
+      metaValues: isSufficient
+        ? {
+            available: formatStockQuantity(availableBaseQuantity),
+            unit: baseUnit,
+          }
+        : {
+            shortage: formatStockQuantity(shortageBaseQuantity),
+            unit: baseUnit,
+          },
+    };
+  });
+
+  return {
+    allSufficient: lines.length > 0 && lines.every((line) => line.isSufficient),
+    lines,
+  };
 }
 
 function computeVatSummary(itemTotal, vatMode) {
@@ -1261,6 +1424,7 @@ function QuotationPage({
   onViewPurchases,
   onCreateSale,
 }) {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState("");
@@ -1276,6 +1440,10 @@ function QuotationPage({
   const [showAllRows, setShowAllRows] = useState(false);
   const [conversion, setConversion] = useState(null);
   const [docRefModal, setDocRefModal] = useState(null);
+  const viewingQuotationStockCoverage = useMemo(
+    () => getQuotationStockCoverage(viewingQuotation, products, purchases, sales),
+    [products, purchases, sales, viewingQuotation]
+  );
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const customerOptions = useMemo(
     () => getQuotationPartnerOptions(quotations, "customer_name", customers),
@@ -1889,7 +2057,7 @@ function QuotationPage({
           onClick={() => setViewingQuotation(null)}
         >
           <div
-            className="detail-modal section-card"
+            className="detail-modal transaction-detail-modal section-card"
             role="dialog"
             aria-modal="true"
             aria-labelledby="quotation-detail-title"
@@ -1916,6 +2084,12 @@ function QuotationPage({
                 <button
                   className="table-action-button"
                   type="button"
+                  disabled={viewingQuotationStockCoverage.allSufficient}
+                  title={
+                    viewingQuotationStockCoverage.allSufficient
+                      ? t("quotationDetail.purchaseDisabledCovered")
+                      : ""
+                  }
                   onClick={() => {
                     setViewingQuotation(null);
                     setEditingQuotation(null);
@@ -2008,16 +2182,19 @@ function QuotationPage({
 
             <div className="detail-items">
               <p className="detail-label">Items</p>
-              <div className="table-scroll">
-                <table>
+              <div className="table-scroll quotation-detail-scroll">
+                <table className="quotation-detail-table">
                   <thead>
                     <tr>
                       <th className="table-index-cell">#</th>
                       <th>Product</th>
                       <th>SKU</th>
                       <th>Qty</th>
-                      <th>Unit</th>
+                      <th>{t("quotationDetail.baseQtyColumn")}</th>
+                      <th>{t("quotationDetail.stockColumn")}</th>
                       <th>Sale Price</th>
+                      <th>{t("quotationDetail.baseSalePriceColumn")}</th>
+                      <th>{t("quotationDetail.baseSalePriceAfterDiscountColumn")}</th>
                       <th>Suppliers (Cost)</th>
                       <th>Discounts</th>
                       <th>Sale Amount</th>
@@ -2025,6 +2202,20 @@ function QuotationPage({
                   </thead>
                   <tbody>
                     {(viewingQuotation.items || []).map((item, index) => {
+                      const stockCoverage = viewingQuotationStockCoverage.lines[index] || {
+                        status: "unknown",
+                        metaKey: "quotationDetail.stockUnknownMeta",
+                        metaValues: {},
+                      };
+                      const product = findProductForItem(item, products);
+                      const baseUnit = getQuotationItemBaseUnit(item, product);
+                      const baseQuantity = getQuotationItemBaseQuantity(item, product);
+                      const baseSalePrice = getQuotationBaseSalePrice(item, product);
+                      const baseSalePriceAfterDiscount = getQuotationBaseSalePrice(
+                        item,
+                        product,
+                        true
+                      );
                       const discounts = normalizeDiscounts(item);
                       const activeDiscounts = discounts.filter((d) => Number(d) > 0);
                       const discountLabel = activeDiscounts.length
@@ -2039,9 +2230,33 @@ function QuotationPage({
                           <td className="table-index-cell">{index + 1}</td>
                           <td>{item.product_name || "—"}</td>
                           <td>{item.sku || "—"}</td>
-                          <td>{item.quantity ?? "—"}</td>
-                          <td>{item.unit || "—"}</td>
+                          <td>{formatQuantityWithUnit(item.quantity, item.unit)}</td>
+                          <td>{formatQuantityWithUnit(baseQuantity, baseUnit)}</td>
+                          <td>
+                            <div className="quotation-detail-stock">
+                              <span
+                                className={`status-badge health-badge ${
+                                  stockCoverage.status === "covered"
+                                    ? "positive"
+                                    : stockCoverage.status === "short"
+                                      ? "warning"
+                                      : "danger"
+                                }`}
+                              >
+                                {stockCoverage.status === "covered"
+                                  ? t("quotationDetail.stockCovered")
+                                  : stockCoverage.status === "short"
+                                    ? t("quotationDetail.stockShort")
+                                    : t("quotationDetail.stockUnknown")}
+                              </span>
+                              <span className="quotation-detail-stock-meta">
+                                {t(stockCoverage.metaKey, stockCoverage.metaValues)}
+                              </span>
+                            </div>
+                          </td>
                           <td>{item.sale_price !== "" && item.sale_price != null ? fmt(item.sale_price) : "—"}</td>
+                          <td>{formatOptionalMoney(baseSalePrice)}</td>
+                          <td>{formatOptionalMoney(baseSalePriceAfterDiscount)}</td>
                           <td>
                             {supplierOptionList.length ? (
                               <div className="quotation-supplier-summary">
