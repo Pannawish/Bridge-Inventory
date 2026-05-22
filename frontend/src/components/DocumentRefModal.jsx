@@ -84,6 +84,24 @@ function getSaleBaseUnitPriceAfterDiscount(item) {
   return (Number(item?.amount) || 0) / baseQuantity;
 }
 
+function getPurchaseBaseUnitCost(item) {
+  const unitCost = Number(item?.unit_cost);
+  if (!Number.isFinite(unitCost)) {
+    return null;
+  }
+
+  return unitCost / getItemConversionFactor(item);
+}
+
+function getPurchaseBaseUnitCostAfterDiscount(item) {
+  const baseQuantity = getBaseQuantity(item);
+  if (baseQuantity <= 0) {
+    return null;
+  }
+
+  return (Number(item?.amount) || 0) / baseQuantity;
+}
+
 function quotationLink(id, referenceNo) {
   return id ? [{ id, reference_no: referenceNo || "" }] : [];
 }
@@ -151,6 +169,9 @@ const DOC_CONFIG = {
         "Item Status",
         "Received",
         "Qty",
+        "Base Qty",
+        "Base Cost",
+        "Base Cost After Disc.",
         "Unit Cost",
         "Discounts",
         "Amount",
@@ -162,7 +183,10 @@ const DOC_CONFIG = {
         formatDate(item.expected_delivery_date),
         prettyStatus(item.item_status),
         formatDate(item.received_date),
-        item.quantity,
+        formatQuantityWithUnit(item.quantity, item.unit),
+        formatQuantityWithUnit(item.base_quantity, item.base_unit),
+        formatOptionalMoney(getPurchaseBaseUnitCost(item)),
+        formatOptionalMoney(getPurchaseBaseUnitCostAfterDiscount(item)),
         fmt(item.unit_cost),
         renderDiscounts(item.discounts),
         fmt(item.amount),
