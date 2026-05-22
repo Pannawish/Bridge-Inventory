@@ -663,6 +663,42 @@ class SaleStockValidationTests(APITestCase):
         self.assertEqual(product_response.status_code, 200)
         self.assertEqual(product_response.data["current_stock"], Decimal("10"))
 
+    def test_status_patch_to_returned_releases_available_stock(self):
+        sale = Sale.objects.create(
+            customer_name="Stock Customer",
+            status=Sale.STATUS_PACKED,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=SaleItem.ITEM_PACKED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("4"),
+            base_quantity=Decimal("4"),
+            unit_price=Decimal("1"),
+            amount=Decimal("4"),
+        )
+
+        response = self.client.patch(
+            f"/api/sales/{sale.id}/",
+            {"status": Sale.STATUS_RETURNED},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], Sale.STATUS_RETURNED)
+        self.assertEqual(response.data["items"][0]["item_status"], SaleItem.ITEM_RETURNED)
+
+        product_response = self.client.get(f"/api/products/{self.product.id}/")
+
+        self.assertEqual(product_response.status_code, 200)
+        self.assertEqual(product_response.data["current_stock"], Decimal("10"))
+
     def test_cancelled_sale_item_can_be_restored_to_pending(self):
         sale = Sale.objects.create(
             customer_name="Stock Customer",
@@ -1570,6 +1606,24 @@ class CreditNoteTests(APITestCase):
         line_item_ids = {line["sale_item"] for line in sales[sale.id]["cancelled_lines"]}
         self.assertEqual(line_item_ids, {second_cancelled.id})
         self.assertTrue(response.data["next_reference_no"].startswith("CN-"))
+
+    def test_credit_note_eligibility_includes_returned_items(self):
+        sale, _ = self._sale_with_cancelled_item("SO-CN-RETURNED")
+        returned = SaleItem.objects.create(
+            sale=sale,
+            product_name="Returned Item",
+            item_status=SaleItem.ITEM_RETURNED,
+            quantity=Decimal("1"),
+            unit_price=Decimal("75"),
+            amount=Decimal("75"),
+        )
+
+        response = self.client.get("/api/eligibility/credit-note-sales/")
+
+        self.assertEqual(response.status_code, 200)
+        sales = {row["id"]: row for row in response.data["sales"]}
+        line_item_ids = {line["sale_item"] for line in sales[sale.id]["cancelled_lines"]}
+        self.assertIn(returned.id, line_item_ids)
 
     def test_billing_note_net_amount_subtracts_active_credit_notes(self):
         sale, cancelled = self._sale_with_cancelled_item("SO-CN-3")

@@ -166,7 +166,7 @@ function CreateCreditNoteModal({
       return;
     }
     if (!selectedSale) {
-      setError("Choose the sale that has cancelled items.");
+      setError("Choose the sale that has cancelled or returned items.");
       return;
     }
 
@@ -174,7 +174,7 @@ function CreateCreditNoteModal({
       selectedLineIds.has(line.sale_item)
     );
     if (!chosenLines.length) {
-      setError("Select at least one cancelled item to credit.");
+      setError("Select at least one cancelled or returned item to credit.");
       return;
     }
 
@@ -223,8 +223,8 @@ function CreateCreditNoteModal({
             label="Customer"
             value={customerName}
             options={customerOptions}
-            placeholder="Search customer with cancelled items"
-            emptyMessage="No customers have cancelled sale items."
+            placeholder="Search customer with cancelled or returned items"
+            emptyMessage="No customers have cancelled or returned sale items."
             onChange={(nextCustomerName) => {
               setCustomerName(nextCustomerName);
               setSaleId("");
@@ -253,11 +253,11 @@ function CreateCreditNoteModal({
               }}
               disabled={!customerName}
             >
-              <option value="">Select a sale with cancelled items</option>
+              <option value="">Select a sale with cancelled or returned items</option>
               {customerSales.map((sale) => (
                 <option key={sale.id} value={sale.id}>
                   {(sale.reference_no || sale.id) +
-                    ` — ${(sale.cancelled_lines || []).length} cancelled`}
+                    ` — ${(sale.cancelled_lines || []).length} cancelled/returned`}
                 </option>
               ))}
             </select>
@@ -294,7 +294,7 @@ function CreateCreditNoteModal({
         <div className="line-items-header">
           <div>
             <p className="eyebrow">Step 2</p>
-            <h4>Cancelled Items to Credit</h4>
+            <h4>Cancelled or Returned Items to Credit</h4>
           </div>
           <span>{selectedLineIds.size} selected</span>
         </div>
@@ -303,11 +303,11 @@ function CreateCreditNoteModal({
           <p className="empty-copy">Select a customer to see eligible sales.</p>
         ) : !selectedSale ? (
           <p className="empty-copy">
-            Select a sales order to load its cancelled items.
+            Select a sales order to load its cancelled or returned items.
           </p>
         ) : cancelledLines.length === 0 ? (
           <p className="empty-copy">
-            This sale has no cancelled items left to credit.
+            This sale has no cancelled or returned items left to credit.
           </p>
         ) : (
           <div className="transaction-table-window credit-note-create-table-window">
@@ -544,7 +544,7 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
 
           <div className="line-items-header">
             <div>
-              <p className="eyebrow">Cancelled Items</p>
+              <p className="eyebrow">Cancelled or Returned Items</p>
               <h4>Credited Lines</h4>
             </div>
             <span>{(draft.lines || []).length} items</span>

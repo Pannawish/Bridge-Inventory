@@ -39,7 +39,7 @@ export const tabs = [
     id: "credit-notes",
     label: "Credit Notes",
     shortLabel: "CN",
-    description: "Reduce customer balances for items cancelled after billing.",
+    description: "Reduce customer balances for items cancelled or returned after billing.",
   },
   {
     id: "suppliers",

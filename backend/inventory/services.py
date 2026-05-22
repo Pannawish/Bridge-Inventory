@@ -24,13 +24,29 @@ from .models import (
 
 
 SALE_STOCK_DEDUCTED_STATUSES = {"packed", "shipped", "delivered"}
-SALE_FULL_TRANSACTION_STATUSES = {"draft", "packed", "shipped", "delivered", "cancelled"}
+SALE_INACTIVE_TRANSACTION_STATUSES = {"cancelled", "returned"}
+SALE_FULL_TRANSACTION_STATUSES = {
+    "draft",
+    "packed",
+    "shipped",
+    "delivered",
+    "cancelled",
+    "returned",
+}
 SALE_PARTIAL_TRANSACTION_STATUSES = {
     "partially_packed",
     "partially_shipped",
     "partially_delivered",
 }
-SALE_ITEM_STATUSES = {"pending", "packed", "shipped", "delivered", "cancelled"}
+SALE_INACTIVE_ITEM_STATUSES = {"cancelled", "returned"}
+SALE_ITEM_STATUSES = {
+    "pending",
+    "packed",
+    "shipped",
+    "delivered",
+    "cancelled",
+    "returned",
+}
 PURCHASE_ITEM_STATUSES = {"pending", "received", "cancelled"}
 PURCHASE_FULL_TRANSACTION_STATUSES = {"draft", "ordered", "received", "cancelled"}
 SAFETY_STOCK_DAYS = 7
@@ -241,7 +257,12 @@ def get_sale_item_status(item, sale_status):
 
         return item.item_status
 
-    return SaleItem.ITEM_CANCELLED if sale_status == Sale.STATUS_CANCELLED else SaleItem.ITEM_PENDING
+    if sale_status == Sale.STATUS_CANCELLED:
+        return SaleItem.ITEM_CANCELLED
+    if sale_status == Sale.STATUS_RETURNED:
+        return SaleItem.ITEM_RETURNED
+
+    return SaleItem.ITEM_PENDING
 
 
 def get_sale_committed_quantity_by_product_id(items, sale_status):
@@ -451,6 +472,8 @@ def get_sale_item_status_for_transaction_status(status):
         return SaleItem.ITEM_PACKED
     if status == Sale.STATUS_CANCELLED:
         return SaleItem.ITEM_CANCELLED
+    if status == Sale.STATUS_RETURNED:
+        return SaleItem.ITEM_RETURNED
     return SaleItem.ITEM_PENDING
 
 
@@ -509,13 +532,17 @@ def get_sale_status_from_item_statuses(item_statuses, fallback_status=Sale.STATU
         return fallback_status or Sale.STATUS_DRAFT
 
     active_statuses = [
-        status for status in item_statuses if status != SaleItem.ITEM_CANCELLED
+        status for status in item_statuses if status not in SALE_INACTIVE_ITEM_STATUSES
     ]
 
-    if all(status == SaleItem.ITEM_CANCELLED for status in item_statuses):
+    if all(status in SALE_INACTIVE_ITEM_STATUSES for status in item_statuses):
+        if any(status == SaleItem.ITEM_RETURNED for status in item_statuses):
+            return Sale.STATUS_RETURNED
         return Sale.STATUS_CANCELLED
 
     if not active_statuses:
+        if any(status == SaleItem.ITEM_RETURNED for status in item_statuses):
+            return Sale.STATUS_RETURNED
         return Sale.STATUS_CANCELLED
 
     if all(status == SaleItem.ITEM_DELIVERED for status in active_statuses):
@@ -657,7 +684,7 @@ def build_stock_report():
     )
     for item in sale_items:
         row = product_rows.get(item.product_id)
-        if not row or item.sale.status == Sale.STATUS_CANCELLED:
+        if not row or item.sale.status in SALE_INACTIVE_TRANSACTION_STATUSES:
             continue
 
         quantity = item.base_quantity or Decimal("0")
@@ -1005,7 +1032,7 @@ def build_dashboard_summary(request=None):
         or Decimal("0")
     )
     sales_total = (
-        Sale.objects.exclude(status=Sale.STATUS_CANCELLED).aggregate(
+        Sale.objects.exclude(status__in=SALE_INACTIVE_TRANSACTION_STATUSES).aggregate(
             total=Sum("grand_total")
         )["total"]
         or Decimal("0")
@@ -1110,7 +1137,7 @@ def build_finance_segment(period, today=None):
         or Decimal("0")
     )
 
-    period_sales = Sale.objects.exclude(status=Sale.STATUS_CANCELLED).filter(
+    period_sales = Sale.objects.exclude(status__in=SALE_INACTIVE_TRANSACTION_STATUSES).filter(
         transaction_date__gte=start, transaction_date__lte=end
     )
     period_purchases = Purchase.objects.exclude(status=Purchase.STATUS_CANCELLED).filter(
@@ -1122,7 +1149,7 @@ def build_finance_segment(period, today=None):
     )
 
     sale_items = SaleItem.objects.filter(sale__in=period_sales).exclude(
-        item_status="cancelled"
+        item_status__in=SALE_INACTIVE_ITEM_STATUSES
     )
     revenue = Decimal("0")
     cost = Decimal("0")
@@ -1202,7 +1229,7 @@ def build_trend_segment(period, today=None):
 
     sales_by_day = {
         row["transaction_date"]: row["total"] or Decimal("0")
-        for row in Sale.objects.exclude(status=Sale.STATUS_CANCELLED)
+        for row in Sale.objects.exclude(status__in=SALE_INACTIVE_TRANSACTION_STATUSES)
         .filter(transaction_date__gte=start, transaction_date__lte=end)
         .values("transaction_date")
         .annotate(total=Sum("grand_total"))
@@ -1249,11 +1276,11 @@ def build_products_segment(period, today=None):
     period = normalize_segment_period(period)
     start, end = get_segment_period_range(period, today)
 
-    period_sales = Sale.objects.exclude(status=Sale.STATUS_CANCELLED).filter(
+    period_sales = Sale.objects.exclude(status__in=SALE_INACTIVE_TRANSACTION_STATUSES).filter(
         transaction_date__gte=start, transaction_date__lte=end
     )
     sale_items = SaleItem.objects.filter(sale__in=period_sales).exclude(
-        item_status="cancelled"
+        item_status__in=SALE_INACTIVE_ITEM_STATUSES
     )
     product_margin = {}
     for item in sale_items.iterator():
@@ -1530,7 +1557,9 @@ def format_transaction_line(row, party_key):
 
 def summarize_money_rows(rows, amount_key="grand_total"):
     rows = list(rows)
-    active_rows = [row for row in rows if row.get("status") != "cancelled"]
+    active_rows = [
+        row for row in rows if row.get("status") not in SALE_INACTIVE_TRANSACTION_STATUSES
+    ]
     return {
         "count": len(rows),
         "active_count": len(active_rows),
@@ -1545,7 +1574,11 @@ def summarize_model_rows(queryset, amount_attr="grand_total", fallback_rows=None
     if not rows and fallback_rows is not None:
         return summarize_money_rows(fallback_rows, amount_key=amount_attr)
 
-    active_rows = [row for row in rows if getattr(row, "status", "") != "cancelled"]
+    active_rows = [
+        row
+        for row in rows
+        if getattr(row, "status", "") not in SALE_INACTIVE_TRANSACTION_STATUSES
+    ]
     return {
         "count": len(rows),
         "active_count": len(active_rows),

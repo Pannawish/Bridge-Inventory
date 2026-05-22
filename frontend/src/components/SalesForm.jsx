@@ -368,7 +368,7 @@ function SalesForm({
     [enableStockValidation, form.status, products, purchases, sales, stockPreviewItems]
   );
   const saleStockMessage =
-    !["draft", "cancelled"].includes(form.status) && saleStockIssues.length
+    !["draft", "cancelled", "returned"].includes(form.status) && saleStockIssues.length
       ? formatSaleStockIssueMessage(saleStockIssues)
       : "";
 
@@ -395,7 +395,7 @@ function SalesForm({
         )
       : [];
 
-    if (!["draft", "cancelled"].includes(nextStatus) && nextIssues.length) {
+    if (!["draft", "cancelled", "returned"].includes(nextStatus) && nextIssues.length) {
       const message = formatSaleStockIssueMessage(nextIssues);
       updateForm("status", "draft");
       setStatusError(message);
@@ -628,7 +628,7 @@ function SalesForm({
 
     const customerName = resolveCustomerName();
     const requestedStatus =
-      !["draft", "cancelled"].includes(form.status) && saleStockIssues.length
+      !["draft", "cancelled", "returned"].includes(form.status) && saleStockIssues.length
         ? "draft"
         : form.status;
 
@@ -882,6 +882,7 @@ function SalesForm({
               <option value="shipped">Shipped</option>
               <option value="delivered">Delivered</option>
               <option value="cancelled">Cancelled</option>
+              <option value="returned">Returned</option>
             </select>
             {statusError || saleStockMessage ? (
               <span className="field-error-text">{statusError || saleStockMessage}</span>

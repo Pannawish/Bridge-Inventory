@@ -2288,7 +2288,7 @@ class CreditNoteSerializer(serializers.ModelSerializer):
         lines_data = validated_data.pop("lines", [])
         if not lines_data:
             raise serializers.ValidationError(
-                {"lines": "Add at least one cancelled item to the credit note."}
+                {"lines": "Add at least one cancelled or returned item to the credit note."}
             )
         if not validated_data.get("customer_name"):
             raise serializers.ValidationError({"customer_name": "Customer is required."})

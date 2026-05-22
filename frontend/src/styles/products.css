@@ -458,7 +458,8 @@
   background: #fff2f4;
 }
 
-.status-cancelled {
+.status-cancelled,
+.status-returned {
   color: #667085;
   background: #eef1f5;
 }

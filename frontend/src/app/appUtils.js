@@ -229,7 +229,9 @@ export function buildCreditNotePayload(creditNote) {
 }
 
 export function countCancelledSaleItems(sale) {
-  return (sale?.items || []).filter((item) => item.item_status === "cancelled")
+  return (sale?.items || []).filter(
+    (item) => item.item_status === "cancelled" || item.item_status === "returned"
+  )
     .length;
 }
 
@@ -253,7 +255,7 @@ export function findUncreditedCancelledSaleLines(sale, creditNotes = []) {
   return (sale?.items || [])
     .filter(
       (item) =>
-        item.item_status === "cancelled" &&
+        (item.item_status === "cancelled" || item.item_status === "returned") &&
         item.id !== undefined &&
         item.id !== null &&
         !credited.has(item.id)

@@ -247,7 +247,7 @@ function App() {
   }
 
   function shouldKeepSaleAsDraft(status) {
-    return !["draft", "cancelled"].includes(`${status || "draft"}`);
+    return !["draft", "cancelled", "returned"].includes(`${status || "draft"}`);
   }
 
   function buildDraftSale(sale) {

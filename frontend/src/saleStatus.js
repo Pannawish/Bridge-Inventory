@@ -11,9 +11,24 @@ export const saleStatuses = [
   "partially_delivered",
   "delivered",
   "cancelled",
+  "returned",
 ];
-export const saleItemStatuses = ["pending", "packed", "shipped", "delivered", "cancelled"];
-export const editableSaleItemStatuses = ["pending", "packed", "shipped", "delivered", "cancelled"];
+export const saleItemStatuses = [
+  "pending",
+  "packed",
+  "shipped",
+  "delivered",
+  "cancelled",
+  "returned",
+];
+export const editableSaleItemStatuses = [
+  "pending",
+  "packed",
+  "shipped",
+  "delivered",
+  "cancelled",
+  "returned",
+];
 
 export function getInitialSaleItemStatus(saleStatus = "draft") {
   if (
@@ -38,6 +53,10 @@ export function getInitialSaleItemStatus(saleStatus = "draft") {
 
   if (saleStatus === "cancelled") {
     return "cancelled";
+  }
+
+  if (saleStatus === "returned") {
+    return "returned";
   }
 
   return "pending";
@@ -66,12 +85,12 @@ export function getSaleItemStatusCounts(items = [], saleStatus = "draft") {
         [status]: counts[status] + 1,
       };
     },
-    { pending: 0, packed: 0, shipped: 0, delivered: 0, cancelled: 0 }
+    { pending: 0, packed: 0, shipped: 0, delivered: 0, cancelled: 0, returned: 0 }
   );
 }
 
-function isNonCancelledStatus(status) {
-  return status !== "cancelled";
+function isActiveStatus(status) {
+  return status !== "cancelled" && status !== "returned";
 }
 
 export function getSaleStatusFromItems(sale) {
@@ -82,13 +101,19 @@ export function getSaleStatusFromItems(sale) {
   }
 
   const storedStatuses = items.map((item) => getStoredSaleItemStatus(item, sale.status));
-  const activeStatuses = storedStatuses.filter(isNonCancelledStatus);
+  const activeStatuses = storedStatuses.filter(isActiveStatus);
 
-  if (storedStatuses.every((status) => status === "cancelled")) {
+  if (storedStatuses.every((status) => status === "cancelled" || status === "returned")) {
+    if (storedStatuses.some((status) => status === "returned")) {
+      return "returned";
+    }
     return "cancelled";
   }
 
   if (!activeStatuses.length) {
+    if (storedStatuses.some((status) => status === "returned")) {
+      return "returned";
+    }
     return "cancelled";
   }
 

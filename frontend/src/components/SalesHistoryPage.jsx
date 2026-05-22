@@ -496,7 +496,7 @@ function SalesEditForm({
     [enableStockValidation, form.status, products, purchases, sale, sales, stockPreviewItems]
   );
   const saleStockMessage =
-    !["draft", "cancelled"].includes(form.status) && saleStockIssues.length
+    !["draft", "cancelled", "returned"].includes(form.status) && saleStockIssues.length
       ? formatSaleStockIssueMessage(saleStockIssues)
       : "";
   const visibleDocuments = getTransactionDocuments(sale).filter(
@@ -522,7 +522,7 @@ function SalesEditForm({
         )
       : [];
 
-    if (!["draft", "cancelled"].includes(nextStatus) && nextIssues.length) {
+    if (!["draft", "cancelled", "returned"].includes(nextStatus) && nextIssues.length) {
       const message = formatSaleStockIssueMessage(nextIssues);
       updateForm("status", "draft");
       setFormError(message);
@@ -724,7 +724,7 @@ function SalesEditForm({
     }
 
     const requestedStatus =
-      !["draft", "cancelled"].includes(form.status) && saleStockIssues.length
+      !["draft", "cancelled", "returned"].includes(form.status) && saleStockIssues.length
         ? "draft"
         : form.status;
     const shouldApplyRequestedStatus =

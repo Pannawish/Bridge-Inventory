@@ -376,9 +376,10 @@ function TransactionTable({
   }
 
   function handleSaleItemStatusChange(itemIndex, nextStatus) {
-    if (nextStatus === "cancelled") {
+    if (nextStatus === "cancelled" || nextStatus === "returned") {
+      const actionLabel = nextStatus === "returned" ? "Return" : "Cancel";
       const confirmed = window.confirm(
-        "Cancel this sales item? This will clear shipped and delivered dates, release its stock commitment, and may update the sale status."
+        `${actionLabel} this sales item? This will clear shipped and delivered dates, release its stock commitment, and may update the sale status.`
       );
 
       if (!confirmed) {
@@ -914,16 +915,21 @@ function TransactionTable({
                       selectedRow.status
                     );
 
-                    return ["pending", "packed", "shipped", "delivered", "cancelled"].map(
-                      (status) => (
-                        <span
-                          key={status}
-                          className={`status-badge item-status-badge status-${status}`}
-                        >
-                          {counts[status]} {formatStatusLabel(status)}
-                        </span>
-                      )
-                    );
+                    return [
+                      "pending",
+                      "packed",
+                      "shipped",
+                      "delivered",
+                      "cancelled",
+                      "returned",
+                    ].map((status) => (
+                      <span
+                        key={status}
+                        className={`status-badge item-status-badge status-${status}`}
+                      >
+                        {counts[status]} {formatStatusLabel(status)}
+                      </span>
+                    ));
                   })()}
                 </div>
               ) : null}

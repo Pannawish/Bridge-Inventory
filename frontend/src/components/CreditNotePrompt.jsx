@@ -85,7 +85,7 @@ function CreditNotePrompt({
     );
 
     if (!chosenLines.length) {
-      setError("Select at least one cancelled item to credit.");
+      setError("Select at least one cancelled or returned item to credit.");
       return;
     }
 
@@ -134,10 +134,10 @@ function CreditNotePrompt({
       >
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Items cancelled</p>
+            <p className="eyebrow">Items cancelled or returned</p>
             <h3 id="cn-prompt-title">Create a Credit Note?</h3>
             <p className="credit-note-prompt-subtitle">
-              {newlyCancelledLines.length} cancelled item
+              {newlyCancelledLines.length} cancelled or returned item
               {newlyCancelledLines.length === 1 ? "" : "s"} on{" "}
               <strong>{sale.reference_no || `Sale ${sale.id}`}</strong> for{" "}
               <strong>{sale.customer_name || "this customer"}</strong>{" "}

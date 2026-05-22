@@ -379,6 +379,7 @@ class Sale(TimeStampedModel):
     STATUS_PARTIALLY_DELIVERED = "partially_delivered"
     STATUS_DELIVERED = "delivered"
     STATUS_CANCELLED = "cancelled"
+    STATUS_RETURNED = "returned"
 
     STATUS_CHOICES = [
         (STATUS_DRAFT, "Draft"),
@@ -389,6 +390,7 @@ class Sale(TimeStampedModel):
         (STATUS_PARTIALLY_DELIVERED, "Partially delivered"),
         (STATUS_DELIVERED, "Delivered"),
         (STATUS_CANCELLED, "Cancelled"),
+        (STATUS_RETURNED, "Returned"),
     ]
 
     id = models.CharField(max_length=80, primary_key=True, default=sale_id)
@@ -447,6 +449,7 @@ class SaleItem(models.Model):
     ITEM_SHIPPED = "shipped"
     ITEM_DELIVERED = "delivered"
     ITEM_CANCELLED = "cancelled"
+    ITEM_RETURNED = "returned"
 
     ITEM_STATUS_CHOICES = [
         (ITEM_PENDING, "Pending"),
@@ -454,6 +457,7 @@ class SaleItem(models.Model):
         (ITEM_SHIPPED, "Shipped"),
         (ITEM_DELIVERED, "Delivered"),
         (ITEM_CANCELLED, "Cancelled"),
+        (ITEM_RETURNED, "Returned"),
     ]
 
     id = models.CharField(max_length=80, primary_key=True, default=sale_item_id)

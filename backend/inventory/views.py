@@ -40,6 +40,7 @@ from .serializers import (
     SupplierSerializer,
 )
 from .services import (
+    SALE_INACTIVE_ITEM_STATUSES,
     SALE_STOCK_DEDUCTED_STATUSES,
     answer_inventory_question,
     build_dashboard_overview,
@@ -958,7 +959,7 @@ def eligible_credit_note_sales(request):
     )
 
     cancelled_items = (
-        SaleItem.objects.filter(item_status=SaleItem.ITEM_CANCELLED)
+        SaleItem.objects.filter(item_status__in=SALE_INACTIVE_ITEM_STATUSES)
         .exclude(id__in=credited_item_ids)
         .select_related("sale")
     )
