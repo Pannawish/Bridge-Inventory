@@ -34,13 +34,11 @@
 
 .dashboard-kpi-card strong {
   min-width: 0;
-  overflow: hidden;
   color: var(--text);
-  font-size: clamp(1.35rem, 2vw, 1.9rem);
+  font-size: clamp(1.05rem, 1.5vw, 1.5rem);
   font-weight: 650;
-  line-height: 1.12;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
 }
 
 .dashboard-kpi-card.positive {
@@ -58,12 +56,6 @@
   background: #fff8f9;
 }
 
-.dashboard-insight-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
-  gap: 18px;
-}
-
 .dashboard-page .section-card {
   border-color: var(--line);
   border-radius: 14px;
@@ -79,72 +71,6 @@
   font-size: 1.35rem;
   line-height: 1.15;
   letter-spacing: 0;
-}
-
-.dashboard-count-pill {
-  flex: 0 0 auto;
-  min-width: 38px;
-  padding: 6px 10px;
-  border: 1px solid #dde5f1;
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 0.8rem;
-  text-align: center;
-  background: #f8fafc;
-}
-
-.dashboard-inline-note {
-  margin: 2px 0 0;
-  color: var(--muted);
-  font-size: 0.86rem;
-}
-
-.dashboard-movement-list {
-  display: grid;
-  gap: 12px;
-}
-
-.dashboard-movement-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: center;
-  padding: 14px 0;
-  border-bottom: 1px solid #edf1fb;
-}
-
-.dashboard-movement-row:last-child {
-  border-bottom: 0;
-}
-
-.dashboard-movement-row span,
-.dashboard-movement-row p {
-  margin: 0;
-}
-
-.dashboard-movement-row span {
-  color: var(--text);
-  font-size: 0.94rem;
-  font-weight: 600;
-}
-
-.dashboard-movement-row p {
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 0.84rem;
-}
-
-.dashboard-movement-row strong {
-  color: var(--text);
-  font-size: 1rem;
-  font-weight: 650;
-  white-space: nowrap;
-}
-
-.inventory-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px;
 }
 
 /* ── Money & Cost overview ─────────────────────────────── */
@@ -173,26 +99,8 @@
 
 .dashboard-finance-kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(186px, 1fr));
   gap: 14px;
-}
-
-.dashboard-loss-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 14px;
-  padding: 12px 16px;
-  border: 1px solid #f1c4ca;
-  border-radius: 12px;
-  background: #fff8f9;
-  color: #b42318;
-  font-size: 0.92rem;
-}
-
-.dashboard-loss-icon {
-  font-size: 1.1rem;
-  line-height: 1;
 }
 
 .dashboard-finance-grid {
@@ -202,41 +110,82 @@
   align-items: stretch;
 }
 
-/* Trend chart */
-.dashboard-trend-sub {
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 600;
+/* A box dims briefly while it refetches its own period segment. */
+.is-refreshing {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
 }
 
-.dashboard-trend-chart {
+/* Trend chart */
+.dashboard-trend-plot {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.dashboard-trend-axis {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 46px;
+  height: 190px;
+  text-align: right;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dashboard-trend-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-trend-graph {
+  position: relative;
+  height: 190px;
+}
+
+.dashboard-trend-gridlines {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.dashboard-trend-gridlines span {
+  display: block;
+  height: 0;
+  border-top: 1px dashed #e7ecf5;
+}
+
+.dashboard-trend-cols {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  height: 150px;
-  padding-top: 8px;
-}
-
-.dashboard-trend-col {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
   height: 100%;
 }
 
 .dashboard-trend-bars {
   display: flex;
+  flex: 1;
   align-items: flex-end;
   justify-content: center;
-  gap: 4px;
-  width: 100%;
+  gap: 5px;
+  min-width: 0;
   height: 100%;
 }
 
 .dashboard-trend-bar {
-  width: 16px;
+  position: relative;
+  width: 18px;
+  max-width: 42%;
   min-height: 2px;
   border-radius: 5px 5px 0 0;
   transition: height 0.2s ease;
@@ -250,10 +199,33 @@
   background: #2d8cf0;
 }
 
-.dashboard-trend-label {
+.dashboard-trend-bar-value {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text);
+  font-size: 0.6rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dashboard-trend-xaxis {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.dashboard-trend-xlabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dashboard-trend-legend {

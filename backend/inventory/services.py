@@ -6,7 +6,6 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db.models import Prefetch, Q, Sum
-from django.db.models.functions import TruncMonth
 from django.utils.dateparse import parse_date
 from django.utils import timezone
 
@@ -984,42 +983,52 @@ def build_dashboard_summary(request=None):
     }
 
 
-PERIOD_LABELS = {
-    "month": "This month",
-    "30d": "Last 30 days",
-    "6m": "Last 6 months",
-    "year": "This year",
+SEGMENT_PERIOD_ORDER = ["1d", "2d", "5d", "1w", "2w", "1m", "3m", "6m", "1y"]
+SEGMENT_PERIOD_DAYS = {
+    "1d": 1,
+    "2d": 2,
+    "5d": 5,
+    "1w": 7,
+    "2w": 14,
+    "1m": 30,
+    "3m": 90,
+    "6m": 180,
+    "1y": 365,
 }
+SEGMENT_PERIOD_LABELS = {
+    "1d": "Today",
+    "2d": "Last 2 days",
+    "5d": "Last 5 days",
+    "1w": "Last week",
+    "2w": "Last 2 weeks",
+    "1m": "Last month",
+    "3m": "Last 3 months",
+    "6m": "Last 6 months",
+    "1y": "Last year",
+}
+DEFAULT_SEGMENT_PERIOD = "1m"
 
 
-def _months_back(reference, count):
-    """First day of the month `count` months before `reference`."""
-    month_index = reference.year * 12 + (reference.month - 1) - count
-    year, month = divmod(month_index, 12)
-    return reference.replace(year=year, month=month + 1, day=1)
+def normalize_segment_period(period):
+    return period if period in SEGMENT_PERIOD_DAYS else DEFAULT_SEGMENT_PERIOD
 
 
-def get_period_range(period, today=None):
+def get_segment_period_range(period, today=None):
+    """Rolling window ending today. e.g. '1w' -> last 7 days incl. today."""
     today = today or timezone.localdate()
-    if period == "30d":
-        return today - timedelta(days=30), today
-    if period == "6m":
-        return _months_back(today, 5), today
-    if period == "year":
-        return today.replace(month=1, day=1), today
-    return today.replace(day=1), today
+    days = SEGMENT_PERIOD_DAYS[normalize_segment_period(period)]
+    return today - timedelta(days=days - 1), today
 
 
-def build_dashboard_overview(period="month"):
-    """Cost/finance-aware overview: AR/AP, period KPIs, margin, trend, top lists."""
-    today = timezone.localdate()
-    period = period if period in PERIOD_LABELS else "month"
-    start, end = get_period_range(period, today)
+def build_finance_segment(period, today=None):
+    """AR/AP, sales, purchases and gross margin for a rolling period window."""
+    today = today or timezone.localdate()
+    period = normalize_segment_period(period)
+    start, end = get_segment_period_range(period, today)
 
-    # AR / AP are current balances (not period-scoped working capital).
     open_billing = BillingNote.objects.exclude(
         status__in=(BillingNote.STATUS_FULLY_RECEIVED, BillingNote.STATUS_CANCELLED)
-    )
+    ).filter(billing_note_date__gte=start, billing_note_date__lte=end)
     ar_outstanding = open_billing.aggregate(total=Sum("total_amount"))["total"] or Decimal("0")
     ar_overdue = (
         open_billing.filter(expected_payment_date__lt=today).aggregate(
@@ -1027,9 +1036,10 @@ def build_dashboard_overview(period="month"):
         )["total"]
         or Decimal("0")
     )
+
     open_payment = PaymentBatch.objects.exclude(
         status__in=(PaymentBatch.STATUS_PAID, PaymentBatch.STATUS_CANCELLED)
-    )
+    ).filter(batch_date__gte=start, batch_date__lte=end)
     ap_outstanding = open_payment.aggregate(total=Sum("total_amount"))["total"] or Decimal("0")
     ap_overdue = (
         open_payment.filter(planned_payment_date__lt=today).aggregate(
@@ -1041,37 +1051,153 @@ def build_dashboard_overview(period="month"):
     period_sales = Sale.objects.exclude(status=Sale.STATUS_CANCELLED).filter(
         transaction_date__gte=start, transaction_date__lte=end
     )
-    period_purchases = Purchase.objects.exclude(
-        status=Purchase.STATUS_CANCELLED
-    ).filter(transaction_date__gte=start, transaction_date__lte=end)
-
+    period_purchases = Purchase.objects.exclude(status=Purchase.STATUS_CANCELLED).filter(
+        transaction_date__gte=start, transaction_date__lte=end
+    )
     sales_total = period_sales.aggregate(total=Sum("grand_total"))["total"] or Decimal("0")
     purchase_total = (
         period_purchases.aggregate(total=Sum("grand_total"))["total"] or Decimal("0")
     )
 
-    # Margin + below-cost, derived from each sale line's own unit_cost (the
-    # supplier-specific cost recorded on the line). A line is "below cost" when
-    # its realised amount (after discounts) is less than quantity * unit_cost.
-    sale_items = (
-        SaleItem.objects.filter(sale__in=period_sales)
-        .exclude(item_status="cancelled")
+    sale_items = SaleItem.objects.filter(sale__in=period_sales).exclude(
+        item_status="cancelled"
     )
     revenue = Decimal("0")
     cost = Decimal("0")
-    below_cost_count = 0
-    below_cost_amount = Decimal("0")
+    for item in sale_items.iterator():
+        qty = Decimal(str(item.quantity or 0))
+        revenue += Decimal(str(item.amount or 0))
+        cost += Decimal(str(item.unit_cost or 0)) * qty
+    gross_margin = revenue - cost
+    margin_pct = (gross_margin / revenue * 100) if revenue > 0 else Decimal("0")
+
+    return {
+        "period": period,
+        "period_label": SEGMENT_PERIOD_LABELS[period],
+        "period_start": start.isoformat(),
+        "period_end": end.isoformat(),
+        "ar": {"outstanding": as_number(ar_outstanding), "overdue": as_number(ar_overdue)},
+        "ap": {"outstanding": as_number(ap_outstanding), "overdue": as_number(ap_overdue)},
+        "net_position": as_number(ar_outstanding - ap_outstanding),
+        "sales_total": as_number(sales_total),
+        "sales_count": period_sales.count(),
+        "purchase_total": as_number(purchase_total),
+        "purchase_count": period_purchases.count(),
+        "gross_margin": as_number(gross_margin),
+        "margin_pct": as_number(margin_pct.quantize(Decimal("0.1"))),
+    }
+
+
+def _trend_granularity(days):
+    if days <= 14:
+        return "day"
+    if days <= 90:
+        return "week"
+    return "month"
+
+
+def _build_trend_buckets(start, end, granularity):
+    """Ordered list of {label, key, start, end} spanning [start, end]."""
+    buckets = []
+    if granularity == "day":
+        current = start
+        while current <= end:
+            buckets.append(
+                {"key": current.isoformat(), "label": f"{current.day}/{current.month}",
+                 "start": current, "end": current}
+            )
+            current += timedelta(days=1)
+    elif granularity == "week":
+        current = start
+        while current <= end:
+            chunk_end = min(current + timedelta(days=6), end)
+            buckets.append(
+                {"key": current.isoformat(), "label": f"{current.day}/{current.month}",
+                 "start": current, "end": chunk_end}
+            )
+            current = chunk_end + timedelta(days=1)
+    else:  # month
+        current = start.replace(day=1)
+        while current <= end:
+            if current.month == 12:
+                next_month = current.replace(year=current.year + 1, month=1)
+            else:
+                next_month = current.replace(month=current.month + 1)
+            buckets.append(
+                {"key": current.isoformat(), "label": current.strftime("%b"),
+                 "start": max(current, start), "end": min(next_month - timedelta(days=1), end)}
+            )
+            current = next_month
+    return buckets
+
+
+def build_trend_segment(period, today=None):
+    """Sales vs purchases totals bucketed by day/week/month based on range."""
+    today = today or timezone.localdate()
+    period = normalize_segment_period(period)
+    start, end = get_segment_period_range(period, today)
+    granularity = _trend_granularity(SEGMENT_PERIOD_DAYS[period])
+
+    sales_by_day = {
+        row["transaction_date"]: row["total"] or Decimal("0")
+        for row in Sale.objects.exclude(status=Sale.STATUS_CANCELLED)
+        .filter(transaction_date__gte=start, transaction_date__lte=end)
+        .values("transaction_date")
+        .annotate(total=Sum("grand_total"))
+    }
+    purchases_by_day = {
+        row["transaction_date"]: row["total"] or Decimal("0")
+        for row in Purchase.objects.exclude(status=Purchase.STATUS_CANCELLED)
+        .filter(transaction_date__gte=start, transaction_date__lte=end)
+        .values("transaction_date")
+        .annotate(total=Sum("grand_total"))
+    }
+
+    def _sum_range(by_day, range_start, range_end):
+        total = Decimal("0")
+        cursor = range_start
+        while cursor <= range_end:
+            total += by_day.get(cursor, Decimal("0"))
+            cursor += timedelta(days=1)
+        return total
+
+    trend = [
+        {
+            "label": bucket["label"],
+            "key": bucket["key"],
+            "sales": as_number(_sum_range(sales_by_day, bucket["start"], bucket["end"])),
+            "purchases": as_number(_sum_range(purchases_by_day, bucket["start"], bucket["end"])),
+        }
+        for bucket in _build_trend_buckets(start, end, granularity)
+    ]
+
+    return {
+        "period": period,
+        "period_label": SEGMENT_PERIOD_LABELS[period],
+        "period_start": start.isoformat(),
+        "period_end": end.isoformat(),
+        "granularity": granularity,
+        "trend": trend,
+    }
+
+
+def build_products_segment(period, today=None):
+    """Top products by sales revenue for a rolling period window."""
+    today = today or timezone.localdate()
+    period = normalize_segment_period(period)
+    start, end = get_segment_period_range(period, today)
+
+    period_sales = Sale.objects.exclude(status=Sale.STATUS_CANCELLED).filter(
+        transaction_date__gte=start, transaction_date__lte=end
+    )
+    sale_items = SaleItem.objects.filter(sale__in=period_sales).exclude(
+        item_status="cancelled"
+    )
     product_margin = {}
     for item in sale_items.iterator():
         qty = Decimal(str(item.quantity or 0))
         amount = Decimal(str(item.amount or 0))
         unit_cost = Decimal(str(item.unit_cost or 0))
-        line_cost = unit_cost * qty
-        revenue += amount
-        cost += line_cost
-        if qty > 0 and line_cost > 0 and amount < line_cost:
-            below_cost_count += 1
-            below_cost_amount += line_cost - amount
         key = item.product_id or item.product_name
         bucket = product_margin.setdefault(
             key,
@@ -1081,15 +1207,14 @@ def build_dashboard_overview(period="month"):
                 "sku": item.sku,
                 "revenue": Decimal("0"),
                 "cost": Decimal("0"),
+                "units": Decimal("0"),
             },
         )
         bucket["revenue"] += amount
-        bucket["cost"] += line_cost
+        bucket["cost"] += unit_cost * qty
+        bucket["units"] += qty
 
-    gross_margin = revenue - cost
-    margin_pct = (gross_margin / revenue * 100) if revenue > 0 else Decimal("0")
-
-    def _product_row(row):
+    def _row(row):
         margin = row["revenue"] - row["cost"]
         return {
             "product_id": row["product_id"],
@@ -1098,97 +1223,48 @@ def build_dashboard_overview(period="month"):
             "revenue": as_number(row["revenue"]),
             "cost": as_number(row["cost"]),
             "margin": as_number(margin),
+            "units": as_number(row["units"]),
         }
 
     top_products = [
-        _product_row(row)
+        _row(row)
         for row in sorted(
             product_margin.values(), key=lambda r: r["revenue"], reverse=True
-        )[:5]
+        )[:8]
     ]
-    loss_products = [
-        _product_row(row)
-        for row in sorted(
-            (r for r in product_margin.values() if r["revenue"] - r["cost"] < 0),
-            key=lambda r: r["revenue"] - r["cost"],
-        )[:5]
-    ]
-
-    top_customers = [
-        {"name": row["customer_name"] or "—", "total": as_number(row["total"] or 0)}
-        for row in period_sales.values("customer_name")
-        .annotate(total=Sum("grand_total"))
-        .order_by("-total")[:5]
-    ]
-    top_suppliers = [
-        {"name": row["supplier_name"] or "—", "total": as_number(row["total"] or 0)}
-        for row in period_purchases.values("supplier_name")
-        .annotate(total=Sum("grand_total"))
-        .order_by("-total")[:5]
-    ]
-
-    # Trend: always the last 6 months (monthly) of sales vs purchases, so the
-    # chart stays stable and easy to read regardless of the selected period.
-    trend_start = _months_back(today, 5)
-    sales_by_month = {
-        row["bucket"]: row["total"]
-        for row in Sale.objects.exclude(status=Sale.STATUS_CANCELLED)
-        .filter(transaction_date__gte=trend_start)
-        .annotate(bucket=TruncMonth("transaction_date"))
-        .values("bucket")
-        .annotate(total=Sum("grand_total"))
-    }
-    purchases_by_month = {
-        row["bucket"]: row["total"]
-        for row in Purchase.objects.exclude(status=Purchase.STATUS_CANCELLED)
-        .filter(transaction_date__gte=trend_start)
-        .annotate(bucket=TruncMonth("transaction_date"))
-        .values("bucket")
-        .annotate(total=Sum("grand_total"))
-    }
-    trend = []
-    for offset in range(6):
-        month_date = _months_back(today, 5 - offset)
-        trend.append(
-            {
-                "label": month_date.strftime("%b"),
-                "month": month_date.isoformat(),
-                "sales": as_number(sales_by_month.get(month_date) or Decimal("0")),
-                "purchases": as_number(
-                    purchases_by_month.get(month_date) or Decimal("0")
-                ),
-            }
-        )
 
     return {
         "period": period,
-        "period_label": PERIOD_LABELS[period],
+        "period_label": SEGMENT_PERIOD_LABELS[period],
         "period_start": start.isoformat(),
         "period_end": end.isoformat(),
-        "ar": {
-            "outstanding": as_number(ar_outstanding),
-            "overdue": as_number(ar_overdue),
-        },
-        "ap": {
-            "outstanding": as_number(ap_outstanding),
-            "overdue": as_number(ap_overdue),
-        },
-        "net_position": as_number(ar_outstanding - ap_outstanding),
-        "period_metrics": {
-            "sales_total": as_number(sales_total),
-            "purchase_total": as_number(purchase_total),
-            "gross_margin": as_number(gross_margin),
-            "margin_pct": as_number(margin_pct.quantize(Decimal("0.1"))),
-            "below_cost_count": below_cost_count,
-            "below_cost_amount": as_number(below_cost_amount),
-            "sales_count": period_sales.count(),
-            "purchase_count": period_purchases.count(),
-        },
-        "trend": trend,
         "top_products": top_products,
-        "loss_products": loss_products,
-        "top_customers": top_customers,
-        "top_suppliers": top_suppliers,
+    }
+
+
+def build_dashboard_segment(segment, period, today=None):
+    builders = {
+        "finance": build_finance_segment,
+        "trend": build_trend_segment,
+        "products": build_products_segment,
+    }
+    builder = builders.get(segment)
+    return builder(period, today) if builder else None
+
+
+def build_dashboard_overview(period=DEFAULT_SEGMENT_PERIOD):
+    """Initial payload: each box rendered at the default period, plus the
+    list of period options every box's own filter can choose from."""
+    today = timezone.localdate()
+    return {
+        "period_options": [
+            {"value": key, "label": SEGMENT_PERIOD_LABELS[key]}
+            for key in SEGMENT_PERIOD_ORDER
+        ],
+        "default_period": DEFAULT_SEGMENT_PERIOD,
+        "finance": build_finance_segment(DEFAULT_SEGMENT_PERIOD, today),
+        "trend": build_trend_segment(DEFAULT_SEGMENT_PERIOD, today),
+        "products": build_products_segment(DEFAULT_SEGMENT_PERIOD, today),
     }
 
 

@@ -55,6 +55,9 @@ export const api = {
   getDashboard(params) {
     return request("/dashboard/", { params });
   },
+  getDashboardSegment(params) {
+    return request("/dashboard/segment/", { params });
+  },
   getProductLookups(params) {
     return request("/lookups/products/", { params });
   },

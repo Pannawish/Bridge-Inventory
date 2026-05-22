@@ -19,6 +19,7 @@ router.register("credit-notes", views.CreditNoteViewSet, basename="credit-note")
 urlpatterns = [
     path("", views.api_home, name="api_home"),
     path("dashboard/", views.dashboard, name="dashboard"),
+    path("dashboard/segment/", views.dashboard_segment, name="dashboard_segment"),
     path("lookups/products/", views.product_lookups, name="product_lookups"),
     path("lookups/suppliers/", views.supplier_lookups, name="supplier_lookups"),
     path("lookups/customers/", views.customer_lookups, name="customer_lookups"),

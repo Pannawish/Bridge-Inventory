@@ -43,6 +43,7 @@ from .services import (
     SALE_STOCK_DEDUCTED_STATUSES,
     answer_inventory_question,
     build_dashboard_overview,
+    build_dashboard_segment,
     build_dashboard_summary,
     get_available_stock_by_product_id,
 )
@@ -830,10 +831,19 @@ def api_home(request):
 
 @api_view(["GET"])
 def dashboard(request):
-    period = (request.query_params.get("period") or "month").strip()
     data = build_dashboard_summary(request)
-    data["overview"] = build_dashboard_overview(period)
+    data["overview"] = build_dashboard_overview()
     return Response(data)
+
+
+@api_view(["GET"])
+def dashboard_segment(request):
+    segment = (request.query_params.get("segment") or "").strip()
+    period = (request.query_params.get("period") or "").strip()
+    result = build_dashboard_segment(segment, period)
+    if result is None:
+        return Response({"detail": "Unknown dashboard segment."}, status=400)
+    return Response(result)
 
 
 @api_view(["GET"])

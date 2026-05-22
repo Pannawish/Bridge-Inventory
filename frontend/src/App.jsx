@@ -28,7 +28,9 @@ import BillingNotePage from "./components/BillingNotePage";
 import PaymentBatchPage from "./components/PaymentBatchPage";
 import CreditNotePage from "./components/CreditNotePage";
 import CreditNotePrompt from "./components/CreditNotePrompt";
+import SettingsPage from "./components/SettingsPage";
 import TabIcon from "./components/TabIcon";
+import { useLanguage } from "./i18n/LanguageContext";
 import { useInventoryData } from "./hooks/useInventoryData";
 import { applyPurchaseStatusToItems } from "./purchaseStatus";
 import { applySaleStatusToItems } from "./saleStatus";
@@ -95,6 +97,7 @@ function buildProductSavePayload(product) {
 }
 
 function App() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -182,7 +185,6 @@ function App() {
     error,
     setError,
     loadData,
-    reloadDashboard,
     loadSupplierPage,
     loadCustomerPage,
     loadProductPage,
@@ -1275,7 +1277,7 @@ function App() {
             <button
               type="button"
               className="sidebar-collapse-toggle"
-              aria-label={sidebarCollapsed ? "Expand menu" : "Collapse menu"}
+              aria-label={sidebarCollapsed ? t("sidebar.expandMenu") : t("sidebar.collapseMenu")}
               aria-expanded={!sidebarCollapsed}
               onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
             >
@@ -1295,11 +1297,11 @@ function App() {
                 <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-            <h1>Inventory</h1>
+            <h1>{t("app.title")}</h1>
             <button
               type="button"
               className="sidebar-close-button"
-              aria-label="Close menu"
+              aria-label={t("sidebar.closeMenu")}
               onClick={() => setSidebarOpen(false)}
             >
               X
@@ -1309,18 +1311,19 @@ function App() {
           <nav className="sidebar-nav">
             {tabs.map((tab) => {
               const badgeCount = tabBadges[tab.id] || 0;
+              const tabLabel = t(`tabs.${tab.id}`);
               return (
                 <button
                   key={tab.id}
                   type="button"
-                  title={tab.label}
+                  title={tabLabel}
                   className={tab.id === activeTab ? "sidebar-nav-button active" : "sidebar-nav-button"}
                   onClick={() => handleTabSelect(tab.id)}
                 >
                   <span className="sidebar-nav-icon">
                     <TabIcon tabId={tab.id} />
                   </span>
-                  <span className="sidebar-nav-text">{tab.label}</span>
+                  <span className="sidebar-nav-text">{tabLabel}</span>
                   {badgeCount > 0 ? (
                     <span
                       className="sidebar-nav-badge"
@@ -1333,6 +1336,24 @@ function App() {
               );
             })}
           </nav>
+
+          <div className="sidebar-footer">
+            <button
+              type="button"
+              title={t("sidebar.settings")}
+              className={
+                activeTab === "settings"
+                  ? "sidebar-nav-button active"
+                  : "sidebar-nav-button"
+              }
+              onClick={() => handleTabSelect("settings")}
+            >
+              <span className="sidebar-nav-icon">
+                <TabIcon tabId="settings" />
+              </span>
+              <span className="sidebar-nav-text">{t("sidebar.settings")}</span>
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -1349,7 +1370,7 @@ function App() {
           <button
             type="button"
             className="mobile-menu-button"
-            aria-label="Open menu"
+            aria-label={t("sidebar.openMenu")}
             onClick={() => setSidebarOpen(true)}
           >
             <span />
@@ -1357,8 +1378,8 @@ function App() {
             <span />
           </button>
           <div className="mobile-topbar-title">
-            <span className="mobile-topbar-eyebrow">Inventory</span>
-            <strong>{activeTabMeta.label}</strong>
+            <span className="mobile-topbar-eyebrow">{t("app.title")}</span>
+            <strong>{activeTab === "settings" ? t("settings.title") : t(`tabs.${activeTabMeta.id}`)}</strong>
           </div>
         </header>
 
@@ -1384,13 +1405,7 @@ function App() {
         ) : (
           <>
             {activeTab === "dashboard" && dashboard ? (
-              <Dashboard
-                dashboard={dashboard}
-                products={products}
-                purchases={usingMockPurchases ? purchases : []}
-                sales={usingMockSales ? sales : []}
-                onPeriodChange={reloadDashboard}
-              />
+              <Dashboard dashboard={dashboard} />
             ) : null}
 
             {activeTab === "purchase-history" ? (
@@ -1541,6 +1556,8 @@ function App() {
             {activeTab === "chat" ? (
               <ChatPanel messages={messages} onAsk={handleAskChat} busy={chatBusy} />
             ) : null}
+
+            {activeTab === "settings" ? <SettingsPage /> : null}
           </>
         )}
       </main>

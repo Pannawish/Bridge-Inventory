@@ -4,6 +4,7 @@ This file is for coding agents working in this repository. Follow these rules be
 
 ## Project Shape
 
+- The system is built for a middle-man SME business: a small-to-medium enterprise that buys from suppliers and resells to customers, so purchasing, sales, and the margin between them are core concerns.
 - Frontend: React + Vite in `frontend/`.
 - Backend: Django + Django REST Framework in `backend/`.
 - Database: MySQL.
@@ -72,6 +73,7 @@ This file is for coding agents working in this repository. Follow these rules be
 - Flat directory/history pages can use pagination controls.
 - Forms should preserve clear card boundaries and avoid overflowing content.
 - Required form inputs must show the red required marker using the existing `required-label` pattern.
+- The app is bilingual (English/Thai). Any new user-facing string must be added to both the `en` and `th` dictionaries in `frontend/src/i18n/translations.js` and rendered through the `t()` helper from `useLanguage()` — never hardcode display text in components. Thai strings must use standard inventory/accounting vocabulary.
 - Do not add more feature logic into `App.jsx`, `ProductsPage.jsx`, or `styles.css` unless the task is explicitly to split or stabilize those files.
 - Prefer extracting focused components/hooks/helpers before extending oversized page components.
 

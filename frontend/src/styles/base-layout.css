@@ -241,6 +241,13 @@ textarea {
   gap: 4px;
 }
 
+.sidebar-footer {
+  display: grid;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
 .sidebar-nav-button {
   display: flex;
   align-items: center;
@@ -578,4 +585,70 @@ textarea {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
+}
+
+/* ── Settings page ─────────────────────────────────────── */
+.settings-menu {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-menu-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.settings-menu-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.settings-menu-text strong {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.settings-menu-text span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.settings-language-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-muted);
+}
+
+.settings-language-option {
+  min-width: 92px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.settings-language-option:hover {
+  color: var(--text);
+}
+
+.settings-language-option.active {
+  color: #fff;
+  background: var(--accent);
 }
