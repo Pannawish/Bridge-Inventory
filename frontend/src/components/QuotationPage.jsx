@@ -15,7 +15,6 @@ import {
   getUnitValueFromBaseValue,
 } from "../unitConversion";
 import { formatDate, formatMoney as fmt } from "../format";
-import { getAvailableStockByProductId } from "../saleStock";
 import { useLanguage } from "../i18n/LanguageContext";
 
 const VAT_RATE = 0.07;
@@ -268,15 +267,26 @@ function formatOptionalMoney(value) {
   return Number.isFinite(Number(value)) ? fmt(value) : "—";
 }
 
-function getQuotationStockCoverage(quotation, products = [], purchases = [], sales = []) {
+function getProductStockQuantity(product) {
+  return Number(
+    product?.current_stock ??
+      product?.currentStock ??
+      product?.available_stock ??
+      product?.availableStock ??
+      0
+  ) || 0;
+}
+
+function getQuotationStockCoverage(quotation, products = []) {
   const items = Array.isArray(quotation?.items) ? quotation.items : [];
 
   if (!items.length) {
     return { allSufficient: false, lines: [] };
   }
 
-  const availableStockByProductId = getAvailableStockByProductId(products, purchases, sales);
-  const remainingStockByProductId = new Map(availableStockByProductId);
+  const remainingStockByProductId = new Map(
+    products.map((product) => [`${product.id}`, getProductStockQuantity(product)])
+  );
   const lines = items.map((item) => {
     const product = findProductForItem(item, products);
 
@@ -555,6 +565,20 @@ function getQuotationPartnerOptions(quotations, key, partners = []) {
   });
 
   return [...optionMap.values()].sort((left, right) => left.localeCompare(right));
+}
+
+function getQuotationItemKey(item, index) {
+  return item.line_id || item.id || `q-item-${index}`;
+}
+
+function getShortQuotationItemKeys(quotation, stockCoverage) {
+  const items = Array.isArray(quotation?.items) ? quotation.items : [];
+
+  return items
+    .map((item, index) =>
+      stockCoverage.lines[index]?.status === "short" ? getQuotationItemKey(item, index) : null
+    )
+    .filter(Boolean);
 }
 
 function buildConversionItemBase(item) {
@@ -1441,8 +1465,8 @@ function QuotationPage({
   const [conversion, setConversion] = useState(null);
   const [docRefModal, setDocRefModal] = useState(null);
   const viewingQuotationStockCoverage = useMemo(
-    () => getQuotationStockCoverage(viewingQuotation, products, purchases, sales),
-    [products, purchases, sales, viewingQuotation]
+    () => getQuotationStockCoverage(viewingQuotation, products),
+    [products, viewingQuotation]
   );
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const customerOptions = useMemo(
@@ -1753,6 +1777,8 @@ function QuotationPage({
           key={`convert-${conversion.type}-${conversion.quotation.id}`}
           quotation={conversion.quotation}
           type={conversion.type}
+          initialSelectedItemKeys={conversion.initialSelectedItemKeys}
+          stockCoverageLines={conversion.stockCoverageLines}
           onBack={() => setConversion(null)}
           onContinue={handleConvertContinue}
         />
@@ -2094,7 +2120,15 @@ function QuotationPage({
                     setViewingQuotation(null);
                     setEditingQuotation(null);
                     setShowNewQuotationForm(false);
-                    setConversion({ type: "purchase", quotation: viewingQuotation });
+                    setConversion({
+                      type: "purchase",
+                      quotation: viewingQuotation,
+                      initialSelectedItemKeys: getShortQuotationItemKeys(
+                        viewingQuotation,
+                        viewingQuotationStockCoverage
+                      ),
+                      stockCoverageLines: viewingQuotationStockCoverage.lines,
+                    });
                   }}
                 >
                   Purchase
