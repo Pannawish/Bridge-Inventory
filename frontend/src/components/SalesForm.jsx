@@ -251,6 +251,17 @@ function getAverageCostForSelectedUnit(product, unit) {
   return getUnitValueFromBaseValue(product, unit, baseAverageCost, "sale");
 }
 
+function getCustomerPaymentTerms(customer) {
+  const paymentTermType = customer?.termType || "";
+  const paymentTermDays =
+    paymentTermType === "credit" ? customer?.billingNoteDate || "" : "";
+
+  return {
+    payment_term_type: paymentTermType,
+    payment_term_days: paymentTermDays,
+  };
+}
+
 function showStockAlert(message) {
   if (message && typeof window !== "undefined") {
     window.alert(message);
@@ -325,6 +336,44 @@ function SalesForm({
       return { ...currentForm, reference_no: nextReferenceNo };
     });
   }, [nextReferenceNo]);
+
+  useEffect(() => {
+    if (!form.customer_name || form.payment_term_type || form.payment_term_days) {
+      return;
+    }
+
+    const matchedCustomer = customers.find(
+      (customer) =>
+        `${customer.companyName ?? ""}`.trim().toLowerCase() ===
+        `${form.customer_name}`.trim().toLowerCase()
+    );
+
+    if (!matchedCustomer) {
+      return;
+    }
+
+    const nextTerms = getCustomerPaymentTerms(matchedCustomer);
+
+    if (!nextTerms.payment_term_type && !nextTerms.payment_term_days) {
+      return;
+    }
+
+    setForm((currentForm) => {
+      if (
+        `${currentForm.customer_name}`.trim().toLowerCase() !==
+          `${matchedCustomer.companyName ?? ""}`.trim().toLowerCase() ||
+        currentForm.payment_term_type ||
+        currentForm.payment_term_days
+      ) {
+        return currentForm;
+      }
+
+      return {
+        ...currentForm,
+        ...nextTerms,
+      };
+    });
+  }, [customers, form.customer_name, form.payment_term_days, form.payment_term_type]);
 
   const stockPreviewItems = useMemo(
     () =>
@@ -592,13 +641,11 @@ function SalesForm({
   }
 
   function selectCustomer(customer) {
-    const termType = customer.termType || "";
-    const termDays = termType === "credit" ? (customer.billingNoteDate || "") : "";
+    const nextTerms = getCustomerPaymentTerms(customer);
     setForm((currentForm) => ({
       ...currentForm,
       customer_name: customer.companyName,
-      payment_term_type: termType,
-      payment_term_days: termDays,
+      ...nextTerms,
     }));
     setCustomerQuery(customer.companyName);
     setCustomerError("");

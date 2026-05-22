@@ -413,6 +413,21 @@ function normalizePartnerOptions(partners = [], currentName = "") {
   return normalizedPartners;
 }
 
+function findPartnerByCompanyName(partners = [], companyName = "") {
+  const normalizedName = `${companyName}`.trim().toLowerCase();
+
+  if (!normalizedName) {
+    return null;
+  }
+
+  return (
+    partners.find(
+      (partner) =>
+        `${partner.companyName ?? partner.name ?? ""}`.trim().toLowerCase() === normalizedName
+    ) || null
+  );
+}
+
 function createInitialForm(referenceNo) {
   const today = getToday();
 
@@ -593,19 +608,26 @@ function buildConversionItemBase(item) {
 }
 
 // rows: [{ item, option }] from QuotationConvertSelect. One purchase order per supplier.
-function buildPurchaseGroups(quotation, rows) {
+function buildPurchaseGroups(quotation, rows, suppliers = []) {
   const groupsBySupplier = new Map();
 
   rows.forEach(({ item, option }) => {
     const supplierName = option?.supplier_name || "Unassigned Supplier";
 
     if (!groupsBySupplier.has(supplierName)) {
+      const supplier = findPartnerByCompanyName(suppliers, supplierName);
+      const paymentTermType = supplier?.termType || "";
+      const paymentTermDays =
+        paymentTermType === "credit" ? supplier?.billingNoteDate || "" : "";
+
       groupsBySupplier.set(supplierName, {
         supplier_name: supplierName,
         prefill: {
           supplier_name: supplierName,
           transaction_date: quotation.quotation_date || getToday(),
           vat_mode: quotation.vat_mode || "not_included",
+          payment_term_type: paymentTermType,
+          payment_term_days: paymentTermDays,
           note: "",
           items: [],
         },
@@ -621,11 +643,18 @@ function buildPurchaseGroups(quotation, rows) {
   return [...groupsBySupplier.values()];
 }
 
-function buildSalesPrefillFromRows(quotation, rows) {
+function buildSalesPrefillFromRows(quotation, rows, customers = []) {
+  const customer = findPartnerByCompanyName(customers, quotation.customer_name || "");
+  const paymentTermType = customer?.termType || "";
+  const paymentTermDays =
+    paymentTermType === "credit" ? customer?.billingNoteDate || "" : "";
+
   return {
     customer_name: quotation.customer_name || "",
     transaction_date: quotation.quotation_date || getToday(),
     vat_mode: quotation.vat_mode || "not_included",
+    payment_term_type: paymentTermType,
+    payment_term_days: paymentTermDays,
     note: "",
     items: rows.map(({ item, option }) => ({
       ...buildConversionItemBase(item),
@@ -1641,13 +1670,13 @@ function QuotationPage({
         return {
           ...current,
           step: "purchase-wizard",
-          groups: buildPurchaseGroups(current.quotation, rows),
+          groups: buildPurchaseGroups(current.quotation, rows, suppliers),
         };
       }
       return {
         ...current,
         step: "sale-form",
-        salePrefill: buildSalesPrefillFromRows(current.quotation, rows),
+        salePrefill: buildSalesPrefillFromRows(current.quotation, rows, customers),
       };
     });
   }

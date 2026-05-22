@@ -156,11 +156,22 @@ function isVatEnabled(vatMode) {
   return vatMode !== "none";
 }
 
+function getSupplierPaymentTerms(supplier) {
+  const paymentTermType = supplier?.termType || "";
+  const paymentTermDays =
+    paymentTermType === "credit" ? supplier?.billingNoteDate || "" : "";
+
+  return {
+    payment_term_type: paymentTermType,
+    payment_term_days: paymentTermDays,
+  };
+}
+
 function createInitialForm(referenceNo, prefill = {}) {
   return {
     reference_no: referenceNo,
     supplier_name: prefill.supplier_name || "",
-    supplier_tax_invoice: "",
+    supplier_tax_invoice: prefill.supplier_tax_invoice || "",
     status: "ordered",
     transaction_date: prefill.transaction_date || prefill.quotation_date || today,
     note: prefill.note || "",
@@ -256,6 +267,44 @@ function PurchaseForm({
       return { ...currentForm, reference_no: nextReferenceNo };
     });
   }, [nextReferenceNo]);
+
+  useEffect(() => {
+    if (!form.supplier_name || form.payment_term_type || form.payment_term_days) {
+      return;
+    }
+
+    const matchedSupplier = suppliers.find(
+      (supplier) =>
+        `${supplier.companyName ?? ""}`.trim().toLowerCase() ===
+        `${form.supplier_name}`.trim().toLowerCase()
+    );
+
+    if (!matchedSupplier) {
+      return;
+    }
+
+    const nextTerms = getSupplierPaymentTerms(matchedSupplier);
+
+    if (!nextTerms.payment_term_type && !nextTerms.payment_term_days) {
+      return;
+    }
+
+    setForm((currentForm) => {
+      if (
+        `${currentForm.supplier_name}`.trim().toLowerCase() !==
+          `${matchedSupplier.companyName ?? ""}`.trim().toLowerCase() ||
+        currentForm.payment_term_type ||
+        currentForm.payment_term_days
+      ) {
+        return currentForm;
+      }
+
+      return {
+        ...currentForm,
+        ...nextTerms,
+      };
+    });
+  }, [form.payment_term_days, form.payment_term_type, form.supplier_name, suppliers]);
 
   function updateItem(index, key, value) {
     setItems((currentItems) =>
@@ -436,13 +485,11 @@ function PurchaseForm({
   }
 
   function selectSupplier(supplier) {
-    const termType = supplier.termType || "";
-    const termDays = termType === "credit" ? (supplier.billingNoteDate || "") : "";
+    const nextTerms = getSupplierPaymentTerms(supplier);
     setForm((currentForm) => ({
       ...currentForm,
       supplier_name: supplier.companyName,
-      payment_term_type: termType,
-      payment_term_days: termDays,
+      ...nextTerms,
     }));
     setSupplierQuery(supplier.companyName);
     setSupplierError("");
