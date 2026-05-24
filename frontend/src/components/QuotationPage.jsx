@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import EligiblePartyCombobox from "./EligiblePartyCombobox";
 import SalesForm from "./SalesForm";
 import QuotationConvertSelect from "./QuotationConvertSelect";
 import MultiPurchaseWizard from "./MultiPurchaseWizard";
 import DocumentRefChip from "./DocumentRefChip";
 import DocumentRefModal from "./DocumentRefModal";
+import PaginationControls from "./PaginationControls";
 import { FilterPresets, ActiveFilterChips, RangeField, withinRange } from "./FilterControls";
 import {
   buildConvertedItemFields,
@@ -16,6 +17,7 @@ import {
 } from "../unitConversion";
 import { formatDate, formatMoney as fmt } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
+import { PAGE_SIZE } from "../app/appUtils";
 
 const VAT_RATE = 0.07;
 const vatOptions = [
@@ -1490,7 +1492,7 @@ function QuotationPage({
   const [viewingQuotation, setViewingQuotation] = useState(null);
   const [editingQuotation, setEditingQuotation] = useState(null);
   const [showNewQuotationForm, setShowNewQuotationForm] = useState(false);
-  const [showAllRows, setShowAllRows] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
   const [conversion, setConversion] = useState(null);
   const [docRefModal, setDocRefModal] = useState(null);
   const viewingQuotationStockCoverage = useMemo(
@@ -1557,9 +1559,39 @@ function QuotationPage({
       vatFilter,
     ]
   );
-  const compactRows = 5;
-  const shouldShowViewAll = filteredQuotations.length > compactRows;
-  const isCompact = shouldShowViewAll && !showAllRows;
+  const historyPageSize = PAGE_SIZE;
+  const historyTotalPages = Math.max(
+    1,
+    Math.ceil(filteredQuotations.length / historyPageSize)
+  );
+  const currentHistoryPage = Math.min(historyPage, historyTotalPages);
+  const paginatedQuotations = useMemo(() => {
+    const start = (currentHistoryPage - 1) * historyPageSize;
+    return filteredQuotations.slice(start, start + historyPageSize);
+  }, [currentHistoryPage, filteredQuotations, historyPageSize]);
+  const quotationPagination = filteredQuotations.length
+    ? {
+        count: filteredQuotations.length,
+        page: currentHistoryPage,
+        page_size: historyPageSize,
+        total_pages: historyTotalPages,
+      }
+    : null;
+
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [
+    amountMax,
+    amountMin,
+    dateFrom,
+    dateTo,
+    normalizedSearch,
+    quotations,
+    selectedCustomer,
+    stateFilter,
+    vatFilter,
+  ]);
+
   function resetFilters() {
     setSearchTerm("");
     setSelectedCustomer("");
@@ -1952,26 +1984,11 @@ function QuotationPage({
             >
               Create Quotation
             </button>
-            {shouldShowViewAll ? (
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() => setShowAllRows((currentValue) => !currentValue)}
-              >
-                {showAllRows ? "Show Recent" : "View More"}
-              </button>
-            ) : null}
           </div>
         </div>
 
         {filteredQuotations.length ? (
-          <div
-            className={
-              isCompact
-                ? "transaction-table-window quotation-table-window compact-history"
-                : "transaction-table-window quotation-table-window"
-            }
-          >
+          <div className="transaction-table-window partner-table-window quotation-table-window">
             <div className="table-scroll desktop-table">
               <table className="transaction-history-table transaction-history-table-quotation">
                 <colgroup>
@@ -1995,12 +2012,13 @@ function QuotationPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredQuotations.map((quotation, index) => {
+                  {paginatedQuotations.map((quotation, index) => {
                     const itemCount = getItemCount(quotation.items || []);
+                    const rowNumber = (currentHistoryPage - 1) * historyPageSize + index + 1;
 
                     return (
                       <tr key={quotation.id || quotation.reference_no}>
-                        <td className="table-index-cell">{index + 1}</td>
+                        <td className="table-index-cell">{rowNumber}</td>
                         <td>
                           <div className="transaction-reference-cell">
                             <strong>{quotation.reference_no || "—"}</strong>
@@ -2048,14 +2066,15 @@ function QuotationPage({
             </div>
 
             <div className="mobile-record-list">
-              {filteredQuotations.map((quotation, index) => {
+              {paginatedQuotations.map((quotation, index) => {
                 const itemCount = getItemCount(quotation.items || []);
+                const rowNumber = (currentHistoryPage - 1) * historyPageSize + index + 1;
 
                 return (
                   <article className="mobile-record-card" key={`mobile-quotation-${quotation.id || quotation.reference_no}`}>
                     <div className="mobile-record-header">
                       <div className="mobile-record-title">
-                        <span className="mobile-record-index">{index + 1}</span>
+                        <span className="mobile-record-index">{rowNumber}</span>
                         <div className="cell-stack">
                           <strong>{quotation.reference_no || "—"}</strong>
                           <span>{quotation.customer_name || "—"}</span>
@@ -2102,7 +2121,11 @@ function QuotationPage({
         ) : (
           <p className="empty-copy">No quotations saved yet.</p>
         )}
-
+        <PaginationControls
+          pagination={quotationPagination}
+          itemLabel="quotations"
+          onPageChange={setHistoryPage}
+        />
       </section>
 
       {viewingQuotation ? (
