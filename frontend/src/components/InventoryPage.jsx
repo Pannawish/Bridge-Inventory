@@ -218,7 +218,7 @@ function InventoryReferenceModal({ onClose }) {
   );
 }
 
-function ProductStockCard({ row, health, movement }) {
+function ProductStockRow({ row, health, movement }) {
   const { t } = useLanguage();
   const unit = row.unit || "";
   const available = getAvailable(row);
@@ -230,103 +230,95 @@ function ProductStockCard({ row, health, movement }) {
   const best = options[0] || null;
   const hasPoint = reorder > 0;
   const belowPoint = hasPoint && available <= reorder;
-  const fillPct = hasPoint
-    ? Math.max(4, Math.min(100, Math.round((available / reorder) * 100)))
-    : 0;
   const daysText =
     days === null || days === undefined
       ? t("inventory.card.noDemandDays")
       : t("inventory.card.daysLeft", { days: formatUnits(days) });
+  const demandText =
+    demand > 0 ? formatUnits(Math.round(demand * 100) / 100) : "—";
+  const supplierNote = best
+    ? options.length > 1
+      ? t("inventory.card.moreSuppliers", { count: options.length - 1 })
+      : t("inventory.card.onlySupplier")
+    : null;
 
   return (
     <article className={`inv-card inv-card-${health}`}>
-      <header className="inv-card-head">
-        <div className="inv-card-title">
-          <HealthBadge health={health} />
+      <div className="inv-row-grid">
+        <section className="inv-row-section inv-row-product">
+          <p className="inv-row-section-label">{t("inventory.colProduct")}</p>
           <div className="inv-card-name">
             <strong>{row.product_name || "—"}</strong>
             <span>
               {(row.sku || "—") + " · " + (row.category || t("inventory.uncategorized"))}
             </span>
           </div>
-        </div>
-        <MovementBadge movement={movement} />
-      </header>
-
-      <div className="inv-card-boxes">
-        <section className="inv-box inv-box-reorder">
-          <p className="inv-box-label">{t("inventory.card.reorderPoint")}</p>
-          <div className="inv-box-main">
-            <strong>{formatUnits(reorder)}</strong>
-            <span>{unit}</span>
+          <div className="inv-row-badges">
+            <HealthBadge health={health} />
+            <MovementBadge movement={movement} />
           </div>
-          {hasPoint ? (
-            <>
-              <div className="inv-meter" aria-hidden="true">
-                <span
-                  className={`inv-meter-fill${belowPoint ? " is-low" : ""}`}
-                  style={{ width: `${fillPct}%` }}
-                />
-              </div>
-              <p className={`inv-box-status ${belowPoint ? "is-low" : "is-ok"}`}>
-                {belowPoint
-                  ? t("inventory.card.belowPoint")
-                  : t("inventory.card.abovePoint")}
-              </p>
-            </>
-          ) : (
-            <p className="inv-box-status is-muted">{t("inventory.card.noPoint")}</p>
-          )}
-          <p className="inv-box-sub">
-            {t("inventory.card.available")}:{" "}
-            {t("inventory.unitsValue", { qty: formatUnits(available), unit })} · {daysText}
-          </p>
-          <div className="inv-box-action">
+        </section>
+
+        <section className="inv-row-section inv-row-stock">
+          <p className="inv-row-section-label">{t("inventory.sectionStock")}</p>
+          <div className="inv-row-metric">
+            <span>{t("inventory.card.onHand")}</span>
+            <strong>{t("inventory.unitsValue", { qty: formatUnits(available), unit })}</strong>
+          </div>
+          <div className="inv-row-metric">
+            <span>{t("inventory.card.reorderPoint")}</span>
+            <strong>{t("inventory.unitsValue", { qty: formatUnits(reorder), unit })}</strong>
+          </div>
+          <div className="inv-row-metric">
             <span>{t("inventory.card.suggestedBuy")}</span>
             {buy > 0 ? (
               <strong>{t("inventory.unitsValue", { qty: formatUnits(buy), unit })}</strong>
             ) : (
-              <em>{t("inventory.card.noBuy")}</em>
+              <em className="inv-row-value-muted">{t("inventory.card.noBuy")}</em>
             )}
           </div>
+          <p className={`inv-row-note ${hasPoint ? (belowPoint ? "is-low" : "is-ok") : ""}`}>
+            {hasPoint
+              ? belowPoint
+                ? t("inventory.card.belowPoint")
+                : t("inventory.card.abovePoint")
+              : t("inventory.card.noPoint")}
+          </p>
+          <p className="inv-row-note">
+            {t("inventory.card.demandPerDay")}: {demandText} · {daysText}
+          </p>
         </section>
 
-        <section className="inv-box inv-box-supplier">
-          <p className="inv-box-label">{t("inventory.card.reorderFrom")}</p>
-          {best ? (
-            <>
-              <div className="inv-box-main inv-box-supplier-name">
-                <strong>{best.supplier_name}</strong>
-              </div>
-              <p className="inv-box-price">
-                {t("inventory.card.pricePerUnit", { amount: fmt(best.last_cost), unit: unit || "unit" })}
-              </p>
-              <p className="inv-box-sub">
-                {options.length > 1
-                  ? t("inventory.card.moreSuppliers", { count: options.length - 1 })
-                  : t("inventory.card.onlySupplier")}
-              </p>
-            </>
-          ) : (
-            <p className="inv-box-status is-muted">{t("inventory.card.noSupplier")}</p>
-          )}
+        <section className="inv-row-section inv-row-supplier">
+          <p className="inv-row-section-label">{t("inventory.sectionSupplier")}</p>
+          <div className="inv-row-metric">
+            <span>{t("inventory.card.reorderFrom")}</span>
+            {best ? (
+              <strong>{best.supplier_name}</strong>
+            ) : (
+              <em className="inv-row-value-muted">{t("inventory.card.noSupplier")}</em>
+            )}
+          </div>
+          <div className="inv-row-metric">
+            <span>{t("inventory.card.lastCost")}</span>
+            {best ? (
+              <strong>
+                {t("inventory.card.pricePerUnit", {
+                  amount: fmt(best.last_cost),
+                  unit: unit || "unit",
+                })}
+              </strong>
+            ) : (
+              <em className="inv-row-value-muted">—</em>
+            )}
+          </div>
+          <div className="inv-row-metric">
+            <span>{t("inventory.card.stockValue")}</span>
+            <strong>{fmt(getStockValue(row))}</strong>
+          </div>
+          {supplierNote ? <p className="inv-row-note">{supplierNote}</p> : null}
         </section>
       </div>
-
-      <footer className="inv-card-stats">
-        <div>
-          <span>{t("inventory.card.demandPerDay")}</span>
-          <strong>{demand > 0 ? formatUnits(Math.round(demand * 100) / 100) : "—"}</strong>
-        </div>
-        <div>
-          <span>{t("inventory.card.onHand")}</span>
-          <strong>{t("inventory.unitsValue", { qty: formatUnits(available), unit })}</strong>
-        </div>
-        <div>
-          <span>{t("inventory.card.stockValue")}</span>
-          <strong>{fmt(getStockValue(row))}</strong>
-        </div>
-      </footer>
     </article>
   );
 }
@@ -860,7 +852,7 @@ function InventoryPage({ dashboard }) {
         ) : (
           <div className="inv-card-list">
             {filteredRows.map(({ row, health, movement }) => (
-              <ProductStockCard
+              <ProductStockRow
                 key={row.product_id}
                 row={row}
                 health={health}
