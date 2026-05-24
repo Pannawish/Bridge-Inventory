@@ -352,3 +352,44 @@
   font-size: 0.82rem;
   line-height: 1.5;
 }
+
+.inv-scroll-top-button {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 35;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(15, 22, 50, 0.08);
+}
+
+.inv-scroll-top-button:hover {
+  background: var(--panel-muted);
+  border-color: var(--accent-soft);
+}
+
+.inv-scroll-top-button span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+@media (max-width: 720px) {
+  .inv-scroll-top-button {
+    right: 16px;
+    bottom: 16px;
+    padding: 10px 12px;
+  }
+}

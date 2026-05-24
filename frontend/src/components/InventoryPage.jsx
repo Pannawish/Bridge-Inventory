@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatMoney as fmt } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
 import { withinRange } from "./FilterControls";
@@ -343,6 +343,7 @@ function InventoryPage({ dashboard }) {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [healthSet, setHealthSet] = useState(() => new Set());
   const [movementSet, setMovementSet] = useState(() => new Set());
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -353,6 +354,20 @@ function InventoryPage({ dashboard }) {
   const [needsReorderOnly, setNeedsReorderOnly] = useState(false);
   const [sortKey, setSortKey] = useState("priority");
   const [referenceOpen, setReferenceOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    function handleScroll() {
+      setShowScrollTop(window.scrollY > 320);
+    }
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const stockReport = useMemo(
     () => (Array.isArray(dashboard?.stock_report) ? dashboard.stock_report : []),
@@ -594,6 +609,13 @@ function InventoryPage({ dashboard }) {
     setValueMax("");
     setDaysWithin("all");
     setNeedsReorderOnly(false);
+  }
+
+  function scrollToTop() {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
@@ -864,6 +886,18 @@ function InventoryPage({ dashboard }) {
       </section>
 
       {referenceOpen ? <InventoryReferenceModal onClose={() => setReferenceOpen(false)} /> : null}
+      {showScrollTop ? (
+        <button
+          type="button"
+          className="inv-scroll-top-button"
+          onClick={scrollToTop}
+          aria-label={t("inventory.backToTop")}
+          title={t("inventory.backToTop")}
+        >
+          <span aria-hidden="true">↑</span>
+          {t("inventory.backToTop")}
+        </button>
+      ) : null}
     </div>
   );
 }
