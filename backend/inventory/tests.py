@@ -1175,6 +1175,68 @@ class LookupEligibilityTests(APITestCase):
         self.assertEqual(row["committed_sales_value"], 20)
         self.assertTrue(row["backend_calculated"])
 
+    def test_dashboard_stock_report_recommends_cheapest_supplier(self):
+        product = Product.objects.create(
+            sku="DASH-SUPPLIER",
+            product_name="Multi Supplier Product",
+        )
+        cheap_purchase = Purchase.objects.create(
+            reference_no="PO-CHEAP",
+            supplier_name="Cheap Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today,
+        )
+        PurchaseItem.objects.create(
+            purchase=cheap_purchase,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            received_date=self.today,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("10"),
+            base_quantity=Decimal("10"),
+            unit_cost=Decimal("2"),
+            amount=Decimal("20"),
+        )
+        pricey_purchase = Purchase.objects.create(
+            reference_no="PO-PRICEY",
+            supplier_name="Pricey Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today,
+        )
+        PurchaseItem.objects.create(
+            purchase=pricey_purchase,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            received_date=self.today,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("5"),
+            base_quantity=Decimal("5"),
+            unit_cost=Decimal("3"),
+            amount=Decimal("15"),
+        )
+
+        response = self.client.get("/api/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        row = next(
+            item for item in response.data["stock_report"] if item["product_id"] == product.id
+        )
+        self.assertEqual(row["supplier_count"], 2)
+        self.assertEqual(
+            [option["supplier_name"] for option in row["supplier_options"]],
+            ["Cheap Supplier", "Pricey Supplier"],
+        )
+        self.assertEqual(row["best_supplier_name"], "Cheap Supplier")
+        self.assertEqual(row["best_supplier_cost"], 2)
+
     def test_product_history_endpoint_returns_only_matching_transactions(self):
         product = Product.objects.create(
             sku="HISTORY-1",

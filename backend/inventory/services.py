@@ -643,7 +643,51 @@ def create_empty_stock_row(product):
         "delayed_purchase_units": Decimal("0"),
         "lead_time_sample_days": Decimal("0"),
         "lead_time_sample_count": 0,
+        # supplier_name -> {"last_date", "last_cost", "best_cost", "order_count"}
+        # Records the cost (per base unit) each supplier charged for this product
+        # so the inventory page can recommend the cheapest source to reorder from.
+        "supplier_costs": {},
     }
+
+
+def record_supplier_cost(row, supplier_name, base_unit_cost, transaction_date):
+    name = (supplier_name or "").strip()
+    if not name or base_unit_cost is None or base_unit_cost <= 0:
+        return
+
+    entry = row["supplier_costs"].get(name)
+    if entry is None:
+        row["supplier_costs"][name] = {
+            "last_date": transaction_date,
+            "last_cost": base_unit_cost,
+            "best_cost": base_unit_cost,
+            "order_count": 1,
+        }
+        return
+
+    entry["order_count"] += 1
+    entry["best_cost"] = min(entry["best_cost"], base_unit_cost)
+    # Keep the most recent cost as the supplier's quoted price.
+    if transaction_date and (
+        entry["last_date"] is None or transaction_date >= entry["last_date"]
+    ):
+        entry["last_date"] = transaction_date
+        entry["last_cost"] = base_unit_cost
+
+
+def build_supplier_options(supplier_costs):
+    options = [
+        {
+            "supplier_name": name,
+            "last_cost": as_number(entry["last_cost"]),
+            "best_cost": as_number(entry["best_cost"]),
+            "order_count": entry["order_count"],
+        }
+        for name, entry in supplier_costs.items()
+    ]
+    # Cheapest most-recent price first so the first option is the best source.
+    options.sort(key=lambda option: (option["last_cost"], -option["order_count"]))
+    return options
 
 
 def build_stock_report():
@@ -665,6 +709,15 @@ def build_stock_report():
         if item.item_status == PurchaseItem.ITEM_RECEIVED:
             row["received_purchase_units"] += quantity
             row["received_purchase_value"] += item.amount or Decimal("0")
+
+            if quantity > 0:
+                base_unit_cost = (item.amount or Decimal("0")) / quantity
+                record_supplier_cost(
+                    row,
+                    item.purchase.supplier_name,
+                    base_unit_cost,
+                    item.purchase.transaction_date,
+                )
 
             lead_time_days = compute_date_diff_in_days(
                 item.purchase.transaction_date,
@@ -741,6 +794,8 @@ def build_stock_report():
         )
         predicted_7_day_demand = average_daily_demand * Decimal("7")
         stock_value = available_stock * average_unit_cost
+        supplier_options = build_supplier_options(row["supplier_costs"])
+        best_supplier = supplier_options[0] if supplier_options else None
 
         rows.append(
             {
@@ -778,6 +833,10 @@ def build_stock_report():
                 ),
                 "safety_stock": math.ceil(safety_stock),
                 "safety_stock_days": SAFETY_STOCK_DAYS,
+                "supplier_options": supplier_options,
+                "best_supplier_name": best_supplier["supplier_name"] if best_supplier else "",
+                "best_supplier_cost": best_supplier["last_cost"] if best_supplier else None,
+                "supplier_count": len(supplier_options),
                 "backend_calculated": True,
             }
         )

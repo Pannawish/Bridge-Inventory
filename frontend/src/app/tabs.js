@@ -6,6 +6,12 @@ export const tabs = [
     description: "Overview, stock health, and daily movement.",
   },
   {
+    id: "inventory",
+    label: "Inventory",
+    shortLabel: "IV",
+    description: "Stock health, reorder planning, and best-price suppliers.",
+  },
+  {
     id: "quotations",
     label: "Quotation",
     shortLabel: "QT",

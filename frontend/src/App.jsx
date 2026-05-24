@@ -23,6 +23,7 @@ import SalesHistoryPage from "./components/SalesHistoryPage";
 import SupplierPage from "./components/SupplierPage";
 import ProductsPage from "./components/ProductsPage";
 import CategoryPage from "./components/CategoryPage";
+import InventoryPage from "./components/InventoryPage";
 import QuotationPage from "./components/QuotationPage";
 import BillingNotePage from "./components/BillingNotePage";
 import PaymentBatchPage from "./components/PaymentBatchPage";
@@ -1409,6 +1410,10 @@ function App() {
           <>
             {activeTab === "dashboard" && dashboard ? (
               <Dashboard dashboard={dashboard} />
+            ) : null}
+
+            {activeTab === "inventory" ? (
+              <InventoryPage dashboard={dashboard} />
             ) : null}
 
             {activeTab === "purchase-history" ? (

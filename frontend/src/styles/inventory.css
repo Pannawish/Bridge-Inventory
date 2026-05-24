@@ -1,0 +1,380 @@
+/* ── Inventory page ───────────────────────────────────────
+   Stock-health analytics, reorder planning, and the formula
+   reference modal. Reuses the shared square/compact system look. */
+
+.inv-subtitle {
+  margin: 8px 0 0;
+  max-width: 70ch;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.inv-insight-line {
+  margin: 16px 0 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.inv-filter-panel {
+  margin-top: 14px;
+}
+
+/* Multi-select chip group inside a filter field (health / movement). */
+.inv-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Keep the always-visible sort control aligned to the right of the
+   filter toggle row. */
+.history-filter-actions .inv-sort-inline {
+  margin-left: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-filter-actions .inv-sort-inline .history-filter-title {
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* ── Product stock cards ────────────────────────────────── */
+.inv-card-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.inv-card {
+  display: grid;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--panel);
+}
+
+.inv-card-low {
+  border-left-color: var(--danger);
+}
+.inv-card-watch {
+  border-left-color: var(--warning);
+}
+.inv-card-healthy {
+  border-left-color: var(--success);
+}
+.inv-card-dead {
+  border-left-color: #9aa3b5;
+}
+
+.inv-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.inv-card-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.inv-card-name {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.inv-card-name strong {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.inv-card-name span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+/* Two emphasized "article" boxes: Reorder Point + Reorder From. */
+.inv-card-boxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.inv-box {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel-muted);
+}
+
+.inv-box-supplier {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+}
+
+.inv-box-label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.inv-box-main {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.inv-box-main strong {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.inv-box-main span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.inv-box-supplier-name strong {
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+
+.inv-meter {
+  height: 6px;
+  border-radius: 999px;
+  background: #e3e8f0;
+  overflow: hidden;
+}
+
+.inv-meter-fill {
+  display: block;
+  height: 100%;
+  background: var(--success);
+}
+
+.inv-meter-fill.is-low {
+  background: var(--danger);
+}
+
+.inv-box-status {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.inv-box-status.is-low {
+  color: var(--danger);
+}
+.inv-box-status.is-ok {
+  color: var(--success);
+}
+.inv-box-status.is-muted {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.inv-box-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.inv-box-price {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-deep);
+}
+
+.inv-box-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.inv-box-action span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.inv-box-action strong {
+  color: var(--accent-deep);
+  font-size: 1rem;
+}
+
+.inv-box-action em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 0.84rem;
+}
+
+.inv-card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+}
+
+.inv-card-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inv-card-stats span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.inv-card-stats strong {
+  color: var(--text);
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .inv-card-boxes {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Health badge (Green / Yellow / Red / Gray) ─────────── */
+.inv-health-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.inv-health-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.inv-health-healthy {
+  color: #0f5a3d;
+  background: #e9fbf2;
+  border-color: #cbefdc;
+}
+.inv-health-healthy .inv-health-dot {
+  background: var(--success);
+}
+
+.inv-health-watch {
+  color: #7a5b00;
+  background: #fff6e0;
+  border-color: #f0e0b0;
+}
+.inv-health-watch .inv-health-dot {
+  background: var(--warning);
+}
+
+.inv-health-low {
+  color: #a02236;
+  background: #fff2f4;
+  border-color: #ffd5dc;
+}
+.inv-health-low .inv-health-dot {
+  background: var(--danger);
+}
+
+.inv-health-dead {
+  color: #5b6577;
+  background: #eef1f6;
+  border-color: #dfe5f0;
+}
+.inv-health-dead .inv-health-dot {
+  background: #9aa3b5;
+}
+
+/* ── Movement badge (Fast / Slow / No sales) ────────────── */
+.inv-move-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.inv-move-fast {
+  color: #0f5a3d;
+  background: #e9fbf2;
+}
+
+.inv-move-slow {
+  color: #7a5b00;
+  background: #fff6e0;
+}
+
+.inv-move-dead {
+  color: #5b6577;
+  background: #eef1f6;
+}
+
+/* ── Formula reference modal ────────────────────────────── */
+.inv-ref-modal {
+  width: min(96vw, 900px);
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.inv-ref-subtitle {
+  margin: 6px 0 0;
+  max-width: 64ch;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.inv-ref-stack {
+  display: grid;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.inv-ref-card {
+  background: var(--panel-muted);
+}
+
+.inv-ref-table th,
+.inv-ref-table td {
+  vertical-align: top;
+}
+
+.inv-ref-formula {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}

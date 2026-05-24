@@ -18,6 +18,13 @@ const icons = {
       <rect x="3" y="14" width="7" height="7" rx="1.5" />
     </>
   ),
+  inventory: (
+    <>
+      <path d="M3 4h18v4H3z" />
+      <path d="M5 8v12h14V8" />
+      <line x1="9" y1="12" x2="15" y2="12" />
+    </>
+  ),
   quotations: (
     <>
       <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
