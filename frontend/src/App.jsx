@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
 import ActiveTabContent from "./app/ActiveTabContent";
+import { buildAppMessageHelpers } from "./app/appMessageUtils";
 import AppShell from "./app/AppShell";
 import CreditNotePrompt from "./components/CreditNotePrompt";
+import { useAppChat } from "./hooks/useAppChat";
 import { useAppFinancialActions } from "./hooks/useAppFinancialActions";
 import { useAppTransactionActions } from "./hooks/useAppTransactionActions";
 import { useLanguage } from "./i18n/LanguageContext";
 import { useAppMasterDataActions } from "./hooks/useAppMasterDataActions";
 import { useInventoryData } from "./hooks/useInventoryData";
-import { formatSaleStockIssueMessage } from "./saleStock";
 
 function App() {
   const { language, t } = useLanguage();
@@ -22,11 +23,7 @@ function App() {
     }
   });
   const [notice, setNotice] = useState("");
-  const [chatBusy, setChatBusy] = useState(false);
   const [creditNotePrompt, setCreditNotePrompt] = useState(null);
-  const [messages, setMessages] = useState([
-    { role: "assistant", content: t("app.messages.chatIntro") },
-  ]);
   const {
     dashboard,
     products,
@@ -107,6 +104,16 @@ function App() {
     refreshPaymentBatchEligibility,
     refreshCreditNoteEligibility,
   } = useInventoryData();
+  const { formatSaleStockMessage, buildEntityNotice, buildStatusUpdatedNotice, buildStatusChangeConfirm } =
+    buildAppMessageHelpers({
+      t,
+      language,
+    });
+  const { chatBusy, messages, handleAskChat } = useAppChat({
+    api,
+    t,
+    setError,
+  });
 
   async function handleLoadProductHistory(productId) {
     return api.getProductHistory(productId);
@@ -160,67 +167,6 @@ function App() {
     setActiveTab(tabId);
     setSidebarOpen(false);
   }
-
-  function formatMessage(key, values = {}) {
-    return t(key, values).replace(/\s{2,}/g, " ").trim();
-  }
-
-  function getStatusLabel(status) {
-    const key = `common.statusLabels.${status}`;
-    const label = t(key);
-    return label === key ? status : label;
-  }
-
-  function getEntityLabel(entityKey) {
-    return t(`app.entities.${entityKey}`);
-  }
-
-  function formatSaleStockMessage(issues) {
-    return formatSaleStockIssueMessage(issues, {
-      t,
-      locale: language === "th" ? "th-TH" : "en-US",
-    });
-  }
-
-  function buildEntityNotice(messageKey, entityKey, ref) {
-    return formatMessage(messageKey, {
-      entity: getEntityLabel(entityKey),
-      ref: ref || "",
-    });
-  }
-
-  function buildStatusUpdatedNotice(entityKey, ref, status) {
-    return formatMessage("app.messages.statusUpdated", {
-      entity: getEntityLabel(entityKey),
-      ref: ref || "",
-      status: getStatusLabel(status),
-    });
-  }
-
-  function buildStatusChangeConfirm(entityKey, ref, fromStatus, toStatus) {
-    return formatMessage("app.messages.statusChangeConfirm", {
-      entity: getEntityLabel(entityKey),
-      ref: ref || "",
-      from: getStatusLabel(fromStatus),
-      to: getStatusLabel(toStatus),
-    });
-  }
-
-  useEffect(() => {
-    setMessages((current) => {
-      if (current.length !== 1 || current[0]?.role !== "assistant") {
-        return current;
-      }
-
-      const nextContent = t("app.messages.chatIntro");
-
-      if (current[0].content === nextContent) {
-        return current;
-      }
-
-      return [{ role: "assistant", content: nextContent }];
-    });
-  }, [t]);
 
   const {
     handleSupplierSave,
@@ -325,29 +271,6 @@ function App() {
     t,
     handleCreditNoteCreate,
   });
-
-  async function handleAskChat(question) {
-    const nextMessages = [...messages, { role: "user", content: question }];
-    setMessages(nextMessages);
-    setChatBusy(true);
-    setError("");
-
-    try {
-      const response = await api.askChat(question);
-      setMessages([
-        ...nextMessages,
-        {
-          role: "assistant",
-          content: response.answer || "No answer returned.",
-          model: response.used_model,
-        },
-      ]);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setChatBusy(false);
-    }
-  }
 
   return (
     <>
