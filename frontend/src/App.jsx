@@ -2,17 +2,11 @@ import { useEffect, useState } from "react";
 import { api } from "./api";
 import {
   PAGE_SIZE,
-  buildBillingNotePayload,
-  buildCreditNotePayload,
-  buildPaymentBatchPayload,
   buildPurchaseUpdatePayload,
   buildSaleUpdatePayload,
   countCancelledSaleItems,
   countPendingCreditNoteLines,
   findUncreditedCancelledSaleLines,
-  isMockQuotationId,
-  mergeSavedQuotation,
-  removeMockQuotationId,
 } from "./app/appUtils";
 import { tabs, tabGroups } from "./app/tabs";
 import ChatPanel from "./components/ChatPanel";
@@ -31,67 +25,13 @@ import CreditNotePage from "./components/CreditNotePage";
 import CreditNotePrompt from "./components/CreditNotePrompt";
 import SettingsPage from "./components/SettingsPage";
 import TabIcon from "./components/TabIcon";
+import { useAppFinancialActions } from "./hooks/useAppFinancialActions";
 import { useLanguage } from "./i18n/LanguageContext";
+import { useAppMasterDataActions } from "./hooks/useAppMasterDataActions";
 import { useInventoryData } from "./hooks/useInventoryData";
 import { applyPurchaseStatusToItems } from "./purchaseStatus";
 import { applySaleStatusToItems } from "./saleStatus";
 import { formatSaleStockIssueMessage, getSaleStockIssues } from "./saleStock";
-
-function isBrowserFile(value) {
-  return typeof File !== "undefined" && value instanceof File;
-}
-
-function appendProductJson(formData, key, value) {
-  formData.append(key, JSON.stringify(Array.isArray(value) ? value : []));
-}
-
-function buildProductSavePayload(product) {
-  const formData = new FormData();
-  const productPictures = Array.isArray(product.productPictures) ? product.productPictures : [];
-  const newPictures = productPictures.filter((picture) => isBrowserFile(picture.file));
-  const selectedPictureId = `${product.selectedPictureId || ""}`;
-  const selectedNewPictureIndex = newPictures.findIndex(
-    (picture) => picture.id === selectedPictureId
-  );
-
-  [
-    "id",
-    "productDisplayId",
-    "sku",
-    "productName",
-    "stockBaseUnit",
-    "defaultPurchaseUnit",
-    "defaultSalesUnit",
-    "categoryId",
-    "category",
-    "detail",
-    "isActive",
-  ].forEach((field) => {
-    if (product[field] !== undefined) {
-      formData.append(field, product[field] ?? "");
-    }
-  });
-
-  appendProductJson(formData, "previousSkus", product.previousSkus);
-  appendProductJson(formData, "subNames", product.subNames);
-  appendProductJson(formData, "unitConversions", product.unitConversions);
-
-  newPictures.forEach((picture) => {
-    formData.append("pictures", picture.file);
-  });
-
-  if (Array.isArray(product.removePictureIds) && product.removePictureIds.length) {
-    appendProductJson(formData, "remove_picture_ids", product.removePictureIds);
-  }
-
-  if (selectedNewPictureIndex >= 0) {
-    formData.append("selected_picture_index", selectedNewPictureIndex);
-  } else if (selectedPictureId) {
-    formData.append("selected_picture_id", selectedPictureId);
-  }
-
-  return formData;
-}
 
 function App() {
   const { language, t } = useLanguage();
@@ -339,6 +279,71 @@ function App() {
       return [{ role: "assistant", content: nextContent }];
     });
   }, [t]);
+
+  const {
+    handleSupplierSave,
+    handleSupplierDelete,
+    handleCustomerSave,
+    handleCustomerDelete,
+    handleCategorySave,
+    handleCategoryDelete,
+    handleProductSave,
+    handleProductDelete,
+    handleQuotationSave,
+    handleQuotationDelete,
+  } = useAppMasterDataActions({
+    api,
+    suppliers,
+    setSuppliers,
+    setSupplierRows,
+    usingMockSuppliers,
+    customers,
+    setCustomers,
+    setCustomerRows,
+    usingMockCustomers,
+    categories,
+    setCategories,
+    usingMockCategories,
+    products,
+    setProducts,
+    setProductRows,
+    usingMockProducts,
+    quotations,
+    setQuotations,
+    usingMockQuotations,
+    setNotice,
+    setError,
+    buildEntityNotice,
+  });
+  const {
+    handleBillingNoteCreate,
+    handleBillingNoteUpdate,
+    handleBillingNoteDelete,
+    handlePaymentBatchCreate,
+    handlePaymentBatchUpdate,
+    handlePaymentBatchDelete,
+    handleCreditNoteCreate,
+    handleCreditNoteUpdate,
+    handleCreditNoteDelete,
+  } = useAppFinancialActions({
+    api,
+    usingMockBillingNotes,
+    setBillingNotes,
+    setBillingNoteRows,
+    refreshBillingNoteEligibility,
+    usingMockPaymentBatches,
+    setPaymentBatches,
+    setPaymentBatchRows,
+    refreshPaymentBatchEligibility,
+    usingMockCreditNotes,
+    setCreditNotes,
+    setCreditNoteRows,
+    refreshCreditNoteEligibility,
+    loadBillingNotePage,
+    setNotice,
+    setError,
+    buildEntityNotice,
+  });
 
   async function handlePurchaseCreateFromHistory(formData) {
     setError("");
@@ -775,824 +780,6 @@ function App() {
         )
       );
       await loadData();
-      return true;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleSupplierSave(nextSupplier) {
-    if (usingMockSuppliers) {
-      const resolvedSupplier = nextSupplier;
-
-      setSuppliers((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextSupplier.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextSupplier.id}` ? resolvedSupplier : row
-            )
-          : [resolvedSupplier, ...currentRows]
-      );
-      setSupplierRows((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextSupplier.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextSupplier.id}` ? resolvedSupplier : row
-            )
-          : [resolvedSupplier, ...currentRows].slice(0, PAGE_SIZE)
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entitySaved",
-          "supplier",
-          resolvedSupplier.companyName || resolvedSupplier.id
-        )
-      );
-      return resolvedSupplier;
-    }
-
-    try {
-      const exists = suppliers.some((row) => `${row.id}` === `${nextSupplier.id}`);
-      const savedSupplier = exists
-        ? await api.updateSupplier(nextSupplier.id, nextSupplier)
-        : await api.createSupplier(nextSupplier);
-      const resolvedSupplier = savedSupplier || nextSupplier;
-
-      setSuppliers((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextSupplier.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextSupplier.id}` ? resolvedSupplier : row
-            )
-          : [resolvedSupplier, ...currentRows]
-      );
-      setSupplierRows((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextSupplier.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextSupplier.id}` ? resolvedSupplier : row
-            )
-          : [resolvedSupplier, ...currentRows].slice(0, PAGE_SIZE)
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entitySaved",
-          "supplier",
-          resolvedSupplier.companyName || resolvedSupplier.id
-        )
-      );
-      return resolvedSupplier;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleSupplierDelete(deletedSupplier) {
-    if (usingMockSuppliers) {
-      setSuppliers((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
-      setSupplierRows((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "supplier",
-          deletedSupplier.companyName || deletedSupplier.id
-        )
-      );
-      return true;
-    }
-
-    try {
-      await api.deleteSupplier(deletedSupplier.id);
-      setSuppliers((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
-      setSupplierRows((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "supplier",
-          deletedSupplier.companyName || deletedSupplier.id
-        )
-      );
-      return true;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleCustomerSave(nextCustomer) {
-    if (usingMockCustomers) {
-      const resolvedCustomer = nextCustomer;
-
-      setCustomers((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextCustomer.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextCustomer.id}` ? resolvedCustomer : row
-            )
-          : [resolvedCustomer, ...currentRows]
-      );
-      setCustomerRows((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextCustomer.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextCustomer.id}` ? resolvedCustomer : row
-            )
-          : [resolvedCustomer, ...currentRows].slice(0, PAGE_SIZE)
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entitySaved",
-          "customer",
-          resolvedCustomer.companyName || resolvedCustomer.id
-        )
-      );
-      return resolvedCustomer;
-    }
-
-    try {
-      const exists = customers.some((row) => `${row.id}` === `${nextCustomer.id}`);
-      const savedCustomer = exists
-        ? await api.updateCustomer(nextCustomer.id, nextCustomer)
-        : await api.createCustomer(nextCustomer);
-      const resolvedCustomer = savedCustomer || nextCustomer;
-
-      setCustomers((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextCustomer.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextCustomer.id}` ? resolvedCustomer : row
-            )
-          : [resolvedCustomer, ...currentRows]
-      );
-      setCustomerRows((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextCustomer.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextCustomer.id}` ? resolvedCustomer : row
-            )
-          : [resolvedCustomer, ...currentRows].slice(0, PAGE_SIZE)
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entitySaved",
-          "customer",
-          resolvedCustomer.companyName || resolvedCustomer.id
-        )
-      );
-      return resolvedCustomer;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleCustomerDelete(deletedCustomer) {
-    if (usingMockCustomers) {
-      setCustomers((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
-      setCustomerRows((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "customer",
-          deletedCustomer.companyName || deletedCustomer.id
-        )
-      );
-      return true;
-    }
-
-    try {
-      await api.deleteCustomer(deletedCustomer.id);
-      setCustomers((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
-      setCustomerRows((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "customer",
-          deletedCustomer.companyName || deletedCustomer.id
-        )
-      );
-      return true;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleCategorySave(nextCategory) {
-    if (usingMockCategories) {
-      const resolvedCategory = nextCategory;
-
-      setCategories((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextCategory.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextCategory.id}` ? resolvedCategory : row
-            )
-          : [resolvedCategory, ...currentRows]
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entitySaved",
-          "category",
-          resolvedCategory.name || resolvedCategory.id
-        )
-      );
-      return resolvedCategory;
-    }
-
-    try {
-      const exists = categories.some((row) => `${row.id}` === `${nextCategory.id}`);
-      const savedCategory = exists
-        ? await api.updateCategory(nextCategory.id, nextCategory)
-        : await api.createCategory(nextCategory);
-      const resolvedCategory = savedCategory || nextCategory;
-
-      setCategories((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextCategory.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextCategory.id}` ? resolvedCategory : row
-            )
-          : [resolvedCategory, ...currentRows]
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entitySaved",
-          "category",
-          resolvedCategory.name || resolvedCategory.id
-        )
-      );
-      return resolvedCategory;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleCategoryDelete(deletedCategory) {
-    if (usingMockCategories) {
-      setCategories((currentRows) => currentRows.filter((row) => row.id !== deletedCategory.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "category",
-          deletedCategory.name || deletedCategory.id
-        )
-      );
-      return true;
-    }
-
-    try {
-      await api.deleteCategory(deletedCategory.id);
-      setCategories((currentRows) => currentRows.filter((row) => row.id !== deletedCategory.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "category",
-          deletedCategory.name || deletedCategory.id
-        )
-      );
-      return true;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleProductSave(nextProduct) {
-    if (usingMockProducts) {
-      const resolvedProduct = nextProduct;
-
-      setProducts((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextProduct.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextProduct.id}` ? resolvedProduct : row
-            )
-          : [resolvedProduct, ...currentRows]
-      );
-      setProductRows((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextProduct.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextProduct.id}` ? resolvedProduct : row
-            )
-          : [resolvedProduct, ...currentRows].slice(0, PAGE_SIZE)
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entitySaved",
-          "product",
-          resolvedProduct.productName || resolvedProduct.id
-        )
-      );
-      return resolvedProduct;
-    }
-
-    try {
-      const exists = products.some((row) => `${row.id}` === `${nextProduct.id}`);
-      const productPayload = buildProductSavePayload(nextProduct);
-      const savedProduct = exists
-        ? await api.updateProduct(nextProduct.id, productPayload)
-        : await api.createProduct(productPayload);
-      const resolvedProduct = savedProduct || nextProduct;
-
-      setProducts((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextProduct.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextProduct.id}` ? resolvedProduct : row
-            )
-          : [resolvedProduct, ...currentRows]
-      );
-      setProductRows((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${nextProduct.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${nextProduct.id}` ? resolvedProduct : row
-            )
-          : [resolvedProduct, ...currentRows].slice(0, PAGE_SIZE)
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entitySaved",
-          "product",
-          resolvedProduct.productName || resolvedProduct.id
-        )
-      );
-      return resolvedProduct;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleProductDelete(deletedProduct) {
-    if (usingMockProducts) {
-      setProducts((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));
-      setProductRows((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "product",
-          deletedProduct.productName || deletedProduct.id
-        )
-      );
-      return true;
-    }
-
-    try {
-      await api.deleteProduct(deletedProduct.id);
-      setProducts((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));
-      setProductRows((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "product",
-          deletedProduct.productName || deletedProduct.id
-        )
-      );
-      return true;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleQuotationSave(nextQuotation) {
-    setError("");
-
-    if (usingMockQuotations) {
-      const resolvedQuotation = {
-        ...nextQuotation,
-        id: nextQuotation.id || `quotation-${Date.now()}`,
-      };
-
-      setQuotations((currentRows) =>
-        currentRows.some((row) => `${row.id}` === `${resolvedQuotation.id}`)
-          ? currentRows.map((row) =>
-              `${row.id}` === `${resolvedQuotation.id}` ? resolvedQuotation : row
-            )
-          : [resolvedQuotation, ...currentRows]
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entitySaved",
-          "quotation",
-          resolvedQuotation.reference_no || resolvedQuotation.id
-        )
-      );
-      return resolvedQuotation;
-    }
-
-    try {
-      const isMockQuotation = isMockQuotationId(nextQuotation.id);
-      const exists =
-        nextQuotation.id &&
-        !isMockQuotation &&
-        quotations.some((row) => `${row.id}` === `${nextQuotation.id}`);
-      const savedQuotation = exists
-        ? await api.updateQuotation(nextQuotation.id, nextQuotation)
-        : await api.createQuotation(removeMockQuotationId(nextQuotation));
-      const resolvedQuotation = savedQuotation || nextQuotation;
-
-      setQuotations((currentRows) =>
-        mergeSavedQuotation(currentRows, nextQuotation, resolvedQuotation, exists)
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entitySaved",
-          "quotation",
-          resolvedQuotation.reference_no || resolvedQuotation.id
-        )
-      );
-      return resolvedQuotation;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleQuotationDelete(deletedQuotation) {
-    setError("");
-
-    if (usingMockQuotations || isMockQuotationId(deletedQuotation.id)) {
-      setQuotations((currentRows) =>
-        currentRows.filter((row) => row.id !== deletedQuotation.id)
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "quotation",
-          deletedQuotation.reference_no || deletedQuotation.id
-        )
-      );
-      return true;
-    }
-
-    try {
-      await api.deleteQuotation(deletedQuotation.id);
-      setQuotations((currentRows) =>
-        currentRows.filter((row) => row.id !== deletedQuotation.id)
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "quotation",
-          deletedQuotation.reference_no || deletedQuotation.id
-        )
-      );
-      return true;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleBillingNoteCreate(nextBillingNote) {
-    setError("");
-
-    if (usingMockBillingNotes) {
-      const resolved = {
-        ...nextBillingNote,
-        id: nextBillingNote.id || `billing-note-mock-${Date.now()}`,
-      };
-      setBillingNotes((rows) => [resolved, ...rows]);
-      setBillingNoteRows((rows) => [resolved, ...rows].slice(0, PAGE_SIZE));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityCreated",
-          "billingNote",
-          resolved.reference_no || resolved.id
-        )
-      );
-      return resolved;
-    }
-
-    try {
-      const saved = await api.createBillingNote(buildBillingNotePayload(nextBillingNote));
-      setBillingNotes((rows) => [saved, ...rows]);
-      setBillingNoteRows((rows) => [saved, ...rows].slice(0, PAGE_SIZE));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityCreated",
-          "billingNote",
-          saved.reference_no || saved.id
-        )
-      );
-      await refreshBillingNoteEligibility();
-      return saved;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleBillingNoteUpdate(updated) {
-    setError("");
-
-    if (usingMockBillingNotes) {
-      setBillingNotes((rows) =>
-        rows.map((row) => (row.id === updated.id ? updated : row))
-      );
-      setBillingNoteRows((rows) =>
-        rows.map((row) => (row.id === updated.id ? updated : row))
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "billingNote",
-          updated.reference_no || updated.id
-        )
-      );
-      return updated;
-    }
-
-    try {
-      const saved = await api.updateBillingNote(
-        updated.id,
-        buildBillingNotePayload(updated)
-      );
-      setBillingNotes((rows) =>
-        rows.map((row) => (row.id === updated.id ? saved : row))
-      );
-      setBillingNoteRows((rows) =>
-        rows.map((row) => (row.id === updated.id ? saved : row))
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "billingNote",
-          saved.reference_no || saved.id
-        )
-      );
-      await refreshBillingNoteEligibility();
-      return saved;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleBillingNoteDelete(deleted) {
-    setError("");
-
-    if (usingMockBillingNotes) {
-      setBillingNotes((rows) => rows.filter((row) => row.id !== deleted.id));
-      setBillingNoteRows((rows) => rows.filter((row) => row.id !== deleted.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "billingNote",
-          deleted.reference_no || deleted.id
-        )
-      );
-      return true;
-    }
-
-    try {
-      await api.deleteBillingNote(deleted.id);
-      setBillingNotes((rows) => rows.filter((row) => row.id !== deleted.id));
-      setBillingNoteRows((rows) => rows.filter((row) => row.id !== deleted.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "billingNote",
-          deleted.reference_no || deleted.id
-        )
-      );
-      await refreshBillingNoteEligibility();
-      return true;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handlePaymentBatchCreate(nextBatch) {
-    setError("");
-
-    if (usingMockPaymentBatches) {
-      const resolved = {
-        ...nextBatch,
-        id: nextBatch.id || `payment-batch-mock-${Date.now()}`,
-      };
-      setPaymentBatches((rows) => [resolved, ...rows]);
-      setPaymentBatchRows((rows) => [resolved, ...rows].slice(0, PAGE_SIZE));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityCreated",
-          "paymentBatch",
-          resolved.reference_no || resolved.id
-        )
-      );
-      return resolved;
-    }
-
-    try {
-      const saved = await api.createPaymentBatch(buildPaymentBatchPayload(nextBatch));
-      setPaymentBatches((rows) => [saved, ...rows]);
-      setPaymentBatchRows((rows) => [saved, ...rows].slice(0, PAGE_SIZE));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityCreated",
-          "paymentBatch",
-          saved.reference_no || saved.id
-        )
-      );
-      await refreshPaymentBatchEligibility();
-      return saved;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handlePaymentBatchUpdate(updated) {
-    setError("");
-
-    if (usingMockPaymentBatches) {
-      setPaymentBatches((rows) =>
-        rows.map((row) => (row.id === updated.id ? updated : row))
-      );
-      setPaymentBatchRows((rows) =>
-        rows.map((row) => (row.id === updated.id ? updated : row))
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "paymentBatch",
-          updated.reference_no || updated.id
-        )
-      );
-      return updated;
-    }
-
-    try {
-      const saved = await api.updatePaymentBatch(
-        updated.id,
-        buildPaymentBatchPayload(updated)
-      );
-      setPaymentBatches((rows) =>
-        rows.map((row) => (row.id === updated.id ? saved : row))
-      );
-      setPaymentBatchRows((rows) =>
-        rows.map((row) => (row.id === updated.id ? saved : row))
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "paymentBatch",
-          saved.reference_no || saved.id
-        )
-      );
-      await refreshPaymentBatchEligibility();
-      return saved;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handlePaymentBatchDelete(deleted) {
-    setError("");
-
-    if (usingMockPaymentBatches) {
-      setPaymentBatches((rows) => rows.filter((row) => row.id !== deleted.id));
-      setPaymentBatchRows((rows) => rows.filter((row) => row.id !== deleted.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "paymentBatch",
-          deleted.reference_no || deleted.id
-        )
-      );
-      return true;
-    }
-
-    try {
-      await api.deletePaymentBatch(deleted.id);
-      setPaymentBatches((rows) => rows.filter((row) => row.id !== deleted.id));
-      setPaymentBatchRows((rows) => rows.filter((row) => row.id !== deleted.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "paymentBatch",
-          deleted.reference_no || deleted.id
-        )
-      );
-      await refreshPaymentBatchEligibility();
-      return true;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleCreditNoteCreate(nextCreditNote) {
-    setError("");
-
-    if (usingMockCreditNotes) {
-      const resolved = {
-        ...nextCreditNote,
-        id: nextCreditNote.id || `credit-note-mock-${Date.now()}`,
-      };
-      setCreditNotes((rows) => [resolved, ...rows]);
-      setCreditNoteRows((rows) => [resolved, ...rows].slice(0, PAGE_SIZE));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityCreated",
-          "creditNote",
-          resolved.reference_no || resolved.id
-        )
-      );
-      return resolved;
-    }
-
-    try {
-      const saved = await api.createCreditNote(buildCreditNotePayload(nextCreditNote));
-      setCreditNotes((rows) => [saved, ...rows]);
-      setCreditNoteRows((rows) => [saved, ...rows].slice(0, PAGE_SIZE));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityCreated",
-          "creditNote",
-          saved.reference_no || saved.id
-        )
-      );
-      await refreshCreditNoteEligibility();
-      await loadBillingNotePage();
-      return saved;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleCreditNoteUpdate(updated) {
-    setError("");
-
-    if (usingMockCreditNotes) {
-      setCreditNotes((rows) =>
-        rows.map((row) => (row.id === updated.id ? updated : row))
-      );
-      setCreditNoteRows((rows) =>
-        rows.map((row) => (row.id === updated.id ? updated : row))
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "creditNote",
-          updated.reference_no || updated.id
-        )
-      );
-      return updated;
-    }
-
-    try {
-      const saved = await api.updateCreditNote(
-        updated.id,
-        buildCreditNotePayload(updated)
-      );
-      setCreditNotes((rows) =>
-        rows.map((row) => (row.id === updated.id ? saved : row))
-      );
-      setCreditNoteRows((rows) =>
-        rows.map((row) => (row.id === updated.id ? saved : row))
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "creditNote",
-          saved.reference_no || saved.id
-        )
-      );
-      await refreshCreditNoteEligibility();
-      await loadBillingNotePage();
-      return saved;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleCreditNoteDelete(deleted) {
-    setError("");
-
-    if (usingMockCreditNotes) {
-      setCreditNotes((rows) => rows.filter((row) => row.id !== deleted.id));
-      setCreditNoteRows((rows) => rows.filter((row) => row.id !== deleted.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "creditNote",
-          deleted.reference_no || deleted.id
-        )
-      );
-      return true;
-    }
-
-    try {
-      await api.deleteCreditNote(deleted.id);
-      setCreditNotes((rows) => rows.filter((row) => row.id !== deleted.id));
-      setCreditNoteRows((rows) => rows.filter((row) => row.id !== deleted.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "creditNote",
-          deleted.reference_no || deleted.id
-        )
-      );
-      await refreshCreditNoteEligibility();
-      await loadBillingNotePage();
       return true;
     } catch (requestError) {
       setError(requestError.message);
