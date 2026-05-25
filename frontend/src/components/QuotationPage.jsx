@@ -2192,7 +2192,11 @@ function QuotationPage({
                     setViewingQuotation(null);
                     setEditingQuotation(null);
                     setShowNewQuotationForm(false);
-                    setConversion({ type: "sale", quotation: viewingQuotation });
+                    setConversion({
+                      type: "sale",
+                      quotation: viewingQuotation,
+                      stockCoverageLines: viewingQuotationStockCoverage.lines,
+                    });
                   }}
                 >
                   {t("quotation.saleActionButton")}

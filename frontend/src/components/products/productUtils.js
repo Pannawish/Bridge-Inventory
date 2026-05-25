@@ -352,6 +352,22 @@ function matchesSku(item, sku) {
   return normalizeSku(item.sku) === normalizedSku;
 }
 
+function matchesName(item, product) {
+  const itemName = normalizeUniqueNames([
+    item?.product_name,
+    item?.productName,
+    item?.name,
+  ])[0]?.toLowerCase();
+
+  if (!itemName) {
+    return false;
+  }
+
+  return getProductAllNames(product).some(
+    (productName) => productName.toLowerCase() === itemName
+  );
+}
+
 export function itemMatchesProduct(item, product) {
   if (!item || !product) {
     return false;
@@ -365,7 +381,8 @@ export function itemMatchesProduct(item, product) {
   }
 
   return matchesSku(item, product.sku) ||
-    getProductPreviousSkus(product).some((sku) => matchesSku(item, sku));
+    getProductPreviousSkus(product).some((sku) => matchesSku(item, sku)) ||
+    matchesName(item, product);
 }
 
 function getProductCurrentStock(product) {
