@@ -377,6 +377,7 @@ class ProductSerializer(serializers.ModelSerializer):
     )
     current_stock = serializers.SerializerMethodField()
     average_unit_cost = serializers.SerializerMethodField()
+    average_recent_sale_price = serializers.SerializerMethodField()
     received_purchase_count = serializers.SerializerMethodField()
     active_sales_count = serializers.SerializerMethodField()
 
@@ -406,6 +407,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "reorder_level",
             "current_stock",
             "average_unit_cost",
+            "average_recent_sale_price",
             "received_purchase_count",
             "active_sales_count",
         ]
@@ -455,6 +457,12 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_average_unit_cost(self, product):
         return self.get_metric_snapshot(product).get("average_unit_cost", Decimal("0"))
+
+    def get_average_recent_sale_price(self, product):
+        return self.get_metric_snapshot(product).get(
+            "average_recent_sale_price",
+            Decimal("0"),
+        )
 
     def get_received_purchase_count(self, product):
         return self.get_metric_snapshot(product).get("received_purchase_count", 0)

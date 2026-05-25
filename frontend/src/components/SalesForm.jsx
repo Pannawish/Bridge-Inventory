@@ -4,7 +4,6 @@ import { formatSaleStockIssueMessage, getSaleStockIssues } from "../saleStock";
 import {
   buildConvertedItemFields,
   getProductDefaultSalesUnit,
-  getUnitValueFromBaseValue,
   getProductUnitOptions,
 } from "../unitConversion";
 import { computePaymentDate, formatMoney as fmt } from "../format";
@@ -14,6 +13,10 @@ import {
   getActiveTransactionDiscount,
   getEffectiveDiscounts,
 } from "./transactionDiscounts";
+import {
+  getAverageCostForSelectedUnit,
+  getAverageRecentSalePriceForSelectedUnit,
+} from "./productPriceMetrics";
 import { useLanguage } from "../i18n/LanguageContext";
 import { isProductActive } from "./products/productUtils";
 
@@ -232,21 +235,6 @@ function getProductSku(product) {
 
 function getProductUnit(product) {
   return getProductDefaultSalesUnit(product);
-}
-
-function getAverageCostForSelectedUnit(product, unit) {
-  if (!product) {
-    return null;
-  }
-
-  const baseAverageCost = Number(
-    product.average_unit_cost ?? product.averageUnitCost ?? 0
-  );
-  if (!Number.isFinite(baseAverageCost) || baseAverageCost <= 0) {
-    return null;
-  }
-
-  return getUnitValueFromBaseValue(product, unit, baseAverageCost, "sale");
 }
 
 function getCustomerPaymentTerms(customer) {
@@ -1054,6 +1042,8 @@ function SalesForm({
               selectedProduct,
               item.unit
             );
+            const recentAverageSalePriceForSelectedUnit =
+              getAverageRecentSalePriceForSelectedUnit(selectedProduct, item.unit);
             const unitOptions = selectedProduct
               ? getProductUnitOptions(selectedProduct, "sale")
               : [];
@@ -1206,6 +1196,14 @@ function SalesForm({
                     <span className="field-helper-text">
                       {t("common.avgCostForUnit", {
                         amount: fmt(averageCostForSelectedUnit),
+                        unit: item.unit || getProductUnit(selectedProduct),
+                      })}
+                    </span>
+                  ) : null}
+                  {recentAverageSalePriceForSelectedUnit ? (
+                    <span className="field-helper-text">
+                      {t("common.avgRecentSalePriceForUnit", {
+                        amount: fmt(recentAverageSalePriceForSelectedUnit),
                         unit: item.unit || getProductUnit(selectedProduct),
                       })}
                     </span>

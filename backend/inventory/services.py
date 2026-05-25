@@ -52,6 +52,7 @@ PURCHASE_ITEM_STATUSES = {"pending", "received", "cancelled"}
 PURCHASE_FULL_TRANSACTION_STATUSES = {"draft", "ordered", "received", "cancelled"}
 SAFETY_STOCK_DAYS = 7
 RECENT_AVERAGE_COST_HISTORY_LIMIT = 3
+RECENT_AVERAGE_SALE_PRICE_HISTORY_LIMIT = 3
 CHAT_STOP_WORDS = {
     "about",
     "are",
@@ -139,6 +140,19 @@ def get_purchase_item_base_unit_cost(item):
     return Decimal("0")
 
 
+def get_sale_item_base_unit_price(item):
+    conversion_factor = item.conversion_factor or Decimal("0")
+    if conversion_factor > 0:
+        return (item.unit_price or Decimal("0")) / conversion_factor
+
+    quantity = item.quantity or Decimal("0")
+    base_quantity = item.base_quantity or Decimal("0")
+    if quantity > 0 and base_quantity > 0:
+        return ((item.unit_price or Decimal("0")) * quantity) / base_quantity
+
+    return item.unit_price or Decimal("0")
+
+
 def get_product_metric_snapshots(product_ids=None, exclude_sale_id=None):
     product_ids = {product_id for product_id in product_ids or [] if product_id}
     received = {}
@@ -146,6 +160,7 @@ def get_product_metric_snapshots(product_ids=None, exclude_sale_id=None):
     recent_received_items = {}
     committed = {}
     active_sales_count = {}
+    recent_sale_items = {}
 
     purchase_items = PurchaseItem.objects.select_related("product", "purchase").filter(
         item_status=PurchaseItem.ITEM_RECEIVED,
@@ -171,6 +186,9 @@ def get_product_metric_snapshots(product_ids=None, exclude_sale_id=None):
         sale_items = sale_items.exclude(sale_id=exclude_sale_id)
 
     for item in sale_items:
+        if item.item_status not in SALE_INACTIVE_ITEM_STATUSES:
+            recent_sale_items.setdefault(item.product_id, []).append(item)
+
         if item.item_status not in SALE_STOCK_DEDUCTED_STATUSES:
             continue
 
@@ -204,12 +222,44 @@ def get_product_metric_snapshots(product_ids=None, exclude_sale_id=None):
             if recent_base_unit_costs
             else Decimal("0")
         )
+        sorted_recent_sale_items = sorted(
+            recent_sale_items.get(product.id, []),
+            key=lambda item: (
+                item.sale.transaction_date or date.min,
+                item.sale.created_at,
+                item.id,
+            ),
+            reverse=True,
+        )
+        latest_sale_transaction_prices = []
+        sale_prices_by_sale_id = {}
+        for item in sorted_recent_sale_items:
+            if item.sale_id not in sale_prices_by_sale_id:
+                sale_prices_by_sale_id[item.sale_id] = []
+                latest_sale_transaction_prices.append(sale_prices_by_sale_id[item.sale_id])
+
+            sale_prices_by_sale_id[item.sale_id].append(get_sale_item_base_unit_price(item))
+
+        recent_average_sale_price_history = [
+            sum(transaction_prices, Decimal("0")) / Decimal(len(transaction_prices))
+            for transaction_prices in latest_sale_transaction_prices[
+                :RECENT_AVERAGE_SALE_PRICE_HISTORY_LIMIT
+            ]
+            if transaction_prices
+        ]
+        average_recent_sale_price = (
+            sum(recent_average_sale_price_history, Decimal("0"))
+            / Decimal(len(recent_average_sale_price_history))
+            if recent_average_sale_price_history
+            else Decimal("0")
+        )
         metrics[product.id] = {
             "current_stock": max(
                 Decimal("0"),
                 received_units - committed.get(product.id, Decimal("0")),
             ),
             "average_unit_cost": average_unit_cost,
+            "average_recent_sale_price": average_recent_sale_price,
             "received_purchase_count": received_purchase_count.get(product.id, 0),
             "active_sales_count": active_sales_count.get(product.id, 0),
         }

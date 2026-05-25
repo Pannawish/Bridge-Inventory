@@ -13,11 +13,14 @@ import {
   getProductBaseUnit,
   getProductDefaultSalesUnit,
   getProductUnitConversions,
-  getUnitValueFromBaseValue,
 } from "../unitConversion";
 import { formatDate, formatMoney as fmt, formatNumber } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
 import { PAGE_SIZE } from "../app/appUtils";
+import {
+  getAverageCostForSelectedUnit,
+  getAverageRecentSalePriceForSelectedUnit,
+} from "./productPriceMetrics";
 import { isProductActive, itemMatchesProduct } from "./products/productUtils";
 
 const VAT_RATE = 0.07;
@@ -363,22 +366,6 @@ function computeVatSummary(itemTotal, vatMode) {
 function isVatEnabled(vatMode) {
   return vatMode !== "none";
 }
-
-function getAverageCostForSelectedUnit(product, unit) {
-  if (!product) {
-    return null;
-  }
-
-  const baseAverageCost = Number(
-    product.average_unit_cost ?? product.averageUnitCost ?? 0
-  );
-  if (!Number.isFinite(baseAverageCost) || baseAverageCost <= 0) {
-    return null;
-  }
-
-  return getUnitValueFromBaseValue(product, unit, baseAverageCost, "sale");
-}
-
 
 function normalizePartnerOptions(partners = [], currentName = "") {
   const normalizedPartners = partners
@@ -1151,6 +1138,8 @@ function QuotationForm({
               selectedProduct,
               item.unit
             );
+            const recentAverageSalePriceForSelectedUnit =
+              getAverageRecentSalePriceForSelectedUnit(selectedProduct, item.unit);
 
             return (
               <div className="line-item-row quotation-line-item-row" key={item.line_id}>
@@ -1271,6 +1260,14 @@ function QuotationForm({
                     <span className="field-helper-text">
                       {t("common.avgCostForUnit", {
                         amount: fmt(averageCostForSelectedUnit),
+                        unit: item.unit || getProductDefaultSalesUnit(selectedProduct),
+                      })}
+                    </span>
+                  ) : null}
+                  {recentAverageSalePriceForSelectedUnit ? (
+                    <span className="field-helper-text">
+                      {t("common.avgRecentSalePriceForUnit", {
+                        amount: fmt(recentAverageSalePriceForSelectedUnit),
                         unit: item.unit || getProductDefaultSalesUnit(selectedProduct),
                       })}
                     </span>

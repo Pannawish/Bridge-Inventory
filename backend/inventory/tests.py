@@ -1015,6 +1015,57 @@ class LookupEligibilityTests(APITestCase):
         self.assertEqual(response.data[0]["sku"], "LOOKUP-1")
         self.assertEqual(response.data[0]["current_stock"], Decimal("7"))
 
+    def test_product_lookup_returns_average_recent_sale_price_from_latest_three_sales(self):
+        product = Product.objects.create(
+            sku="LOOKUP-SALES-1",
+            product_name="Lookup Sales Product",
+            stock_base_unit="pcs",
+            default_sales_unit="pcs",
+        )
+        sale_specs = (
+            ("2026-05-01", Sale.STATUS_PACKED, SaleItem.ITEM_PACKED, "pcs", Decimal("1"), Decimal("10")),
+            ("2026-05-02", Sale.STATUS_PACKED, SaleItem.ITEM_PACKED, "box", Decimal("10"), Decimal("200")),
+            ("2026-05-03", Sale.STATUS_PACKED, SaleItem.ITEM_PACKED, "pcs", Decimal("1"), Decimal("30")),
+            ("2026-05-04", Sale.STATUS_PACKED, SaleItem.ITEM_PACKED, "box", Decimal("10"), Decimal("400")),
+            ("2026-05-05", Sale.STATUS_CANCELLED, SaleItem.ITEM_CANCELLED, "box", Decimal("10"), Decimal("900")),
+        )
+
+        for index, (
+            transaction_date,
+            sale_status,
+            item_status,
+            unit,
+            conversion_factor,
+            unit_price,
+        ) in enumerate(sale_specs, start=1):
+            sale = Sale.objects.create(
+                reference_no=f"SO-LOOKUP-{index}",
+                customer_name="Lookup Customer",
+                status=sale_status,
+                transaction_date=transaction_date,
+            )
+            SaleItem.objects.create(
+                sale=sale,
+                product=product,
+                product_name=product.product_name,
+                sku=product.sku,
+                item_status=item_status,
+                unit=unit,
+                base_unit="pcs",
+                conversion_factor=conversion_factor,
+                quantity=Decimal("1"),
+                base_quantity=conversion_factor,
+                unit_price=unit_price,
+                amount=unit_price,
+            )
+
+        response = self.client.get("/api/lookups/products/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["sku"], "LOOKUP-SALES-1")
+        self.assertEqual(response.data[0]["average_recent_sale_price"], Decimal("30"))
+
     def test_product_lookup_excludes_disabled_products_by_default(self):
         active = Product.objects.create(
             sku="LOOKUP-ACTIVE",
