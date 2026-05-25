@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import PurchaseForm from "./PurchaseForm";
 import PurchaseEditForm from "./purchases/PurchaseEditForm";
-import PaginationControls from "./PaginationControls";
-import StatusFilterGroup from "./StatusFilterGroup";
-import TransactionTable from "./TransactionTable";
+import PurchaseHistoryDirectorySection from "./purchases/PurchaseHistoryDirectorySection";
 import { useLanguage } from "../i18n/LanguageContext";
 import {
-  FilterPresets,
-  ActiveFilterChips,
-  RangeField,
   withinRange,
 } from "./FilterControls";
 import { getStatusLabel } from "../i18n/statusLabels";
@@ -17,7 +12,6 @@ import {
   daysAgoString,
   defaultSupplierOptions,
   purchaseMatchesQuery,
-  purchaseStatusPresets,
   sortRecentTransactions,
   statusOptions,
   transactionMatchesDateRange,
@@ -312,197 +306,56 @@ function PurchaseHistoryPage({
   ];
 
   return (
-    <div className="stack-layout">
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("purchaseHistory.searchEyebrow")}</p>
-            <h3>{t("purchaseHistory.searchTitle")}</h3>
-          </div>
-        </div>
-
-        <div className="supplier-directory-toolbar">
-          <label className="stock-search supplier-search">
-            <span className="stock-search-icon">S</span>
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder={t("purchaseHistory.searchPlaceholder")}
-            />
-          </label>
-          <div className="stock-report-summary supplier-search-meta">
-            <span>
-              {isServerPaginated
-                ? t("purchaseHistory.pageCountServer", { count: filteredPurchases.length, total: totalPurchaseCount })
-                : t("purchaseHistory.pageCountLocal", { count: filteredPurchases.length, total: purchases.length })}
-            </span>
-          </div>
-        </div>
-
-        <div className="history-filter-actions">
-          <button
-            className="secondary-button product-filter-toggle"
-            type="button"
-            aria-expanded={filterOpen}
-            onClick={() => setFilterOpen((currentValue) => !currentValue)}
-          >
-            {t("filterControls.filter")}
-            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
-          </button>
-          <button className="secondary-button" type="button" onClick={resetFilters}>
-            {t("filterControls.resetFilter")}
-          </button>
-        </div>
-
-        <FilterPresets presets={quickPresets} />
-        <ActiveFilterChips chips={activeChips} onClearAll={resetFilters} />
-
-        {filterOpen ? (
-          <div className="history-filter-panel">
-            <div className="history-filter-grid">
-              <label className="history-filter-field supplier-combobox-field">
-                <span className="history-filter-title">{t("purchaseHistory.supplierFilter")}</span>
-                <div className="supplier-combobox">
-                  <input
-                    type="search"
-                    value={supplierFilterQuery}
-                    onChange={(event) => {
-                      setSupplierFilterQuery(event.target.value);
-                      setSelectedSupplier("");
-                      setSupplierFilterOpen(true);
-                    }}
-                    onFocus={() => setSupplierFilterOpen(true)}
-                    onBlur={() => {
-                      window.setTimeout(() => setSupplierFilterOpen(false), 120);
-                    }}
-                    placeholder={t("purchaseHistory.searchSupplierPlaceholder")}
-                    autoComplete="off"
-                    aria-expanded={supplierFilterOpen}
-                    aria-controls="purchase-history-supplier-filter"
-                  />
-
-                  {supplierFilterOpen ? (
-                    <div
-                      className="supplier-combobox-menu"
-                      id="purchase-history-supplier-filter"
-                      role="listbox"
-                    >
-                      {filteredSupplierOptions.length ? (
-                        filteredSupplierOptions.map((supplier) => (
-                          <button
-                            key={supplier.id}
-                            type="button"
-                            className={
-                              supplier.companyName === selectedSupplier
-                                ? "supplier-combobox-option active"
-                                : "supplier-combobox-option"
-                            }
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              selectSupplierFilter(supplier);
-                            }}
-                            role="option"
-                            aria-selected={supplier.companyName === selectedSupplier}
-                          >
-                            {supplier.companyName}
-                          </button>
-                        ))
-                      ) : (
-                        <div className="supplier-combobox-empty">{t("purchaseHistory.noSupplierFound")}</div>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              </label>
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("purchaseHistory.dateFromLabel")}</span>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(event) => setDateFrom(event.target.value)}
-                />
-              </label>
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("purchaseHistory.dateToLabel")}</span>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(event) => setDateTo(event.target.value)}
-                />
-              </label>
-
-              <RangeField
-                title={t("purchaseHistory.amountLabel")}
-                prefix="฿"
-                minValue={amountMin}
-                maxValue={amountMax}
-                onMinChange={setAmountMin}
-                onMaxChange={setAmountMax}
-              />
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("purchaseHistory.vatLabel")}</span>
-                <select
-                  value={vatFilter}
-                  onChange={(event) => setVatFilter(event.target.value)}
-                >
-                  <option value="all">{t("purchaseHistory.allVat")}</option>
-                  {vatOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <StatusFilterGroup
-              title={t("purchaseHistory.statusSectionTitle")}
-              statuses={statusOptions}
-              selectedStatuses={selectedStatuses}
-              presets={purchaseStatusPresets.map((preset) => ({
-                ...preset,
-                label: t(preset.labelKey),
-              }))}
-              formatStatusLabel={(status) => getStatusLabel(t, status)}
-              onChange={setSelectedStatuses}
-            />
-          </div>
-        ) : null}
-      </section>
-
-      <TransactionTable
-        rows={filteredPurchases}
-        products={products}
-        type="purchase"
-        onPurchaseStatusChange={onPurchaseStatusChange}
-        onPurchaseItemStatusChange={onPurchaseItemStatusChange}
-        onEditRow={setEditingPurchase}
-        onDeleteRow={handleDelete}
-        compactRows={isServerPaginated ? 0 : 5}
-        enableViewAll={!isServerPaginated}
-        headerActions={
-          <button
-            className="primary-button"
-            type="button"
-            onClick={() => {
-              setEditingPurchase(null);
-              setShowNewPurchaseForm(true);
-            }}
-          >
-            {t("purchaseHistory.newPurchase")}
-          </button>
-        }
-      />
-      <PaginationControls
-        pagination={pagination}
-        itemLabel={t("purchaseHistory.paginationLabel")}
-        onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
-      />
-    </div>
+    <PurchaseHistoryDirectorySection
+      purchases={purchases}
+      filteredPurchases={filteredPurchases}
+      products={products}
+      pagination={pagination}
+      isServerPaginated={isServerPaginated}
+      totalPurchaseCount={totalPurchaseCount}
+      searchTerm={searchTerm}
+      onSearchTermChange={setSearchTerm}
+      filterOpen={filterOpen}
+      onToggleFilter={() => setFilterOpen((currentValue) => !currentValue)}
+      activeFilterCount={activeFilterCount}
+      onResetFilters={resetFilters}
+      quickPresets={quickPresets}
+      activeChips={activeChips}
+      supplierFilterQuery={supplierFilterQuery}
+      onSupplierFilterQueryChange={(value) => {
+        setSupplierFilterQuery(value);
+        setSelectedSupplier("");
+        setSupplierFilterOpen(true);
+      }}
+      supplierFilterOpen={supplierFilterOpen}
+      onSupplierFilterOpen={() => setSupplierFilterOpen(true)}
+      onSupplierFilterClose={() => setSupplierFilterOpen(false)}
+      filteredSupplierOptions={filteredSupplierOptions}
+      selectedSupplier={selectedSupplier}
+      onSelectSupplierFilter={selectSupplierFilter}
+      dateFrom={dateFrom}
+      onDateFromChange={setDateFrom}
+      dateTo={dateTo}
+      onDateToChange={setDateTo}
+      amountMin={amountMin}
+      onAmountMinChange={setAmountMin}
+      amountMax={amountMax}
+      onAmountMaxChange={setAmountMax}
+      vatFilter={vatFilter}
+      onVatFilterChange={setVatFilter}
+      vatOptions={vatOptions}
+      selectedStatuses={selectedStatuses}
+      onSelectedStatusesChange={setSelectedStatuses}
+      onPurchaseStatusChange={onPurchaseStatusChange}
+      onPurchaseItemStatusChange={onPurchaseItemStatusChange}
+      onEditPurchase={setEditingPurchase}
+      onDeletePurchase={handleDelete}
+      onCreatePurchase={() => {
+        setEditingPurchase(null);
+        setShowNewPurchaseForm(true);
+      }}
+      onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
+    />
   );
 }
 
