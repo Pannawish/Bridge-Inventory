@@ -62,6 +62,10 @@ export const translations = {
       collapseMenu: "Collapse menu",
       openMenu: "Open menu",
       closeMenu: "Close menu",
+      groupWorkspace: "Workspace",
+      groupPurchasing: "Purchasing",
+      groupSales: "Sales",
+      groupRecords: "Records",
     },
     settings: {
       eyebrow: "Settings",
@@ -1740,6 +1744,10 @@ export const translations = {
       collapseMenu: "ย่อเมนู",
       openMenu: "เปิดเมนู",
       closeMenu: "ปิดเมนู",
+      groupWorkspace: "พื้นที่ทำงาน",
+      groupPurchasing: "การจัดซื้อ",
+      groupSales: "การขาย",
+      groupRecords: "ข้อมูลหลัก",
     },
     settings: {
       eyebrow: "ตั้งค่า",

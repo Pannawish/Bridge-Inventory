@@ -14,7 +14,7 @@ import {
   mergeSavedQuotation,
   removeMockQuotationId,
 } from "./app/appUtils";
-import { tabs } from "./app/tabs";
+import { tabs, tabGroups } from "./app/tabs";
 import ChatPanel from "./components/ChatPanel";
 import Dashboard from "./components/Dashboard";
 import CustomerPage from "./components/CustomerPage";
@@ -1667,30 +1667,41 @@ function App() {
           </div>
 
           <nav className="sidebar-nav">
-            {tabs.map((tab) => {
-              const badgeCount = tabBadges[tab.id] || 0;
-              const tabLabel = t(`tabs.${tab.id}`);
+            {tabGroups.map((group) => {
+              const groupTabs = tabs.filter((tab) => tab.group === group.id);
+              if (!groupTabs.length) {
+                return null;
+              }
               return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  title={tabLabel}
-                  className={tab.id === activeTab ? "sidebar-nav-button active" : "sidebar-nav-button"}
-                  onClick={() => handleTabSelect(tab.id)}
-                >
-                  <span className="sidebar-nav-icon">
-                    <TabIcon tabId={tab.id} />
-                  </span>
-                  <span className="sidebar-nav-text">{tabLabel}</span>
-                  {badgeCount > 0 ? (
-                    <span
-                      className="sidebar-nav-badge"
-                      aria-label={`${badgeCount} pending`}
-                    >
-                      {badgeCount}
-                    </span>
-                  ) : null}
-                </button>
+                <div className="sidebar-nav-group" key={group.id}>
+                  <p className="sidebar-nav-group-label">{t(group.labelKey)}</p>
+                  {groupTabs.map((tab) => {
+                    const badgeCount = tabBadges[tab.id] || 0;
+                    const tabLabel = t(`tabs.${tab.id}`);
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        title={tabLabel}
+                        className={tab.id === activeTab ? "sidebar-nav-button active" : "sidebar-nav-button"}
+                        onClick={() => handleTabSelect(tab.id)}
+                      >
+                        <span className="sidebar-nav-icon">
+                          <TabIcon tabId={tab.id} />
+                        </span>
+                        <span className="sidebar-nav-text">{tabLabel}</span>
+                        {badgeCount > 0 ? (
+                          <span
+                            className="sidebar-nav-badge"
+                            aria-label={`${badgeCount} pending`}
+                          >
+                            {badgeCount}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
               );
             })}
           </nav>

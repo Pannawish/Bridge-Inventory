@@ -241,6 +241,20 @@ textarea {
   gap: 4px;
 }
 
+.sidebar-nav-group + .sidebar-nav-group {
+  margin-top: 14px;
+}
+
+.sidebar-nav-group-label {
+  padding: 4px 12px;
+  margin: 0 0 2px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .sidebar-footer {
   display: grid;
   gap: 4px;
@@ -373,6 +387,16 @@ textarea {
     text-align: center;
     white-space: normal;
     word-break: break-word;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-nav-group-label {
+    display: none;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-nav-group + .sidebar-nav-group {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
   }
 }
 
