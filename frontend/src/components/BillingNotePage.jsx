@@ -1,15 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import BillingNoteDetailModal from "./billing/BillingNoteDetailModal";
 import BillingNoteDirectorySection from "./billing/BillingNoteDirectorySection";
 import CreateBillingNoteModal from "./billing/CreateBillingNoteModal";
-import {
-  billingNoteInDateRange,
-  billingNoteMatchesQuery,
-  daysAgoString,
-  formatBillingNoteStatus,
-  getToday,
-} from "./billing/billingNoteUtils";
-import { withinRange } from "./FilterControls";
+import { getToday } from "./billing/billingNoteUtils";
+import { useBillingNoteDirectoryFilters } from "../hooks/useBillingNoteDirectoryFilters";
 import { useLanguage } from "../i18n/LanguageContext";
 
 function BillingNotePage({
@@ -25,60 +19,42 @@ function BillingNotePage({
   onDeleteBillingNote,
 }) {
   const { t } = useLanguage();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [amountMin, setAmountMin] = useState("");
-  const [amountMax, setAmountMax] = useState("");
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [showAllRows, setShowAllRows] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activeBillingNote, setActiveBillingNote] = useState(null);
-  const STATUS_OPTIONS = [
-    { value: "issued", label: t("billingNote.statusIssued") },
-    { value: "partially_received", label: t("billingNote.statusPartiallyReceived") },
-    { value: "fully_received", label: t("billingNote.statusFullyReceived") },
-    { value: "cancelled", label: t("billingNote.statusCancelled") },
-  ];
-
-  const normalizedSearch = searchTerm.trim().toLowerCase();
-  const isServerPaginated = Boolean(pagination && onPageRequest);
-  const filtered = useMemo(() => {
-    if (isServerPaginated) {
-      return billingNotes;
-    }
-
-    return billingNotes.filter((note) => {
-      if (normalizedSearch && !billingNoteMatchesQuery(note, normalizedSearch, t)) {
-        return false;
-      }
-      if (statusFilter !== "all" && note.status !== statusFilter) {
-        return false;
-      }
-      if (!billingNoteInDateRange(note, dateFrom, dateTo)) {
-        return false;
-      }
-      if (!withinRange(note.total_amount, amountMin, amountMax)) {
-        return false;
-      }
-      return true;
-    });
-  }, [
-    amountMin,
-    amountMax,
-    billingNotes,
-    dateFrom,
-    dateTo,
-    isServerPaginated,
-    normalizedSearch,
+  const {
+    searchTerm,
+    setSearchTerm,
     statusFilter,
-  ]);
-
-  const compactRows = 5;
-  const shouldShowViewAll = !isServerPaginated && filtered.length > compactRows;
-  const isCompact = shouldShowViewAll && !showAllRows;
-  const totalBillingNoteCount = pagination?.count ?? billingNotes.length;
+    setStatusFilter,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    amountMin,
+    setAmountMin,
+    amountMax,
+    setAmountMax,
+    filterOpen,
+    setFilterOpen,
+    showAllRows,
+    setShowAllRows,
+    statusOptions,
+    filteredBillingNotes,
+    isServerPaginated,
+    shouldShowViewAll,
+    isCompact,
+    totalBillingNoteCount,
+    activeFilterCount,
+    resetFilters,
+    quickPresets,
+    activeChips,
+    handlePageChange,
+  } = useBillingNoteDirectoryFilters({
+    billingNotes,
+    pagination,
+    onPageRequest,
+    t,
+  });
 
   const computedSummary = useMemo(() => {
     const today = getToday();
@@ -98,112 +74,6 @@ function BillingNotePage({
     return { outstanding, overdue, received };
   }, [allBillingNotes]);
   const summary = serverSummary || computedSummary;
-
-  const activeFilterCount =
-    (statusFilter !== "all" ? 1 : 0) +
-    (dateFrom || dateTo ? 1 : 0) +
-    (amountMin ? 1 : 0) +
-    (amountMax ? 1 : 0);
-
-  function resetFilters() {
-    setSearchTerm("");
-    setStatusFilter("all");
-    setDateFrom("");
-    setDateTo("");
-    setAmountMin("");
-    setAmountMax("");
-    setFilterOpen(false);
-  }
-
-  const last30Active = dateFrom === daysAgoString(30) && !dateTo;
-  const quickPresets = [
-    {
-      label: t("billingNote.filterLastDays"),
-      active: last30Active,
-      onClick: () => {
-        setDateFrom(last30Active ? "" : daysAgoString(30));
-        setDateTo("");
-      },
-    },
-    {
-      label: t("billingNote.filterAwaiting"),
-      active: statusFilter === "issued",
-      onClick: () =>
-        setStatusFilter((current) =>
-          current === "issued" ? "all" : "issued"
-        ),
-    },
-    {
-      label: t("billingNote.filterFullyReceived"),
-      active: statusFilter === "fully_received",
-      onClick: () =>
-        setStatusFilter((current) =>
-          current === "fully_received" ? "all" : "fully_received"
-        ),
-    },
-  ];
-  const activeChips = [
-    statusFilter !== "all" && {
-      key: "status",
-      label: t("filterControls.statusChip", {
-        label: formatBillingNoteStatus(statusFilter, t),
-      }),
-      onRemove: () => setStatusFilter("all"),
-    },
-    dateFrom && {
-      key: "dateFrom",
-      label: t("filterControls.fromChip", { date: dateFrom }),
-      onRemove: () => setDateFrom(""),
-    },
-    dateTo && {
-      key: "dateTo",
-      label: t("filterControls.toChip", { date: dateTo }),
-      onRemove: () => setDateTo(""),
-    },
-    amountMin && {
-      key: "amountMin",
-      label: t("filterControls.minChip", { value: amountMin }),
-      onRemove: () => setAmountMin(""),
-    },
-    amountMax && {
-      key: "amountMax",
-      label: t("filterControls.maxChip", { value: amountMax }),
-      onRemove: () => setAmountMax(""),
-    },
-  ].filter(Boolean);
-
-  function getPageRequestParams(page = 1) {
-    return {
-      page,
-      search: searchTerm,
-      status: statusFilter === "all" ? "" : statusFilter,
-      dateFrom,
-      dateTo,
-      amountMin,
-      amountMax,
-    };
-  }
-
-  useEffect(() => {
-    if (!isServerPaginated) {
-      return undefined;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      onPageRequest(getPageRequestParams(1));
-    }, 250);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [
-    amountMin,
-    amountMax,
-    dateFrom,
-    dateTo,
-    isServerPaginated,
-    onPageRequest,
-    searchTerm,
-    statusFilter,
-  ]);
 
   async function handleCreate(payload) {
     const saved = await onCreateBillingNote?.(payload);
@@ -247,7 +117,7 @@ function BillingNotePage({
     <div className="stack-layout">
       <BillingNoteDirectorySection
         billingNotes={billingNotes}
-        filteredBillingNotes={filtered}
+        filteredBillingNotes={filteredBillingNotes}
         summary={summary}
         pagination={pagination}
         isServerPaginated={isServerPaginated}
@@ -262,7 +132,7 @@ function BillingNotePage({
         activeChips={activeChips}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
-        statusOptions={STATUS_OPTIONS}
+        statusOptions={statusOptions}
         dateFrom={dateFrom}
         onDateFromChange={setDateFrom}
         dateTo={dateTo}
@@ -278,7 +148,7 @@ function BillingNotePage({
         activeBillingNote={activeBillingNote}
         onSelectBillingNote={setActiveBillingNote}
         onCreateBillingNote={() => setCreating(true)}
-        onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
+        onPageChange={handlePageChange}
       />
 
       {activeBillingNote ? (
