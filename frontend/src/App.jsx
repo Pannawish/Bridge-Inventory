@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
-import {
-  PAGE_SIZE,
-  buildPurchaseUpdatePayload,
-  buildSaleUpdatePayload,
-  countCancelledSaleItems,
-  countPendingCreditNoteLines,
-  findUncreditedCancelledSaleLines,
-} from "./app/appUtils";
+import { PAGE_SIZE } from "./app/appUtils";
 import { tabs, tabGroups } from "./app/tabs";
 import ChatPanel from "./components/ChatPanel";
 import Dashboard from "./components/Dashboard";
@@ -26,12 +19,11 @@ import CreditNotePrompt from "./components/CreditNotePrompt";
 import SettingsPage from "./components/SettingsPage";
 import TabIcon from "./components/TabIcon";
 import { useAppFinancialActions } from "./hooks/useAppFinancialActions";
+import { useAppTransactionActions } from "./hooks/useAppTransactionActions";
 import { useLanguage } from "./i18n/LanguageContext";
 import { useAppMasterDataActions } from "./hooks/useAppMasterDataActions";
 import { useInventoryData } from "./hooks/useInventoryData";
-import { applyPurchaseStatusToItems } from "./purchaseStatus";
-import { applySaleStatusToItems } from "./saleStatus";
-import { formatSaleStockIssueMessage, getSaleStockIssues } from "./saleStock";
+import { formatSaleStockIssueMessage } from "./saleStock";
 
 function App() {
   const { language, t } = useLanguage();
@@ -179,38 +171,6 @@ function App() {
     }, 0);
   }
 
-  function shouldKeepSaleAsDraft(status) {
-    return !["draft", "cancelled", "returned"].includes(`${status || "draft"}`);
-  }
-
-  function buildDraftSale(sale) {
-    return applySaleStatusToItems(sale, "draft");
-  }
-
-  function normalizeSaleForAvailableStock(sale, options = {}) {
-    const requestedStatus = sale?.status || "draft";
-
-    if (!shouldKeepSaleAsDraft(requestedStatus)) {
-      return { sale, issues: [], forcedDraft: false };
-    }
-
-    if (!usingMockPurchases || !usingMockSales) {
-      return { sale, issues: [], forcedDraft: false };
-    }
-
-    const issues = getSaleStockIssues(sale, products, purchases, sales, options);
-
-    if (!issues.length) {
-      return { sale, issues: [], forcedDraft: false };
-    }
-
-    return {
-      sale: buildDraftSale(sale),
-      issues,
-      forcedDraft: true,
-    };
-  }
-
   function handleTabSelect(tabId) {
     setActiveTab(tabId);
     setSidebarOpen(false);
@@ -344,448 +304,45 @@ function App() {
     setError,
     buildEntityNotice,
   });
-
-  async function handlePurchaseCreateFromHistory(formData) {
-    setError("");
-
-    try {
-      await api.createPurchase(formData);
-      setNotice(t("app.messages.purchaseTransactionSaved"));
-      setActiveTab("purchase-history");
-      await loadData();
-      return true;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  // Quotation multi-PO wizard: create one purchase order without leaving the wizard.
-  async function handleQuotationPurchaseCreate(formData) {
-    setError("");
-
-    try {
-      const saved = await api.createPurchase(formData);
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityCreated",
-          "purchaseOrder",
-          saved?.reference_no || ""
-        )
-      );
-      await loadData();
-      return saved;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleSalesCreateFromHistory(formData) {
-    setError("");
-
-    const requestedSale = {
-      status: `${formData.get("status") || "draft"}`,
-      items: JSON.parse(`${formData.get("items") || "[]"}`),
-    };
-    const { sale: normalizedSale, issues, forcedDraft } = normalizeSaleForAvailableStock(
-      requestedSale
-    );
-
-    if (forcedDraft) {
-      formData.set("status", normalizedSale.status);
-      formData.set("items", JSON.stringify(normalizedSale.items || []));
-    }
-
-    try {
-      await api.createSale(formData);
-      setNotice(
-        forcedDraft
-          ? t("app.messages.salesTransactionSavedAsDraft", {
-              reason: formatSaleStockMessage(issues),
-            })
-          : t("app.messages.salesTransactionSaved")
-      );
-      setActiveTab("sales-history");
-      await loadData();
-      return true;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handlePurchaseStatusChange(purchaseId, nextStatus) {
-    const purchase = purchases.find((row) => row.id === purchaseId);
-
-    if (!purchase || purchase.status === nextStatus) {
-      return;
-    }
-
-    if (nextStatus === "partially_received") {
-      setNotice(t("app.messages.partiallyReceivedAuto"));
-      return;
-    }
-
-    const confirmed = window.confirm(
-      buildStatusChangeConfirm(
-        "purchase",
-        purchase.reference_no,
-        purchase.status,
-        nextStatus
-      )
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setError("");
-
-    if (usingMockPurchases) {
-      const updatedPurchase = applyPurchaseStatusToItems(purchase, nextStatus);
-
-      setPurchases((currentRows) =>
-        currentRows.map((row) =>
-          row.id === purchaseId ? updatedPurchase : row
-        )
-      );
-      setPurchaseRows((currentRows) =>
-        currentRows.map((row) =>
-          row.id === purchaseId ? updatedPurchase : row
-        )
-      );
-      setNotice(
-        buildStatusUpdatedNotice(
-          "purchase",
-          purchase.reference_no,
-          updatedPurchase.status
-        )
-      );
-      return;
-    }
-
-    try {
-      await api.updatePurchaseStatus(purchaseId, nextStatus);
-      setNotice(buildStatusUpdatedNotice("purchase", purchase.reference_no, nextStatus));
-      await loadData();
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  }
-
-  async function handlePurchaseItemStatusChange(updatedPurchase) {
-    if (usingMockPurchases) {
-      setPurchases((currentRows) =>
-        currentRows.map((row) => (row.id === updatedPurchase.id ? updatedPurchase : row))
-      );
-      setPurchaseRows((currentRows) =>
-        currentRows.map((row) => (row.id === updatedPurchase.id ? updatedPurchase : row))
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "purchase",
-          updatedPurchase.reference_no || updatedPurchase.id
-        )
-      );
-      return true;
-    }
-
-    try {
-      const savedPurchase = await api.updatePurchase(updatedPurchase.id, updatedPurchase);
-
-      setPurchases((currentRows) =>
-        currentRows.map((row) =>
-          row.id === updatedPurchase.id ? savedPurchase || updatedPurchase : row
-        )
-      );
-      setPurchaseRows((currentRows) =>
-        currentRows.map((row) =>
-          row.id === updatedPurchase.id ? savedPurchase || updatedPurchase : row
-        )
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "purchase",
-          updatedPurchase.reference_no || updatedPurchase.id
-        )
-      );
-      await loadData();
-      return true;
-    } catch (requestError) {
-      showWarning(requestError.message || t("app.messages.purchaseUpdateFailed"));
-      return false;
-    }
-  }
-
-  async function handleSaleStatusChange(saleId, nextStatus) {
-    const sale = sales.find((row) => row.id === saleId);
-
-    if (!sale || sale.status === nextStatus) {
-      return;
-    }
-
-    if (shouldKeepSaleAsDraft(nextStatus) && usingMockPurchases && usingMockSales) {
-      const nextSale = applySaleStatusToItems({ ...sale, status: nextStatus }, nextStatus);
-      const issues = getSaleStockIssues(nextSale, products, purchases, sales, {
-        excludeSaleId: sale.id,
-        currentSale: sale,
-      });
-
-      if (issues.length) {
-        showWarning(formatSaleStockMessage(issues));
-        return;
-      }
-    }
-
-    const confirmed = window.confirm(
-      buildStatusChangeConfirm("sale", sale.reference_no, sale.status, nextStatus)
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setError("");
-
-    if (usingMockSales) {
-      const updatedSale = applySaleStatusToItems(sale, nextStatus);
-
-      setSales((currentRows) =>
-        currentRows.map((row) => (row.id === saleId ? updatedSale : row))
-      );
-      setSaleRows((currentRows) =>
-        currentRows.map((row) => (row.id === saleId ? updatedSale : row))
-      );
-      setNotice(buildStatusUpdatedNotice("sale", sale.reference_no, updatedSale.status));
-      maybeOpenCreditNotePrompt(sale, updatedSale);
-      return;
-    }
-
-    try {
-      const updatedSale = await api.updateSaleStatus(saleId, nextStatus);
-      setNotice(buildStatusUpdatedNotice("sale", sale.reference_no, nextStatus));
-      await loadData();
-      maybeOpenCreditNotePrompt(sale, updatedSale);
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  }
-
-  async function handleSaleUpdate(updatedSale) {
-    setError("");
-    const previousSale = sales.find((row) => row.id === updatedSale.id);
-    const { sale: normalizedSale, issues, forcedDraft } = normalizeSaleForAvailableStock(
-      updatedSale,
-      {
-        excludeSaleId: updatedSale.id,
-        currentSale: previousSale,
-      }
-    );
-    const successNotice = forcedDraft
-      ? t("app.messages.saleSavedAsDraft", {
-          ref: updatedSale.reference_no || updatedSale.id,
-          reason: formatSaleStockMessage(issues),
-        })
-      : buildEntityNotice(
-          "app.messages.entityUpdated",
-          "sale",
-          updatedSale.reference_no || updatedSale.id
-        );
-
-    if (usingMockSales) {
-      setSales((currentRows) =>
-        currentRows.map((row) => (row.id === normalizedSale.id ? normalizedSale : row))
-      );
-      setSaleRows((currentRows) =>
-        currentRows.map((row) => (row.id === normalizedSale.id ? normalizedSale : row))
-      );
-      setNotice(successNotice);
-      maybeOpenCreditNotePrompt(previousSale, normalizedSale);
-      return true;
-    }
-
-    try {
-      const savedSale = await api.updateSale(
-        normalizedSale.id,
-        buildSaleUpdatePayload(normalizedSale)
-      );
-      const resolvedSale = savedSale || normalizedSale;
-      setSales((currentRows) =>
-        currentRows.map((row) =>
-          row.id === normalizedSale.id ? resolvedSale : row
-        )
-      );
-      setSaleRows((currentRows) =>
-        currentRows.map((row) =>
-          row.id === normalizedSale.id ? resolvedSale : row
-        )
-      );
-      setNotice(successNotice);
-      await refreshBillingNoteEligibility();
-      await loadData();
-      maybeOpenCreditNotePrompt(previousSale, resolvedSale);
-      return true;
-    } catch (requestError) {
-      showWarning(requestError.message || t("app.messages.saleUpdateFailed"));
-      return false;
-    }
-  }
-
-  function maybeOpenCreditNotePrompt(previousSale, nextSale) {
-    if (!nextSale) {
-      return;
-    }
-    const prevCount = countCancelledSaleItems(previousSale);
-    const nextCount = countCancelledSaleItems(nextSale);
-    if (nextCount <= prevCount) {
-      return;
-    }
-    const lines = findUncreditedCancelledSaleLines(nextSale, creditNotes);
-    if (!lines.length) {
-      return;
-    }
-    setCreditNotePrompt({
-      sale: nextSale,
-      newlyCancelledLines: lines,
-    });
-  }
-
-  async function handleCreditNotePromptCreate(payload) {
-    const created = await handleCreditNoteCreate(payload);
-    if (created === false) {
-      return false;
-    }
-    setCreditNotePrompt(null);
-    return created;
-  }
-
-  async function handlePurchaseUpdate(updatedPurchase) {
-    if (usingMockPurchases) {
-      setPurchases((currentRows) =>
-        currentRows.map((row) => (row.id === updatedPurchase.id ? updatedPurchase : row))
-      );
-      setPurchaseRows((currentRows) =>
-        currentRows.map((row) => (row.id === updatedPurchase.id ? updatedPurchase : row))
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "purchase",
-          updatedPurchase.reference_no || updatedPurchase.id
-        )
-      );
-      return true;
-    }
-
-    try {
-      const savedPurchase = await api.updatePurchase(
-        updatedPurchase.id,
-        buildPurchaseUpdatePayload(updatedPurchase)
-      );
-      setPurchases((currentRows) =>
-        currentRows.map((row) =>
-          row.id === updatedPurchase.id ? savedPurchase || updatedPurchase : row
-        )
-      );
-      setPurchaseRows((currentRows) =>
-        currentRows.map((row) =>
-          row.id === updatedPurchase.id ? savedPurchase || updatedPurchase : row
-        )
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "purchase",
-          updatedPurchase.reference_no || updatedPurchase.id
-        )
-      );
-      await refreshPaymentBatchEligibility();
-      await loadData();
-      return true;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handleSaleDelete(deletedSale) {
-    if (usingMockSales) {
-      setSales((currentRows) => currentRows.filter((row) => row.id !== deletedSale.id));
-      setSaleRows((currentRows) => currentRows.filter((row) => row.id !== deletedSale.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "sale",
-          deletedSale.reference_no || deletedSale.id
-        )
-      );
-      return true;
-    }
-
-    try {
-      await api.deleteSale(deletedSale.id);
-      setSales((currentRows) => currentRows.filter((row) => row.id !== deletedSale.id));
-      setSaleRows((currentRows) => currentRows.filter((row) => row.id !== deletedSale.id));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "sale",
-          deletedSale.reference_no || deletedSale.id
-        )
-      );
-      await refreshBillingNoteEligibility();
-      await loadData();
-      return true;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
-
-  async function handlePurchaseDelete(deletedPurchase) {
-    if (usingMockPurchases) {
-      setPurchases((currentRows) =>
-        currentRows.filter((row) => row.id !== deletedPurchase.id)
-      );
-      setPurchaseRows((currentRows) =>
-        currentRows.filter((row) => row.id !== deletedPurchase.id)
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "purchase",
-          deletedPurchase.reference_no || deletedPurchase.id
-        )
-      );
-      await refreshPaymentBatchEligibility();
-      return true;
-    }
-
-    try {
-      await api.deletePurchase(deletedPurchase.id);
-      setPurchases((currentRows) =>
-        currentRows.filter((row) => row.id !== deletedPurchase.id)
-      );
-      setPurchaseRows((currentRows) =>
-        currentRows.filter((row) => row.id !== deletedPurchase.id)
-      );
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityDeleted",
-          "purchase",
-          deletedPurchase.reference_no || deletedPurchase.id
-        )
-      );
-      await loadData();
-      return true;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }
+  const {
+    handlePurchaseCreateFromHistory,
+    handleQuotationPurchaseCreate,
+    handleSalesCreateFromHistory,
+    handlePurchaseStatusChange,
+    handlePurchaseItemStatusChange,
+    handlePurchaseUpdate,
+    handlePurchaseDelete,
+    handleSaleStatusChange,
+    handleSaleUpdate,
+    handleSaleDelete,
+    handleCreditNotePromptCreate,
+  } = useAppTransactionActions({
+    api,
+    products,
+    purchases,
+    sales,
+    creditNotes,
+    usingMockPurchases,
+    usingMockSales,
+    setPurchases,
+    setPurchaseRows,
+    setSales,
+    setSaleRows,
+    setCreditNotePrompt,
+    setActiveTab,
+    setNotice,
+    setError,
+    loadData,
+    refreshBillingNoteEligibility,
+    refreshPaymentBatchEligibility,
+    buildEntityNotice,
+    buildStatusUpdatedNotice,
+    buildStatusChangeConfirm,
+    formatSaleStockMessage,
+    showWarning,
+    t,
+    handleCreditNoteCreate,
+  });
 
   async function handleAskChat(question) {
     const nextMessages = [...messages, { role: "user", content: question }];
