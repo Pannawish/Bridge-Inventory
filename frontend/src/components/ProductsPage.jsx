@@ -1477,7 +1477,10 @@ function ProductsPage({
                 </thead>
                 <tbody>
                   {filteredProductsWithMetrics.map(({ product, metrics, categoryLabel }, index) => (
-                    <tr key={product.id}>
+                    <tr
+                      key={product.id}
+                      className={!isProductActive(product) ? "product-row-disabled" : undefined}
+                    >
                       <td>{index + 1}</td>
                       <td>
                         <div className="transaction-reference-cell">
@@ -1527,13 +1530,23 @@ function ProductsPage({
 
             <div className="mobile-record-list">
               {filteredProductsWithMetrics.map(({ product, metrics, categoryLabel }, index) => (
-                <article className="mobile-record-card" key={`mobile-product-${product.id}`}>
+                <article
+                  className={
+                    isProductActive(product)
+                      ? "mobile-record-card"
+                      : "mobile-record-card product-row-disabled"
+                  }
+                  key={`mobile-product-${product.id}`}
+                >
                   <div className="mobile-record-header">
                     <div className="mobile-record-title">
                       <span className="mobile-record-index">{index + 1}</span>
                       <div className="cell-stack">
                         <strong>{getTranslatedProductDisplayName(product, t)}</strong>
-                        <span>{product.sku ? t("products.skuDisplay", { sku: product.sku }) : t("products.skuNotSet")}</span>
+                        <span>
+                          {product.sku ? t("products.skuDisplay", { sku: product.sku }) : t("products.skuNotSet")}
+                          {!isProductActive(product) ? ` · ${t("products.disabledBadge")}` : ""}
+                        </span>
                       </div>
                     </div>
                   </div>

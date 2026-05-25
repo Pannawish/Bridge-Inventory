@@ -24,6 +24,7 @@ import {
   withinRange,
 } from "./FilterControls";
 import { getStatusLabel } from "../i18n/statusLabels";
+import { isProductActive } from "./products/productUtils";
 
 const VAT_RATE = 0.07;
 const statusOptions = purchaseStatuses;
@@ -480,6 +481,9 @@ function PurchaseEditForm({
   }
 
   function selectProduct(itemIndex, product) {
+    if (!isProductActive(product)) {
+      return;
+    }
     const productName = getProductName(product);
     const sku = getProductSku(product);
     const unitOptions = getProductUnitOptions(product, "purchase");
@@ -1035,24 +1039,30 @@ function PurchaseEditForm({
                           filteredProducts.map((product) => {
                             const productName = getProductName(product);
                             const sku = getProductSku(product);
+                            const disabled = !isProductActive(product);
 
                             return (
                               <button
                                 key={product.id}
                                 type="button"
-                                className={
-                                  `${product.id}` === `${item.product_id}`
-                                    ? "supplier-combobox-option active"
-                                    : "supplier-combobox-option"
-                                }
+                                className={`supplier-combobox-option${
+                                  `${product.id}` === `${item.product_id}` ? " active" : ""
+                                }${disabled ? " supplier-combobox-option-disabled" : ""}`}
                                 onMouseDown={(event) => {
                                   event.preventDefault();
                                   selectProduct(index, product);
                                 }}
                                 role="option"
                                 aria-selected={`${product.id}` === `${item.product_id}`}
+                                aria-disabled={disabled}
+                                title={disabled ? t("products.disabledOptionHint") : undefined}
                               >
-                                {getPurchaseProductQuery(productName, sku)}
+                                <span>{getPurchaseProductQuery(productName, sku)}</span>
+                                {disabled ? (
+                                  <span className="combobox-option-tag">
+                                    {t("products.disabledBadge")}
+                                  </span>
+                                ) : null}
                               </button>
                             );
                           })

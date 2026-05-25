@@ -18,6 +18,7 @@ import {
 import { formatDate, formatMoney as fmt, formatNumber } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
 import { PAGE_SIZE } from "../app/appUtils";
+import { isProductActive } from "./products/productUtils";
 
 const VAT_RATE = 0.07;
 const vatOptionValues = ["included", "not_included"];
@@ -803,6 +804,9 @@ function QuotationForm({
   }
 
   function selectProduct(itemIndex, product) {
+    if (!isProductActive(product)) {
+      return;
+    }
     const productName = getTranslatedProductName(product);
     const sku = getProductSku(product);
 
@@ -1200,24 +1204,30 @@ function QuotationForm({
                           filteredProducts.map((product) => {
                             const productName = getTranslatedProductName(product);
                             const sku = getProductSku(product);
+                            const disabled = !isProductActive(product);
 
                             return (
                               <button
                                 key={product.id}
                                 type="button"
-                                className={
-                                  `${product.id}` === `${item.product_id}`
-                                    ? "supplier-combobox-option active"
-                                    : "supplier-combobox-option"
-                                }
+                                className={`supplier-combobox-option${
+                                  `${product.id}` === `${item.product_id}` ? " active" : ""
+                                }${disabled ? " supplier-combobox-option-disabled" : ""}`}
                                 onMouseDown={(event) => {
                                   event.preventDefault();
                                   selectProduct(index, product);
                                 }}
                                 role="option"
                                 aria-selected={`${product.id}` === `${item.product_id}`}
+                                aria-disabled={disabled}
+                                title={disabled ? t("products.disabledOptionHint") : undefined}
                               >
-                                {sku ? `${productName} (${sku})` : productName}
+                                <span>{sku ? `${productName} (${sku})` : productName}</span>
+                                {disabled ? (
+                                  <span className="combobox-option-tag">
+                                    {t("products.disabledBadge")}
+                                  </span>
+                                ) : null}
                               </button>
                             );
                           })

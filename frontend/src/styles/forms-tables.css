@@ -194,6 +194,10 @@ label textarea:focus,
 }
 
 .supplier-combobox-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   width: 100%;
   padding: 11px 12px;
   border: 0;
@@ -209,6 +213,25 @@ label textarea:focus,
 .supplier-combobox-option.active {
   color: var(--accent-deep);
   background: var(--accent-soft);
+}
+
+.supplier-combobox-option-disabled,
+.supplier-combobox-option-disabled:hover {
+  color: var(--muted);
+  background: transparent;
+  cursor: not-allowed;
+}
+
+.combobox-option-tag {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-muted);
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .supplier-combobox-empty,

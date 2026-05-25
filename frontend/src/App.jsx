@@ -45,10 +45,6 @@ function appendProductJson(formData, key, value) {
   formData.append(key, JSON.stringify(Array.isArray(value) ? value : []));
 }
 
-function isProductActive(product) {
-  return product?.isActive ?? product?.is_active ?? true;
-}
-
 function buildProductSavePayload(product) {
   const formData = new FormData();
   const productPictures = Array.isArray(product.productPictures) ? product.productPictures : [];
@@ -281,7 +277,6 @@ function App() {
   }
 
   const activeTabMeta = tabs.find((tab) => tab.id === activeTab) || tabs[0];
-  const activeProducts = products.filter(isProductActive);
   const tabBadges = {};
 
   function formatMessage(key, values = {}) {
@@ -1777,7 +1772,7 @@ function App() {
 
             {activeTab === "purchase-history" ? (
               <PurchaseHistoryPage
-                products={activeProducts}
+                products={products}
                 suppliers={suppliers}
                 purchases={purchaseRows}
                 allPurchases={purchases}
@@ -1794,7 +1789,7 @@ function App() {
             {activeTab === "quotations" ? (
               <QuotationPage
                 quotations={quotations}
-                products={activeProducts}
+                products={products}
                 suppliers={suppliers}
                 customers={customers}
                 purchases={purchases}
@@ -1812,7 +1807,7 @@ function App() {
               <SalesHistoryPage
                 sales={saleRows}
                 allSales={sales}
-                products={activeProducts}
+                products={products}
                 suppliers={suppliers}
                 purchases={usingMockPurchases ? purchases : []}
                 enableStockValidation={usingMockPurchases && usingMockSales}
