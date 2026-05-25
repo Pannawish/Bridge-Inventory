@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import MultiPurchaseWizard from "./MultiPurchaseWizard";
 import DocumentRefModal from "./DocumentRefModal";
 import QuotationFormCard from "./quotation/QuotationForm";
 import QuotationConversionFlow from "./quotation/QuotationConversionFlow";
 import QuotationDetailModal from "./quotation/QuotationDetailModal";
 import QuotationDirectorySection from "./quotation/QuotationDirectorySection";
+import QuotationPurchaseWizardFlow from "./quotation/QuotationPurchaseWizardFlow";
 import { useQuotationDirectoryFilters } from "../hooks/useQuotationDirectoryFilters";
 import { useLanguage } from "../i18n/LanguageContext";
 import {
@@ -183,9 +183,8 @@ function QuotationPage({
 
   if (conversion && conversion.step === "purchase-wizard") {
     return (
-      <MultiPurchaseWizard
-        key={`purchase-wizard-${conversion.quotation.id}`}
-        groups={conversion.groups}
+      <QuotationPurchaseWizardFlow
+        conversion={conversion}
         products={products}
         suppliers={suppliers}
         purchases={purchases}
