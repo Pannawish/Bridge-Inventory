@@ -98,7 +98,7 @@ function buildProductSavePayload(product) {
 }
 
 function App() {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -112,11 +112,7 @@ function App() {
   const [chatBusy, setChatBusy] = useState(false);
   const [creditNotePrompt, setCreditNotePrompt] = useState(null);
   const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content:
-        "Ask about low stock, recent sales, or which products need restocking.",
-    },
+    { role: "assistant", content: t("app.messages.chatIntro") },
   ]);
   const {
     dashboard,
@@ -288,12 +284,73 @@ function App() {
   const activeProducts = products.filter(isProductActive);
   const tabBadges = {};
 
+  function formatMessage(key, values = {}) {
+    return t(key, values).replace(/\s{2,}/g, " ").trim();
+  }
+
+  function getStatusLabel(status) {
+    const key = `common.statusLabels.${status}`;
+    const label = t(key);
+    return label === key ? status : label;
+  }
+
+  function getEntityLabel(entityKey) {
+    return t(`app.entities.${entityKey}`);
+  }
+
+  function formatSaleStockMessage(issues) {
+    return formatSaleStockIssueMessage(issues, {
+      t,
+      locale: language === "th" ? "th-TH" : "en-US",
+    });
+  }
+
+  function buildEntityNotice(messageKey, entityKey, ref) {
+    return formatMessage(messageKey, {
+      entity: getEntityLabel(entityKey),
+      ref: ref || "",
+    });
+  }
+
+  function buildStatusUpdatedNotice(entityKey, ref, status) {
+    return formatMessage("app.messages.statusUpdated", {
+      entity: getEntityLabel(entityKey),
+      ref: ref || "",
+      status: getStatusLabel(status),
+    });
+  }
+
+  function buildStatusChangeConfirm(entityKey, ref, fromStatus, toStatus) {
+    return formatMessage("app.messages.statusChangeConfirm", {
+      entity: getEntityLabel(entityKey),
+      ref: ref || "",
+      from: getStatusLabel(fromStatus),
+      to: getStatusLabel(toStatus),
+    });
+  }
+
+  useEffect(() => {
+    setMessages((current) => {
+      if (current.length !== 1 || current[0]?.role !== "assistant") {
+        return current;
+      }
+
+      const nextContent = t("app.messages.chatIntro");
+
+      if (current[0].content === nextContent) {
+        return current;
+      }
+
+      return [{ role: "assistant", content: nextContent }];
+    });
+  }, [t]);
+
   async function handlePurchaseCreateFromHistory(formData) {
     setError("");
 
     try {
       await api.createPurchase(formData);
-      setNotice("Purchase transaction saved.");
+      setNotice(t("app.messages.purchaseTransactionSaved"));
       setActiveTab("purchase-history");
       await loadData();
       return true;
@@ -309,7 +366,13 @@ function App() {
 
     try {
       const saved = await api.createPurchase(formData);
-      setNotice(`Purchase order ${saved?.reference_no || ""} created.`.trim());
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityCreated",
+          "purchaseOrder",
+          saved?.reference_no || ""
+        )
+      );
       await loadData();
       return saved;
     } catch (requestError) {
@@ -338,8 +401,10 @@ function App() {
       await api.createSale(formData);
       setNotice(
         forcedDraft
-          ? `Sales transaction saved as draft. ${formatSaleStockIssueMessage(issues)}`
-          : "Sales transaction saved."
+          ? t("app.messages.salesTransactionSavedAsDraft", {
+              reason: formatSaleStockMessage(issues),
+            })
+          : t("app.messages.salesTransactionSaved")
       );
       setActiveTab("sales-history");
       await loadData();
@@ -358,12 +423,17 @@ function App() {
     }
 
     if (nextStatus === "partially_received") {
-      setNotice("Partially Received is set automatically after some items are marked received.");
+      setNotice(t("app.messages.partiallyReceivedAuto"));
       return;
     }
 
     const confirmed = window.confirm(
-      `Change purchase ${purchase.reference_no} status from ${purchase.status} to ${nextStatus}?`
+      buildStatusChangeConfirm(
+        "purchase",
+        purchase.reference_no,
+        purchase.status,
+        nextStatus
+      )
     );
 
     if (!confirmed) {
@@ -385,13 +455,19 @@ function App() {
           row.id === purchaseId ? updatedPurchase : row
         )
       );
-      setNotice(`Purchase ${purchase.reference_no} status updated to ${updatedPurchase.status}.`);
+      setNotice(
+        buildStatusUpdatedNotice(
+          "purchase",
+          purchase.reference_no,
+          updatedPurchase.status
+        )
+      );
       return;
     }
 
     try {
       await api.updatePurchaseStatus(purchaseId, nextStatus);
-      setNotice(`Purchase ${purchase.reference_no} status updated to ${nextStatus}.`);
+      setNotice(buildStatusUpdatedNotice("purchase", purchase.reference_no, nextStatus));
       await loadData();
     } catch (requestError) {
       setError(requestError.message);
@@ -406,7 +482,13 @@ function App() {
       setPurchaseRows((currentRows) =>
         currentRows.map((row) => (row.id === updatedPurchase.id ? updatedPurchase : row))
       );
-      setNotice(`Purchase ${updatedPurchase.reference_no || updatedPurchase.id} updated.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityUpdated",
+          "purchase",
+          updatedPurchase.reference_no || updatedPurchase.id
+        )
+      );
       return true;
     }
 
@@ -423,11 +505,17 @@ function App() {
           row.id === updatedPurchase.id ? savedPurchase || updatedPurchase : row
         )
       );
-      setNotice(`Purchase ${updatedPurchase.reference_no || updatedPurchase.id} updated.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityUpdated",
+          "purchase",
+          updatedPurchase.reference_no || updatedPurchase.id
+        )
+      );
       await loadData();
       return true;
     } catch (requestError) {
-      showWarning(requestError.message || "Purchase update failed.");
+      showWarning(requestError.message || t("app.messages.purchaseUpdateFailed"));
       return false;
     }
   }
@@ -447,13 +535,13 @@ function App() {
       });
 
       if (issues.length) {
-        showWarning(formatSaleStockIssueMessage(issues));
+        showWarning(formatSaleStockMessage(issues));
         return;
       }
     }
 
     const confirmed = window.confirm(
-      `Change sale ${sale.reference_no} status from ${sale.status} to ${nextStatus}?`
+      buildStatusChangeConfirm("sale", sale.reference_no, sale.status, nextStatus)
     );
 
     if (!confirmed) {
@@ -471,14 +559,14 @@ function App() {
       setSaleRows((currentRows) =>
         currentRows.map((row) => (row.id === saleId ? updatedSale : row))
       );
-      setNotice(`Sale ${sale.reference_no} status updated to ${updatedSale.status}.`);
+      setNotice(buildStatusUpdatedNotice("sale", sale.reference_no, updatedSale.status));
       maybeOpenCreditNotePrompt(sale, updatedSale);
       return;
     }
 
     try {
       const updatedSale = await api.updateSaleStatus(saleId, nextStatus);
-      setNotice(`Sale ${sale.reference_no} status updated to ${nextStatus}.`);
+      setNotice(buildStatusUpdatedNotice("sale", sale.reference_no, nextStatus));
       await loadData();
       maybeOpenCreditNotePrompt(sale, updatedSale);
     } catch (requestError) {
@@ -497,8 +585,15 @@ function App() {
       }
     );
     const successNotice = forcedDraft
-      ? `Sale ${updatedSale.reference_no || updatedSale.id} saved as draft. ${formatSaleStockIssueMessage(issues)}`
-      : `Sale ${updatedSale.reference_no || updatedSale.id} updated.`;
+      ? t("app.messages.saleSavedAsDraft", {
+          ref: updatedSale.reference_no || updatedSale.id,
+          reason: formatSaleStockMessage(issues),
+        })
+      : buildEntityNotice(
+          "app.messages.entityUpdated",
+          "sale",
+          updatedSale.reference_no || updatedSale.id
+        );
 
     if (usingMockSales) {
       setSales((currentRows) =>
@@ -534,7 +629,7 @@ function App() {
       maybeOpenCreditNotePrompt(previousSale, resolvedSale);
       return true;
     } catch (requestError) {
-      showWarning(requestError.message || "Sale update failed.");
+      showWarning(requestError.message || t("app.messages.saleUpdateFailed"));
       return false;
     }
   }
@@ -575,7 +670,13 @@ function App() {
       setPurchaseRows((currentRows) =>
         currentRows.map((row) => (row.id === updatedPurchase.id ? updatedPurchase : row))
       );
-      setNotice(`Purchase ${updatedPurchase.reference_no || updatedPurchase.id} updated.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityUpdated",
+          "purchase",
+          updatedPurchase.reference_no || updatedPurchase.id
+        )
+      );
       return true;
     }
 
@@ -594,7 +695,13 @@ function App() {
           row.id === updatedPurchase.id ? savedPurchase || updatedPurchase : row
         )
       );
-      setNotice(`Purchase ${updatedPurchase.reference_no || updatedPurchase.id} updated.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityUpdated",
+          "purchase",
+          updatedPurchase.reference_no || updatedPurchase.id
+        )
+      );
       await refreshPaymentBatchEligibility();
       await loadData();
       return true;
@@ -608,7 +715,13 @@ function App() {
     if (usingMockSales) {
       setSales((currentRows) => currentRows.filter((row) => row.id !== deletedSale.id));
       setSaleRows((currentRows) => currentRows.filter((row) => row.id !== deletedSale.id));
-      setNotice(`Sale ${deletedSale.reference_no || deletedSale.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "sale",
+          deletedSale.reference_no || deletedSale.id
+        )
+      );
       return true;
     }
 
@@ -616,7 +729,13 @@ function App() {
       await api.deleteSale(deletedSale.id);
       setSales((currentRows) => currentRows.filter((row) => row.id !== deletedSale.id));
       setSaleRows((currentRows) => currentRows.filter((row) => row.id !== deletedSale.id));
-      setNotice(`Sale ${deletedSale.reference_no || deletedSale.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "sale",
+          deletedSale.reference_no || deletedSale.id
+        )
+      );
       await refreshBillingNoteEligibility();
       await loadData();
       return true;
@@ -634,7 +753,13 @@ function App() {
       setPurchaseRows((currentRows) =>
         currentRows.filter((row) => row.id !== deletedPurchase.id)
       );
-      setNotice(`Purchase ${deletedPurchase.reference_no || deletedPurchase.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "purchase",
+          deletedPurchase.reference_no || deletedPurchase.id
+        )
+      );
       await refreshPaymentBatchEligibility();
       return true;
     }
@@ -647,7 +772,13 @@ function App() {
       setPurchaseRows((currentRows) =>
         currentRows.filter((row) => row.id !== deletedPurchase.id)
       );
-      setNotice(`Purchase ${deletedPurchase.reference_no || deletedPurchase.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "purchase",
+          deletedPurchase.reference_no || deletedPurchase.id
+        )
+      );
       await loadData();
       return true;
     } catch (requestError) {
@@ -674,7 +805,13 @@ function App() {
             )
           : [resolvedSupplier, ...currentRows].slice(0, PAGE_SIZE)
       );
-      setNotice(`Supplier ${resolvedSupplier.companyName || resolvedSupplier.id} saved.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entitySaved",
+          "supplier",
+          resolvedSupplier.companyName || resolvedSupplier.id
+        )
+      );
       return resolvedSupplier;
     }
 
@@ -699,7 +836,13 @@ function App() {
             )
           : [resolvedSupplier, ...currentRows].slice(0, PAGE_SIZE)
       );
-      setNotice(`Supplier ${resolvedSupplier.companyName || resolvedSupplier.id} saved.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entitySaved",
+          "supplier",
+          resolvedSupplier.companyName || resolvedSupplier.id
+        )
+      );
       return resolvedSupplier;
     } catch (requestError) {
       setError(requestError.message);
@@ -711,7 +854,13 @@ function App() {
     if (usingMockSuppliers) {
       setSuppliers((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
       setSupplierRows((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
-      setNotice(`Supplier ${deletedSupplier.companyName || deletedSupplier.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "supplier",
+          deletedSupplier.companyName || deletedSupplier.id
+        )
+      );
       return true;
     }
 
@@ -719,7 +868,13 @@ function App() {
       await api.deleteSupplier(deletedSupplier.id);
       setSuppliers((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
       setSupplierRows((currentRows) => currentRows.filter((row) => row.id !== deletedSupplier.id));
-      setNotice(`Supplier ${deletedSupplier.companyName || deletedSupplier.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "supplier",
+          deletedSupplier.companyName || deletedSupplier.id
+        )
+      );
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -745,7 +900,13 @@ function App() {
             )
           : [resolvedCustomer, ...currentRows].slice(0, PAGE_SIZE)
       );
-      setNotice(`Customer ${resolvedCustomer.companyName || resolvedCustomer.id} saved.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entitySaved",
+          "customer",
+          resolvedCustomer.companyName || resolvedCustomer.id
+        )
+      );
       return resolvedCustomer;
     }
 
@@ -770,7 +931,13 @@ function App() {
             )
           : [resolvedCustomer, ...currentRows].slice(0, PAGE_SIZE)
       );
-      setNotice(`Customer ${resolvedCustomer.companyName || resolvedCustomer.id} saved.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entitySaved",
+          "customer",
+          resolvedCustomer.companyName || resolvedCustomer.id
+        )
+      );
       return resolvedCustomer;
     } catch (requestError) {
       setError(requestError.message);
@@ -782,7 +949,13 @@ function App() {
     if (usingMockCustomers) {
       setCustomers((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
       setCustomerRows((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
-      setNotice(`Customer ${deletedCustomer.companyName || deletedCustomer.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "customer",
+          deletedCustomer.companyName || deletedCustomer.id
+        )
+      );
       return true;
     }
 
@@ -790,7 +963,13 @@ function App() {
       await api.deleteCustomer(deletedCustomer.id);
       setCustomers((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
       setCustomerRows((currentRows) => currentRows.filter((row) => row.id !== deletedCustomer.id));
-      setNotice(`Customer ${deletedCustomer.companyName || deletedCustomer.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "customer",
+          deletedCustomer.companyName || deletedCustomer.id
+        )
+      );
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -809,7 +988,13 @@ function App() {
             )
           : [resolvedCategory, ...currentRows]
       );
-      setNotice(`Category ${resolvedCategory.name || resolvedCategory.id} saved.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entitySaved",
+          "category",
+          resolvedCategory.name || resolvedCategory.id
+        )
+      );
       return resolvedCategory;
     }
 
@@ -827,7 +1012,13 @@ function App() {
             )
           : [resolvedCategory, ...currentRows]
       );
-      setNotice(`Category ${resolvedCategory.name || resolvedCategory.id} saved.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entitySaved",
+          "category",
+          resolvedCategory.name || resolvedCategory.id
+        )
+      );
       return resolvedCategory;
     } catch (requestError) {
       setError(requestError.message);
@@ -838,14 +1029,26 @@ function App() {
   async function handleCategoryDelete(deletedCategory) {
     if (usingMockCategories) {
       setCategories((currentRows) => currentRows.filter((row) => row.id !== deletedCategory.id));
-      setNotice(`Category ${deletedCategory.name || deletedCategory.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "category",
+          deletedCategory.name || deletedCategory.id
+        )
+      );
       return true;
     }
 
     try {
       await api.deleteCategory(deletedCategory.id);
       setCategories((currentRows) => currentRows.filter((row) => row.id !== deletedCategory.id));
-      setNotice(`Category ${deletedCategory.name || deletedCategory.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "category",
+          deletedCategory.name || deletedCategory.id
+        )
+      );
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -871,7 +1074,13 @@ function App() {
             )
           : [resolvedProduct, ...currentRows].slice(0, PAGE_SIZE)
       );
-      setNotice(`Product ${resolvedProduct.productName || resolvedProduct.id} saved.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entitySaved",
+          "product",
+          resolvedProduct.productName || resolvedProduct.id
+        )
+      );
       return resolvedProduct;
     }
 
@@ -897,7 +1106,13 @@ function App() {
             )
           : [resolvedProduct, ...currentRows].slice(0, PAGE_SIZE)
       );
-      setNotice(`Product ${resolvedProduct.productName || resolvedProduct.id} saved.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entitySaved",
+          "product",
+          resolvedProduct.productName || resolvedProduct.id
+        )
+      );
       return resolvedProduct;
     } catch (requestError) {
       setError(requestError.message);
@@ -909,7 +1124,13 @@ function App() {
     if (usingMockProducts) {
       setProducts((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));
       setProductRows((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));
-      setNotice(`Product ${deletedProduct.productName || deletedProduct.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "product",
+          deletedProduct.productName || deletedProduct.id
+        )
+      );
       return true;
     }
 
@@ -917,7 +1138,13 @@ function App() {
       await api.deleteProduct(deletedProduct.id);
       setProducts((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));
       setProductRows((currentRows) => currentRows.filter((row) => row.id !== deletedProduct.id));
-      setNotice(`Product ${deletedProduct.productName || deletedProduct.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "product",
+          deletedProduct.productName || deletedProduct.id
+        )
+      );
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -941,7 +1168,13 @@ function App() {
             )
           : [resolvedQuotation, ...currentRows]
       );
-      setNotice(`Quotation ${resolvedQuotation.reference_no || resolvedQuotation.id} saved.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entitySaved",
+          "quotation",
+          resolvedQuotation.reference_no || resolvedQuotation.id
+        )
+      );
       return resolvedQuotation;
     }
 
@@ -959,7 +1192,13 @@ function App() {
       setQuotations((currentRows) =>
         mergeSavedQuotation(currentRows, nextQuotation, resolvedQuotation, exists)
       );
-      setNotice(`Quotation ${resolvedQuotation.reference_no || resolvedQuotation.id} saved.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entitySaved",
+          "quotation",
+          resolvedQuotation.reference_no || resolvedQuotation.id
+        )
+      );
       return resolvedQuotation;
     } catch (requestError) {
       setError(requestError.message);
@@ -974,7 +1213,13 @@ function App() {
       setQuotations((currentRows) =>
         currentRows.filter((row) => row.id !== deletedQuotation.id)
       );
-      setNotice(`Quotation ${deletedQuotation.reference_no || deletedQuotation.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "quotation",
+          deletedQuotation.reference_no || deletedQuotation.id
+        )
+      );
       return true;
     }
 
@@ -983,7 +1228,13 @@ function App() {
       setQuotations((currentRows) =>
         currentRows.filter((row) => row.id !== deletedQuotation.id)
       );
-      setNotice(`Quotation ${deletedQuotation.reference_no || deletedQuotation.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "quotation",
+          deletedQuotation.reference_no || deletedQuotation.id
+        )
+      );
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -1001,7 +1252,13 @@ function App() {
       };
       setBillingNotes((rows) => [resolved, ...rows]);
       setBillingNoteRows((rows) => [resolved, ...rows].slice(0, PAGE_SIZE));
-      setNotice(`Billing note ${resolved.reference_no || resolved.id} created.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityCreated",
+          "billingNote",
+          resolved.reference_no || resolved.id
+        )
+      );
       return resolved;
     }
 
@@ -1009,7 +1266,13 @@ function App() {
       const saved = await api.createBillingNote(buildBillingNotePayload(nextBillingNote));
       setBillingNotes((rows) => [saved, ...rows]);
       setBillingNoteRows((rows) => [saved, ...rows].slice(0, PAGE_SIZE));
-      setNotice(`Billing note ${saved.reference_no || saved.id} created.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityCreated",
+          "billingNote",
+          saved.reference_no || saved.id
+        )
+      );
       await refreshBillingNoteEligibility();
       return saved;
     } catch (requestError) {
@@ -1028,7 +1291,13 @@ function App() {
       setBillingNoteRows((rows) =>
         rows.map((row) => (row.id === updated.id ? updated : row))
       );
-      setNotice(`Billing note ${updated.reference_no || updated.id} updated.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityUpdated",
+          "billingNote",
+          updated.reference_no || updated.id
+        )
+      );
       return updated;
     }
 
@@ -1043,7 +1312,13 @@ function App() {
       setBillingNoteRows((rows) =>
         rows.map((row) => (row.id === updated.id ? saved : row))
       );
-      setNotice(`Billing note ${saved.reference_no || saved.id} updated.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityUpdated",
+          "billingNote",
+          saved.reference_no || saved.id
+        )
+      );
       await refreshBillingNoteEligibility();
       return saved;
     } catch (requestError) {
@@ -1058,7 +1333,13 @@ function App() {
     if (usingMockBillingNotes) {
       setBillingNotes((rows) => rows.filter((row) => row.id !== deleted.id));
       setBillingNoteRows((rows) => rows.filter((row) => row.id !== deleted.id));
-      setNotice(`Billing note ${deleted.reference_no || deleted.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "billingNote",
+          deleted.reference_no || deleted.id
+        )
+      );
       return true;
     }
 
@@ -1066,7 +1347,13 @@ function App() {
       await api.deleteBillingNote(deleted.id);
       setBillingNotes((rows) => rows.filter((row) => row.id !== deleted.id));
       setBillingNoteRows((rows) => rows.filter((row) => row.id !== deleted.id));
-      setNotice(`Billing note ${deleted.reference_no || deleted.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "billingNote",
+          deleted.reference_no || deleted.id
+        )
+      );
       await refreshBillingNoteEligibility();
       return true;
     } catch (requestError) {
@@ -1085,7 +1372,13 @@ function App() {
       };
       setPaymentBatches((rows) => [resolved, ...rows]);
       setPaymentBatchRows((rows) => [resolved, ...rows].slice(0, PAGE_SIZE));
-      setNotice(`Payment batch ${resolved.reference_no || resolved.id} created.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityCreated",
+          "paymentBatch",
+          resolved.reference_no || resolved.id
+        )
+      );
       return resolved;
     }
 
@@ -1093,7 +1386,13 @@ function App() {
       const saved = await api.createPaymentBatch(buildPaymentBatchPayload(nextBatch));
       setPaymentBatches((rows) => [saved, ...rows]);
       setPaymentBatchRows((rows) => [saved, ...rows].slice(0, PAGE_SIZE));
-      setNotice(`Payment batch ${saved.reference_no || saved.id} created.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityCreated",
+          "paymentBatch",
+          saved.reference_no || saved.id
+        )
+      );
       await refreshPaymentBatchEligibility();
       return saved;
     } catch (requestError) {
@@ -1112,7 +1411,13 @@ function App() {
       setPaymentBatchRows((rows) =>
         rows.map((row) => (row.id === updated.id ? updated : row))
       );
-      setNotice(`Payment batch ${updated.reference_no || updated.id} updated.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityUpdated",
+          "paymentBatch",
+          updated.reference_no || updated.id
+        )
+      );
       return updated;
     }
 
@@ -1127,7 +1432,13 @@ function App() {
       setPaymentBatchRows((rows) =>
         rows.map((row) => (row.id === updated.id ? saved : row))
       );
-      setNotice(`Payment batch ${saved.reference_no || saved.id} updated.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityUpdated",
+          "paymentBatch",
+          saved.reference_no || saved.id
+        )
+      );
       await refreshPaymentBatchEligibility();
       return saved;
     } catch (requestError) {
@@ -1142,7 +1453,13 @@ function App() {
     if (usingMockPaymentBatches) {
       setPaymentBatches((rows) => rows.filter((row) => row.id !== deleted.id));
       setPaymentBatchRows((rows) => rows.filter((row) => row.id !== deleted.id));
-      setNotice(`Payment batch ${deleted.reference_no || deleted.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "paymentBatch",
+          deleted.reference_no || deleted.id
+        )
+      );
       return true;
     }
 
@@ -1150,7 +1467,13 @@ function App() {
       await api.deletePaymentBatch(deleted.id);
       setPaymentBatches((rows) => rows.filter((row) => row.id !== deleted.id));
       setPaymentBatchRows((rows) => rows.filter((row) => row.id !== deleted.id));
-      setNotice(`Payment batch ${deleted.reference_no || deleted.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "paymentBatch",
+          deleted.reference_no || deleted.id
+        )
+      );
       await refreshPaymentBatchEligibility();
       return true;
     } catch (requestError) {
@@ -1169,7 +1492,13 @@ function App() {
       };
       setCreditNotes((rows) => [resolved, ...rows]);
       setCreditNoteRows((rows) => [resolved, ...rows].slice(0, PAGE_SIZE));
-      setNotice(`Credit note ${resolved.reference_no || resolved.id} created.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityCreated",
+          "creditNote",
+          resolved.reference_no || resolved.id
+        )
+      );
       return resolved;
     }
 
@@ -1177,7 +1506,13 @@ function App() {
       const saved = await api.createCreditNote(buildCreditNotePayload(nextCreditNote));
       setCreditNotes((rows) => [saved, ...rows]);
       setCreditNoteRows((rows) => [saved, ...rows].slice(0, PAGE_SIZE));
-      setNotice(`Credit note ${saved.reference_no || saved.id} created.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityCreated",
+          "creditNote",
+          saved.reference_no || saved.id
+        )
+      );
       await refreshCreditNoteEligibility();
       await loadBillingNotePage();
       return saved;
@@ -1197,7 +1532,13 @@ function App() {
       setCreditNoteRows((rows) =>
         rows.map((row) => (row.id === updated.id ? updated : row))
       );
-      setNotice(`Credit note ${updated.reference_no || updated.id} updated.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityUpdated",
+          "creditNote",
+          updated.reference_no || updated.id
+        )
+      );
       return updated;
     }
 
@@ -1212,7 +1553,13 @@ function App() {
       setCreditNoteRows((rows) =>
         rows.map((row) => (row.id === updated.id ? saved : row))
       );
-      setNotice(`Credit note ${saved.reference_no || saved.id} updated.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityUpdated",
+          "creditNote",
+          saved.reference_no || saved.id
+        )
+      );
       await refreshCreditNoteEligibility();
       await loadBillingNotePage();
       return saved;
@@ -1228,7 +1575,13 @@ function App() {
     if (usingMockCreditNotes) {
       setCreditNotes((rows) => rows.filter((row) => row.id !== deleted.id));
       setCreditNoteRows((rows) => rows.filter((row) => row.id !== deleted.id));
-      setNotice(`Credit note ${deleted.reference_no || deleted.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "creditNote",
+          deleted.reference_no || deleted.id
+        )
+      );
       return true;
     }
 
@@ -1236,7 +1589,13 @@ function App() {
       await api.deleteCreditNote(deleted.id);
       setCreditNotes((rows) => rows.filter((row) => row.id !== deleted.id));
       setCreditNoteRows((rows) => rows.filter((row) => row.id !== deleted.id));
-      setNotice(`Credit note ${deleted.reference_no || deleted.id} deleted.`);
+      setNotice(
+        buildEntityNotice(
+          "app.messages.entityDeleted",
+          "creditNote",
+          deleted.reference_no || deleted.id
+        )
+      );
       await refreshCreditNoteEligibility();
       await loadBillingNotePage();
       return true;
@@ -1393,7 +1752,7 @@ function App() {
             <button
               className="banner-close-button"
               type="button"
-              aria-label="Close notice"
+              aria-label={t("common.close")}
               onClick={() => setNotice("")}
             >
               X
@@ -1404,7 +1763,7 @@ function App() {
 
         {loading ? (
           <section className="section-card loading-card">
-            <p>Loading inventory data...</p>
+            <p>{t("app.loadingInventoryData")}</p>
           </section>
         ) : (
           <>

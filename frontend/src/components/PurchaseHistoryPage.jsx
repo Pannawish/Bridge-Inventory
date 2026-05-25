@@ -5,7 +5,6 @@ import StatusFilterGroup from "./StatusFilterGroup";
 import TransactionTable from "./TransactionTable";
 import { useLanguage } from "../i18n/LanguageContext";
 import {
-  formatStatusLabel,
   getInitialPurchaseItemStatus,
   getPurchaseItemDisplayStatus,
   getPurchaseStatusFromItems,
@@ -24,6 +23,7 @@ import {
   RangeField,
   withinRange,
 } from "./FilterControls";
+import { getStatusLabel } from "../i18n/statusLabels";
 
 const VAT_RATE = 0.07;
 const statusOptions = purchaseStatuses;
@@ -32,10 +32,6 @@ const purchaseStatusPresets = [
   { labelKey: "purchaseHistory.presetOpen", statuses: ["draft", "ordered", "partially_received"] },
   { labelKey: "purchaseHistory.filterReceived", statuses: ["received"] },
   { labelKey: "purchaseHistory.presetCancelled", statuses: ["cancelled"] },
-];
-const vatOptions = [
-  { value: "included", label: "Include VAT" },
-  { value: "not_included", label: "Exclude VAT" },
 ];
 const defaultSupplierOptions = [];
 
@@ -236,7 +232,7 @@ function getPurchaseItemRemovalMessage(purchase, item, itemIndex, t) {
     `${t("purchaseForm.removeProduct")} ${item.product_name || t("purchaseForm.unnamedItem")}`,
     `${t("purchaseForm.removeSKU")} ${item.sku || "—"}`,
     `${t("purchaseForm.removeQuantity")} ${quantity || "—"}${baseQuantity}`,
-    `${t("purchaseForm.removeStatus")} ${formatStatusLabel(displayStatus)}`,
+    `${t("purchaseForm.removeStatus")} ${getStatusLabel(t, displayStatus)}`,
     `${t("purchaseForm.removeExpectedDelivery")} ${item.expected_delivery_date || "—"}`,
     `${t("purchaseForm.removeReceivedDate")} ${item.received_date || "—"}`,
     `${t("purchaseForm.removeLineAmount")} ${fmt(computeAmount(item, purchase))}`,
@@ -278,7 +274,7 @@ function isVatEnabled(vatMode) {
 }
 
 function getProductName(product) {
-  return product.name || product.productName || product.product_name || product.sku || `Product ${product.id}`;
+  return product.name || product.productName || product.product_name || product.sku || `${product?.id || ""}`.trim();
 }
 
 function getProductSearchNames(product) {
@@ -860,7 +856,7 @@ function PurchaseEditForm({
                   value={status}
                   disabled={status === "partially_received"}
                 >
-                  {formatStatusLabel(status)}
+                  {getStatusLabel(t, status)}
                 </option>
               ))}
             </select>
@@ -1471,7 +1467,7 @@ function PurchaseHistoryPage({
       key: "status",
       label: t("filterControls.statusChip", {
         label: selectedStatuses.length
-          ? selectedStatuses.map(formatStatusLabel).join(", ")
+          ? selectedStatuses.map((status) => getStatusLabel(t, status)).join(", ")
           : t("common.allStatuses"),
       }),
       onRemove: () => setSelectedStatuses(statusOptions),
@@ -1726,7 +1722,7 @@ function PurchaseHistoryPage({
                 ...preset,
                 label: t(preset.labelKey),
               }))}
-              formatStatusLabel={formatStatusLabel}
+              formatStatusLabel={(status) => getStatusLabel(t, status)}
               onChange={setSelectedStatuses}
             />
           </div>

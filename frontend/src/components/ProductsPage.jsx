@@ -7,7 +7,6 @@ import {
   getCategoryPathById,
 } from "./CategoryPage";
 import {
-  formatStatusLabel,
   formatPurchaseLeadTime,
   getPurchaseItemDisplayStatus,
 } from "../purchaseStatus";
@@ -48,9 +47,7 @@ import {
 } from "./products/productUtils";
 import { formatDate } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
-
-const PRODUCT_DELETE_HISTORY_MESSAGE =
-  "This product cannot be deleted because it already has purchase, sales, or quotation history.";
+import { getStatusLabel } from "../i18n/statusLabels";
 const PRODUCT_HISTORY_PAGE_SIZE = 5;
 
 function createProduct(overrides = {}) {
@@ -90,6 +87,13 @@ function createLocalPagination(count, page, pageSize = PRODUCT_HISTORY_PAGE_SIZE
     page_size: pageSize,
     total_pages: totalPages,
   };
+}
+
+function getTranslatedProductDisplayName(product, t) {
+  return getProductDisplayName(
+    product,
+    t("products.productFallback", { id: product?.id || "" })
+  );
 }
 
 function getPaginatedRows(rows, pagination) {
@@ -1070,7 +1074,10 @@ function ProductsPage({
 
     if (duplicateProduct) {
       setProductFormError(
-        t("products.errorSkuDuplicate", { sku: normalizedDraft.sku, name: getProductDisplayName(duplicateProduct) })
+        t("products.errorSkuDuplicate", {
+          sku: normalizedDraft.sku,
+          name: getTranslatedProductDisplayName(duplicateProduct, t),
+        })
       );
       return;
     }
@@ -1145,7 +1152,9 @@ function ProductsPage({
     }
 
     const confirmed = window.confirm(
-      t("products.deleteConfirm", { name: getProductDisplayName(draftProduct) || t("products.unnamedProduct") })
+      t("products.deleteConfirm", {
+        name: getTranslatedProductDisplayName(draftProduct, t) || t("products.unnamedProduct"),
+      })
     );
 
     if (!confirmed) {
@@ -1180,7 +1189,9 @@ function ProductsPage({
     }
 
     const confirmed = window.confirm(
-      t("products.disableConfirm", { name: getProductDisplayName(draftProduct) || t("products.unnamedProduct") })
+      t("products.disableConfirm", {
+        name: getTranslatedProductDisplayName(draftProduct, t) || t("products.unnamedProduct"),
+      })
     );
 
     if (!confirmed) {
@@ -1470,7 +1481,7 @@ function ProductsPage({
                       <td>{index + 1}</td>
                       <td>
                         <div className="transaction-reference-cell">
-                          <strong>{getProductDisplayName(product)}</strong>
+                          <strong>{getTranslatedProductDisplayName(product, t)}</strong>
                           <span>
                             {product.sku ? t("products.skuDisplay", { sku: product.sku }) : t("products.skuNotSet")}
                             {!isProductActive(product) ? ` · ${t("products.disabledBadge")}` : ""}
@@ -1521,7 +1532,7 @@ function ProductsPage({
                     <div className="mobile-record-title">
                       <span className="mobile-record-index">{index + 1}</span>
                       <div className="cell-stack">
-                        <strong>{getProductDisplayName(product)}</strong>
+                        <strong>{getTranslatedProductDisplayName(product, t)}</strong>
                         <span>{product.sku ? t("products.skuDisplay", { sku: product.sku }) : t("products.skuNotSet")}</span>
                       </div>
                     </div>
@@ -1626,7 +1637,7 @@ function ProductsPage({
                           <p className="detail-label">{t("products.transactionStatusLabel")}</p>
                           <strong>
                             <span className={`status-badge status-${transaction.status}`}>
-                              {formatStatusLabel(transaction.status)}
+                              {getStatusLabel(t, transaction.status)}
                             </span>
                           </strong>
                         </div>
@@ -1718,7 +1729,8 @@ function ProductsPage({
                                             transaction.status
                                           )}`}
                                         >
-                                          {formatStatusLabel(
+                                          {getStatusLabel(
+                                            t,
                                             getPurchaseItemDisplayStatus(item, transaction.status)
                                           )}
                                         </span>
@@ -1832,7 +1844,7 @@ function ProductsPage({
                 <div>
                   <p className="eyebrow">{t("products.purchaseHistoryEyebrow")}</p>
                   <h3 id="product-history-title">
-                    {getProductDisplayName(viewingProduct)}
+                    {getTranslatedProductDisplayName(viewingProduct, t)}
                   </h3>
                 </div>
                 <div className="product-detail-header-actions">
@@ -1883,7 +1895,7 @@ function ProductsPage({
                     {selectedViewingPicture?.url ? (
                       <img
                         src={selectedViewingPicture.url}
-                        alt={getProductDisplayName(viewingProduct)}
+                        alt={getTranslatedProductDisplayName(viewingProduct, t)}
                         className="product-profile-image"
                         onError={(event) => {
                           event.target.style.display = "none";
@@ -1914,7 +1926,7 @@ function ProductsPage({
                   <div className="product-profile-copy">
                     <div>
                       <p className="detail-label">{t("products.mainNameLabel")}</p>
-                      <strong>{getProductDisplayName(viewingProduct)}</strong>
+                      <strong>{getTranslatedProductDisplayName(viewingProduct, t)}</strong>
                     </div>
                     <div>
                       <p className="detail-label">{t("products.subNamesLabel")}</p>
@@ -2050,7 +2062,8 @@ function ProductsPage({
                                           purchase.status
                                         )}`}
                                       >
-                                        {formatStatusLabel(
+                                        {getStatusLabel(
+                                          t,
                                           getPurchaseItemDisplayStatus(item, purchase.status)
                                         )}
                                       </span>
@@ -2152,7 +2165,7 @@ function ProductsPage({
                                       <span
                                         className={`status-badge status-${displayStatus}`}
                                       >
-                                        {formatStatusLabel(displayStatus)}
+                                        {getStatusLabel(t, displayStatus)}
                                       </span>
                                     </td>
                                     <td>
@@ -2199,7 +2212,7 @@ function ProductsPage({
                   {allProducts.some((p) => p.id === draftProduct.id) ? t("products.editEyebrow") : t("products.newEyebrow")}
                 </p>
                 <h3 id="product-modal-title">
-                  {getProductDisplayName(draftProduct) || t("products.newEyebrow")}
+                  {getTranslatedProductDisplayName(draftProduct, t) || t("products.newEyebrow")}
                 </h3>
               </div>
               <button
@@ -2405,7 +2418,7 @@ function ProductsPage({
                       <input
                         value={draftProduct.stockBaseUnit}
                         onChange={(event) => updateDraftField("stockBaseUnit", event.target.value)}
-                        placeholder="pcs, m, kg, L, set"
+                        placeholder={t("products.baseStockUnitPlaceholder")}
                       />
                     </label>
 
@@ -2416,7 +2429,7 @@ function ProductsPage({
                         onChange={(event) =>
                           updateDraftField("defaultPurchaseUnit", event.target.value)
                         }
-                        placeholder="e.g. box"
+                        placeholder={t("products.defaultPurchaseUnitPlaceholder")}
                       />
                     </label>
 
@@ -2425,7 +2438,7 @@ function ProductsPage({
                       <input
                         value={draftProduct.defaultSalesUnit}
                         onChange={(event) => updateDraftField("defaultSalesUnit", event.target.value)}
-                        placeholder="e.g. pcs"
+                        placeholder={t("products.defaultSalesUnitPlaceholder")}
                       />
                     </label>
                   </div>
@@ -2456,7 +2469,7 @@ function ProductsPage({
                             onChange={(event) =>
                               updateDraftUnitConversion(index, "unit", event.target.value)
                             }
-                            placeholder="box"
+                            placeholder={t("products.unitPlaceholder")}
                           />
                         </label>
                         <label>

@@ -11,6 +11,7 @@ import {
   getProductDefaultSalesUnit,
   getProductUnitConversions,
 } from "../../unitConversion";
+import { formatMoney as fmt, formatNumber } from "../../format";
 
 const VAT_RATE = 0.07;
 const SKU_PATTERN = /^\d+$/;
@@ -63,8 +64,8 @@ export function getProductAllNames(product) {
   return normalizeUniqueNames([getProductMainName(product), ...getProductSubNames(product)]);
 }
 
-export function getProductDisplayName(product) {
-  return getProductAllNames(product)[0] || product?.sku || `Product ${product?.id || ""}`.trim();
+export function getProductDisplayName(product, fallbackLabel = "") {
+  return getProductAllNames(product)[0] || product?.sku || `${fallbackLabel}`.trim();
 }
 
 export function isProductActive(product) {
@@ -224,15 +225,12 @@ export function normalizeProduct(product) {
 }
 
 export function formatCurrency(value) {
-  return `฿${Number(value).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return fmt(value);
 }
 
 export function formatStockQuantity(value, product) {
   const unit = getProductBaseUnit(product);
-  return `${Number(value || 0).toLocaleString()} ${unit}`;
+  return `${formatNumber(value)} ${unit}`;
 }
 
 export function getDocumentName(documentUrl = "", t = null) {

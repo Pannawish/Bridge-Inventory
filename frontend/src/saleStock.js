@@ -1,6 +1,8 @@
 import { getStoredPurchaseItemStatus } from "./purchaseStatus";
 import { getStoredSaleItemStatus } from "./saleStatus";
 import { getProductBaseUnit, getItemBaseQuantity } from "./unitConversion";
+import { getCurrentLanguage } from "./format";
+import { translations } from "./i18n/translations";
 
 const STOCK_DEDUCTED_SALE_ITEM_STATUSES = new Set(["packed", "shipped", "delivered"]);
 
@@ -40,12 +42,18 @@ function getProductSkus(product) {
 }
 
 function getProductLabel(product) {
+  const language = getCurrentLanguage();
+  const fallbackTemplate =
+    translations[language]?.products?.productFallback ||
+    translations.en.products.productFallback ||
+    "Product {id}";
+
   return (
     product?.productName ??
     product?.name ??
     product?.product_name ??
     product?.sku ??
-    `Product ${product?.id ?? ""}`.trim()
+    fallbackTemplate.replace("{id}", `${product?.id ?? ""}`).trim()
   );
 }
 
@@ -247,24 +255,39 @@ export function getSaleStockIssues(
   return issues;
 }
 
-function formatQuantity(value) {
-  return Number(value || 0).toLocaleString("en-US", {
+function formatQuantity(value, locale = "en-US") {
+  return Number(value || 0).toLocaleString(locale, {
     maximumFractionDigits: 6,
   });
 }
 
-export function formatSaleStockIssueMessage(issues = []) {
+export function formatSaleStockIssueMessage(issues = [], options = {}) {
   if (!issues.length) {
     return "";
   }
 
+  const translate = typeof options.t === "function" ? options.t : null;
+  const locale = options.locale || "en-US";
   const parts = issues.map((issue) => {
     if (issue.type === "unknown-product") {
-      return `${issue.label} is not linked to a valid product`;
+      return translate
+        ? translate("stockIssues.invalidProduct", { label: issue.label })
+        : `${issue.label} is not linked to a valid product`;
     }
 
-    return `${issue.productName} needs ${formatQuantity(issue.requestedQuantity)} ${issue.unit}, available ${formatQuantity(issue.availableQuantity)} ${issue.unit}`;
+    const values = {
+      productName: issue.productName,
+      requested: formatQuantity(issue.requestedQuantity, locale),
+      unit: issue.unit,
+      available: formatQuantity(issue.availableQuantity, locale),
+    };
+
+    return translate
+      ? translate("stockIssues.insufficientLine", values)
+      : `${issue.productName} needs ${values.requested} ${issue.unit}, available ${values.available} ${issue.unit}`;
   });
 
-  return `Insufficient stock. Keep this sale in Draft until stock is received: ${parts.join("; ")}.`;
+  return translate
+    ? translate("stockIssues.summary", { parts: parts.join("; ") })
+    : `Insufficient stock. Keep this sale in Draft until stock is received: ${parts.join("; ")}.`;
 }

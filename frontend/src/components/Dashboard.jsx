@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
+import { formatMoney as fmt, formatNumber as formatLocaleNumber } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
 
 const FALLBACK_PERIOD_OPTIONS = [
@@ -16,10 +17,7 @@ const FALLBACK_PERIOD_OPTIONS = [
 const DEFAULT_PERIOD = "1m";
 
 function formatCurrency(value) {
-  return `฿${Number(value || 0).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return fmt(value);
 }
 
 function formatNumber(value) {
@@ -27,7 +25,7 @@ function formatNumber(value) {
     return "-";
   }
 
-  return Number(value).toLocaleString();
+  return formatLocaleNumber(value);
 }
 
 function formatCompact(value) {

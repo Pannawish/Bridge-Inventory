@@ -1,6 +1,39 @@
-export function formatMoney(value) {
-  const number = Number(value) || 0;
-  return `฿${number.toLocaleString("en-US", {
+const DEFAULT_LANGUAGE = "en";
+const LANGUAGE_STORAGE_KEY = "language";
+
+export function getCurrentLanguage() {
+  if (typeof document !== "undefined") {
+    const documentLanguage = `${document.documentElement.lang || ""}`.trim().toLowerCase();
+    if (documentLanguage) {
+      return documentLanguage;
+    }
+  }
+
+  try {
+    const storedLanguage = `${localStorage.getItem(LANGUAGE_STORAGE_KEY) || ""}`
+      .trim()
+      .toLowerCase();
+    if (storedLanguage) {
+      return storedLanguage;
+    }
+  } catch {
+    // ignore storage access failures
+  }
+
+  return DEFAULT_LANGUAGE;
+}
+
+export function getLocale(language = null) {
+  const activeLanguage = `${language || getCurrentLanguage()}`.trim().toLowerCase();
+  return activeLanguage.startsWith("th") ? "th-TH" : "en-US";
+}
+
+export function formatNumber(value, language = null, options = {}) {
+  return Number(value || 0).toLocaleString(getLocale(language), options);
+}
+
+export function formatMoney(value, language = null) {
+  return `฿${formatNumber(value, language, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;

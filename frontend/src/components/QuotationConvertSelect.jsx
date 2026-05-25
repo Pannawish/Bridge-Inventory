@@ -79,11 +79,11 @@ export default function QuotationConvertSelect({
     });
 
     if (!rows.length) {
-      setError("Select at least one product.");
+      setError(t("quotation.convertSelectErrorNone"));
       return;
     }
     if (isPurchase && rows.some((row) => !row.option)) {
-      setError("Every selected product needs a supplier to build a purchase order.");
+      setError(t("quotation.convertSelectErrorSupplier"));
       return;
     }
 
@@ -94,27 +94,32 @@ export default function QuotationConvertSelect({
     <section className="section-card">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Quotation {quotation.reference_no}</p>
-          <h3>Select Products to {isPurchase ? "Purchase" : "Sell"}</h3>
+          <p className="eyebrow">
+            {t("quotation.convertSelectEyebrow", { ref: quotation.reference_no })}
+          </p>
+          <h3>
+            {isPurchase
+              ? t("quotation.convertSelectTitlePurchase")
+              : t("quotation.convertSelectTitleSale")}
+          </h3>
         </div>
         <button
           className="secondary-button table-action-button"
           type="button"
           onClick={onBack}
         >
-          Back
+          {t("quotation.convertSelectBack")}
         </button>
       </div>
 
       <p className="empty-copy">
         {isPurchase
-          ? "Pick the supplier for each product. Products are grouped into one purchase order per supplier."
-          : "Pick the supplier each product is sourced from. Its cost is recorded on the sales order."}
+          ? t("quotation.convertSelectSubtitlePurchase")
+          : t("quotation.convertSelectSubtitleSale")}
       </p>
       {isPurchase && items.some((item, index) => (item.supplier_options || []).length === 0) && (
         <div className="notice-banner">
-          Some items are greyed out because they have no supplier recorded in the quotation.
-          To include them, go back and add a supplier + cost price to those items first.
+          {t("quotation.convertSelectNoSupplierNotice")}
         </div>
       )}
 
@@ -124,11 +129,11 @@ export default function QuotationConvertSelect({
             <thead>
               <tr>
                 <th />
-                <th>Product</th>
-                <th>Qty</th>
+                <th>{t("quotation.detailColProduct")}</th>
+                <th>{t("quotation.detailColQty")}</th>
                 <th>{t("quotationDetail.stockColumn")}</th>
-                <th>Sale Price</th>
-                <th>Supplier (Cost)</th>
+                <th>{t("quotation.detailColSalePrice")}</th>
+                <th>{t("quotation.convertSelectColSupplierCost")}</th>
               </tr>
             </thead>
             <tbody>
@@ -154,7 +159,7 @@ export default function QuotationConvertSelect({
                         checked={checked}
                         disabled={disabled}
                         onChange={() => toggle(key, disabled)}
-                        title={disabled ? "Add a supplier + cost price to this item in the quotation to include it in a PO" : undefined}
+                        title={disabled ? t("quotation.convertSelectDisabledTitle") : undefined}
                       />
                     </td>
                     <td>
@@ -206,7 +211,7 @@ export default function QuotationConvertSelect({
                         </select>
                       ) : (
                         <span className="empty-copy" style={{ color: "var(--danger, #ed4014)" }}>
-                          No supplier — cannot include in PO
+                          {t("quotation.convertSelectNoSupplier")}
                         </span>
                       )}
                     </td>
@@ -222,10 +227,10 @@ export default function QuotationConvertSelect({
 
       <div className="supplier-modal-actions">
         <button className="secondary-button" type="button" onClick={onBack}>
-          Cancel
+          {t("common.cancel")}
         </button>
         <button className="primary-button" type="button" onClick={handleContinue}>
-          Continue
+          {t("quotation.convertSelectContinue")}
         </button>
       </div>
     </section>

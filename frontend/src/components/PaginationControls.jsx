@@ -1,11 +1,13 @@
 import { useLanguage } from "../i18n/LanguageContext";
 
-function formatNumber(value) {
-  return Number(value || 0).toLocaleString("en-US");
+function formatNumber(value, locale) {
+  return Number(value || 0).toLocaleString(locale);
 }
 
-function PaginationControls({ pagination, onPageChange, itemLabel = "records" }) {
-  const { t } = useLanguage();
+function PaginationControls({ pagination, onPageChange, itemLabel }) {
+  const { language, t } = useLanguage();
+  const resolvedItemLabel = itemLabel || t("pagination.records");
+  const locale = language === "th" ? "th-TH" : "en-US";
 
   if (!pagination || !pagination.count) {
     return null;
@@ -22,10 +24,10 @@ function PaginationControls({ pagination, onPageChange, itemLabel = "records" })
     <div className="list-pagination">
       <span>
         {t("pagination.showing", {
-          start: formatNumber(start),
-          end: formatNumber(end),
-          count: formatNumber(count),
-          label: itemLabel,
+          start: formatNumber(start, locale),
+          end: formatNumber(end, locale),
+          count: formatNumber(count, locale),
+          label: resolvedItemLabel,
         })}
       </span>
       <div className="list-pagination-actions">
@@ -38,7 +40,10 @@ function PaginationControls({ pagination, onPageChange, itemLabel = "records" })
           {t("common.previous")}
         </button>
         <span className="pagination-pill">
-          {t("pagination.page", { page: formatNumber(page), total: formatNumber(totalPages) })}
+          {t("pagination.page", {
+            page: formatNumber(page, locale),
+            total: formatNumber(totalPages, locale),
+          })}
         </span>
         <button
           className="secondary-button"

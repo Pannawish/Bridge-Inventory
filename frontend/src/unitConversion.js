@@ -1,3 +1,5 @@
+import { formatNumber } from "./format";
+
 export function normalizeUnit(value, fallback = "pcs") {
   const unit = `${value ?? ""}`.trim();
   return unit || fallback;
@@ -138,7 +140,7 @@ export function roundQuantity(value) {
 }
 
 function formatQuantityValue(value) {
-  return Number(value || 0).toLocaleString();
+  return formatNumber(value);
 }
 
 function getItemConversionFactor(item) {

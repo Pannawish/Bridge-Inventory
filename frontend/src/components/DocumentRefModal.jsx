@@ -1,16 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { formatDate, formatMoney as fmt } from "../format";
+import { getStatusLabel } from "../i18n/statusLabels";
 import DocumentRefChip from "./DocumentRefChip";
 import { useLanguage } from "../i18n/LanguageContext";
-
-function prettyStatus(status) {
-  if (!status) return "—";
-  return `${status}`
-    .split("_")
-    .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : word))
-    .join(" ");
-}
 
 function renderDiscounts(discounts) {
   if (!Array.isArray(discounts)) {
@@ -190,7 +183,7 @@ function buildDocConfig(t) {
           item.product_name || "—",
           item.sku || "—",
           formatDate(item.expected_delivery_date),
-          prettyStatus(item.item_status),
+          getStatusLabel(t, item.item_status),
           formatDate(item.received_date),
           formatQuantityWithUnit(item.quantity, item.unit),
           formatQuantityWithUnit(item.base_quantity, item.base_unit),
@@ -251,7 +244,7 @@ function buildDocConfig(t) {
           index + 1,
           item.product_name || "—",
           item.sku || "—",
-          prettyStatus(item.item_status),
+          getStatusLabel(t, item.item_status),
           formatDate(item.shipped_date),
           formatDate(item.delivered_date),
           formatQuantityWithUnit(item.quantity, item.unit),
@@ -487,7 +480,7 @@ function DocumentDetailBody({ entry, onOpenRef }) {
             {field.status !== undefined ? (
               <strong>
                 <span className={`status-badge status-${field.status}`}>
-                  {prettyStatus(field.status)}
+                  {getStatusLabel(t, field.status)}
                 </span>
               </strong>
             ) : (

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatMoney as fmt } from "../format";
+import { formatMoney as fmt, formatNumber } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
 import { withinRange } from "./FilterControls";
 
@@ -114,7 +114,7 @@ function sortRows(rows, sortKey) {
 }
 
 function formatUnits(value) {
-  return Number(value || 0).toLocaleString("en-US");
+  return formatNumber(value);
 }
 
 function HealthBadge({ health }) {

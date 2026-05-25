@@ -210,7 +210,7 @@ function isVatEnabled(vatMode) {
 }
 
 function getProductName(product) {
-  return product.name || product.productName || product.product_name || product.sku || `Product ${product.id}`;
+  return product.name || product.productName || product.product_name || product.sku || `${product?.id || ""}`.trim();
 }
 
 function getProductSearchNames(product) {
@@ -276,7 +276,7 @@ function SalesForm({
   onCancel = null,
   prefill = null,
 }) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const nextReferenceNo = useMemo(
     () => getNextSalesReference(sales),
     [sales]
@@ -415,7 +415,10 @@ function SalesForm({
   );
   const saleStockMessage =
     !["draft", "cancelled", "returned"].includes(form.status) && saleStockIssues.length
-      ? formatSaleStockIssueMessage(saleStockIssues)
+      ? formatSaleStockIssueMessage(saleStockIssues, {
+          t,
+          locale: language === "th" ? "th-TH" : "en-US",
+        })
       : "";
 
   useEffect(() => {
@@ -442,7 +445,10 @@ function SalesForm({
       : [];
 
     if (!["draft", "cancelled", "returned"].includes(nextStatus) && nextIssues.length) {
-      const message = formatSaleStockIssueMessage(nextIssues);
+      const message = formatSaleStockIssueMessage(nextIssues, {
+        t,
+        locale: language === "th" ? "th-TH" : "en-US",
+      });
       updateForm("status", "draft");
       setStatusError(message);
       showStockAlert(message);
@@ -925,12 +931,12 @@ function SalesForm({
               value={form.status}
               onChange={(event) => handleStatusChange(event.target.value)}
             >
-              <option value="draft">Draft</option>
-              <option value="packed">Packed</option>
-              <option value="shipped">Shipped</option>
-              <option value="delivered">Delivered</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="returned">Returned</option>
+              <option value="draft">{t("common.statusLabels.draft")}</option>
+              <option value="packed">{t("common.statusLabels.packed")}</option>
+              <option value="shipped">{t("common.statusLabels.shipped")}</option>
+              <option value="delivered">{t("common.statusLabels.delivered")}</option>
+              <option value="cancelled">{t("common.statusLabels.cancelled")}</option>
+              <option value="returned">{t("common.statusLabels.returned")}</option>
             </select>
             {statusError || saleStockMessage ? (
               <span className="field-error-text">{statusError || saleStockMessage}</span>

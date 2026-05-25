@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  formatStatusLabel,
   getInitialPurchaseItemStatus,
   getTodayString,
   purchaseStatuses,
@@ -18,6 +17,7 @@ import {
   getEffectiveDiscounts,
 } from "./transactionDiscounts";
 import { useLanguage } from "../i18n/LanguageContext";
+import { getStatusLabel } from "../i18n/statusLabels";
 
 const today = getTodayString();
 const VAT_RATE = 0.07;
@@ -79,7 +79,7 @@ function emptyItem() {
 }
 
 function getProductName(product) {
-  return product.name || product.productName || product.product_name || product.sku || `Product ${product.id}`;
+  return product.name || product.productName || product.product_name || product.sku || `${product?.id || ""}`.trim();
 }
 
 function getProductSearchNames(product) {
@@ -775,7 +775,7 @@ function PurchaseForm({
                   value={status}
                   disabled={status === "partially_received"}
                 >
-                  {formatStatusLabel(status)}
+                  {getStatusLabel(t, status)}
                 </option>
               ))}
             </select>

@@ -23,6 +23,7 @@ import {
   withinRange,
 } from "./FilterControls";
 import { useLanguage } from "../i18n/LanguageContext";
+import { getStatusLabel } from "../i18n/statusLabels";
 
 const VAT_RATE = 0.07;
 const statusOptions = saleStatuses;
@@ -212,12 +213,6 @@ function computeAmount(item, transaction = null) {
   return qty * price * multiplier * (1 - getBillDiscountValue(transaction) / 100);
 }
 
-function formatSalesStatusLabel(status = "") {
-  return `${status || "pending"}`
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
 function getSalesItemRemovalMessage(sale, item, itemIndex, t) {
   const itemStatus = getStoredSaleItemStatus(item, sale.status);
   const quantity = `${item.quantity || 0} ${item.unit || ""}`.trim();
@@ -235,7 +230,7 @@ function getSalesItemRemovalMessage(sale, item, itemIndex, t) {
     `${t("salesForm.removeProduct")} ${item.product_name || t("salesForm.unnamedItem")}`,
     `${t("salesForm.removeSKU")} ${item.sku || "—"}`,
     `${t("salesForm.removeQuantity")} ${quantity || "—"}${baseQuantity}`,
-    `${t("salesForm.removeStatus")} ${formatSalesStatusLabel(itemStatus)}`,
+    `${t("salesForm.removeStatus")} ${getStatusLabel(t, itemStatus)}`,
     `${t("salesForm.removeShippedDate")} ${item.shipped_date || "—"}`,
     `${t("salesForm.removeDeliveredDate")} ${item.delivered_date || "—"}`,
     `${t("salesForm.removeLineAmount")} ${fmt(computeAmount(item, sale))}`,
@@ -277,7 +272,7 @@ function isVatEnabled(vatMode) {
 }
 
 function getProductName(product) {
-  return product.name || product.productName || product.product_name || product.sku || `Product ${product.id}`;
+  return product.name || product.productName || product.product_name || product.sku || `${product?.id || ""}`.trim();
 }
 
 function getProductSku(product) {
@@ -437,7 +432,7 @@ function SalesEditForm({
   onCancel,
   onSave,
 }) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const [form, setForm] = useState(() => createEditForm(sale));
   const [items, setItems] = useState(() => createEditItems(sale, products));
   const [vatMode, setVatMode] = useState(sale.vat_mode || "not_included");
@@ -514,7 +509,10 @@ function SalesEditForm({
   );
   const saleStockMessage =
     !["draft", "cancelled", "returned"].includes(form.status) && saleStockIssues.length
-      ? formatSaleStockIssueMessage(saleStockIssues)
+      ? formatSaleStockIssueMessage(saleStockIssues, {
+          t,
+          locale: language === "th" ? "th-TH" : "en-US",
+        })
       : "";
   const visibleDocuments = getTransactionDocuments(sale, t).filter(
     (document) => !form.remove_document_ids.includes(document.id)
@@ -540,7 +538,10 @@ function SalesEditForm({
       : [];
 
     if (!["draft", "cancelled", "returned"].includes(nextStatus) && nextIssues.length) {
-      const message = formatSaleStockIssueMessage(nextIssues);
+      const message = formatSaleStockIssueMessage(nextIssues, {
+        t,
+        locale: language === "th" ? "th-TH" : "en-US",
+      });
       updateForm("status", "draft");
       setFormError(message);
       showStockAlert(message);
@@ -1505,7 +1506,7 @@ function SalesHistoryPage({
       key: "status",
       label: t("filterControls.statusChip", {
         label: selectedStatuses.length
-          ? selectedStatuses.map(formatSalesStatusLabel).join(", ")
+          ? selectedStatuses.map((status) => getStatusLabel(t, status)).join(", ")
           : t("common.allStatuses"),
       }),
       onRemove: () => setSelectedStatuses(statusOptions),
@@ -1761,7 +1762,7 @@ function SalesHistoryPage({
                 ...preset,
                 label: t(preset.labelKey),
               }))}
-              formatStatusLabel={formatSalesStatusLabel}
+              formatStatusLabel={(status) => getStatusLabel(t, status)}
               onChange={setSelectedStatuses}
             />
           </div>

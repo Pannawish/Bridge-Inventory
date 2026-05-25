@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   editablePurchaseItemStatuses,
-  formatStatusLabel,
   formatPurchaseLeadTime,
   getPurchaseItemDisplayStatus,
   getPurchaseItemStatusCounts,
@@ -21,18 +20,16 @@ import {
 } from "../saleStatus";
 import { formatSaleStockIssueMessage, getSaleStockIssues } from "../saleStock";
 import { getItemBaseQuantity, getItemQuantityDetails } from "../unitConversion";
-import { formatDate } from "../format";
+import { formatDate, formatMoney as fmt, formatNumber } from "../format";
 import DocumentRefChip from "./DocumentRefChip";
 import DocumentRefModal from "./DocumentRefModal";
 import { useLanguage } from "../i18n/LanguageContext";
+import { getStatusLabel } from "../i18n/statusLabels";
 
 const VAT_RATE = 0.07;
 
 function formatCurrency(value) {
-  return `฿${Number(value || 0).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return fmt(value);
 }
 
 function applyBillDiscount(amount, transaction) {
@@ -125,7 +122,7 @@ function renderBillDiscount(transaction) {
 }
 
 function DiscountBreakdown({ item, transaction }) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   return (
     <div className="tx-discount-breakdown">
       <span className="tx-discount-breakdown-row">
@@ -191,7 +188,7 @@ function getItemStatusOptions(editableStatuses, currentStatus) {
 }
 
 function getItemCount(items = []) {
-  return items.length.toLocaleString("en-US");
+  return formatNumber(items.length);
 }
 
 function getDocumentName(documentUrl = "", t = null) {
@@ -399,7 +396,12 @@ function TransactionTable({
       : [];
 
     if (issues.length) {
-      onWarning?.(formatSaleStockIssueMessage(issues));
+      onWarning?.(
+        formatSaleStockIssueMessage(issues, {
+          t,
+          locale: language === "th" ? "th-TH" : "en-US",
+        })
+      );
       return;
     }
 
@@ -561,7 +563,7 @@ function TransactionTable({
                                 (type === "sale" && status.startsWith("partially_"))
                               }
                             >
-                              {formatStatusLabel(status)}
+                              {getStatusLabel(t, status)}
                             </option>
                           ))}
                         </select>
@@ -639,7 +641,7 @@ function TransactionTable({
                             (type === "sale" && status.startsWith("partially_"))
                           }
                         >
-                          {formatStatusLabel(status)}
+                          {getStatusLabel(t, status)}
                         </option>
                       ))}
                     </select>
@@ -780,7 +782,7 @@ function TransactionTable({
                 <p className="detail-label">{t("transactionTable.colStatus")}</p>
                 <strong>
                   <span className={`status-badge status-${selectedRow.status}`}>
-                    {formatStatusLabel(selectedRow.status)}
+                    {getStatusLabel(t, selectedRow.status)}
                   </span>
                 </strong>
               </div>
@@ -903,7 +905,7 @@ function TransactionTable({
                         key={status}
                         className={`status-badge item-status-badge status-${status}`}
                       >
-                        {counts[status]} {formatStatusLabel(status)}
+                        {counts[status]} {getStatusLabel(t, status)}
                       </span>
                     ));
                   })()}
@@ -930,7 +932,7 @@ function TransactionTable({
                         key={status}
                         className={`status-badge item-status-badge status-${status}`}
                       >
-                        {counts[status]} {formatStatusLabel(status)}
+                        {counts[status]} {getStatusLabel(t, status)}
                       </span>
                     ));
                   })()}
@@ -981,11 +983,13 @@ function TransactionTable({
                                   onChange={(event) =>
                                     handleSaleItemStatusChange(itemIndex, event.target.value)
                                   }
-                                  aria-label={`Change ${item.product_name} sales status`}
+                                  aria-label={t("transactionTable.changeSalesStatusAria", {
+                                    product: item.product_name,
+                                  })}
                                 >
                                   {itemStatusOptions.map((status) => (
                                     <option key={status} value={status}>
-                                      {formatStatusLabel(status)}
+                                      {getStatusLabel(t, status)}
                                     </option>
                                   ))}
                                 </select>
@@ -1120,11 +1124,13 @@ function TransactionTable({
                                     handlePurchaseItemStatusChange(itemIndex, event.target.value)
                                   }
                                   disabled={selectedRow.status === "draft"}
-                                  aria-label={`Change ${item.product_name} receiving status`}
+                                  aria-label={t("transactionTable.changeReceivingStatusAria", {
+                                    product: item.product_name,
+                                  })}
                                 >
                                   {itemStatusOptions.map((status) => (
                                     <option key={status} value={status}>
-                                      {formatStatusLabel(status)}
+                                      {getStatusLabel(t, status)}
                                     </option>
                                   ))}
                                 </select>

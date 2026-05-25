@@ -15,7 +15,7 @@ import {
   getProductUnitConversions,
   getUnitValueFromBaseValue,
 } from "../unitConversion";
-import { formatDate, formatMoney as fmt } from "../format";
+import { formatDate, formatMoney as fmt, formatNumber } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
 import { PAGE_SIZE } from "../app/appUtils";
 
@@ -108,8 +108,14 @@ function emptyItem() {
   };
 }
 
-function getProductName(product) {
-  return product?.name || product?.productName || product?.product_name || product?.sku || `Product ${product?.id}`;
+function getProductName(product, fallbackLabel = "") {
+  return (
+    product?.name ||
+    product?.productName ||
+    product?.product_name ||
+    product?.sku ||
+    `${fallbackLabel}`.trim()
+  );
 }
 
 function getProductSearchNames(product) {
@@ -177,7 +183,7 @@ function computeAmount(item, priceKey = "sale_price") {
 }
 
 function formatStockQuantity(value) {
-  return Number(value || 0).toLocaleString("en-US", {
+  return formatNumber(value, null, {
     maximumFractionDigits: 6,
   });
 }
@@ -498,7 +504,7 @@ function createEditItems(quotation) {
 }
 
 function getItemCount(items = []) {
-  return items.length.toLocaleString("en-US");
+  return formatNumber(items.length);
 }
 
 function quotationMatchesQuery(quotation, query) {
@@ -706,6 +712,10 @@ function QuotationForm({
     [form.quotation_date, form.valid_until_days, form.valid_until_day_type]
   );
 
+  function getTranslatedProductName(product) {
+    return getProductName(product, t("products.productFallback", { id: product?.id || "" }));
+  }
+
   function updateForm(key, value) {
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
   }
@@ -793,7 +803,7 @@ function QuotationForm({
   }
 
   function selectProduct(itemIndex, product) {
-    const productName = getProductName(product);
+    const productName = getTranslatedProductName(product);
     const sku = getProductSku(product);
 
     setItems((currentItems) =>
@@ -964,11 +974,11 @@ function QuotationForm({
       }
 
       if (!item.quantity || Number(item.quantity) <= 0) {
-        throw new Error(`Enter quantity for item ${index + 1}.`);
+        throw new Error(t("quotation.errorQuantityRequired", { index: index + 1 }));
       }
 
       if (item.sale_price === "" || item.sale_price === null || item.sale_price === undefined) {
-        throw new Error(`Enter sale price for item ${index + 1}.`);
+        throw new Error(t("quotation.errorSalePriceRequired", { index: index + 1 }));
       }
 
       const discounts = normalizeDiscounts(item);
@@ -989,7 +999,7 @@ function QuotationForm({
       return {
         line_id: item.line_id,
         product_id: selectedProduct.id,
-        product_name: getProductName(selectedProduct),
+        product_name: getTranslatedProductName(selectedProduct),
         sku: getProductSku(selectedProduct),
         ...convertedFields,
         quantity: Number(item.quantity) || 0,
@@ -1188,7 +1198,7 @@ function QuotationForm({
                       >
                         {filteredProducts.length ? (
                           filteredProducts.map((product) => {
-                            const productName = getProductName(product);
+                            const productName = getTranslatedProductName(product);
                             const sku = getProductSku(product);
 
                             return (
@@ -2249,7 +2259,9 @@ function QuotationPage({
                 ) : (
                   <strong>—</strong>
                 )}
-                <p className="detail-label" style={{ marginTop: "10px" }}>Sales Created</p>
+                <p className="detail-label" style={{ marginTop: "10px" }}>
+                  {t("quotation.detailSalesCreated")}
+                </p>
                 {(viewingQuotation.derived_sale_links || []).length > 0 ? (
                   <div className="doc-ref-chips">
                     {viewingQuotation.derived_sale_links.map((link) => (
@@ -2268,23 +2280,23 @@ function QuotationPage({
             </div>
 
             <div className="detail-items">
-              <p className="detail-label">Items</p>
+              <p className="detail-label">{t("quotation.detailItemsLabel")}</p>
               <div className="table-scroll quotation-detail-scroll">
                 <table className="quotation-detail-table">
                   <thead>
                     <tr>
                       <th className="table-index-cell">#</th>
-                      <th>Product</th>
-                      <th>SKU</th>
-                      <th>Qty</th>
+                      <th>{t("quotation.detailColProduct")}</th>
+                      <th>{t("quotation.detailColSKU")}</th>
+                      <th>{t("quotation.detailColQty")}</th>
                       <th>{t("quotationDetail.baseQtyColumn")}</th>
                       <th>{t("quotationDetail.stockColumn")}</th>
-                      <th>Sale Price</th>
+                      <th>{t("quotation.detailColSalePrice")}</th>
                       <th>{t("quotationDetail.baseSalePriceColumn")}</th>
                       <th>{t("quotationDetail.baseSalePriceAfterDiscountColumn")}</th>
-                      <th>Suppliers (Cost)</th>
-                      <th>Discounts</th>
-                      <th>Sale Amount</th>
+                      <th>{t("quotation.detailColSuppliers")}</th>
+                      <th>{t("quotation.detailColDiscounts")}</th>
+                      <th>{t("quotation.detailColSaleAmount")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2363,7 +2375,9 @@ function QuotationPage({
                           <td>
                             <div className="tx-discount-breakdown">
                               <span className="tx-discount-breakdown-row">
-                                <span className="tx-discount-type">Item</span>
+                                <span className="tx-discount-type">
+                                  {t("quotation.detailDiscountTypeItem")}
+                                </span>
                                 <span className="tx-discount-label">{discountLabel}</span>
                               </span>
                             </div>
@@ -2390,17 +2404,17 @@ function QuotationPage({
                   {showVat ? (
                     <>
                       <div className="tx-summary-row">
-                        <span>Total</span>
+                        <span>{t("quotation.subtotal")}</span>
                         <span>{fmt(vatSummary.total)}</span>
                       </div>
                       <div className="tx-summary-row">
-                        <span>VAT (7%)</span>
+                        <span>{t("quotation.vat")}</span>
                         <span>{fmt(vatSummary.vat)}</span>
                       </div>
                     </>
                   ) : null}
                   <div className="tx-summary-row tx-summary-grand">
-                    <strong>Grand Total</strong>
+                    <strong>{t("quotation.grandTotal")}</strong>
                     <strong>{fmt(vatSummary.grandTotal)}</strong>
                   </div>
                 </div>
