@@ -1,100 +1,141 @@
-# Inventory Management Handout
+# Inventory Management Training Manual
 
-This handout is for team members, evaluators, and future contributors who need to understand how the web app is meant to be used in day-to-day operations.
+This document is written for end users of the web app: operations staff, purchasing staff, sales staff, finance staff, supervisors, and new team members.
 
-It focuses on workflow first:
+Use it as a step-by-step training guide, not as a developer document.
 
-- what each area of the app is for
-- what order to use the screens in
-- how stock, purchases, sales, and finance records connect
-- what status changes mean
+For setup and local environment instructions, use [README.md](/Users/peto/Documents/Inventory-Management-frontend/README.md) and [backend/README.md](/Users/peto/Documents/Inventory-Management-frontend/backend/README.md).
 
-For local setup and development commands, use [README.md](/Users/peto/Documents/Inventory-Management-frontend/README.md) and [backend/README.md](/Users/peto/Documents/Inventory-Management-frontend/backend/README.md).
+## 1. What This System Does
 
-## 1. What This System Is For
+This system is for a business that:
 
-This system is designed for a trading business that:
+- buys products from suppliers
+- keeps stock in inventory
+- sells products to customers
+- tracks what has been purchased, received, sold, billed, paid, cancelled, or returned
 
-- buys from suppliers
-- keeps inventory in stock
-- sells to customers
-- tracks margin, commitments, and operational follow-up
+The app connects these workflows:
 
-The app is not just a stock list. It connects master data, transactions, stock impact, and finance records in one flow.
+- master data: categories, products, suppliers, customers
+- operations: quotations, purchases, sales
+- finance follow-up: billing notes, payment batches, credit notes
+- stock visibility: dashboard, inventory, product history
 
-## 2. Main App Areas
+## 2. Who Should Use Which Screen
 
-The sidebar is grouped by workflow.
+| Role | Main screens |
+| --- | --- |
+| Admin / supervisor | `Dashboard`, `Inventory`, `Settings` |
+| Product or stock controller | `Products`, `Categories`, `Inventory` |
+| Purchasing staff | `Quotation`, `Purchases`, `Suppliers` |
+| Sales staff | `Quotation`, `Sales`, `Customers` |
+| Finance staff | `Billing Notes`, `Payment Batches`, `Credit Notes` |
+
+## 3. Sidebar Navigation
+
+The sidebar is grouped by business function.
 
 `Workspace`
 
-- `Dashboard`: high-level KPIs and recent operational visibility
-- `Inventory`: stock health, reorder planning, and supplier/value insight
-- `AI Chat`: ask operational questions about stock, sales, purchases, and trends
+- `Dashboard`
+- `Inventory`
+- `AI Chat`
 
 `Purchasing`
 
-- `Quotation`: prepare customer quotation lines and supplier sourcing options
-- `Purchases`: create and manage purchase orders, receiving, and supplier documents
-- `Suppliers`: maintain supplier records
+- `Quotation`
+- `Purchases`
+- `Suppliers`
 
 `Sales`
 
-- `Sales`: create and manage sales transactions and delivery progress
-- `Customers`: maintain customer records
+- `Sales`
+- `Customers`
 
 `Records`
 
-- `Billing Notes`: customer receivables batches from eligible sales
-- `Payment Batches`: supplier payable batches from eligible purchases
-- `Credit Notes`: issue reductions for cancelled or returned sale items
-- `Products`: maintain product master data
-- `Categories`: maintain the product category tree
+- `Billing Notes`
+- `Payment Batches`
+- `Credit Notes`
+- `Products`
+- `Categories`
 
 `Settings`
 
 - language switch between English and Thai
 
-## 3. Recommended Business Workflow
+Screenshot to insert:
+- Sidebar with each group labeled
 
-For most teams, the cleanest operating order is:
+## 4. Training Sequence For New Users
 
-1. Set up `Categories`
-2. Set up `Products`
-3. Set up `Suppliers`
-4. Set up `Customers`
-5. Create a `Quotation` if the sale starts from a quote
-6. Convert or create a `Purchase` when stock is needed
-7. Receive the purchase items
-8. Create a `Sale`
-9. Progress sale item statuses as goods move out
-10. Create a `Billing Note` for eligible sales
-11. Create a `Payment Batch` for eligible purchases
-12. Create a `Credit Note` if cancelled or returned sale items require it
+Train new users in this order:
 
-Not every business uses every step every time. For example:
+1. Learn the sidebar and screen names
+2. Review categories and products
+3. Review suppliers and customers
+4. Create a quotation
+5. Create a purchase
+6. Receive purchase items
+7. Create a sale
+8. Update sale delivery statuses
+9. Create a billing note
+10. Create a payment batch
+11. Create a credit note when needed
+12. Review stock and history from inventory and product pages
 
-- some sales may be created directly without a quotation
-- some products may already be in stock, so no purchase is needed
-- some cancelled or returned items will not require a credit note
+## 5. Before You Start Checklist
 
-## 4. First-Time Setup Inside The App
+Before entering transactions, confirm all of the following:
 
-If you are using a fresh database, start here.
+- [ ] Categories have been created
+- [ ] Products have valid SKUs
+- [ ] Products have the correct base unit
+- [ ] Products have the correct purchase and sales units
+- [ ] Unit conversions are set for products that use different units
+- [ ] Suppliers exist and have correct company names
+- [ ] Customers exist and have correct company names
+- [ ] You understand whether your team starts from quotation first or sale first
 
-### Categories
+## 6. Core Rules Users Must Understand
 
-Use `Categories` to build the product tree.
+These are the most important operating rules in the system.
 
-- Create top-level categories first
-- Add child categories under the correct parent
-- Keep the tree practical and readable for product filtering
+- Stock is not a free-text number. It is derived from transaction history.
+- Receiving purchase items increases available stock.
+- Sale progress can reduce stock according to backend rules.
+- Product base units matter. Incorrect units create incorrect stock.
+- Purchase, sale, billing note, and payment batch records keep historical snapshots on purpose.
+- Use eligible records when creating billing notes, payment batches, and credit notes.
 
-### Products
+## 7. First-Time Master Data Setup
 
-Use `Products` to define stock items.
+### 7.1 Categories
 
-For each product, confirm:
+Use `Categories` to create the product tree.
+
+Do this:
+
+1. Open `Categories`
+2. Create the top-level category
+3. Create child categories under the correct parent
+4. Confirm the tree is readable in one screen
+
+Checklist:
+
+- [ ] Top-level groups are correct
+- [ ] Child categories are attached to the correct parent
+- [ ] No duplicate category names were created by mistake
+
+Screenshot to insert:
+- Category tree with parent and child rows visible
+
+### 7.2 Products
+
+Use `Products` to define the item master.
+
+Enter or confirm:
 
 - SKU
 - product name
@@ -102,86 +143,161 @@ For each product, confirm:
 - stock base unit
 - default purchase unit
 - default sales unit
-- unit conversions when purchase and sales units differ from base unit
-- reorder level if the team uses reorder planning
-- images if needed
+- unit conversions
+- reorder level
+- pictures if used by the team
 
-Important:
+Checklist:
 
-- stock is tracked in base units
-- unit conversions matter for correct purchase, sale, and quotation quantities
+- [ ] SKU is unique
+- [ ] Product name is correct
+- [ ] Category is assigned
+- [ ] Base unit is correct
+- [ ] Purchase unit is correct
+- [ ] Sales unit is correct
+- [ ] Unit conversion has been added when needed
+- [ ] Reorder level is set if the team uses restock planning
 
-### Suppliers
+Common mistake:
 
-Use `Suppliers` to store:
+- Do not skip unit conversion when buying and selling in different units.
+
+Screenshot to insert:
+- Product form showing unit fields and conversions
+
+### 7.3 Suppliers
+
+Use `Suppliers` to maintain vendor records.
+
+Recommended fields to fill:
 
 - company name
 - tax ID
-- contact details
 - procurement contact
+- phone
+- email
 - payment terms
 - notes
 
-### Customers
+Checklist:
 
-Use `Customers` to store:
+- [ ] Company name is correct
+- [ ] Tax ID is entered if available
+- [ ] Procurement contact is entered
+- [ ] Payment terms are reviewed
+
+Screenshot to insert:
+- Supplier form or supplier list with filters
+
+### 7.4 Customers
+
+Use `Customers` to maintain customer records.
+
+Recommended fields to fill:
 
 - company name
 - tax ID
-- contact details
-- billing/shipping details
+- phone
+- email
+- billing details
+- shipping details
 - payment terms
 - notes
 
-## 5. How To Use Each Workflow
+Checklist:
 
-### A. Quotation Workflow
+- [ ] Company name is correct
+- [ ] Tax ID is entered if available
+- [ ] Billing or shipping details are reviewed
+- [ ] Payment terms are reviewed
 
-Use `Quotation` when a sale starts with a commercial quote.
+Screenshot to insert:
+- Customer form or customer list with filters
 
-Typical flow:
+## 8. Daily Workflow Training
 
-1. Create a quotation
-2. Select the customer
-3. Add line items
-4. Set quantity and unit
-5. Add sale price
-6. Add supplier sourcing options if known
-7. Review stock sufficiency
-8. Save the quotation
+### 8.1 Quotation Workflow
 
-What the quotation helps with:
+Use `Quotation` when a customer request starts with a quote.
 
-- showing what can be fulfilled from stock
-- showing what needs to be purchased
-- recording sourcing options before committing to a purchase or sale
+Purpose:
 
-After a quotation is saved, it can be used as the starting point for:
+- prepare an offer for the customer
+- compare stock against demand
+- record supplier sourcing before purchase or sale
 
-- a purchase order
-- a sales transaction
+Steps:
 
-### B. Purchase Workflow
+1. Open `Quotation`
+2. Start a new quotation
+3. Select the customer
+4. Add product lines
+5. Enter quantity and unit
+6. Enter sale price
+7. Add supplier sourcing options if known
+8. Review the stock sufficiency column
+9. Save the quotation
 
-Use `Purchases` to manage buying from suppliers.
+Checklist before saving:
 
-Typical flow:
+- [ ] Customer is correct
+- [ ] All product lines are correct
+- [ ] Quantities and units are correct
+- [ ] Sale prices are correct
+- [ ] Stock sufficiency has been reviewed
 
-1. Create a purchase order directly or from a quotation
-2. Confirm supplier and transaction date
-3. Add or review purchase lines
-4. Check expected delivery dates
-5. Save the purchase order
-6. Update item receiving status as stock arrives
-7. Attach supplier documents if needed
+What to watch:
+
+- `Sufficient` means stock can cover the line
+- `Need Purchase` means additional buying is likely required
+
+Screenshot to insert:
+- Quotation entry screen with line items and stock sufficiency
+
+### 8.2 Purchase Workflow
+
+Use `Purchases` to create and track purchase orders.
+
+Purpose:
+
+- place orders with suppliers
+- track expected delivery
+- receive stock into the system
+
+Steps:
+
+1. Open `Purchases`
+2. Start a new purchase
+3. Select the supplier
+4. Confirm the transaction date
+5. Add purchase lines or review converted lines
+6. Confirm quantity, unit, and unit cost
+7. Enter expected delivery dates if needed
+8. Save the purchase
+9. Update line item receiving status when goods arrive
+10. Attach documents if required
+
+Checklist before saving:
+
+- [ ] Supplier is correct
+- [ ] Purchase lines are correct
+- [ ] Costs are correct
+- [ ] Units match the supplier order
+- [ ] Expected delivery dates are filled if used by the team
+
+Checklist when receiving:
+
+- [ ] Only received items are marked `received`
+- [ ] Partial receipts remain partial
+- [ ] Cancelled items are marked `cancelled` if they will never arrive
 
 Purchase statuses:
 
-- `draft`: not yet finalized
-- `ordered`: placed with supplier
-- `partially_received`: some items received
-- `received`: all relevant items received
-- `cancelled`: no longer active
+- `draft`
+- `ordered`
+- `partially_received`
+- `received`
+- `cancelled`
 
 Purchase item statuses:
 
@@ -189,23 +305,46 @@ Purchase item statuses:
 - `received`
 - `cancelled`
 
-Operational note:
+Common mistake:
 
-- receiving purchase items is what moves stock into available inventory
-- stock impact is enforced on the backend, not just in the browser
+- Do not mark items as `received` before physical stock is in hand.
 
-### C. Sales Workflow
+Screenshot to insert:
+- Purchase form
+- Purchase line items with receiving statuses
 
-Use `Sales` to record customer orders and outbound fulfillment.
+### 8.3 Sales Workflow
 
-Typical flow:
+Use `Sales` to create customer sales and track fulfillment.
 
-1. Create a sale directly or from a quotation
-2. Select the customer
-3. Add line items
-4. Confirm quantity, unit, and selling price
-5. Save as draft if details are still changing
-6. Move item statuses forward as goods are packed, shipped, or delivered
+Purpose:
+
+- record customer demand
+- track outbound progress
+- protect stock through backend validation
+
+Steps:
+
+1. Open `Sales`
+2. Start a new sale
+3. Select the customer
+4. Add product lines
+5. Confirm quantity, unit, and selling price
+6. Save the sale
+7. Move line items through fulfillment statuses as work happens
+
+Checklist before saving:
+
+- [ ] Customer is correct
+- [ ] Product lines are correct
+- [ ] Selling prices are correct
+- [ ] Quantities and units are correct
+
+Checklist before changing status:
+
+- [ ] Stock has been reviewed
+- [ ] The physical operation really happened
+- [ ] The next status matches the real delivery stage
 
 Sale statuses:
 
@@ -228,23 +367,49 @@ Sale item statuses:
 - `cancelled`
 - `returned`
 
-Operational note:
+Common mistake:
 
-- the backend validates stock before allowing stock-deducting sale progress
-- do not assume a sale is safe just because the form looks valid
+- Do not move sale items forward just to make the screen look complete. These statuses affect stock and downstream finance eligibility.
 
-### D. Billing Note Workflow
+Screenshot to insert:
+- Sales form
+- Sale detail with item statuses
 
-Use `Billing Notes` to group eligible sales into a receivable document for customers.
+### 8.4 Billing Note Workflow
 
-Typical flow:
+Use `Billing Notes` to group eligible sales for customer collection.
+
+Purpose:
+
+- track what customers should pay
+- organize receivable follow-up
+
+Steps:
 
 1. Open `Billing Notes`
 2. Start a new billing note
-3. Choose from eligible sales
-4. Confirm customer, amounts, and dates
+3. Choose eligible sales
+4. Confirm customer and amounts
 5. Save the billing note
-6. Update collection status over time
+6. Update payment status later
+
+What `eligible sales` means:
+
+- the sale is in a billing-note-eligible status
+- in this app, that means the sale must already be `shipped` or `delivered`
+- the sale must not already be linked to another active billing note
+- if a billing note was cancelled, its sales become available again
+
+In simple terms:
+
+- eligible sales are sales that are ready to bill and are not already being billed elsewhere
+
+Checklist:
+
+- [ ] Only eligible sales were selected
+- [ ] Customer is correct
+- [ ] Expected payment date is reviewed
+- [ ] Total amount is reviewed
 
 Billing note statuses:
 
@@ -254,20 +419,44 @@ Billing note statuses:
 - `fully_received`
 - `cancelled`
 
-Use this area when the team needs to track money expected from customers after sales are completed or ready for billing.
+Screenshot to insert:
+- Billing note creation with eligible sales selector
 
-### E. Payment Batch Workflow
+### 8.5 Payment Batch Workflow
 
-Use `Payment Batches` to group eligible purchases into a supplier payable batch.
+Use `Payment Batches` to group eligible purchases for supplier payment.
 
-Typical flow:
+Purpose:
+
+- plan outgoing payments
+- record supplier payable follow-up
+
+Steps:
 
 1. Open `Payment Batches`
-2. Start a new batch
-3. Choose from eligible purchases
-4. Confirm supplier, amounts, and payment dates
-5. Save the batch
-6. Update payment status over time
+2. Start a new payment batch
+3. Choose eligible purchases
+4. Confirm supplier and amounts
+5. Save the payment batch
+6. Update payment status later
+
+What `eligible purchases` means:
+
+- the purchase is in a payment-batch-eligible status
+- in this app, that means the purchase order must already be `received`
+- the purchase must not already be linked to another active payment batch
+- if a payment batch was cancelled, its purchases become available again
+
+In simple terms:
+
+- eligible purchases are purchase orders that are ready to pay and are not already included in another active supplier payment batch
+
+Checklist:
+
+- [ ] Only eligible purchases were selected
+- [ ] Supplier is correct
+- [ ] Planned payment date is reviewed
+- [ ] Total amount is reviewed
 
 Payment batch statuses:
 
@@ -277,108 +466,211 @@ Payment batch statuses:
 - `paid`
 - `cancelled`
 
-Use this area when the team needs to plan or confirm outgoing payments to suppliers.
+Screenshot to insert:
+- Payment batch creation with eligible purchases selector
 
-### F. Credit Note Workflow
+### 8.6 Credit Note Workflow
 
 Use `Credit Notes` when cancelled or returned sale items require a formal value reduction.
 
-Typical flow:
+Purpose:
 
-1. Open `Credit Notes`
-2. Start a new credit note
-3. Choose eligible sales with cancelled or returned lines
-4. Confirm the affected lines and amounts
-5. Save the credit note
+- reduce receivable value correctly
+- record customer credit based on cancelled or returned items
+
+Main flow:
+
+- the main flow starts from the `Sales` screen
+- when a sale item status is changed to `cancelled` or `returned`, the app automatically opens the credit note creation prompt
+- that prompt lets the user issue the credit note immediately for the newly cancelled or returned items
+- this is the normal and fastest way to create the credit note while the sale change is still fresh
+- if the user clicks `Create Later`, the sale remains available in the `Credit Notes` page and the credit note can be created there later
+
+Steps:
+
+1. In `Sales`, change the affected sale item status to `cancelled` or `returned`
+2. Review the credit note prompt that opens automatically
+3. Create the credit note immediately, or choose `Create Later`
+4. If creating later, open `Credit Notes`
+5. Start a new credit note
+6. Choose eligible sales
+7. Review the cancelled or returned lines
+8. Confirm the amount
+9. Save the credit note
+
+What `eligible sales` means for credit notes:
+
+- the sale has at least one line item with status `cancelled` or `returned`
+- that cancelled or returned line has not already been used in another active credit note
+- cancelled credit notes release those lines again, so they can be credited properly later if needed
+
+In simple terms:
+
+- eligible credit note sales are sales that still have cancelled or returned items left to credit
+
+Checklist:
+
+- [ ] The sale item was actually changed to `cancelled` or `returned`
+- [ ] The credit note prompt was reviewed before closing it
+- [ ] The source sale is correct
+- [ ] The cancelled or returned lines are correct
+- [ ] The amount is correct
 
 Credit note statuses:
 
 - `issued`
 - `cancelled`
 
-## 6. Inventory And Stock Understanding
+Screenshot to insert:
+- Credit note creation screen
 
-The system derives stock from transaction history rather than trusting a casually edited stock number.
+## 9. Inventory Review Training
 
-In practice:
+### 9.1 Dashboard
 
-- received purchase items increase stock availability
-- packed, shipped, or delivered sale items consume stock according to the backend rules
-- cancelled or returned flows change what remains active
+Use `Dashboard` for a quick management summary.
 
-Use `Inventory` for:
+Review:
 
-- reorder planning
-- low-stock review
-- stock value review
-- supplier restock hints
-- movement and demand visibility
+- overall stock visibility
+- recent transaction activity
+- summary indicators that need follow-up
 
-Use `Products` when you need to inspect one product in detail, including history and master data.
+Daily checklist:
 
-## 7. How To Work Safely
+- [ ] Check whether any stock issue needs attention
+- [ ] Check whether recent activity looks correct
+- [ ] Check whether the numbers match current operations
 
-Follow these habits to keep the data clean.
+Screenshot to insert:
+- Dashboard overview
 
-- Create master data first before creating transactions
-- Keep SKUs unique and stable
-- Use correct base units and unit conversions
-- Do not mark purchase items as received before stock is actually in hand
-- Do not move sale items to packed, shipped, or delivered casually; these statuses affect stock logic
-- Use billing notes and payment batches only from eligible records
-- Preserve historical transaction snapshots even if supplier, customer, or product master data later changes
+### 9.2 Inventory
 
-## 8. Common End-To-End Example
+Use `Inventory` for operational stock review.
 
-Here is the simplest realistic example.
+Look here for:
 
-1. Create product `PVC Pipe 2m`
-2. Add supplier `Alpha Plastics`
-3. Add customer `North Build Co.`
-4. Create quotation for `North Build Co.`
-5. Check whether current stock is enough
-6. If stock is short, convert or create purchase order to `Alpha Plastics`
-7. Receive the purchased quantity
-8. Create sale for the customer
-9. Progress the sale lines as goods are packed, shipped, and delivered
-10. Create a billing note for the eligible sale
-11. Later, create a payment batch for the supplier purchase
-12. If part of the sale is cancelled or returned, issue a credit note where needed
+- low stock
+- reorder pressure
+- stock value
+- movement
+- suggested supplier restock context
 
-## 9. What Future Contributors Should Know
+Daily checklist:
 
-If you are reading this as a builder rather than an operator, the important architectural ideas are:
+- [ ] Review products near or below reorder point
+- [ ] Review fast-moving products
+- [ ] Review dead stock or no-sales products
+- [ ] Review products that need purchase follow-up
 
-- backend validation is authoritative
-- stock logic is derived from transaction item statuses
-- quotation lines are normalized in `QuotationItem`
-- finance workflows use eligibility-based creation, not free-form linking
-- list pages may paginate, but category trees should remain whole
-- the app preserves historical snapshot fields intentionally for audit readability
+Screenshot to insert:
+- Inventory table with filters and stock health columns
 
-Before changing behavior, read [AGENTS.md](/Users/peto/Documents/Inventory-Management-frontend/AGENTS.md).
+### 9.3 Product History
 
-## 10. Quick Reference
+Use `Products` when you need to inspect one product in detail.
 
-Use this shortcut table when training a new user.
+Review:
+
+- current stock
+- purchase history
+- sales history
+- units and conversions
+
+Checklist:
+
+- [ ] Product identity is correct
+- [ ] Stock position makes sense
+- [ ] Recent purchases and sales explain current stock
+
+Screenshot to insert:
+- Product detail or history modal
+
+## 10. Daily End-To-End Example
+
+Use this scenario during training.
+
+Scenario:
+
+- Product: `PVC Pipe 2m`
+- Supplier: `Alpha Plastics`
+- Customer: `North Build Co.`
+
+Training run:
+
+1. Confirm the product exists and has correct units
+2. Confirm supplier and customer records exist
+3. Create a quotation for `North Build Co.`
+4. Review stock sufficiency
+5. Create a purchase if stock is short
+6. Receive the purchased items
+7. Create the sale
+8. Move sale lines through packing, shipping, and delivery
+9. Create a billing note from the eligible sale
+10. Create a payment batch from the eligible purchase
+11. If some sold quantity is cancelled or returned, create a credit note
+
+Trainer checklist:
+
+- [ ] Trainee can find each screen without help
+- [ ] Trainee understands the difference between master data and transactions
+- [ ] Trainee understands which statuses affect stock
+- [ ] Trainee understands which finance documents require eligibility
+
+## 11. Common Mistakes To Avoid
+
+- Entering the wrong base unit on a product
+- Forgetting to add unit conversions
+- Marking purchase items as received too early
+- Advancing sale statuses before physical movement happened
+- Creating billing notes or payment batches from the wrong records
+- Treating historical snapshot fields like temporary duplicates
+
+## 12. Quick Reference
 
 | If you want to... | Go to... |
 | --- | --- |
-| see KPIs and recent operational picture | `Dashboard` |
-| review reorder pressure and stock health | `Inventory` |
-| add or edit product master data | `Products` |
+| see high-level business status | `Dashboard` |
+| review stock health and reorder pressure | `Inventory` |
+| create or edit products | `Products` |
 | manage the category tree | `Categories` |
-| add or edit suppliers | `Suppliers` |
-| add or edit customers | `Customers` |
-| prepare a quote before purchase or sale | `Quotation` |
-| buy from a supplier | `Purchases` |
-| sell to a customer | `Sales` |
-| group customer receivables | `Billing Notes` |
-| group supplier payables | `Payment Batches` |
-| issue value reductions for cancelled or returned sales | `Credit Notes` |
-| ask the system operational questions | `AI Chat` |
-| switch language | `Settings` |
+| create or edit suppliers | `Suppliers` |
+| create or edit customers | `Customers` |
+| prepare a quote | `Quotation` |
+| create or receive a purchase | `Purchases` |
+| create or fulfill a sale | `Sales` |
+| track customer collections | `Billing Notes` |
+| track supplier payments | `Payment Batches` |
+| record cancelled or returned sale value reductions | `Credit Notes` |
+| ask operations questions in natural language | `AI Chat` |
+| switch between English and Thai | `Settings` |
 
-## 11. Suggested Next Improvement
+## 13. Screenshot Capture Plan
 
-This handout is a strong starting point, but the next useful step would be to add screenshots or a short “day in the life” walkthrough with sample data.
+If you want to turn this into a polished handout or PDF, capture these screenshots and place them under matching sections:
+
+- [ ] Sidebar navigation
+- [ ] Category tree
+- [ ] Product form with unit conversions
+- [ ] Supplier form
+- [ ] Customer form
+- [ ] Quotation entry screen
+- [ ] Purchase form and receiving status
+- [ ] Sales form and delivery statuses
+- [ ] Billing note eligible sales selector
+- [ ] Payment batch eligible purchases selector
+- [ ] Credit note eligible sales selector
+- [ ] Dashboard overview
+- [ ] Inventory stock review table
+- [ ] Product history or product detail view
+
+## 14. Notes For Future Maintainers
+
+This file is now positioned as an end-user manual. Keep it aligned with real UI labels and real workflow behavior.
+
+Before updating workflow instructions, confirm behavior against:
+
+- [README.md](/Users/peto/Documents/Inventory-Management-frontend/README.md)
+- [AGENTS.md](/Users/peto/Documents/Inventory-Management-frontend/AGENTS.md)
+- the actual page labels in `frontend/src`
