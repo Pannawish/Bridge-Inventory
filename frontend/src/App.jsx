@@ -1,23 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
-import { PAGE_SIZE } from "./app/appUtils";
-import { tabs, tabGroups } from "./app/tabs";
-import ChatPanel from "./components/ChatPanel";
-import Dashboard from "./components/Dashboard";
-import CustomerPage from "./components/CustomerPage";
-import PurchaseHistoryPage from "./components/PurchaseHistoryPage";
-import SalesHistoryPage from "./components/SalesHistoryPage";
-import SupplierPage from "./components/SupplierPage";
-import ProductsPage from "./components/ProductsPage";
-import CategoryPage from "./components/CategoryPage";
-import InventoryPage from "./components/InventoryPage";
-import QuotationPage from "./components/QuotationPage";
-import BillingNotePage from "./components/BillingNotePage";
-import PaymentBatchPage from "./components/PaymentBatchPage";
-import CreditNotePage from "./components/CreditNotePage";
+import ActiveTabContent from "./app/ActiveTabContent";
+import AppShell from "./app/AppShell";
 import CreditNotePrompt from "./components/CreditNotePrompt";
-import SettingsPage from "./components/SettingsPage";
-import TabIcon from "./components/TabIcon";
 import { useAppFinancialActions } from "./hooks/useAppFinancialActions";
 import { useAppTransactionActions } from "./hooks/useAppTransactionActions";
 import { useLanguage } from "./i18n/LanguageContext";
@@ -175,9 +160,6 @@ function App() {
     setActiveTab(tabId);
     setSidebarOpen(false);
   }
-
-  const activeTabMeta = tabs.find((tab) => tab.id === activeTab) || tabs[0];
-  const tabBadges = {};
 
   function formatMessage(key, values = {}) {
     return t(key, values).replace(/\s{2,}/g, " ").trim();
@@ -368,316 +350,105 @@ function App() {
   }
 
   return (
-    <div
-      className={`app-shell${sidebarOpen ? " sidebar-open" : ""}${
-        sidebarCollapsed ? " sidebar-collapsed" : ""
-      }`}
-    >
-      <aside className={sidebarOpen ? "sidebar is-open" : "sidebar"}>
-        <div className="sidebar-content">
-          <div className="sidebar-top">
-            <button
-              type="button"
-              className="sidebar-collapse-toggle"
-              aria-label={sidebarCollapsed ? t("sidebar.expandMenu") : t("sidebar.collapseMenu")}
-              aria-expanded={!sidebarCollapsed}
-              onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button>
-            <h1>{t("app.title")}</h1>
-            <button
-              type="button"
-              className="sidebar-close-button"
-              aria-label={t("sidebar.closeMenu")}
-              onClick={() => setSidebarOpen(false)}
-            >
-              X
-            </button>
-          </div>
-
-          <nav className="sidebar-nav">
-            {tabGroups.map((group) => {
-              const groupTabs = tabs.filter((tab) => tab.group === group.id);
-              if (!groupTabs.length) {
-                return null;
-              }
-              return (
-                <div className="sidebar-nav-group" key={group.id}>
-                  <p className="sidebar-nav-group-label">{t(group.labelKey)}</p>
-                  {groupTabs.map((tab) => {
-                    const badgeCount = tabBadges[tab.id] || 0;
-                    const tabLabel = t(`tabs.${tab.id}`);
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        title={tabLabel}
-                        className={tab.id === activeTab ? "sidebar-nav-button active" : "sidebar-nav-button"}
-                        onClick={() => handleTabSelect(tab.id)}
-                      >
-                        <span className="sidebar-nav-icon">
-                          <TabIcon tabId={tab.id} />
-                        </span>
-                        <span className="sidebar-nav-text">{tabLabel}</span>
-                        {badgeCount > 0 ? (
-                          <span
-                            className="sidebar-nav-badge"
-                            aria-label={`${badgeCount} pending`}
-                          >
-                            {badgeCount}
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </nav>
-
-          <div className="sidebar-footer">
-            <button
-              type="button"
-              title={t("sidebar.settings")}
-              className={
-                activeTab === "settings"
-                  ? "sidebar-nav-button active"
-                  : "sidebar-nav-button"
-              }
-              onClick={() => handleTabSelect("settings")}
-            >
-              <span className="sidebar-nav-icon">
-                <TabIcon tabId="settings" />
-              </span>
-              <span className="sidebar-nav-text">{t("sidebar.settings")}</span>
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {sidebarOpen ? (
-        <div
-          className="sidebar-backdrop"
-          role="presentation"
-          onClick={() => setSidebarOpen(false)}
+    <>
+      <AppShell
+        activeTab={activeTab}
+        sidebarOpen={sidebarOpen}
+        sidebarCollapsed={sidebarCollapsed}
+        notice={notice}
+        error={error}
+        loading={loading}
+        onToggleSidebarCollapsed={() => setSidebarCollapsed((collapsed) => !collapsed)}
+        onCloseSidebar={() => setSidebarOpen(false)}
+        onOpenSidebar={() => setSidebarOpen(true)}
+        onSelectTab={handleTabSelect}
+        onCloseNotice={() => setNotice("")}
+        t={t}
+      >
+        <ActiveTabContent
+          activeTab={activeTab}
+          dashboard={dashboard}
+          products={products}
+          productRows={productRows}
+          productPagination={productPagination}
+          categories={categories}
+          suppliers={suppliers}
+          supplierRows={supplierRows}
+          supplierPagination={supplierPagination}
+          customers={customers}
+          customerRows={customerRows}
+          customerPagination={customerPagination}
+          purchases={purchases}
+          purchaseRows={purchaseRows}
+          purchasePagination={purchasePagination}
+          sales={sales}
+          saleRows={saleRows}
+          salePagination={salePagination}
+          quotations={quotations}
+          billingNotes={billingNotes}
+          billingNoteRows={billingNoteRows}
+          billingNotePagination={billingNotePagination}
+          billingNoteEligibleSales={billingNoteEligibleSales}
+          billingNoteSummary={billingNoteSummary}
+          billingNoteNextReferenceNo={billingNoteNextReferenceNo}
+          paymentBatches={paymentBatches}
+          paymentBatchRows={paymentBatchRows}
+          paymentBatchPagination={paymentBatchPagination}
+          paymentBatchEligiblePurchases={paymentBatchEligiblePurchases}
+          paymentBatchSummary={paymentBatchSummary}
+          paymentBatchNextReferenceNo={paymentBatchNextReferenceNo}
+          creditNotes={creditNotes}
+          creditNoteRows={creditNoteRows}
+          creditNotePagination={creditNotePagination}
+          creditNoteEligibleSales={creditNoteEligibleSales}
+          creditNoteNextReferenceNo={creditNoteNextReferenceNo}
+          usingMockPurchases={usingMockPurchases}
+          usingMockSales={usingMockSales}
+          loadSupplierPage={loadSupplierPage}
+          loadCustomerPage={loadCustomerPage}
+          loadProductPage={loadProductPage}
+          loadPurchasePage={loadPurchasePage}
+          loadSalePage={loadSalePage}
+          loadBillingNotePage={loadBillingNotePage}
+          loadPaymentBatchPage={loadPaymentBatchPage}
+          loadCreditNotePage={loadCreditNotePage}
+          handleLoadProductHistory={handleLoadProductHistory}
+          handlePurchaseCreateFromHistory={handlePurchaseCreateFromHistory}
+          handlePurchaseStatusChange={handlePurchaseStatusChange}
+          handlePurchaseItemStatusChange={handlePurchaseItemStatusChange}
+          handlePurchaseUpdate={handlePurchaseUpdate}
+          handlePurchaseDelete={handlePurchaseDelete}
+          handleQuotationSave={handleQuotationSave}
+          handleQuotationDelete={handleQuotationDelete}
+          handleQuotationPurchaseCreate={handleQuotationPurchaseCreate}
+          handleSalesCreateFromHistory={handleSalesCreateFromHistory}
+          handleSaleStatusChange={handleSaleStatusChange}
+          handleSaleUpdate={handleSaleUpdate}
+          handleSaleDelete={handleSaleDelete}
+          showWarning={showWarning}
+          handleBillingNoteCreate={handleBillingNoteCreate}
+          handleBillingNoteUpdate={handleBillingNoteUpdate}
+          handleBillingNoteDelete={handleBillingNoteDelete}
+          handlePaymentBatchCreate={handlePaymentBatchCreate}
+          handlePaymentBatchUpdate={handlePaymentBatchUpdate}
+          handlePaymentBatchDelete={handlePaymentBatchDelete}
+          handleCreditNoteCreate={handleCreditNoteCreate}
+          handleCreditNoteUpdate={handleCreditNoteUpdate}
+          handleCreditNoteDelete={handleCreditNoteDelete}
+          handleSupplierSave={handleSupplierSave}
+          handleSupplierDelete={handleSupplierDelete}
+          handleCustomerSave={handleCustomerSave}
+          handleCustomerDelete={handleCustomerDelete}
+          handleProductSave={handleProductSave}
+          handleProductDelete={handleProductDelete}
+          handleCategorySave={handleCategorySave}
+          handleCategoryDelete={handleCategoryDelete}
+          messages={messages}
+          handleAskChat={handleAskChat}
+          chatBusy={chatBusy}
+          onViewPurchasesTab={() => setActiveTab("purchase-history")}
         />
-      ) : null}
-
-      <main className="main-panel">
-        <header className="mobile-topbar">
-          <button
-            type="button"
-            className="mobile-menu-button"
-            aria-label={t("sidebar.openMenu")}
-            onClick={() => setSidebarOpen(true)}
-          >
-            <span />
-            <span />
-            <span />
-          </button>
-          <div className="mobile-topbar-title">
-            <span className="mobile-topbar-eyebrow">{t("app.title")}</span>
-            <strong>{activeTab === "settings" ? t("settings.title") : t(`tabs.${activeTabMeta.id}`)}</strong>
-          </div>
-        </header>
-
-        {notice ? (
-          <div className="notice-banner">
-            <span>{notice}</span>
-            <button
-              className="banner-close-button"
-              type="button"
-              aria-label={t("common.close")}
-              onClick={() => setNotice("")}
-            >
-              X
-            </button>
-          </div>
-        ) : null}
-        {error ? <div className="error-banner">{error}</div> : null}
-
-        {loading ? (
-          <section className="section-card loading-card">
-            <p>{t("app.loadingInventoryData")}</p>
-          </section>
-        ) : (
-          <>
-            {activeTab === "dashboard" && dashboard ? (
-              <Dashboard dashboard={dashboard} />
-            ) : null}
-
-            {activeTab === "inventory" ? (
-              <InventoryPage dashboard={dashboard} />
-            ) : null}
-
-            {activeTab === "purchase-history" ? (
-              <PurchaseHistoryPage
-                products={products}
-                suppliers={suppliers}
-                purchases={purchaseRows}
-                allPurchases={purchases}
-                pagination={purchasePagination}
-                onPageRequest={loadPurchasePage}
-                onCreatePurchase={handlePurchaseCreateFromHistory}
-                onPurchaseStatusChange={handlePurchaseStatusChange}
-                onPurchaseItemStatusChange={handlePurchaseItemStatusChange}
-                onPurchaseUpdate={handlePurchaseUpdate}
-                onPurchaseDelete={handlePurchaseDelete}
-              />
-            ) : null}
-
-            {activeTab === "quotations" ? (
-              <QuotationPage
-                quotations={quotations}
-                products={products}
-                suppliers={suppliers}
-                customers={customers}
-                purchases={purchases}
-                sales={sales}
-                enableSaleStockValidation={usingMockPurchases && usingMockSales}
-                onSaveQuotation={handleQuotationSave}
-                onDeleteQuotation={handleQuotationDelete}
-                onCreatePurchaseFromQuotation={handleQuotationPurchaseCreate}
-                onViewPurchases={() => setActiveTab("purchase-history")}
-                onCreateSale={handleSalesCreateFromHistory}
-              />
-            ) : null}
-
-            {activeTab === "sales-history" ? (
-              <SalesHistoryPage
-                sales={saleRows}
-                allSales={sales}
-                products={products}
-                suppliers={suppliers}
-                purchases={usingMockPurchases ? purchases : []}
-                enableStockValidation={usingMockPurchases && usingMockSales}
-                pagination={salePagination}
-                customers={customers}
-                onPageRequest={loadSalePage}
-                onCreateSale={handleSalesCreateFromHistory}
-                onSaleStatusChange={handleSaleStatusChange}
-                onSaleUpdate={handleSaleUpdate}
-                onSaleDelete={handleSaleDelete}
-                onWarning={showWarning}
-              />
-            ) : null}
-
-            {activeTab === "billing-notes" ? (
-              <BillingNotePage
-                billingNotes={billingNoteRows}
-                allBillingNotes={billingNotes}
-                customers={customers}
-                sales={billingNoteEligibleSales}
-                summary={billingNoteSummary}
-                nextReferenceNo={billingNoteNextReferenceNo}
-                pagination={billingNotePagination}
-                onPageRequest={loadBillingNotePage}
-                onCreateBillingNote={handleBillingNoteCreate}
-                onUpdateBillingNote={handleBillingNoteUpdate}
-                onDeleteBillingNote={handleBillingNoteDelete}
-              />
-            ) : null}
-
-            {activeTab === "payment-batches" ? (
-              <PaymentBatchPage
-                paymentBatches={paymentBatchRows}
-                allPaymentBatches={paymentBatches}
-                suppliers={suppliers}
-                purchases={paymentBatchEligiblePurchases}
-                summary={paymentBatchSummary}
-                nextReferenceNo={paymentBatchNextReferenceNo}
-                pagination={paymentBatchPagination}
-                onPageRequest={loadPaymentBatchPage}
-                onCreatePaymentBatch={handlePaymentBatchCreate}
-                onUpdatePaymentBatch={handlePaymentBatchUpdate}
-                onDeletePaymentBatch={handlePaymentBatchDelete}
-              />
-            ) : null}
-
-            {activeTab === "credit-notes" ? (
-              <CreditNotePage
-                creditNotes={creditNoteRows}
-                allCreditNotes={creditNotes}
-                billingNotes={billingNotes}
-                sales={creditNoteEligibleSales}
-                nextReferenceNo={creditNoteNextReferenceNo}
-                pagination={creditNotePagination}
-                onPageRequest={loadCreditNotePage}
-                onCreateCreditNote={handleCreditNoteCreate}
-                onUpdateCreditNote={handleCreditNoteUpdate}
-                onDeleteCreditNote={handleCreditNoteDelete}
-              />
-            ) : null}
-
-            {activeTab === "suppliers" ? (
-              <SupplierPage
-                suppliers={supplierRows}
-                allSuppliers={suppliers}
-                pagination={supplierPagination}
-                onPageRequest={loadSupplierPage}
-                onSaveSupplier={handleSupplierSave}
-                onDeleteSupplier={handleSupplierDelete}
-              />
-            ) : null}
-
-            {activeTab === "customers" ? (
-              <CustomerPage
-                customers={customerRows}
-                allCustomers={customers}
-                pagination={customerPagination}
-                onPageRequest={loadCustomerPage}
-                onSaveCustomer={handleCustomerSave}
-                onDeleteCustomer={handleCustomerDelete}
-              />
-            ) : null}
-
-            {activeTab === "products" ? (
-              <ProductsPage
-                products={productRows}
-                allProducts={products}
-                categories={categories}
-                purchases={usingMockPurchases ? purchases : []}
-                sales={usingMockSales ? sales : []}
-                pagination={productPagination}
-                onPageRequest={loadProductPage}
-                onLoadProductHistory={handleLoadProductHistory}
-                onSaveProduct={handleProductSave}
-                onDeleteProduct={handleProductDelete}
-              />
-            ) : null}
-
-            {activeTab === "categories" ? (
-              <CategoryPage
-                categories={categories}
-                products={products}
-                onSaveCategory={handleCategorySave}
-                onDeleteCategory={handleCategoryDelete}
-              />
-            ) : null}
-
-            {activeTab === "chat" ? (
-              <ChatPanel messages={messages} onAsk={handleAskChat} busy={chatBusy} />
-            ) : null}
-
-            {activeTab === "settings" ? <SettingsPage /> : null}
-          </>
-        )}
-      </main>
+      </AppShell>
 
       {creditNotePrompt ? (
         <CreditNotePrompt
@@ -690,7 +461,7 @@ function App() {
           onCreate={handleCreditNotePromptCreate}
         />
       ) : null}
-    </div>
+    </>
   );
 }
 
