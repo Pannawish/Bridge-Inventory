@@ -1,8 +1,10 @@
+from io import StringIO
 import json
 import shutil
 import tempfile
 from decimal import Decimal
 
+from django.core.management import call_command
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -27,6 +29,7 @@ from .models import (
     Supplier,
 )
 from .serializers import SaleSerializer
+from .services import SALE_STOCK_DEDUCTED_STATUSES
 
 
 TEST_MEDIA_ROOT = tempfile.mkdtemp()
@@ -1808,6 +1811,220 @@ class CreditNoteTests(APITestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("billing note", str(response.data.get("error", "")).lower())
+
+
+class SeedOperationalDataCommandTests(TestCase):
+    def setUp(self):
+        self.today = timezone.localdate()
+        self.year_month = f"{self.today.year + 543}"[-2:] + f"{self.today.month:02d}"
+        self.command_stdout = StringIO()
+
+    def create_real_transactions(self):
+        product = Product.objects.create(
+            id="real-product-1",
+            sku="REAL-SEED-1",
+            product_name="Real Seed Product",
+            stock_base_unit="pcs",
+            default_purchase_unit="pcs",
+            default_sales_unit="pcs",
+        )
+        supplier = Supplier.objects.create(
+            id="real-supplier-1",
+            company_name="Real Seed Supplier",
+        )
+        customer = Customer.objects.create(
+            id="real-customer-1",
+            company_name="Real Seed Customer",
+        )
+        purchase = Purchase.objects.create(
+            id="real-po-1",
+            reference_no=f"PO-{self.year_month}-001",
+            supplier=supplier,
+            supplier_name=supplier.company_name,
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today,
+        )
+        sale = Sale.objects.create(
+            id="real-sale-1",
+            reference_no=f"TI-{self.year_month}-001",
+            customer=customer,
+            customer_name=customer.company_name,
+            status=Sale.STATUS_DELIVERED,
+            transaction_date=self.today,
+        )
+        quotation = Quotation.objects.create(
+            id="real-qt-1",
+            reference_no="QT-000321",
+            quotation_date=self.today,
+            customer=customer,
+            customer_name=customer.company_name,
+        )
+        billing_note = BillingNote.objects.create(
+            id="real-bn-1",
+            reference_no=f"BN-{self.year_month}-001",
+            customer=customer,
+            customer_name=customer.company_name,
+            billing_note_date=self.today,
+            status=BillingNote.STATUS_ISSUED,
+        )
+        payment_batch = PaymentBatch.objects.create(
+            id="real-pmt-1",
+            reference_no=f"PMT-{self.year_month}-001",
+            supplier=supplier,
+            supplier_name=supplier.company_name,
+            batch_date=self.today,
+            status=PaymentBatch.STATUS_SCHEDULED,
+        )
+        credit_note = CreditNote.objects.create(
+            id="real-cn-1",
+            reference_no=f"CN-{self.year_month}-001",
+            customer=customer,
+            customer_name=customer.company_name,
+            sale=sale,
+            sale_reference_no=sale.reference_no,
+            credit_note_date=self.today,
+            status=CreditNote.STATUS_ISSUED,
+        )
+        return {
+            "product": product,
+            "supplier": supplier,
+            "customer": customer,
+            "purchase": purchase,
+            "sale": sale,
+            "quotation": quotation,
+            "billing_note": billing_note,
+            "payment_batch": payment_batch,
+            "credit_note": credit_note,
+        }
+
+    def test_seed_preserves_non_demo_records(self):
+        real_records = self.create_real_transactions()
+
+        call_command(
+            "seed_operational_data",
+            skip_documents=True,
+            verbosity=0,
+            stdout=self.command_stdout,
+        )
+
+        self.assertTrue(Purchase.objects.filter(id=real_records["purchase"].id).exists())
+        self.assertTrue(Sale.objects.filter(id=real_records["sale"].id).exists())
+        self.assertTrue(Quotation.objects.filter(id=real_records["quotation"].id).exists())
+        self.assertTrue(
+            BillingNote.objects.filter(id=real_records["billing_note"].id).exists()
+        )
+        self.assertTrue(
+            PaymentBatch.objects.filter(id=real_records["payment_batch"].id).exists()
+        )
+        self.assertTrue(CreditNote.objects.filter(id=real_records["credit_note"].id).exists())
+        self.assertTrue(Purchase.objects.filter(id__startswith="demo-po-").exists())
+        self.assertTrue(Sale.objects.filter(id__startswith="demo-sale-").exists())
+
+    def test_seeded_operational_data_matches_current_workflows(self):
+        call_command(
+            "seed_operational_data",
+            skip_documents=True,
+            verbosity=0,
+            stdout=self.command_stdout,
+        )
+
+        received_by_product_id = {}
+        for item in PurchaseItem.objects.filter(
+            purchase__id__startswith="demo-po-",
+            item_status=PurchaseItem.ITEM_RECEIVED,
+        ):
+            received_by_product_id[item.product_id] = (
+                received_by_product_id.get(item.product_id, Decimal("0"))
+                + item.base_quantity
+            )
+
+        committed_by_product_id = {}
+        for item in SaleItem.objects.filter(
+            sale__id__startswith="demo-sale-",
+            item_status__in=SALE_STOCK_DEDUCTED_STATUSES,
+        ):
+            committed_by_product_id[item.product_id] = (
+                committed_by_product_id.get(item.product_id, Decimal("0"))
+                + item.base_quantity
+            )
+
+        self.assertTrue(committed_by_product_id)
+        for product_id, committed_quantity in committed_by_product_id.items():
+            self.assertLessEqual(
+                committed_quantity,
+                received_by_product_id.get(product_id, Decimal("0")),
+            )
+
+        self.assertTrue(
+            Quotation.objects.filter(
+                id__startswith="demo-qt-",
+                valid_until_day_type="business",
+                valid_until_days__gt=0,
+                valid_until_date__isnull=False,
+            ).exists()
+        )
+        self.assertTrue(
+            Quotation.objects.filter(
+                id__startswith="demo-qt-",
+                valid_until_day_type="no_valid_date",
+                valid_until_days=0,
+                valid_until_date__isnull=True,
+            ).exists()
+        )
+        self.assertTrue(
+            SaleItem.objects.filter(
+                sale__id__startswith="demo-sale-",
+                item_status=SaleItem.ITEM_RETURNED,
+            ).exists()
+        )
+        self.assertTrue(
+            CreditNote.objects.filter(
+                id__startswith="demo-cn-",
+                billing_note__isnull=False,
+            ).exists()
+        )
+        for credit_note in CreditNote.objects.filter(
+            id__startswith="demo-cn-",
+            billing_note__isnull=False,
+        ).select_related("billing_note", "sale"):
+            self.assertTrue(
+                BillingNoteLine.objects.filter(
+                    billing_note=credit_note.billing_note,
+                    sale=credit_note.sale,
+                ).exists()
+            )
+
+    def test_keep_previous_demo_appends_another_seed_set(self):
+        call_command(
+            "seed_operational_data",
+            skip_documents=True,
+            verbosity=0,
+            stdout=self.command_stdout,
+        )
+        purchase_count = Purchase.objects.filter(id__startswith="demo-po-").count()
+        sale_count = Sale.objects.filter(id__startswith="demo-sale-").count()
+        quotation_count = Quotation.objects.filter(id__startswith="demo-qt-").count()
+
+        call_command(
+            "seed_operational_data",
+            skip_documents=True,
+            keep_previous_demo=True,
+            verbosity=0,
+            stdout=self.command_stdout,
+        )
+
+        self.assertGreater(
+            Purchase.objects.filter(id__startswith="demo-po-").count(),
+            purchase_count,
+        )
+        self.assertGreater(
+            Sale.objects.filter(id__startswith="demo-sale-").count(),
+            sale_count,
+        )
+        self.assertGreater(
+            Quotation.objects.filter(id__startswith="demo-qt-").count(),
+            quotation_count,
+        )
 
 
 class QuotationSupplierTests(APITestCase):

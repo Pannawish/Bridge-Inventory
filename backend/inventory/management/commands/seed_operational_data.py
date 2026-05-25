@@ -29,27 +29,15 @@ from inventory.models import (
     SaleItem,
     Supplier,
 )
+from inventory.services import (
+    SALE_STOCK_DEDUCTED_STATUSES,
+    get_available_stock_by_product_id,
+    get_sale_status_from_item_statuses,
+)
 
 
 VAT_RATE = Decimal("0.07")
 CENT = Decimal("0.01")
-PURCHASE_STATUSES = [
-    Purchase.STATUS_DRAFT,
-    Purchase.STATUS_ORDERED,
-    Purchase.STATUS_PARTIALLY_RECEIVED,
-    Purchase.STATUS_RECEIVED,
-    Purchase.STATUS_CANCELLED,
-]
-SALE_STATUSES = [
-    Sale.STATUS_DRAFT,
-    Sale.STATUS_PARTIALLY_PACKED,
-    Sale.STATUS_PACKED,
-    Sale.STATUS_PARTIALLY_SHIPPED,
-    Sale.STATUS_SHIPPED,
-    Sale.STATUS_PARTIALLY_DELIVERED,
-    Sale.STATUS_DELIVERED,
-    Sale.STATUS_CANCELLED,
-]
 
 
 def money(value):
@@ -90,13 +78,24 @@ def lead_days(transaction_date, expected_date):
     return max(0, (expected_date - transaction_date).days)
 
 
-def reference(prefix, transaction_date, serial):
-    buddhist_year = transaction_date.year + 543
-    return f"{prefix}-{str(buddhist_year)[-2:]}{transaction_date.month:02d}-{serial:03d}"
+def add_business_days(start_date, days):
+    current = start_date
+    added = 0
+    while added < days:
+        current += timedelta(days=1)
+        if current.weekday() < 5:
+            added += 1
+    return current
 
 
 class Command(BaseCommand):
     help = "Seed a large set of realistic operational inventory records."
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._demo_id_counters = {}
+        self._reference_counters = {}
+        self._sequential_reference_counters = {}
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -109,6 +108,54 @@ class Command(BaseCommand):
             action="store_true",
             help="Do not create transaction document files.",
         )
+
+    def next_demo_id(self, model, prefix):
+        key = (model._meta.label_lower, prefix)
+        if key not in self._demo_id_counters:
+            max_serial = 0
+            for value in model.objects.filter(id__startswith=prefix).values_list("id", flat=True):
+                suffix = f"{value or ''}"[len(prefix):]
+                if suffix.isdigit():
+                    max_serial = max(max_serial, int(suffix))
+            self._demo_id_counters[key] = max_serial
+
+        self._demo_id_counters[key] += 1
+        return f"{prefix}{self._demo_id_counters[key]}"
+
+    def next_reference_no(self, model, prefix, transaction_date=None, sequential=False):
+        if sequential:
+            key = (model._meta.label_lower, prefix)
+            if key not in self._sequential_reference_counters:
+                max_serial = 0
+                reference_prefix = f"{prefix}-"
+                for value in model.objects.filter(
+                    reference_no__startswith=reference_prefix
+                ).values_list("reference_no", flat=True):
+                    suffix = f"{value or ''}"[len(reference_prefix):]
+                    if suffix.isdigit() and len(suffix) == 6:
+                        max_serial = max(max_serial, int(suffix))
+                self._sequential_reference_counters[key] = max_serial
+
+            self._sequential_reference_counters[key] += 1
+            return f"{prefix}-{self._sequential_reference_counters[key]:06d}"
+
+        buddhist_year = transaction_date.year + 543
+        year_month = f"{str(buddhist_year)[-2:]}{transaction_date.month:02d}"
+        reference_prefix = f"{prefix}-{year_month}-"
+        key = (model._meta.label_lower, prefix, year_month)
+
+        if key not in self._reference_counters:
+            max_serial = 0
+            for value in model.objects.filter(
+                reference_no__startswith=reference_prefix
+            ).values_list("reference_no", flat=True):
+                suffix = f"{value or ''}"[len(reference_prefix):]
+                if suffix.isdigit():
+                    max_serial = max(max_serial, int(suffix))
+            self._reference_counters[key] = max_serial
+
+        self._reference_counters[key] += 1
+        return f"{reference_prefix}{self._reference_counters[key]:03d}"
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -147,22 +194,18 @@ class Command(BaseCommand):
 
     def remove_previous_demo_records(self):
         # Credit notes PROTECT their source sale, so clear them before any sale delete.
-        CreditNote.objects.filter(reference_no__startswith="CN-69").delete()
-        CreditNote.objects.filter(id__startswith="demo-").delete()
-        BillingNote.objects.filter(reference_no__startswith="BN-69").delete()
-        PaymentBatch.objects.filter(reference_no__startswith="PMT-69").delete()
+        CreditNote.objects.filter(id__startswith="demo-cn-").delete()
+        BillingNote.objects.filter(id__startswith="demo-bn-").delete()
+        PaymentBatch.objects.filter(id__startswith="demo-pmt-").delete()
         Quotation.objects.filter(id__startswith="demo-qt-").delete()
-        BillingNote.objects.filter(id__startswith="demo-").delete()
-        PaymentBatch.objects.filter(id__startswith="demo-").delete()
-        Quotation.objects.filter(id__startswith="demo-").delete()
-        for document in PurchaseDocument.objects.filter(purchase__id__startswith="demo-"):
+        for document in PurchaseDocument.objects.filter(purchase__id__startswith="demo-po-"):
             document.file.delete(save=False)
             document.delete()
-        for document in SaleDocument.objects.filter(sale__id__startswith="demo-"):
+        for document in SaleDocument.objects.filter(sale__id__startswith="demo-sale-"):
             document.file.delete(save=False)
             document.delete()
-        Purchase.objects.filter(id__startswith="demo-").delete()
-        Sale.objects.filter(id__startswith="demo-").delete()
+        Purchase.objects.filter(id__startswith="demo-po-").delete()
+        Sale.objects.filter(id__startswith="demo-sale-").delete()
         Product.objects.filter(id__startswith="demo-").delete()
         Supplier.objects.filter(id__startswith="demo-").delete()
         Customer.objects.filter(id__startswith="demo-").delete()
@@ -535,8 +578,6 @@ class Command(BaseCommand):
         return [rng.choice([5, 10])]
 
     def seed_purchases(self, rng, suppliers, products):
-        PaymentBatch.objects.filter(reference_no__startswith="PMT-69").delete()
-        Purchase.objects.filter(reference_no__startswith="PO-69").delete()
         start_date = date(2026, 1, 6)
         latest_transaction_date = timezone.localdate()
         purchase_statuses = (
@@ -560,7 +601,6 @@ class Command(BaseCommand):
             )
             supplier = suppliers[index % len(suppliers)]
             vat_mode = vat_modes[index % len(vat_modes)]
-            ref = reference("PO", transaction_date, index)
             supplier_tax_invoice = "" if status == Purchase.STATUS_DRAFT or index % 11 == 0 else f"{supplier.taxpayer_id[-4:]}-{transaction_date:%y%m}-{index:04d}"
             item_count = rng.choice([1, 2, 2, 3, 3, 4, 5])
             selected_products = rng.sample(products, item_count)
@@ -620,7 +660,8 @@ class Command(BaseCommand):
             else:
                 payment_date = None
             purchase = Purchase.objects.create(
-                reference_no=ref,
+                id=self.next_demo_id(Purchase, "demo-po-"),
+                reference_no=self.next_reference_no(Purchase, "PO", transaction_date),
                 supplier=supplier,
                 supplier_name=supplier.company_name,
                 supplier_tax_invoice=supplier_tax_invoice,
@@ -684,12 +725,17 @@ class Command(BaseCommand):
         return f"{notes[status]} {suffix}"
 
     def seed_quotations(self, rng, suppliers, customers, products):
-        Quotation.objects.filter(id__startswith="demo-qt-").delete()
         start_date = date(2026, 1, 12)
         latest_quotation_date = timezone.localdate()
         quotation_count = 18
         day_span = max(1, (latest_quotation_date - start_date).days)
         vat_modes = ["not_included", "included", "none", "not_included"]
+        validity_patterns = (
+            ("calendar", 30),
+            ("business", 21),
+            ("calendar", 45),
+            ("no_valid_date", 0),
+        )
         quotations = []
 
         for index in range(1, quotation_count + 1):
@@ -701,7 +747,15 @@ class Command(BaseCommand):
             customer = customers[index % len(customers)]
             supplier = suppliers[(index * 2) % len(suppliers)]
             vat_mode = vat_modes[index % len(vat_modes)]
-            ref = f"QT-{index:06d}"
+            valid_until_day_type, valid_until_days = validity_patterns[
+                (index - 1) % len(validity_patterns)
+            ]
+            if valid_until_day_type == "no_valid_date":
+                valid_until_date = None
+            elif valid_until_day_type == "business":
+                valid_until_date = add_business_days(quotation_date, valid_until_days)
+            else:
+                valid_until_date = quotation_date + timedelta(days=valid_until_days)
             item_count = rng.choice([1, 2, 2, 3, 4])
             selected_products = rng.sample(products, item_count)
             line_specs = []
@@ -739,10 +793,16 @@ class Command(BaseCommand):
 
             total_before_vat, vat_amount, grand_total = transaction_totals(line_amounts, vat_mode)
             quotation = Quotation.objects.create(
-                id=f"demo-qt-{index}",
-                reference_no=ref,
+                id=self.next_demo_id(Quotation, "demo-qt-"),
+                reference_no=self.next_reference_no(
+                    Quotation,
+                    "QT",
+                    sequential=True,
+                ),
                 quotation_date=quotation_date,
-                valid_until_date=quotation_date + timedelta(days=rng.choice([14, 30, 45, 60])),
+                valid_until_date=valid_until_date,
+                valid_until_days=valid_until_days,
+                valid_until_day_type=valid_until_day_type,
                 customer=customer,
                 customer_name=customer.company_name,
                 supplier=supplier,
@@ -862,6 +922,8 @@ class Command(BaseCommand):
             return [SaleItem.ITEM_DELIVERED] * count
         if status == Sale.STATUS_CANCELLED:
             return [SaleItem.ITEM_CANCELLED] * count
+        if status == Sale.STATUS_RETURNED:
+            return [SaleItem.ITEM_RETURNED] * count
         if status == Sale.STATUS_PARTIALLY_PACKED:
             return [SaleItem.ITEM_PACKED if i % 2 == 0 else SaleItem.ITEM_PENDING for i in range(count)]
         if status == Sale.STATUS_PARTIALLY_SHIPPED:
@@ -870,14 +932,62 @@ class Command(BaseCommand):
             return [SaleItem.ITEM_DELIVERED if i % 2 == 0 else SaleItem.ITEM_SHIPPED for i in range(count)]
         return [SaleItem.ITEM_PENDING] * count
 
+    def maybe_add_credit_note_candidate_status(self, rng, sale_status, item_statuses):
+        if len(item_statuses) < 2 or sale_status in {
+            Sale.STATUS_CANCELLED,
+            Sale.STATUS_RETURNED,
+        }:
+            return item_statuses
+        if rng.random() >= 0.18:
+            return item_statuses
+
+        next_statuses = list(item_statuses)
+        eligible_indexes = [
+            index
+            for index, item_status in enumerate(next_statuses)
+            if item_status not in {SaleItem.ITEM_CANCELLED, SaleItem.ITEM_RETURNED}
+        ]
+        if not eligible_indexes:
+            return next_statuses
+
+        inactive_status = (
+            SaleItem.ITEM_RETURNED
+            if sale_status in {
+                Sale.STATUS_SHIPPED,
+                Sale.STATUS_PARTIALLY_SHIPPED,
+                Sale.STATUS_DELIVERED,
+                Sale.STATUS_PARTIALLY_DELIVERED,
+            }
+            and rng.random() < 0.6
+            else SaleItem.ITEM_CANCELLED
+        )
+        next_statuses[rng.choice(eligible_indexes)] = inactive_status
+        return next_statuses
+
+    def choose_sale_quantity(self, rng, conversion, active_stock_available, item_status):
+        if conversion.factor_to_base < 1:
+            quantity_options = [5, 10, 15, 20, 25, 50, 100]
+        else:
+            quantity_options = [1, 2, 3, 4, 5, 8, 10, 12, 20, 30]
+
+        if item_status not in SALE_STOCK_DEDUCTED_STATUSES:
+            return decimal(rng.choice(quantity_options))
+
+        max_quantity = int(active_stock_available / conversion.factor_to_base)
+        if max_quantity <= 0:
+            return None
+
+        allowed_options = [quantity for quantity in quantity_options if quantity <= max_quantity]
+        if allowed_options:
+            return decimal(rng.choice(allowed_options))
+
+        return decimal(max_quantity)
+
     def seed_sales(self, rng, customers, products, suppliers):
-        CreditNote.objects.filter(reference_no__startswith="CN-69").delete()
-        BillingNote.objects.filter(reference_no__startswith="BN-69").delete()
-        Sale.objects.filter(reference_no__startswith="TI-69").delete()
         start_date = date(2026, 1, 10)
         latest_transaction_date = timezone.localdate()
         sale_statuses = (
-            [Sale.STATUS_DELIVERED] * 42
+            [Sale.STATUS_DELIVERED] * 38
             + [Sale.STATUS_SHIPPED] * 12
             + [Sale.STATUS_PACKED] * 12
             + [Sale.STATUS_PARTIALLY_DELIVERED] * 8
@@ -885,12 +995,19 @@ class Command(BaseCommand):
             + [Sale.STATUS_PARTIALLY_PACKED] * 6
             + [Sale.STATUS_DRAFT] * 10
             + [Sale.STATUS_CANCELLED] * 8
+            + [Sale.STATUS_RETURNED] * 4
         )
         # Mix statuses across the whole timeline (instead of all-delivered first)
         # so every month — including the current one — has a realistic spread.
         rng.shuffle(sale_statuses)
         vat_modes = ["not_included", "included", "none", "not_included"]
         sales = []
+        available_stock_by_product_id = {
+            str(product_id): Decimal(quantity)
+            for product_id, quantity in get_available_stock_by_product_id(
+                product_ids=[product.id for product in products]
+            ).items()
+        }
         day_span = max(1, (latest_transaction_date - start_date).days)
         for index, status in enumerate(sale_statuses, start=1):
             day_offset = round((index - 1) * day_span / max(1, len(sale_statuses) - 1))
@@ -899,7 +1016,6 @@ class Command(BaseCommand):
                 start_date + timedelta(days=day_offset),
             )
             customer = customers[index % len(customers)]
-            ref = reference("TI", transaction_date, index)
             vat_mode = vat_modes[index % len(vat_modes)]
             payment_term_type = customer.term_type or ""
             payment_term_days = customer.billing_note_date if payment_term_type == "credit" else ""
@@ -911,19 +1027,60 @@ class Command(BaseCommand):
             else:
                 payment_date = None
             item_count = rng.choice([1, 2, 2, 3, 3, 4])
-            selected_products = rng.sample(products, item_count)
-            statuses = self.sale_item_statuses(status, item_count)
+            statuses = self.maybe_add_credit_note_candidate_status(
+                rng,
+                status,
+                self.sale_item_statuses(status, item_count),
+            )
             line_specs = []
             line_amounts = []
-            for line_index, product in enumerate(selected_products):
+            used_product_ids = set()
+            for item_status in statuses:
+                candidate_products = products
+                if item_status in SALE_STOCK_DEDUCTED_STATUSES:
+                    candidate_products = [
+                        product
+                        for product in products
+                        if available_stock_by_product_id.get(
+                            f"{product.id}",
+                            Decimal("0"),
+                        )
+                        > 0
+                    ]
+                    if used_product_ids and len(candidate_products) > 1:
+                        candidate_products = [
+                            product
+                            for product in candidate_products
+                            if product.id not in used_product_ids
+                        ] or candidate_products
+                    if not candidate_products:
+                        item_status = SaleItem.ITEM_PENDING
+                        candidate_products = products
+                elif used_product_ids and len(products) > 1:
+                    candidate_products = [
+                        product
+                        for product in products
+                        if product.id not in used_product_ids
+                    ] or products
+
+                product = rng.choice(candidate_products)
                 conversion = self.choose_unit(rng, product, False)
-                if conversion.factor_to_base < 1:
-                    quantity = rng.choice([5, 10, 15, 20, 25])
-                else:
-                    quantity = rng.choice([1, 2, 3, 4, 5, 8, 10, 12, 20, 30])
+                quantity = self.choose_sale_quantity(
+                    rng,
+                    conversion,
+                    available_stock_by_product_id.get(f"{product.id}", Decimal("0")),
+                    item_status,
+                )
+                if quantity is None:
+                    item_status = SaleItem.ITEM_PENDING
+                    quantity = self.choose_sale_quantity(
+                        rng,
+                        conversion,
+                        available_stock_by_product_id.get(f"{product.id}", Decimal("0")),
+                        item_status,
+                    )
                 unit_price = money(product._seed_price * conversion.factor_to_base * decimal(rng.uniform(0.96, 1.12)))
                 discounts = self.discounts(rng, allow_multiple=True)
-                item_status = statuses[line_index]
                 shipped_date = None
                 delivered_date = None
                 if item_status in {SaleItem.ITEM_SHIPPED, SaleItem.ITEM_DELIVERED}:
@@ -941,10 +1098,17 @@ class Command(BaseCommand):
                 effective_unit_price = (
                     amount / decimal(quantity) if quantity else decimal(unit_price)
                 )
-                if item_status != SaleItem.ITEM_CANCELLED and rng.random() < 0.12:
+                if item_status not in {SaleItem.ITEM_CANCELLED, SaleItem.ITEM_RETURNED} and rng.random() < 0.12:
                     unit_cost = money(effective_unit_price * decimal(rng.uniform(1.05, 1.30)))
                 else:
                     unit_cost = money(base_cost * decimal(rng.uniform(0.80, 0.97)))
+                base_quantity = quantity * conversion.factor_to_base
+                if item_status in SALE_STOCK_DEDUCTED_STATUSES:
+                    available_stock_by_product_id[f"{product.id}"] = max(
+                        Decimal("0"),
+                        available_stock_by_product_id.get(f"{product.id}", Decimal("0"))
+                        - base_quantity,
+                    )
                 line_amounts.append(amount)
                 line_specs.append(
                     {
@@ -961,17 +1125,26 @@ class Command(BaseCommand):
                         "unit_cost": unit_cost,
                     }
                 )
+                used_product_ids.add(product.id)
             total_before_vat, vat_amount, grand_total = transaction_totals(line_amounts, vat_mode)
+            final_status = get_sale_status_from_item_statuses(
+                [item["item_status"] for item in line_specs],
+                fallback_status=status,
+            )
             sale = Sale.objects.create(
-                reference_no=ref,
+                id=self.next_demo_id(Sale, "demo-sale-"),
+                reference_no=self.next_reference_no(Sale, "TI", transaction_date),
                 customer=customer,
                 customer_name=customer.company_name,
-                status=status,
+                customer_po_reference=(
+                    f"CPO-{transaction_date:%y%m}-{index:03d}" if index % 3 == 0 else ""
+                ),
+                status=final_status,
                 payment_term_type=payment_term_type,
                 payment_term_days=payment_term_days,
                 payment_date=payment_date,
                 transaction_date=transaction_date,
-                note=self.sale_note(status, customer.company_name, index),
+                note=self.sale_note(final_status, customer.company_name, index),
                 vat_mode=vat_mode,
                 total_before_vat=total_before_vat,
                 vat_amount=vat_amount,
@@ -1014,12 +1187,12 @@ class Command(BaseCommand):
             Sale.STATUS_PARTIALLY_DELIVERED: "One or more shipped lines are still waiting for proof of delivery.",
             Sale.STATUS_DELIVERED: "Delivered with completed delivery confirmation.",
             Sale.STATUS_CANCELLED: "Cancelled before final delivery.",
+            Sale.STATUS_RETURNED: "Returned after delivery and removed from active stock.",
         }
         suffix = ["Billing follows customer cycle.", "Includes line discounts.", "Mixed unit quantities.", "Urgent department request."][index % 4]
         return f"{notes[status]} {suffix}"
 
     def seed_billing_notes(self, rng, sales):
-        BillingNote.objects.filter(reference_no__startswith="BN-69").delete()
         eligible_statuses = {
             Sale.STATUS_DELIVERED,
             Sale.STATUS_PARTIALLY_DELIVERED,
@@ -1065,10 +1238,14 @@ class Command(BaseCommand):
                     else billing_note_date + timedelta(days=30)
                 )
                 status = status_cycle[(serial - 1) % len(status_cycle)]
-                reference_no = reference("BN", billing_note_date, serial)
                 customer = selected_sales[0].customer
                 billing_note = BillingNote.objects.create(
-                    reference_no=reference_no,
+                    id=self.next_demo_id(BillingNote, "demo-bn-"),
+                    reference_no=self.next_reference_no(
+                        BillingNote,
+                        "BN",
+                        billing_note_date,
+                    ),
                     customer=customer,
                     customer_name=customer_name,
                     billing_note_date=billing_note_date,
@@ -1131,7 +1308,6 @@ class Command(BaseCommand):
         return notes[status]
 
     def seed_payment_batches(self, rng, purchases):
-        PaymentBatch.objects.filter(reference_no__startswith="PMT-69").delete()
         eligible_statuses = {
             Purchase.STATUS_RECEIVED,
             Purchase.STATUS_PARTIALLY_RECEIVED,
@@ -1180,10 +1356,14 @@ class Command(BaseCommand):
                     else batch_date + timedelta(days=30)
                 )
                 status = status_cycle[(serial - 1) % len(status_cycle)]
-                reference_no = reference("PMT", batch_date, serial)
                 supplier = selected_purchases[0].supplier
                 payment_batch = PaymentBatch.objects.create(
-                    reference_no=reference_no,
+                    id=self.next_demo_id(PaymentBatch, "demo-pmt-"),
+                    reference_no=self.next_reference_no(
+                        PaymentBatch,
+                        "PMT",
+                        batch_date,
+                    ),
                     supplier=supplier,
                     supplier_name=supplier_name,
                     batch_date=batch_date,
@@ -1242,35 +1422,43 @@ class Command(BaseCommand):
         return notes[status]
 
     def seed_credit_notes(self, rng, sales, billing_notes):
-        CreditNote.objects.filter(reference_no__startswith="CN-69").delete()
-
-        billing_notes_by_customer = {}
+        billing_notes_by_sale_id = {}
         for note in billing_notes:
             if note.status != BillingNote.STATUS_CANCELLED:
-                billing_notes_by_customer.setdefault(note.customer_name, []).append(note)
+                for line in note.lines.all():
+                    billing_notes_by_sale_id.setdefault(line.sale_id, []).append(note)
 
-        sales_with_cancelled_items = []
+        sales_with_creditable_items = []
         for sale in sales:
-            cancelled_items = [
+            creditable_items = [
                 item
                 for item in sale.items.all()
-                if item.item_status == SaleItem.ITEM_CANCELLED
+                if item.item_status in {
+                    SaleItem.ITEM_CANCELLED,
+                    SaleItem.ITEM_RETURNED,
+                }
             ]
-            if cancelled_items:
-                sales_with_cancelled_items.append((sale, cancelled_items))
+            if creditable_items:
+                sales_with_creditable_items.append((sale, creditable_items))
+
+        sales_with_creditable_items.sort(
+            key=lambda row: (
+                0 if row[0].id in billing_notes_by_sale_id else 1,
+                row[0].transaction_date,
+                row[0].reference_no,
+            )
+        )
 
         credit_notes = []
-        for serial, (sale, cancelled_items) in enumerate(
-            sales_with_cancelled_items[:8], start=1
+        for serial, (sale, creditable_items) in enumerate(
+            sales_with_creditable_items[:8], start=1
         ):
             credit_note_date = min(
                 timezone.localdate(),
                 sale.transaction_date + timedelta(days=rng.choice([3, 5, 9])),
             )
-            customer_billing_notes = billing_notes_by_customer.get(sale.customer_name, [])
-            billing_note = (
-                rng.choice(customer_billing_notes) if customer_billing_notes else None
-            )
+            sale_billing_notes = billing_notes_by_sale_id.get(sale.id, [])
+            billing_note = rng.choice(sale_billing_notes) if sale_billing_notes else None
             # Cover both credit-note states; every 4th note is cancelled.
             cn_status = (
                 CreditNote.STATUS_CANCELLED
@@ -1280,10 +1468,15 @@ class Command(BaseCommand):
             cn_note = (
                 f"Credit note cancelled after review on {sale.reference_no}."
                 if cn_status == CreditNote.STATUS_CANCELLED
-                else f"Credit note for cancelled items on {sale.reference_no}."
+                else f"Credit note for cancelled or returned items on {sale.reference_no}."
             )
             credit_note = CreditNote.objects.create(
-                reference_no=reference("CN", credit_note_date, serial),
+                id=self.next_demo_id(CreditNote, "demo-cn-"),
+                reference_no=self.next_reference_no(
+                    CreditNote,
+                    "CN",
+                    credit_note_date,
+                ),
                 customer=sale.customer,
                 customer_name=sale.customer_name,
                 sale=sale,
@@ -1295,7 +1488,7 @@ class Command(BaseCommand):
             )
             line_rows = []
             total_amount = Decimal("0.00")
-            for item in cancelled_items:
+            for item in creditable_items:
                 amount = money(item.amount)
                 line_rows.append(
                     CreditNoteLine(
