@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import SalesForm from "./SalesForm";
-import QuotationConvertSelect from "./QuotationConvertSelect";
 import MultiPurchaseWizard from "./MultiPurchaseWizard";
 import DocumentRefModal from "./DocumentRefModal";
 import QuotationFormCard from "./quotation/QuotationForm";
+import QuotationConversionFlow from "./quotation/QuotationConversionFlow";
 import QuotationDetailModal from "./quotation/QuotationDetailModal";
 import QuotationDirectorySection from "./quotation/QuotationDirectorySection";
 import { withinRange } from "./FilterControls";
@@ -354,53 +353,20 @@ function QuotationPage({
     );
   }
 
-  if (conversion && conversion.step === "sale-form") {
-    return (
-      <div className="stack-layout">
-        <section className="section-card quotation-link-card">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">{t("quotation.quotationLinkEyebrow")}</p>
-              <h3>{t("quotation.quotationLinkTitle", { ref: conversion.quotation.reference_no })}</h3>
-            </div>
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() => setConversion(null)}
-            >
-              {t("quotation.quotationLinkBack")}
-            </button>
-          </div>
-        </section>
-        <SalesForm
-          key={`sale-from-${conversion.quotation.id}`}
-          products={products}
-          customers={customers}
-          suppliers={suppliers}
-          purchases={purchases}
-          sales={sales}
-          enableStockValidation={enableSaleStockValidation}
-          prefill={conversion.salePrefill}
-          onSubmit={handleSaleCreate}
-          onCancel={() => setConversion(null)}
-        />
-      </div>
-    );
-  }
-
   if (conversion) {
     return (
-      <div className="stack-layout">
-        <QuotationConvertSelect
-          key={`convert-${conversion.type}-${conversion.quotation.id}`}
-          quotation={conversion.quotation}
-          type={conversion.type}
-          initialSelectedItemKeys={conversion.initialSelectedItemKeys}
-          stockCoverageLines={conversion.stockCoverageLines}
-          onBack={() => setConversion(null)}
-          onContinue={handleConvertContinue}
-        />
-      </div>
+      <QuotationConversionFlow
+        conversion={conversion}
+        products={products}
+        customers={customers}
+        suppliers={suppliers}
+        purchases={purchases}
+        sales={sales}
+        enableSaleStockValidation={enableSaleStockValidation}
+        onBack={() => setConversion(null)}
+        onContinue={handleConvertContinue}
+        onSubmitSale={handleSaleCreate}
+      />
     );
   }
 
