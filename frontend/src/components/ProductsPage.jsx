@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "./PaginationControls";
 import { FilterPresets, ActiveFilterChips } from "./FilterControls";
 import ProductDetailModal from "./products/ProductDetailModal";
+import ProductEditorModal from "./products/ProductEditorModal";
 import {
   getCategoryLeafLabel,
   getCategoryOptions,
@@ -16,7 +17,6 @@ import {
   formatCurrency,
   formatStockQuantity,
   getCategoryPathSkuCode,
-  getDocumentName,
   getNextSkuSerial,
   getProductAllNames,
   getProductCategoryLabel,
@@ -1444,474 +1444,50 @@ function ProductsPage({
         onClose={closeAll}
       />
 
-      {draftProduct ? (
-        <div className="modal-backdrop">
-          <div
-            className="detail-modal supplier-modal product-editor-modal section-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="product-modal-title"
-          >
-            <div className="section-heading supplier-modal-header">
-              <div>
-                <p className="eyebrow">
-                  {allProducts.some((p) => p.id === draftProduct.id) ? t("products.editEyebrow") : t("products.newEyebrow")}
-                </p>
-                <h3 id="product-modal-title">
-                  {getTranslatedProductDisplayName(draftProduct, t) || t("products.newEyebrow")}
-                </h3>
-              </div>
-              <button
-                className="icon-button subtle"
-                type="button"
-                aria-label={t("common.close")}
-                onClick={closeProductEditor}
-              >
-                X
-              </button>
-            </div>
-
-            {productFormError ? <div className="error-banner">{productFormError}</div> : null}
-
-            <form
-              className="form-layout"
-              onSubmit={(event) => {
-                event.preventDefault();
-                handleSaveProduct();
-              }}
-            >
-              <div className="product-editor-layout">
-                <section className="product-editor-section">
-                  <div className="product-editor-section-heading">
-                    <div>
-                      <p className="eyebrow">{t("products.identityEyebrow")}</p>
-                      <h4>{t("products.identityTitle")}</h4>
-                    </div>
-                    <span>{t("products.identityHint")}</span>
-                  </div>
-
-                  <div className="product-editor-grid">
-                    <label className="full-width">
-                      <span className="required-label">{t("products.mainNameLabel")}</span>
-                      <input
-                        autoFocus
-                        value={draftProduct.productName}
-                        onChange={(event) => updateDraftField("productName", event.target.value)}
-                        placeholder={t("products.mainNamePlaceholder")}
-                      />
-                    </label>
-
-                    <label className="supplier-combobox-field full-width">
-                      <span className="required-label">{t("products.categoryLabel")}</span>
-                      <div className="supplier-combobox">
-                        <input
-                          type="search"
-                          value={categoryQuery}
-                          onChange={(event) => handleCategoryQueryChange(event.target.value)}
-                          onFocus={() => setCategoryComboboxOpen(true)}
-                          onBlur={handleCategoryBlur}
-                          placeholder={
-                            productCategoryOptions.length
-                              ? t("products.searchCategoryPlaceholder")
-                              : t("products.noCategoryPlaceholder")
-                          }
-                          autoComplete="off"
-                          aria-expanded={categoryComboboxOpen}
-                          aria-controls="product-editor-category-list"
-                        />
-
-                        {categoryComboboxOpen ? (
-                          <div
-                            className="supplier-combobox-menu"
-                            id="product-editor-category-list"
-                            role="listbox"
-                          >
-                            {filteredProductCategoryOptions.length ? (
-                              filteredProductCategoryOptions.map((category) => (
-                                <button
-                                  key={category.id}
-                                  type="button"
-                                  className={
-                                    category.id === draftProduct.categoryId
-                                      ? "supplier-combobox-option active"
-                                      : "supplier-combobox-option"
-                                  }
-                                  onMouseDown={(event) => {
-                                    event.preventDefault();
-                                    selectDraftCategory(category);
-                                  }}
-                                  role="option"
-                                  aria-selected={category.id === draftProduct.categoryId}
-                                >
-                                  {category.label}
-                                </button>
-                              ))
-                            ) : (
-                              <div className="supplier-combobox-empty">
-                                {t("products.noCategoryFound")}
-                              </div>
-                            )}
-                          </div>
-                        ) : null}
-                      </div>
-                    </label>
-
-                    <label className="supplier-option-field product-editor-wide-field">
-                      <span className="required-label">{t("products.skuLabel")}</span>
-                      <div className="product-sku-edit-row">
-                        <input
-                          value={draftProduct.sku}
-                          onChange={(event) => updateDraftField("sku", event.target.value)}
-                          onBlur={() => {
-                            if (!isSkuLocked) {
-                              updateDraftField("sku", `${draftProduct.sku ?? ""}`.trim());
-                            }
-                          }}
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          placeholder={t("products.skuPlaceholder")}
-                          disabled={isSkuLocked}
-                        />
-                        <button
-                          className="secondary-button"
-                          type="button"
-                          onClick={handleGenerateSku}
-                          disabled={isSkuLocked}
-                        >
-                          {t("products.generateButton")}
-                        </button>
-                        {isSkuLocked ? (
-                          <button
-                            className="table-action-button"
-                            type="button"
-                            onClick={handleUnlockSkuChange}
-                          >
-                            {t("products.changeSkuButton")}
-                          </button>
-                        ) : null}
-                      </div>
-                      <span className="field-helper-text">
-                        {isSkuLocked
-                          ? t("products.skuHelperLocked")
-                          : t("products.skuHelperUnlocked")}
-                      </span>
-                    </label>
-
-                  </div>
-
-                  <div className="supplier-option-field product-editor-subsection">
-                    <div className="product-name-editor-header">
-                      <div>
-                        <p className="detail-label">{t("products.subNamesLabel")}</p>
-                        <p className="inventory-note product-name-editor-note">
-                          {t("products.subNamesNote")}
-                        </p>
-                      </div>
-                      <button
-                        className="secondary-button"
-                        type="button"
-                        onClick={addDraftSubName}
-                      >
-                        {t("products.addSubNameButton")}
-                      </button>
-                    </div>
-
-                    {(draftProduct.subNames || []).length === 0 ? (
-                      <p className="empty-copy">{t("products.noSubNamesYet")}</p>
-                    ) : (
-                      (draftProduct.subNames || []).map((subName, index) => (
-                        <div className="supplier-option-edit-row" key={`product-sub-name-${index}`}>
-                          <input
-                            value={subName}
-                            onChange={(event) => updateDraftSubName(index, event.target.value)}
-                            placeholder={t("products.subNamePlaceholder", { n: index + 1 })}
-                          />
-                          <div className="supplier-option-edit-actions">
-                            <button
-                              className="table-action-button"
-                              type="button"
-                              onClick={() => setDraftSubNameAsMain(index)}
-                            >
-                              {t("products.useAsMainButton")}
-                            </button>
-                            <button
-                              className="icon-button subtle"
-                              type="button"
-                              aria-label={t("products.removeSubNameAriaLabel", { n: index + 1 })}
-                              onClick={() => removeDraftSubName(index)}
-                            >
-                              X
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </section>
-
-                <section className="product-editor-section">
-                  <div className="product-editor-section-heading">
-                    <div>
-                      <p className="eyebrow">{t("products.stockUnitsEyebrow")}</p>
-                      <h4>{t("products.stockUnitsTitle")}</h4>
-                    </div>
-                    <span>{t("products.stockUnitsHint")}</span>
-                  </div>
-
-                  <div className="product-editor-grid product-editor-unit-grid">
-                    <label>
-                      <span className="required-label">{t("products.baseStockUnitLabel")}</span>
-                      <input
-                        value={draftProduct.stockBaseUnit}
-                        onChange={(event) => updateDraftField("stockBaseUnit", event.target.value)}
-                        placeholder={t("products.baseStockUnitPlaceholder")}
-                      />
-                    </label>
-
-                    <label>
-                      <span className="required-label">{t("products.defaultPurchaseUnitLabel")}</span>
-                      <input
-                        value={draftProduct.defaultPurchaseUnit}
-                        onChange={(event) =>
-                          updateDraftField("defaultPurchaseUnit", event.target.value)
-                        }
-                        placeholder={t("products.defaultPurchaseUnitPlaceholder")}
-                      />
-                    </label>
-
-                    <label>
-                      <span className="required-label">{t("products.defaultSalesUnitLabel")}</span>
-                      <input
-                        value={draftProduct.defaultSalesUnit}
-                        onChange={(event) => updateDraftField("defaultSalesUnit", event.target.value)}
-                        placeholder={t("products.defaultSalesUnitPlaceholder")}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="supplier-option-field product-editor-subsection">
-                    <div className="product-name-editor-header">
-                      <div>
-                        <p className="detail-label">{t("products.unitConversionsLabel")}</p>
-                        <p className="inventory-note product-name-editor-note">
-                          {t("products.unitConversionsNote")}
-                        </p>
-                      </div>
-                      <button
-                        className="secondary-button"
-                        type="button"
-                        onClick={addDraftUnitConversion}
-                      >
-                        {t("products.addUnitButton")}
-                      </button>
-                    </div>
-
-                    {(draftProduct.unitConversions || []).map((conversion, index) => (
-                      <div className="unit-conversion-row" key={`unit-conversion-${index}`}>
-                        <label>
-                          <span className="required-label">{t("products.unitLabel")}</span>
-                          <input
-                            value={conversion.unit}
-                            onChange={(event) =>
-                              updateDraftUnitConversion(index, "unit", event.target.value)
-                            }
-                            placeholder={t("products.unitPlaceholder")}
-                          />
-                        </label>
-                        <label>
-                          <span className="required-label">{t("products.factorToBaseLabel")}</span>
-                          <input
-                            type="number"
-                            min="0.000001"
-                            step="0.000001"
-                            value={conversion.factorToBase}
-                            onChange={(event) =>
-                              updateDraftUnitConversion(index, "factorToBase", event.target.value)
-                            }
-                            placeholder="1"
-                          />
-                        </label>
-                        <label className="unit-conversion-check">
-                          <input
-                            type="checkbox"
-                            checked={!!conversion.allowPurchase}
-                            onChange={() => toggleDraftUnitConversion(index, "allowPurchase")}
-                          />
-                          {t("products.allowPurchaseLabel")}
-                        </label>
-                        <label className="unit-conversion-check">
-                          <input
-                            type="checkbox"
-                            checked={!!conversion.allowSale}
-                            onChange={() => toggleDraftUnitConversion(index, "allowSale")}
-                          />
-                          {t("products.allowSaleLabel")}
-                        </label>
-                        <button
-                          className="icon-button subtle"
-                          type="button"
-                          aria-label={t("products.removeUnitAriaLabel", { n: index + 1 })}
-                          onClick={() => removeDraftUnitConversion(index)}
-                        >
-                          X
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="product-editor-section">
-                  <div className="product-editor-section-heading">
-                    <div>
-                      <p className="eyebrow">{t("products.detailSectionEyebrow")}</p>
-                      <h4>{t("products.detailSectionTitle")}</h4>
-                    </div>
-                    <span>{t("products.detailSectionHint")}</span>
-                  </div>
-
-                  <div className="product-editor-grid">
-                    <div className="transaction-document-panel product-picture-upload-panel full-width">
-                      <div className="transaction-document-panel-header">
-                        <div>
-                          <strong>{t("products.pictureLabel")}</strong>
-                          <span>
-                            {draftProductPictures.length
-                              ? t("products.picturesAttached", { count: draftProductPictures.length, plural: draftProductPictures.length === 1 ? "" : "s" })
-                              : t("products.noPicturesAttached")}
-                          </span>
-                        </div>
-                        <label className="document-upload-button">
-                          {t("products.addPicturesButton")}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            onChange={(event) => {
-                              addDraftPictures(event.target.files);
-                              event.target.value = "";
-                            }}
-                          />
-                        </label>
-                      </div>
-
-                      {selectedDraftPicture?.url ? (
-                        <img
-                          src={selectedDraftPicture.url}
-                          alt={t("products.pictureLabel")}
-                          className="product-picture-preview"
-                          onError={(event) => {
-                            event.target.style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        <p className="transaction-document-empty">{t("products.noPictureSelected")}</p>
-                      )}
-
-                      {draftProductPictures.length ? (
-                        <div className="product-picture-list">
-                          {draftProductPictures.map((picture) => (
-                            <span className="product-picture-row" key={picture.id}>
-                              <button
-                                className={
-                                  selectedDraftPicture?.id === picture.id
-                                    ? "product-picture-link active"
-                                    : "product-picture-link"
-                                }
-                                type="button"
-                                onClick={() => selectDraftPicture(picture.id)}
-                              >
-                                {picture.name || getDocumentName(picture.url, t)}
-                              </button>
-                              <button
-                                className="text-danger-button"
-                                type="button"
-                                onClick={() => removeDraftPicture(picture.id)}
-                              >
-                                {t("products.removeButton")}
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <label className="full-width">
-                      {t("products.productDetailLabel")}
-                      <textarea
-                        rows="4"
-                        value={draftProduct.detail}
-                        onChange={(event) => updateDraftField("detail", event.target.value)}
-                        placeholder={t("products.productDetailPlaceholder")}
-                      />
-                    </label>
-                  </div>
-                </section>
-              </div>
-
-              <div className="supplier-modal-actions">
-                {draftExistingProduct ? (
-                  <div className="product-delete-action">
-                    {!isDraftProductActive ? (
-                      <>
-                        <button
-                          className="primary-button"
-                          type="button"
-                          onClick={handleEnableProduct}
-                          disabled={isProductEnableDisabled}
-                          title={productEnableDisabledReason || undefined}
-                        >
-                          {t("products.enableProductButton")}
-                        </button>
-                        <span className="field-helper-text product-delete-helper">
-                          {productEnableDisabledReason || t("products.enableProductHelper")}
-                        </span>
-                      </>
-                    ) : draftProductHasHistory ? (
-                      <>
-                        <button
-                          className="secondary-button"
-                          type="button"
-                          onClick={handleDisableProduct}
-                          disabled={isProductDisableDisabled}
-                          title={productDisableDisabledReason || undefined}
-                        >
-                          {t("products.disableProductButton")}
-                        </button>
-                        <span className="field-helper-text product-delete-helper">
-                          {productDisableDisabledReason || t("products.disableProductHelper")}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          className="danger-button"
-                          type="button"
-                          onClick={handleDeleteProduct}
-                          disabled={isProductDeleteDisabled}
-                          title={productDeleteDisabledReason || undefined}
-                        >
-                          {t("products.deleteButton")}
-                        </button>
-                        {productDeleteDisabledReason ? (
-                          <span className="field-helper-text product-delete-helper">
-                            {productDeleteDisabledReason}
-                          </span>
-                        ) : null}
-                      </>
-                    )}
-                  </div>
-                ) : null}
-                <button className="secondary-button" type="button" onClick={closeProductEditor}>
-                  {t("products.cancelButton")}
-                </button>
-                <button className="primary-button" type="submit">
-                  {t("products.saveButton")}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+      <ProductEditorModal
+        draftProduct={draftProduct}
+        allProducts={allProducts}
+        productFormError={productFormError}
+        categoryQuery={categoryQuery}
+        categoryComboboxOpen={categoryComboboxOpen}
+        productCategoryOptions={productCategoryOptions}
+        filteredProductCategoryOptions={filteredProductCategoryOptions}
+        isSkuLocked={isSkuLocked}
+        draftProductPictures={draftProductPictures}
+        selectedDraftPicture={selectedDraftPicture}
+        draftExistingProduct={draftExistingProduct}
+        draftProductHasHistory={draftProductHasHistory}
+        isDraftProductActive={isDraftProductActive}
+        isProductEnableDisabled={isProductEnableDisabled}
+        productEnableDisabledReason={productEnableDisabledReason}
+        isProductDisableDisabled={isProductDisableDisabled}
+        productDisableDisabledReason={productDisableDisabledReason}
+        isProductDeleteDisabled={isProductDeleteDisabled}
+        productDeleteDisabledReason={productDeleteDisabledReason}
+        onClose={closeProductEditor}
+        onSave={handleSaveProduct}
+        onUpdateDraftField={updateDraftField}
+        onCategoryQueryChange={handleCategoryQueryChange}
+        onCategoryFocus={() => setCategoryComboboxOpen(true)}
+        onCategoryBlur={handleCategoryBlur}
+        onSelectDraftCategory={selectDraftCategory}
+        onGenerateSku={handleGenerateSku}
+        onUnlockSkuChange={handleUnlockSkuChange}
+        onAddDraftSubName={addDraftSubName}
+        onUpdateDraftSubName={updateDraftSubName}
+        onSetDraftSubNameAsMain={setDraftSubNameAsMain}
+        onRemoveDraftSubName={removeDraftSubName}
+        onAddDraftUnitConversion={addDraftUnitConversion}
+        onUpdateDraftUnitConversion={updateDraftUnitConversion}
+        onToggleDraftUnitConversion={toggleDraftUnitConversion}
+        onRemoveDraftUnitConversion={removeDraftUnitConversion}
+        onAddDraftPictures={addDraftPictures}
+        onSelectDraftPicture={selectDraftPicture}
+        onRemoveDraftPicture={removeDraftPicture}
+        onEnableProduct={handleEnableProduct}
+        onDisableProduct={handleDisableProduct}
+        onDeleteProduct={handleDeleteProduct}
+      />
     </div>
   );
 }
