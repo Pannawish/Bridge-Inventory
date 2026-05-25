@@ -308,27 +308,39 @@ class Command(BaseCommand):
 
     def seed_suppliers(self):
         specs = [
-            ("Bangkok Office Supply Co., Ltd.", "0105567001181", "Bang Rak, Bangkok", "orders@bangkokoffice.co.th", "02-118-2400", "Head Office", "Net 30, accepts partial deliveries."),
-            ("Siam Paper & Label Ltd.", "0105567002292", "Khlong Toei, Bangkok", "sales@siampaperlabel.co.th", "02-229-1400", "Head Office", "Paper goods, VAT included invoice options."),
-            ("Eastern Stationery Wholesale", "0205567003303", "Mueang Chonburi", "wholesale@easternstationery.co.th", "038-330-220", "Chonburi", "Large carton orders."),
-            ("Metro Packaging Hub", "0115567004414", "Bang Phli, Samut Prakan", "care@metropack.co.th", "02-441-8800", "Samut Prakan", "Packaging and no-VAT cash receipt cases."),
-            ("Thai Tech Accessories", "0105567005525", "Huai Khwang, Bangkok", "b2b@thaitechaccessories.co.th", "02-552-0101", "Ratchada", "Requires prepayment for cables."),
-            ("North Star Printing Supply", "0505567006636", "Mueang Chiang Mai", "orders@northstarprinting.co.th", "053-663-777", "Chiang Mai", "Printer ink and maintenance supplies."),
-            ("Central Facilities Mart", "0105567007747", "Chatuchak, Bangkok", "supply@centralfacilities.co.th", "02-774-5151", "Chatuchak", "Pantry and cleaning supplies."),
-            ("Smart Label Solutions", "0105567008858", "Lat Krabang, Bangkok", "team@smartlabel.co.th", "02-885-6400", "Lat Krabang", "Thermal labels and barcode supplies."),
-            ("Apex Filing Systems", "0105567009969", "Pathum Wan, Bangkok", "sales@apexfiling.co.th", "02-996-4120", "Pathum Wan", "Folders, binders, and archive boxes."),
-            ("Green Office Products", "0105567011070", "Nonthaburi", "service@greenoffice.co.th", "02-107-3000", "Nonthaburi", "Eco-friendly office supplies."),
-            ("Rapid Event Supply", "0105567012181", "Din Daeng, Bangkok", "events@rapidsupply.co.th", "02-218-9060", "Din Daeng", "Rush orders for event materials."),
-            ("Union Safety & Facility", "0105567013292", "Khlong Sam Wa, Bangkok", "orders@unionsafety.co.th", "02-329-4444", "Khlong Sam Wa", "Safety and facility consumables."),
-            ("Premier Toner House", "0105567014303", "Phaya Thai, Bangkok", "billing@premiertoner.co.th", "02-430-9000", "Phaya Thai", "Toner, ink, and printer accessories."),
-            ("Bright Desk Essentials", "0105567015414", "Mueang Pathum Thani", "hello@brightdesk.co.th", "02-541-2112", "Pathum Thani", "Small desk supplies."),
-            ("Warehouse Direct Thailand", "0105567016525", "Bang Yai, Nonthaburi", "wd@warehousedirect.co.th", "02-652-8787", "Bang Yai", "Bulk stock with frequent backorders."),
+            ("Bangkok Office Supply Co., Ltd.", "0105567001181", "Bang Rak, Bangkok", "orders@bangkokoffice.co.th", "02-118-2400", "Head Office", "Net 30, accepts partial deliveries.", "Nattapong Srisai", "02-118-2415"),
+            ("Siam Paper & Label Ltd.", "0105567002292", "Khlong Toei, Bangkok", "sales@siampaperlabel.co.th", "02-229-1400", "Head Office", "Paper goods, VAT included invoice options.", "Mayuree Tan", "02-229-1422"),
+            ("Eastern Stationery Wholesale", "0205567003303", "Mueang Chonburi", "wholesale@easternstationery.co.th", "038-330-220", "Chonburi", "Large carton orders.", "Kritsada Boonmee", "038-330-245"),
+            ("Metro Packaging Hub", "0115567004414", "Bang Phli, Samut Prakan", "care@metropack.co.th", "02-441-8800", "Samut Prakan", "Packaging and no-VAT cash receipt cases.", "Siriporn Wattanakul", "02-441-8828"),
+            ("Thai Tech Accessories", "0105567005525", "Huai Khwang, Bangkok", "b2b@thaitechaccessories.co.th", "02-552-0101", "Ratchada", "Requires prepayment for cables.", "Anucha Rerkchai", "02-552-0139"),
+            ("North Star Printing Supply", "0505567006636", "Mueang Chiang Mai", "orders@northstarprinting.co.th", "053-663-777", "Chiang Mai", "Printer ink and maintenance supplies.", "Pimchanok Saelim", "053-663-781"),
+            ("Central Facilities Mart", "0105567007747", "Chatuchak, Bangkok", "supply@centralfacilities.co.th", "02-774-5151", "Chatuchak", "Pantry and cleaning supplies.", "Thanawat Ruangdej", "02-774-5170"),
+            ("Smart Label Solutions", "0105567008858", "Lat Krabang, Bangkok", "team@smartlabel.co.th", "02-885-6400", "Lat Krabang", "Thermal labels and barcode supplies.", "Kamonchanok Kiatkul", "02-885-6418"),
+            ("Apex Filing Systems", "0105567009969", "Pathum Wan, Bangkok", "sales@apexfiling.co.th", "02-996-4120", "Pathum Wan", "Folders, binders, and archive boxes.", "Phuriwat Techakul", "02-996-4146"),
+            ("Green Office Products", "0105567011070", "Nonthaburi", "service@greenoffice.co.th", "02-107-3000", "Nonthaburi", "Eco-friendly office supplies.", "Supansa Kongsuk", "02-107-3024"),
+            ("Rapid Event Supply", "0105567012181", "Din Daeng, Bangkok", "events@rapidsupply.co.th", "02-218-9060", "Din Daeng", "Rush orders for event materials.", "Warit Chansiri", "02-218-9088"),
+            ("Union Safety & Facility", "0105567013292", "Khlong Sam Wa, Bangkok", "orders@unionsafety.co.th", "02-329-4444", "Khlong Sam Wa", "Safety and facility consumables.", "Kanyarat Pholsa", "02-329-4462"),
+            ("Premier Toner House", "0105567014303", "Phaya Thai, Bangkok", "billing@premiertoner.co.th", "02-430-9000", "Phaya Thai", "Toner, ink, and printer accessories.", "Rapeepat Jitjaroen", "02-430-9027"),
+            ("Bright Desk Essentials", "0105567015414", "Mueang Pathum Thani", "hello@brightdesk.co.th", "02-541-2112", "Pathum Thani", "Small desk supplies.", "Thidarat Nimitdee", "02-541-2140"),
+            ("Warehouse Direct Thailand", "0105567016525", "Bang Yai, Nonthaburi", "wd@warehousedirect.co.th", "02-652-8787", "Bang Yai", "Bulk stock with frequent backorders.", "Nirun Petchsawat", "02-652-8815"),
         ]
         suppliers = []
-        for idx, (name, taxpayer_id, location, email, tel, branch, remark) in enumerate(specs):
+        for idx, (
+            name,
+            taxpayer_id,
+            location,
+            email,
+            tel,
+            branch,
+            remark,
+            procurement_name,
+            procurement_tel,
+        ) in enumerate(specs):
             supplier = Supplier.objects.filter(company_name=name).first()
             defaults = {
                 "company_name": name,
+                "procurement_name": procurement_name,
+                "procurement_tel": procurement_tel,
                 "locations": [f"{idx + 10} {location}", f"Warehouse {idx + 1}, {location}"],
                 "selected_location_index": 0,
                 "emails": [email, f"accounting+{idx + 1}@supplier-mail.co.th"],

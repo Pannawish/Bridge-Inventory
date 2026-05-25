@@ -6,6 +6,7 @@ from decimal import Decimal
 
 from django.core.management import call_command
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db.models import Q
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
@@ -1993,6 +1994,13 @@ class SeedOperationalDataCommandTests(TestCase):
                     sale=credit_note.sale,
                 ).exists()
             )
+        self.assertFalse(
+            Supplier.objects.filter(
+                id__startswith="demo-",
+            ).filter(
+                Q(procurement_name="") | Q(procurement_tel="")
+            ).exists()
+        )
 
     def test_keep_previous_demo_appends_another_seed_set(self):
         call_command(
