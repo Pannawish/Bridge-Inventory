@@ -3,6 +3,7 @@ import { api } from "../api";
 import { formatDate, formatMoney as fmt } from "../format";
 import { getStatusLabel } from "../i18n/statusLabels";
 import DocumentRefChip from "./DocumentRefChip";
+import PaymentLineAmount from "./PaymentLineAmount";
 import { useLanguage } from "../i18n/LanguageContext";
 
 function renderDiscounts(discounts) {
@@ -92,6 +93,47 @@ function getPurchaseBaseUnitCostAfterDiscount(item) {
 
 function quotationLink(id, referenceNo) {
   return id ? [{ id, reference_no: referenceNo || "" }] : [];
+}
+
+// Purchase totals, expanded to show the payable breakdown when line items have
+// been cancelled: the original grand total, the cancelled value, and the amount
+// actually payable to the supplier.
+function buildPurchasePayableTotals(doc, t) {
+  const grand = Number(doc.grand_total) || 0;
+  const payable = Number(doc.payable_total);
+  const hasPayableReduction =
+    Number.isFinite(payable) && grand - payable > 0.005;
+
+  const totals = [
+    { label: t("common.total"), value: fmt(doc.total_before_vat) },
+    { label: t("documentRef.paymentTermVAT"), value: fmt(doc.vat_amount) },
+    {
+      label: hasPayableReduction
+        ? t("documentRef.originalTotal")
+        : t("common.grandTotal"),
+      value: fmt(doc.grand_total),
+      strong: true,
+    },
+  ];
+
+  if (hasPayableReduction) {
+    const cancelledCount = (doc.items || []).filter(
+      (item) => item.item_status === "cancelled"
+    ).length;
+    totals.push({
+      label: t("documentRef.cancelledAmount", { count: cancelledCount }),
+      value: `−${fmt(grand - payable)}`,
+      className: "tx-summary-cancelled",
+    });
+    totals.push({
+      label: t("documentRef.amountPayable"),
+      value: fmt(payable),
+      strong: true,
+      className: "tx-summary-payable",
+    });
+  }
+
+  return totals;
 }
 
 function buildDocConfig(t) {
@@ -191,14 +233,17 @@ function buildDocConfig(t) {
           formatOptionalMoney(getPurchaseBaseUnitCostAfterDiscount(item)),
           fmt(item.unit_cost),
           renderDiscounts(item.discounts),
-          fmt(item.amount),
+          item.item_status === "cancelled" ? (
+            <span className="detail-item-amount-cancelled">{fmt(item.amount)}</span>
+          ) : (
+            fmt(item.amount)
+          ),
         ]),
+        rowClassNames: (doc.items || []).map((item) =>
+          item.item_status === "cancelled" ? "detail-item-cancelled" : undefined
+        ),
       }),
-      totals: (doc) => [
-        { label: t("common.total"), value: fmt(doc.total_before_vat) },
-        { label: t("documentRef.paymentTermVAT"), value: fmt(doc.vat_amount) },
-        { label: t("common.grandTotal"), value: fmt(doc.grand_total), strong: true },
-      ],
+      totals: (doc) => buildPurchasePayableTotals(doc, t),
       refs: (doc) => [
         {
           label: t("documentRef.sourceQuotation"),
@@ -369,7 +414,7 @@ function buildDocConfig(t) {
           formatDate(line.purchase_payment_date),
           line.paid ? t("common.yes") : t("common.no"),
           formatDate(line.paid_date),
-          fmt(line.amount),
+          <PaymentLineAmount key={line.id || index} line={line} />,
         ]),
       }),
       totals: (doc) => [{ label: t("common.total"), value: fmt(doc.total_amount), strong: true }],
@@ -503,7 +548,7 @@ function DocumentDetailBody({ entry, onOpenRef }) {
               </thead>
               <tbody>
                 {itemTable.rows.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                  <tr key={rowIndex} className={itemTable.rowClassNames?.[rowIndex]}>
                     {row.map((cell, cellIndex) => (
                       <td key={cellIndex}>{cell}</td>
                     ))}
@@ -517,10 +562,12 @@ function DocumentDetailBody({ entry, onOpenRef }) {
 
       {totals.length > 0 && (
         <div className="tx-sales-summary">
-          {totals.map(({ label, value, strong }) => (
+          {totals.map(({ label, value, strong, className }) => (
             <div
               key={label}
-              className={strong ? "tx-summary-row tx-summary-grand" : "tx-summary-row"}
+              className={`${
+                strong ? "tx-summary-row tx-summary-grand" : "tx-summary-row"
+              }${className ? ` ${className}` : ""}`}
             >
               {strong ? (
                 <>

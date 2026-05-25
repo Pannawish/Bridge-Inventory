@@ -3,6 +3,31 @@
   overflow: hidden;
 }
 
+.payment-batch-amount-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.payment-batch-original-amount {
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-decoration: line-through;
+}
+
+.payment-batch-reason {
+  font-size: 0.78rem;
+  color: var(--danger);
+  cursor: help;
+}
+
+.payment-batch-discrepancy {
+  font-size: 0.78rem;
+  color: var(--warning);
+  cursor: help;
+}
+
 .billing-note-create-card .form-layout,
 .billing-note-create-card .form-grid,
 .billing-note-create-card label,

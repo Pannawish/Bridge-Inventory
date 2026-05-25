@@ -279,6 +279,10 @@ class Purchase(TimeStampedModel):
     total_before_vat = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     vat_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     grand_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    # Effective amount still owed to the supplier: grand_total minus the value of
+    # cancelled line items. Recomputed server-side whenever items change so linked
+    # payment batches always reflect the correct amount to pay.
+    payable_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     source_quotation = models.ForeignKey(
         "Quotation",
         on_delete=models.SET_NULL,

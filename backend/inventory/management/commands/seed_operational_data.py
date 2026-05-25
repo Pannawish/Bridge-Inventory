@@ -657,6 +657,18 @@ class Command(BaseCommand):
                     discounts=item["discounts"],
                     amount=item["amount"],
                 )
+            full_base = sum(decimal(item["amount"]) for item in line_specs)
+            payable_base = sum(
+                decimal(item["amount"])
+                for item in line_specs
+                if item["item_status"] != "cancelled"
+            )
+            purchase.payable_total = (
+                grand_total
+                if full_base <= 0
+                else money(grand_total * (payable_base / full_base))
+            )
+            purchase.save(update_fields=["payable_total"])
             purchases.append(purchase)
         return purchases
 
@@ -1197,7 +1209,7 @@ class Command(BaseCommand):
                             (purchase.payment_date or planned_payment_date)
                             + timedelta(days=rng.choice([-1, 0, 1, 2])),
                         )
-                    amount = money(purchase.grand_total)
+                    amount = money(purchase.payable_total or purchase.grand_total)
                     line_rows.append(
                         PaymentBatchLine(
                             payment_batch=payment_batch,

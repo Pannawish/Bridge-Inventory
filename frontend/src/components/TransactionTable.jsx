@@ -265,6 +265,35 @@ function TransactionTable({
     return { subtotal: itemTotal, vat, grandTotal: itemTotal + vat };
   }
 
+  function getPurchasePayableSummary(row) {
+    const { grandTotal } = getVatSummary(row);
+    const items = row.items || [];
+
+    let fullBase = 0;
+    let payableBase = 0;
+    let cancelledCount = 0;
+    items.forEach((item) => {
+      const amount = computeItemAmount(item, row);
+      fullBase += amount;
+      if (getStoredPurchaseItemStatus(item, row.status) === "cancelled") {
+        cancelledCount += 1;
+      } else {
+        payableBase += amount;
+      }
+    });
+
+    const payable = fullBase > 0 ? grandTotal * (payableBase / fullBase) : grandTotal;
+    const cancelled = grandTotal - payable;
+
+    return {
+      grandTotal,
+      payable,
+      cancelled,
+      cancelledCount,
+      hasCancelledValue: cancelledCount > 0 && cancelled > 0.005,
+    };
+  }
+
   function getRowGrandTotal(row) {
     const storedGrandTotal = Number(row.grand_total);
 
@@ -1107,9 +1136,13 @@ function TransactionTable({
                           findProductForItem(products, item),
                           "purchase"
                         );
+                        const isCancelled = storedStatus === "cancelled";
 
                         return (
-                          <tr key={item.id || `${item.sku}-${itemIndex}`}>
+                          <tr
+                            key={item.id || `${item.sku}-${itemIndex}`}
+                            className={isCancelled ? "detail-item-cancelled" : undefined}
+                          >
                             <td className="table-index-cell">{itemIndex + 1}</td>
                             <td>{item.product_name}</td>
                             <td>{item.sku || "—"}</td>
@@ -1172,7 +1205,9 @@ function TransactionTable({
                             <td>
                               <DiscountBreakdown item={item} transaction={selectedRow} />
                             </td>
-                            <td>{formatCurrency(amount)}</td>
+                            <td className={isCancelled ? "detail-item-amount-cancelled" : undefined}>
+                              {formatCurrency(amount)}
+                            </td>
                             <td>
                               <button
                                 className="secondary-button table-action-button mark-received-button"
@@ -1195,6 +1230,9 @@ function TransactionTable({
             {(() => {
               const { subtotal, vat, grandTotal } = getVatSummary(selectedRow);
               const showVat = selectedRow.vat_mode !== "none";
+              const payableSummary =
+                type === "purchase" ? getPurchasePayableSummary(selectedRow) : null;
+              const showPayable = payableSummary?.hasCancelledValue;
 
               return (
                 <div className="tx-sales-summary">
@@ -1217,9 +1255,29 @@ function TransactionTable({
                     </>
                   ) : null}
                   <div className="tx-summary-row tx-summary-grand">
-                    <strong>{t("transactionTable.colGrandTotal")}</strong>
+                    <strong>
+                      {showPayable
+                        ? t("transactionTable.originalTotal")
+                        : t("transactionTable.colGrandTotal")}
+                    </strong>
                     <strong>{formatCurrency(grandTotal)}</strong>
                   </div>
+                  {showPayable ? (
+                    <>
+                      <div className="tx-summary-row tx-summary-cancelled">
+                        <span>
+                          {t("transactionTable.cancelledAmount", {
+                            count: payableSummary.cancelledCount,
+                          })}
+                        </span>
+                        <span>−{formatCurrency(payableSummary.cancelled)}</span>
+                      </div>
+                      <div className="tx-summary-row tx-summary-grand tx-summary-payable">
+                        <strong>{t("transactionTable.amountPayable")}</strong>
+                        <strong>{formatCurrency(payableSummary.payable)}</strong>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               );
             })()}

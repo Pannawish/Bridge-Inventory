@@ -4,6 +4,7 @@ import EligiblePartyCombobox from "./EligiblePartyCombobox";
 import PaginationControls from "./PaginationControls";
 import DocumentRefChip from "./DocumentRefChip";
 import DocumentRefModal from "./DocumentRefModal";
+import PaymentLineAmount from "./PaymentLineAmount";
 import {
   FilterPresets,
   ActiveFilterChips,
@@ -67,6 +68,14 @@ function isPurchaseAvailableForPaymentBatch(
   );
 }
 
+function getPurchasePayable(purchase) {
+  const payable = Number(purchase.payable_total);
+  if (Number.isFinite(payable) && payable > 0) {
+    return payable;
+  }
+  return Number(purchase.grand_total) || 0;
+}
+
 function buildLinesFromPurchases(selectedPurchases) {
   return selectedPurchases.map((purchase) => ({
     id: `temp-line-${purchase.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -76,12 +85,13 @@ function buildLinesFromPurchases(selectedPurchases) {
     purchase_transaction_date: purchase.transaction_date,
     purchase_status: purchase.status,
     purchase_grand_total: purchase.grand_total,
+    purchase_payable_total: purchase.payable_total,
     purchase_payment_term_type: purchase.payment_term_type,
     purchase_payment_term_days: purchase.payment_term_days,
     purchase_payment_date: purchase.payment_date,
     paid: false,
     paid_date: null,
-    amount: Number(purchase.grand_total) || 0,
+    amount: getPurchasePayable(purchase),
   }));
 }
 
@@ -196,7 +206,7 @@ function CreatePaymentBatchModal({
   const totalAmount = useMemo(() => {
     return eligiblePurchases
       .filter((p) => selectedPurchaseIds.has(p.id))
-      .reduce((acc, p) => acc + (Number(p.grand_total) || 0), 0);
+      .reduce((acc, p) => acc + getPurchasePayable(p), 0);
   }, [eligiblePurchases, selectedPurchaseIds]);
 
   function handleSubmit(event) {
@@ -388,7 +398,28 @@ function CreatePaymentBatchModal({
                                   : "—"}
                             </td>
                             <td>{formatDate(purchase.payment_date)}</td>
-                            <td>{fmt(purchase.grand_total)}</td>
+                            <td>
+                              {(() => {
+                                const payable = getPurchasePayable(purchase);
+                                const original = Number(purchase.grand_total) || 0;
+                                const reduced = original - payable > 0.005;
+                                return (
+                                  <div className="payment-batch-amount-cell">
+                                    <span>{fmt(payable)}</span>
+                                    {reduced ? (
+                                      <span
+                                        className="payment-batch-original-amount"
+                                        title={t("paymentBatch.reducedFromOriginal", {
+                                          amount: fmt(original),
+                                        })}
+                                      >
+                                        {fmt(original)}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                );
+                              })()}
+                            </td>
                           </tr>
                         );
                       })}
@@ -708,7 +739,7 @@ function PaymentBatchDetailModal({
                         "—"
                       )}
                     </td>
-                    <td>{fmt(line.amount)}</td>
+                    <td><PaymentLineAmount line={line} /></td>
                   </tr>
                 ))}
               </tbody>

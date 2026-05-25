@@ -13,6 +13,7 @@ from .models import (
     BillingNote,
     Customer,
     PaymentBatch,
+    PaymentBatchLine,
     Product,
     Purchase,
     PurchaseItem,
@@ -352,6 +353,97 @@ def apply_purchase_status_to_items(purchase):
         purchase.items.update(item_status=PurchaseItem.ITEM_CANCELLED, received_date=None)
     elif purchase.status in {Purchase.STATUS_DRAFT, Purchase.STATUS_ORDERED}:
         purchase.items.update(item_status=PurchaseItem.ITEM_PENDING, received_date=None)
+
+
+def to_decimal(value):
+    """Coerce a model/decimal/number value into Decimal for money math.
+
+    Unlike ``as_number`` (which returns int/float for display), this keeps
+    financial values as Decimal so totals stay exact.
+    """
+    if value in (None, ""):
+        return Decimal("0")
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
+
+
+def compute_purchase_payable_total(purchase):
+    """Return the amount still owed for a purchase: grand_total minus the value
+    of cancelled line items.
+
+    Cancelled items keep their stored ``amount`` so the original document total
+    (``grand_total``) stays intact for audit. The payable amount is derived by
+    scaling ``grand_total`` by the non-cancelled share of the line totals, which
+    preserves the purchase's VAT and bill-discount math without re-deriving it.
+    """
+    items = list(purchase.items.all())
+    full_base = sum((to_decimal(item.amount) for item in items), Decimal("0"))
+    payable_base = sum(
+        (
+            to_decimal(item.amount)
+            for item in items
+            if item.item_status != PurchaseItem.ITEM_CANCELLED
+        ),
+        Decimal("0"),
+    )
+
+    grand_total = to_decimal(purchase.grand_total)
+
+    if not items:
+        return grand_total
+    if full_base <= 0:
+        return Decimal("0") if payable_base <= 0 else grand_total
+
+    payable = grand_total * (payable_base / full_base)
+    return payable.quantize(Decimal("0.01"))
+
+
+def recalculate_purchase_payable(purchase, save=True):
+    """Recompute and store ``purchase.payable_total`` from its current items."""
+    payable_total = compute_purchase_payable_total(purchase)
+    if to_decimal(purchase.payable_total) != payable_total:
+        purchase.payable_total = payable_total
+        if save:
+            purchase.save(update_fields=["payable_total", "updated_at"])
+    return payable_total
+
+
+def recalculate_payment_batch_total(payment_batch):
+    total = sum(
+        (to_decimal(line.amount) for line in payment_batch.lines.all()),
+        Decimal("0"),
+    )
+    if to_decimal(payment_batch.total_amount) != total:
+        payment_batch.total_amount = total
+        payment_batch.save(update_fields=["total_amount", "updated_at"])
+    return total
+
+
+def sync_supplier_payment_lines_for_purchase(purchase):
+    """Keep supplier payment batches aligned with a purchase's payable amount.
+
+    Lines that are not yet paid are re-synced to the current payable total so the
+    business always sees the correct amount to pay. Lines already marked paid are
+    left frozen as a financial record; any difference from the current payable is
+    surfaced in the UI for reconciliation rather than rewritten here.
+    """
+    payable_total = to_decimal(purchase.payable_total)
+
+    affected_batch_ids = set()
+    lines = (
+        PaymentBatchLine.objects.select_related("payment_batch")
+        .filter(purchase=purchase, paid=False)
+        .exclude(payment_batch__status=PaymentBatch.STATUS_CANCELLED)
+    )
+    for line in lines:
+        if to_decimal(line.amount) != payable_total:
+            line.amount = payable_total
+            line.save(update_fields=["amount"])
+        affected_batch_ids.add(line.payment_batch_id)
+
+    for batch in PaymentBatch.objects.filter(id__in=affected_batch_ids):
+        recalculate_payment_batch_total(batch)
 
 
 def set_item_payload_value(item, field_name, value):

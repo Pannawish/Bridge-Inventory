@@ -698,6 +698,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "total_before_vat",
             "vat_amount",
             "grand_total",
+            "payable_total",
             "items",
             "source_quotation_id",
             "source_quotation_reference_no",
@@ -717,6 +718,8 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "total_before_vat": {"required": False},
             "vat_amount": {"required": False},
             "grand_total": {"required": False},
+            # Derived server-side from item statuses; never written by clients.
+            "payable_total": {"read_only": True},
         }
 
     def get_document_url(self, purchase):
@@ -837,6 +840,8 @@ class PurchaseSerializer(serializers.ModelSerializer):
         apply_purchase_status_to_items(purchase)
 
     def create(self, validated_data):
+        from .services import recalculate_purchase_payable
+
         items = validated_data.pop("items", [])
         legacy_document = validated_data.pop("document", None)
         uploaded_documents = validated_data.pop("uploaded_documents", [])
@@ -849,9 +854,15 @@ class PurchaseSerializer(serializers.ModelSerializer):
                 [document for document in [legacy_document, *uploaded_documents] if document],
             )
             self._replace_items(purchase, items)
+            recalculate_purchase_payable(purchase)
         return purchase
 
     def update(self, instance, validated_data):
+        from .services import (
+            recalculate_purchase_payable,
+            sync_supplier_payment_lines_for_purchase,
+        )
+
         items = validated_data.pop("items", None)
         legacy_document = validated_data.pop("document", None)
         uploaded_documents = validated_data.pop("uploaded_documents", [])
@@ -887,6 +898,11 @@ class PurchaseSerializer(serializers.ModelSerializer):
                 self._apply_status_to_items(instance)
                 if hasattr(instance, "_prefetched_objects_cache"):
                     instance._prefetched_objects_cache = {}
+
+            # Item totals or statuses may have changed; keep the payable amount
+            # and any linked supplier payment batches in sync.
+            recalculate_purchase_payable(instance)
+            sync_supplier_payment_lines_for_purchase(instance)
 
         return instance
 
@@ -1919,6 +1935,13 @@ class PaymentBatchLineSerializer(serializers.ModelSerializer):
         decimal_places=2,
         read_only=True,
     )
+    purchase_payable_total = serializers.DecimalField(
+        source="purchase.payable_total",
+        max_digits=14,
+        decimal_places=2,
+        read_only=True,
+    )
+    purchase_cancelled_items = serializers.SerializerMethodField()
     purchase_payment_term_type = serializers.CharField(
         source="purchase.payment_term_type",
         read_only=True,
@@ -1942,6 +1965,8 @@ class PaymentBatchLineSerializer(serializers.ModelSerializer):
             "purchase_transaction_date",
             "purchase_status",
             "purchase_grand_total",
+            "purchase_payable_total",
+            "purchase_cancelled_items",
             "purchase_payment_term_type",
             "purchase_payment_term_days",
             "purchase_payment_date",
@@ -1956,6 +1981,24 @@ class PaymentBatchLineSerializer(serializers.ModelSerializer):
             "paid_date": {"required": False, "allow_null": True},
             "amount": {"required": False},
         }
+
+    def get_purchase_cancelled_items(self, line):
+        """Cancelled line items on the purchase, used to explain why the amount
+        owed is lower than the purchase's original total."""
+        purchase = line.purchase
+        if purchase is None:
+            return []
+        return [
+            {
+                "product_name": item.product_name,
+                "sku": item.sku,
+                "quantity": item.quantity,
+                "unit": item.unit,
+                "amount": item.amount,
+            }
+            for item in purchase.items.all()
+            if item.item_status == PurchaseItem.ITEM_CANCELLED
+        ]
 
 
 class PaymentBatchSerializer(serializers.ModelSerializer):
@@ -2070,11 +2113,22 @@ class PaymentBatchSerializer(serializers.ModelSerializer):
         total = Decimal("0")
         for line in lines:
             purchase_obj = line["purchase"]
-            amount = decimal_or_zero(line.get("amount"))
-            if amount == 0:
-                amount = decimal_or_zero(getattr(purchase_obj, "grand_total", 0))
             paid = bool(line.get("paid", False))
             paid_date = line.get("paid_date") or None
+
+            # The amount still owed for the purchase, excluding cancelled items.
+            # Fall back to the full total only when a payable has not been derived
+            # yet (e.g. legacy rows), never below the real amount owed.
+            payable = decimal_or_zero(getattr(purchase_obj, "payable_total", 0))
+            if payable <= 0:
+                payable = decimal_or_zero(getattr(purchase_obj, "grand_total", 0))
+
+            if paid:
+                # Paid lines are frozen as a financial record of what was committed.
+                amount = decimal_or_zero(line.get("amount")) or payable
+            else:
+                # Unpaid lines always reflect the current amount owed.
+                amount = payable
             rows.append(
                 PaymentBatchLine(
                     payment_batch=payment_batch,

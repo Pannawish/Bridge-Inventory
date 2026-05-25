@@ -320,6 +320,7 @@ def serialize_purchase_lookup(purchase):
         "payment_term_days": purchase.payment_term_days,
         "payment_date": purchase.payment_date,
         "grand_total": purchase.grand_total,
+        "payable_total": purchase.payable_total,
     }
 
 
@@ -799,7 +800,9 @@ class CreditNoteViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
 
 class PaymentBatchViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     reference_prefix = "PMT"
-    queryset = PaymentBatch.objects.select_related("supplier").prefetch_related("lines__purchase")
+    queryset = PaymentBatch.objects.select_related("supplier").prefetch_related(
+        "lines__purchase__items"
+    )
     serializer_class = PaymentBatchSerializer
     search_fields = (
         "reference_no",

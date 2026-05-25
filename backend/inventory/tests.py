@@ -1856,3 +1856,179 @@ class QuotationSupplierTests(APITestCase):
         sale_item = SaleItem.objects.get(sale_id=response.data["id"])
         self.assertEqual(sale_item.supplier_id, self.supplier_a.id)
         self.assertEqual(sale_item.unit_cost, Decimal("70"))
+
+
+class PurchasePayableSyncTests(APITestCase):
+    """A purchase's payable amount excludes cancelled items, and linked supplier
+    payment batches stay in sync with it (syncing unpaid lines, freezing paid ones)."""
+
+    def setUp(self):
+        self.today = timezone.localdate()
+        self.supplier = Supplier.objects.create(company_name="Payable Supplier")
+        self.product_a = Product.objects.create(
+            sku="PAY-A", product_name="Payable Product A"
+        )
+        self.product_b = Product.objects.create(
+            sku="PAY-B", product_name="Payable Product B"
+        )
+
+    def _item(self, product, quantity, unit_cost, item_status="received"):
+        amount = Decimal(quantity) * Decimal(unit_cost)
+        return {
+            "product_id": product.id,
+            "product_name": product.product_name,
+            "sku": product.sku,
+            "unit": "pcs",
+            "base_unit": "pcs",
+            "conversion_factor": "1",
+            "quantity": str(quantity),
+            "base_quantity": str(quantity),
+            "unit_cost": str(unit_cost),
+            "amount": str(amount),
+            "item_status": item_status,
+        }
+
+    def _create_purchase(self, items, status=Purchase.STATUS_RECEIVED):
+        grand_total = sum(Decimal(item["amount"]) for item in items)
+        payload = {
+            "supplier_name": self.supplier.company_name,
+            "status": status,
+            "transaction_date": self.today.isoformat(),
+            "vat_mode": "none",
+            "total_before_vat": str(grand_total),
+            "vat_amount": "0",
+            "grand_total": str(grand_total),
+            "items": items,
+        }
+        response = self.client.post("/api/purchases/", payload, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        return response.data
+
+    def _create_payment_batch(self, purchase_id, paid=False, amount=None):
+        line = {"purchase": purchase_id, "paid": paid}
+        if paid:
+            line["paid_date"] = self.today.isoformat()
+        if amount is not None:
+            line["amount"] = str(amount)
+        payload = {
+            "supplier_name": self.supplier.company_name,
+            "batch_date": self.today.isoformat(),
+            "status": PaymentBatch.STATUS_SCHEDULED,
+            "lines": [line],
+        }
+        response = self.client.post("/api/payment-batches/", payload, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        return response.data
+
+    def _cancel_first_item(self, purchase):
+        items = [
+            self._item(self.product_a, 4, 100, item_status="cancelled"),
+            self._item(self.product_b, 1, 100, item_status="received"),
+        ]
+        response = self.client.patch(
+            f"/api/purchases/{purchase['id']}/",
+            {
+                "vat_mode": "none",
+                "total_before_vat": "500",
+                "vat_amount": "0",
+                "grand_total": "500",
+                "items": items,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        return response.data
+
+    def test_cancelling_item_reduces_payable_but_keeps_grand_total(self):
+        purchase = self._create_purchase(
+            [
+                self._item(self.product_a, 4, 100),  # 400
+                self._item(self.product_b, 1, 100),  # 100
+            ]
+        )
+        self.assertEqual(Decimal(purchase["grand_total"]), Decimal("500"))
+        self.assertEqual(Decimal(purchase["payable_total"]), Decimal("500"))
+
+        updated = self._cancel_first_item(purchase)
+        # The original document total stays for audit; payable drops by the
+        # cancelled 400.
+        self.assertEqual(Decimal(updated["grand_total"]), Decimal("500"))
+        self.assertEqual(Decimal(updated["payable_total"]), Decimal("100"))
+
+    def test_editing_quantity_changes_payable_total(self):
+        purchase = self._create_purchase([self._item(self.product_a, 10, 100)])
+        self.assertEqual(Decimal(purchase["payable_total"]), Decimal("1000"))
+
+        response = self.client.patch(
+            f"/api/purchases/{purchase['id']}/",
+            {
+                "vat_mode": "none",
+                "total_before_vat": "700",
+                "vat_amount": "0",
+                "grand_total": "700",
+                "items": [self._item(self.product_a, 7, 100)],
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(Decimal(response.data["payable_total"]), Decimal("700"))
+
+    def test_payment_batch_line_defaults_to_payable_total(self):
+        purchase = self._create_purchase(
+            [
+                self._item(self.product_a, 4, 100, item_status="cancelled"),
+                self._item(self.product_b, 1, 100, item_status="received"),
+            ],
+            status=Purchase.STATUS_RECEIVED,
+        )
+        self.assertEqual(Decimal(purchase["payable_total"]), Decimal("100"))
+
+        batch = self._create_payment_batch(purchase["id"])
+        self.assertEqual(Decimal(batch["total_amount"]), Decimal("100"))
+        self.assertEqual(Decimal(batch["lines"][0]["amount"]), Decimal("100"))
+        self.assertEqual(
+            Decimal(batch["lines"][0]["purchase_grand_total"]), Decimal("500")
+        )
+
+    def test_unpaid_payment_line_resyncs_when_purchase_is_cancelled(self):
+        purchase = self._create_purchase(
+            [
+                self._item(self.product_a, 4, 100),
+                self._item(self.product_b, 1, 100),
+            ]
+        )
+        batch = self._create_payment_batch(purchase["id"], paid=False)
+        self.assertEqual(Decimal(batch["lines"][0]["amount"]), Decimal("500"))
+
+        self._cancel_first_item(purchase)
+
+        line = PaymentBatchLine.objects.get(payment_batch_id=batch["id"])
+        self.assertEqual(line.amount, Decimal("100"))
+        batch_obj = PaymentBatch.objects.get(id=batch["id"])
+        self.assertEqual(batch_obj.total_amount, Decimal("100"))
+
+    def test_paid_payment_line_is_frozen_when_purchase_changes(self):
+        purchase = self._create_purchase(
+            [
+                self._item(self.product_a, 4, 100),
+                self._item(self.product_b, 1, 100),
+            ]
+        )
+        batch = self._create_payment_batch(
+            purchase["id"], paid=True, amount=Decimal("500")
+        )
+        self.assertEqual(Decimal(batch["lines"][0]["amount"]), Decimal("500"))
+
+        self._cancel_first_item(purchase)
+
+        # Paid line keeps its committed amount; the discrepancy is visible via the
+        # current payable exposed on the line.
+        line = PaymentBatchLine.objects.get(payment_batch_id=batch["id"])
+        self.assertEqual(line.amount, Decimal("500"))
+
+        response = self.client.get(f"/api/payment-batches/{batch['id']}/")
+        self.assertEqual(response.status_code, 200)
+        line_data = response.data["lines"][0]
+        self.assertEqual(Decimal(line_data["amount"]), Decimal("500"))
+        self.assertEqual(Decimal(line_data["purchase_payable_total"]), Decimal("100"))
+        self.assertEqual(len(line_data["purchase_cancelled_items"]), 1)
