@@ -18,7 +18,7 @@ import {
 import { formatDate, formatMoney as fmt, formatNumber } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
 import { PAGE_SIZE } from "../app/appUtils";
-import { isProductActive } from "./products/productUtils";
+import { isProductActive, itemMatchesProduct } from "./products/productUtils";
 
 const VAT_RATE = 0.07;
 const vatOptionValues = ["included", "not_included"];
@@ -136,25 +136,7 @@ function getProductSku(product) {
 }
 
 function findProductForItem(item, products = []) {
-  if (item.product_id) {
-    const byId = products.find((product) => `${product.id}` === `${item.product_id}`);
-
-    if (byId) {
-      return byId;
-    }
-  }
-
-  const sku = `${item.sku || ""}`.trim().toLowerCase();
-  if (sku) {
-    const bySku = products.find((product) => getProductSku(product).toLowerCase() === sku);
-
-    if (bySku) {
-      return bySku;
-    }
-  }
-
-  const productName = `${item.product_name || ""}`.trim().toLowerCase();
-  return products.find((product) => getProductName(product).toLowerCase() === productName);
+  return products.find((product) => itemMatchesProduct(item, product));
 }
 
 function normalizeDiscounts(item) {

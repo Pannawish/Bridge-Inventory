@@ -96,7 +96,11 @@ export function mergeSavedQuotation(currentRows, sourceQuotation, savedQuotation
   ];
 }
 
-export function mergeQuotationRowsWithMocks(quotationRows = []) {
+export function mergeQuotationRowsWithMocks(quotationRows = [], includeMocks = true) {
+  if (!includeMocks) {
+    return quotationRows;
+  }
+
   const realIds = new Set(quotationRows.map((quotation) => `${quotation.id}`));
   const visibleMocks = mockQuotations.filter(
     (quotation) => !realIds.has(`${quotation.id}`)

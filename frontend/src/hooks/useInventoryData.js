@@ -378,10 +378,12 @@ export function useInventoryData() {
 
     if (quotationResult.status === "fulfilled") {
       const quotationRows = getCollectionRows(quotationResult.value);
-      setQuotations(mergeQuotationRowsWithMocks(quotationRows));
+      setQuotations(mergeQuotationRowsWithMocks(quotationRows, false));
       setUsingMockQuotations(false);
     } else {
-      setQuotations(mockQuotations);
+      setQuotations(
+        productResult.status === "fulfilled" ? [] : mergeQuotationRowsWithMocks([], true)
+      );
       setUsingMockQuotations(true);
       failures.push("quotations");
     }
