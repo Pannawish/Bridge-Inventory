@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatDate, formatMoney as fmt } from "../format";
 import BillingNoteDetailModal from "./billing/BillingNoteDetailModal";
+import BillingNoteDirectorySection from "./billing/BillingNoteDirectorySection";
 import CreateBillingNoteModal from "./billing/CreateBillingNoteModal";
-import BillingNoteStatusPill from "./billing/BillingNoteStatusPill";
 import {
   billingNoteInDateRange,
   billingNoteMatchesQuery,
@@ -10,19 +9,12 @@ import {
   formatBillingNoteStatus,
   getToday,
 } from "./billing/billingNoteUtils";
-import PaginationControls from "./PaginationControls";
-import {
-  FilterPresets,
-  ActiveFilterChips,
-  RangeField,
-  withinRange,
-} from "./FilterControls";
+import { withinRange } from "./FilterControls";
 import { useLanguage } from "../i18n/LanguageContext";
 
 function BillingNotePage({
   billingNotes = [],
   allBillingNotes = billingNotes,
-  customers = [],
   sales = [],
   summary: serverSummary = null,
   nextReferenceNo = "",
@@ -253,262 +245,41 @@ function BillingNotePage({
 
   return (
     <div className="stack-layout">
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("billingNote.receivablesEyebrow")}</p>
-            <h3>{t("billingNote.receivablesTitle")}</h3>
-          </div>
-        </div>
-
-        <div className="dashboard-summary-grid">
-          <article className="dashboard-kpi-card neutral">
-            <p>{t("billingNote.outstanding")}</p>
-            <strong>{fmt(summary.outstanding)}</strong>
-            <span>{t("billingNote.outstandingDesc")}</span>
-          </article>
-          <article className="dashboard-kpi-card danger">
-            <p>{t("billingNote.overdue")}</p>
-            <strong>{fmt(summary.overdue)}</strong>
-            <span>{t("billingNote.overdueDesc")}</span>
-          </article>
-          <article className="dashboard-kpi-card positive">
-            <p>{t("billingNote.received")}</p>
-            <strong>{fmt(summary.received)}</strong>
-            <span>{t("billingNote.receivedDesc")}</span>
-          </article>
-        </div>
-      </section>
-
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("billingNote.searchEyebrow")}</p>
-            <h3>{t("billingNote.searchTitle")}</h3>
-          </div>
-        </div>
-
-        <div className="supplier-directory-toolbar">
-          <label className="stock-search supplier-search">
-            <span className="stock-search-icon">S</span>
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder={t("billingNote.searchPlaceholder")}
-            />
-          </label>
-          <div className="stock-report-summary supplier-search-meta">
-            <span>
-              {isServerPaginated
-                ? t("billingNote.pageCountServer", { count: filtered.length, total: totalBillingNoteCount })
-                : t("billingNote.pageCountLocal", { count: filtered.length, total: billingNotes.length })}
-            </span>
-          </div>
-        </div>
-
-        <div className="history-filter-actions">
-          <button
-            className="secondary-button product-filter-toggle"
-            type="button"
-            aria-expanded={filterOpen}
-            onClick={() => setFilterOpen((value) => !value)}
-          >
-            {t("filterControls.filter")}
-            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
-          </button>
-          <button className="secondary-button" type="button" onClick={resetFilters}>
-            {t("filterControls.resetFilter")}
-          </button>
-        </div>
-
-        <FilterPresets presets={quickPresets} />
-        <ActiveFilterChips chips={activeChips} onClearAll={resetFilters} />
-
-        {filterOpen ? (
-          <div className="history-filter-panel">
-            <div className="history-filter-grid">
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("common.status")}</span>
-                <select
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value)}
-                >
-                  <option value="all">{t("filterControls.allStatuses")}</option>
-                  {STATUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("filterControls.from")}</span>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(event) => setDateFrom(event.target.value)}
-                />
-              </label>
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("filterControls.to")}</span>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(event) => setDateTo(event.target.value)}
-                />
-              </label>
-              <RangeField
-                title={t("filterControls.amountBaht")}
-                prefix="฿"
-                minValue={amountMin}
-                maxValue={amountMax}
-                onMinChange={setAmountMin}
-                onMaxChange={setAmountMax}
-              />
-            </div>
-          </div>
-        ) : null}
-      </section>
-
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("billingNote.historyEyebrow")}</p>
-            <h3>{t("billingNote.historyTitle")}</h3>
-          </div>
-          <div className="transaction-table-actions">
-            <button
-              className="primary-button"
-              type="button"
-              onClick={() => setCreating(true)}
-            >
-              {t("billingNote.createButton")}
-            </button>
-            {shouldShowViewAll ? (
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() => setShowAllRows((value) => !value)}
-              >
-                {showAllRows ? t("common.showRecent") : t("common.viewMore")}
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        {filtered.length === 0 ? (
-          <p className="empty-copy">{t("billingNote.noMatch")}</p>
-        ) : (
-          <div
-            className={
-              isCompact
-                ? "transaction-table-window partner-table-window compact-history"
-                : "transaction-table-window partner-table-window"
-            }
-          >
-            <div className="table-scroll desktop-table">
-              <table className="transaction-history-table">
-                <thead>
-                  <tr>
-                    <th className="table-index-cell">#</th>
-                    <th>{t("billingNote.colReference")}</th>
-                    <th>{t("billingNote.colCustomer")}</th>
-                    <th>{t("billingNote.colIssued")}</th>
-                    <th>{t("billingNote.colExpected")}</th>
-                    <th>{t("billingNote.colActual")}</th>
-                    <th>{t("billingNote.colStatus")}</th>
-                    <th>{t("billingNote.colTotal")}</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((note, index) => (
-                    <tr
-                      key={note.id}
-                      className={
-                        activeBillingNote?.id === note.id
-                          ? "partner-table-row active"
-                          : "partner-table-row"
-                      }
-                    >
-                      <td className="table-index-cell">{index + 1}</td>
-                      <td>{note.reference_no || note.id}</td>
-                      <td>{note.customer_name}</td>
-                      <td>{formatDate(note.billing_note_date)}</td>
-                      <td>{formatDate(note.expected_payment_date)}</td>
-                      <td>{formatDate(note.actual_payment_date)}</td>
-                      <td>
-                        <BillingNoteStatusPill status={note.status} />
-                      </td>
-                      <td>{fmt(note.total_amount)}</td>
-                      <td>
-                        <button
-                          className="table-action-button"
-                          type="button"
-                          onClick={() => setActiveBillingNote(note)}
-                        >
-                          {t("common.view")}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mobile-record-list">
-              {filtered.map((note, index) => (
-                <article
-                  className="mobile-record-card"
-                  key={`mobile-bn-${note.id}`}
-                >
-                  <div className="mobile-record-header">
-                    <div className="mobile-record-title">
-                      <span className="mobile-record-index">{index + 1}</span>
-                      <div className="cell-stack">
-                        <strong>{note.reference_no || note.id}</strong>
-                        <span>{note.customer_name}</span>
-                      </div>
-                    </div>
-                    <BillingNoteStatusPill status={note.status} />
-                  </div>
-                  <div className="mobile-record-grid">
-                    <div>
-                      <span>{t("billingNote.colIssued")}</span>
-                      <strong>{formatDate(note.billing_note_date)}</strong>
-                    </div>
-                    <div>
-                      <span>{t("billingNote.colExpected")}</span>
-                      <strong>{formatDate(note.expected_payment_date)}</strong>
-                    </div>
-                    <div>
-                      <span>{t("billingNote.colActual")}</span>
-                      <strong>{formatDate(note.actual_payment_date)}</strong>
-                    </div>
-                    <div>
-                      <span>{t("billingNote.colTotal")}</span>
-                      <strong>{fmt(note.total_amount)}</strong>
-                    </div>
-                  </div>
-                  <button
-                    className="secondary-button table-action-button mobile-record-button"
-                    type="button"
-                    onClick={() => setActiveBillingNote(note)}
-                  >
-                    {t("common.view")}
-                  </button>
-                </article>
-              ))}
-            </div>
-          </div>
-        )}
-        <PaginationControls
-          pagination={pagination}
-          itemLabel={t("billingNote.historyTitle")}
-          onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
-        />
-      </section>
+      <BillingNoteDirectorySection
+        billingNotes={billingNotes}
+        filteredBillingNotes={filtered}
+        summary={summary}
+        pagination={pagination}
+        isServerPaginated={isServerPaginated}
+        totalBillingNoteCount={totalBillingNoteCount}
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        filterOpen={filterOpen}
+        onToggleFilter={() => setFilterOpen((value) => !value)}
+        activeFilterCount={activeFilterCount}
+        onResetFilters={resetFilters}
+        quickPresets={quickPresets}
+        activeChips={activeChips}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        statusOptions={STATUS_OPTIONS}
+        dateFrom={dateFrom}
+        onDateFromChange={setDateFrom}
+        dateTo={dateTo}
+        onDateToChange={setDateTo}
+        amountMin={amountMin}
+        onAmountMinChange={setAmountMin}
+        amountMax={amountMax}
+        onAmountMaxChange={setAmountMax}
+        shouldShowViewAll={shouldShowViewAll}
+        showAllRows={showAllRows}
+        onToggleShowAllRows={() => setShowAllRows((value) => !value)}
+        isCompact={isCompact}
+        activeBillingNote={activeBillingNote}
+        onSelectBillingNote={setActiveBillingNote}
+        onCreateBillingNote={() => setCreating(true)}
+        onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
+      />
 
       {activeBillingNote ? (
         <BillingNoteDetailModal
