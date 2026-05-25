@@ -10,21 +10,15 @@ import {
   RangeField,
   withinRange,
 } from "./FilterControls";
+import { useLanguage } from "../i18n/LanguageContext";
 
-const STATUS_LABELS = {
-  draft: "Draft",
-  issued: "Issued",
-  partially_received: "Partially Received",
-  fully_received: "Fully Received",
-  cancelled: "Cancelled",
+const STATUS_LABEL_KEYS = {
+  draft: "billingNote.statusDraft",
+  issued: "billingNote.statusIssued",
+  partially_received: "billingNote.statusPartiallyReceived",
+  fully_received: "billingNote.statusFullyReceived",
+  cancelled: "billingNote.statusCancelled",
 };
-
-const STATUS_OPTIONS = [
-  { value: "issued", label: "Issued" },
-  { value: "partially_received", label: "Partially Received" },
-  { value: "fully_received", label: "Fully Received" },
-  { value: "cancelled", label: "Cancelled" },
-];
 
 function getToday() {
   return new Date().toISOString().split("T")[0];
@@ -39,8 +33,9 @@ function daysAgoString(days) {
   return `${year}-${month}-${day}`;
 }
 
-function formatStatus(status) {
-  return STATUS_LABELS[status] || status || "—";
+function formatStatus(status, t) {
+  const key = STATUS_LABEL_KEYS[status];
+  return key ? t(key) : (status || "—");
 }
 
 function getNextReferenceNo(billingNotes) {
@@ -107,11 +102,11 @@ function computeActualPaymentDate(lines) {
   return dates.reduce((max, current) => (current > max ? current : max));
 }
 
-function billingNoteMatchesQuery(note, query) {
+function billingNoteMatchesQuery(note, query, t) {
   const text = [
     note.reference_no,
     note.customer_name,
-    formatStatus(note.status),
+    formatStatus(note.status, t),
     note.billing_note_date,
     note.expected_payment_date,
     note.actual_payment_date,
@@ -136,8 +131,9 @@ function billingNoteInDateRange(note, dateFrom, dateTo) {
 }
 
 function StatusPill({ status }) {
+  const { t } = useLanguage();
   const className = `status-badge status-${status || "issued"}`;
-  return <span className={className}>{formatStatus(status)}</span>;
+  return <span className={className}>{formatStatus(status, t)}</span>;
 }
 
 function CreateBillingNoteModal({
@@ -147,6 +143,7 @@ function CreateBillingNoteModal({
   onClose,
   onCreate,
 }) {
+  const { t } = useLanguage();
   const [customerName, setCustomerName] = useState("");
   const [billingNoteDate, setBillingNoteDate] = useState(getToday());
   const [expectedPaymentDate, setExpectedPaymentDate] = useState("");
@@ -204,7 +201,7 @@ function CreateBillingNoteModal({
     event.preventDefault();
 
     if (!customerName) {
-      setError("Choose a customer first.");
+      setError(t("billingNote.selectCustomerFirst"));
       return;
     }
 
@@ -213,7 +210,7 @@ function CreateBillingNoteModal({
     );
 
     if (!chosenSales.length) {
-      setError("Select at least one sales record.");
+      setError(t("billingNote.noEligibleSales"));
       return;
     }
 
@@ -238,15 +235,15 @@ function CreateBillingNoteModal({
     <section className="section-card billing-note-create-card" aria-labelledby="bn-create-title">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Billing Note</p>
-          <h3 id="bn-create-title">Create Billing Note</h3>
+          <p className="eyebrow">{t("billingNote.eyebrow")}</p>
+          <h3 id="bn-create-title">{t("billingNote.createTitle")}</h3>
         </div>
         <button
           className="secondary-button table-action-button"
           type="button"
           onClick={onClose}
         >
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
 
@@ -254,11 +251,11 @@ function CreateBillingNoteModal({
         <div className="form-grid">
           <EligiblePartyCombobox
             id="billing-note-customer"
-            label="Customer"
+            label={t("billingNote.customerLabel")}
             value={customerName}
             options={customerOptions}
-            placeholder="Search eligible customer"
-            emptyMessage="No eligible customers found."
+            placeholder={t("billingNote.searchPlaceholder")}
+            emptyMessage={t("billingNote.noEligibleSales")}
             onChange={(nextCustomerName) => {
               setCustomerName(nextCustomerName);
               setSelectedSaleIds(new Set());
@@ -267,7 +264,7 @@ function CreateBillingNoteModal({
           />
 
           <label>
-            Billing Note Date
+            {t("billingNote.dateLabel")}
             <input
               type="date"
               value={billingNoteDate}
@@ -276,7 +273,7 @@ function CreateBillingNoteModal({
           </label>
 
           <label>
-            Expected Payment Date
+            {t("billingNote.expectedPaymentDate")}
             <input
               type="date"
               value={expectedPaymentDate}
@@ -285,37 +282,37 @@ function CreateBillingNoteModal({
           </label>
 
           <label>
-            Bank Reference
+            {t("billingNote.bankReference")}
             <input
               value={bankReference}
               onChange={(event) => setBankReference(event.target.value)}
-              placeholder="Optional"
+              placeholder={t("common.optional")}
             />
           </label>
 
           <label className="full-width">
-            Note
+            {t("billingNote.noteLabel")}
             <textarea
               rows="2"
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              placeholder="Optional note"
+              placeholder={t("common.optional")}
             />
           </label>
         </div>
 
         <div className="line-items-header">
           <div>
-            <p className="eyebrow">Step 2</p>
-            <h4>Choose Sales Orders</h4>
+            <p className="eyebrow">{t("billingNote.step2")}</p>
+            <h4>{t("billingNote.chooseSales")}</h4>
           </div>
-          <span>{selectedSaleIds.size} selected</span>
+          <span>{t("billingNote.selectedCount", { count: selectedSaleIds.size })}</span>
         </div>
 
         {customerName ? (
           eligibleSales.length === 0 ? (
             <p className="empty-copy">
-              No eligible sales for this customer. (Sales must be shipped/delivered and not in another active billing note.)
+              {t("billingNote.noEligibleSales")}
             </p>
           ) : (
             <>
@@ -325,14 +322,14 @@ function CreateBillingNoteModal({
                   type="button"
                   onClick={selectAll}
                 >
-                  Select All
+                  {t("common.selectAll")}
                 </button>
                 <button
                   className="secondary-button"
                   type="button"
                   onClick={clearAll}
                 >
-                  Clear
+                  {t("common.clear")}
                 </button>
               </div>
 
@@ -351,12 +348,12 @@ function CreateBillingNoteModal({
                     <thead>
                       <tr>
                         <th />
-                        <th>Reference</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Payment Term</th>
-                        <th>Payment Due</th>
-                        <th>Amount</th>
+                        <th>{t("billingNote.colReference")}</th>
+                        <th>{t("billingNote.colSaleDate")}</th>
+                        <th>{t("common.status")}</th>
+                        <th>{t("billingNote.colPaymentTerm")}</th>
+                        <th>{t("billingNote.colPaymentDue")}</th>
+                        <th>{t("billingNote.colAmount")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -383,9 +380,9 @@ function CreateBillingNoteModal({
                             </td>
                             <td>
                               {sale.payment_term_type === "credit"
-                                ? `Credit (${sale.payment_term_days || ""})`
+                                ? t("billingNote.paymentCreditTerm", { days: sale.payment_term_days || "" })
                                 : sale.payment_term_type === "debit"
-                                  ? "Debit"
+                                  ? t("billingNote.paymentDebitTerm")
                                   : "—"}
                             </td>
                             <td>{formatDate(sale.payment_date)}</td>
@@ -400,12 +397,12 @@ function CreateBillingNoteModal({
             </>
           )
         ) : (
-          <p className="empty-copy">Select a customer to see eligible sales.</p>
+          <p className="empty-copy">{t("billingNote.selectCustomerFirst")}</p>
         )}
 
         <div className="sales-summary-card">
           <div className="sales-summary-row sales-summary-grand">
-            <strong>Total Amount</strong>
+            <strong>{t("billingNote.totalAmount")}</strong>
             <strong>{fmt(totalAmount)}</strong>
           </div>
         </div>
@@ -414,10 +411,10 @@ function CreateBillingNoteModal({
 
         <div className="supplier-modal-actions">
           <button className="secondary-button" type="button" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button className="primary-button" type="submit">
-            Create Billing Note
+            {t("billingNote.createButton")}
           </button>
         </div>
       </form>
@@ -431,6 +428,7 @@ function BillingNoteDetailModal({
   onSave,
   onDelete,
 }) {
+  const { t } = useLanguage();
   const [draft, setDraft] = useState(billingNote);
   const [docRefModal, setDocRefModal] = useState(null);
 
@@ -516,7 +514,7 @@ function BillingNoteDetailModal({
   }
 
   function handleCancelBN() {
-    if (window.confirm("Cancel this billing note? Sales inside will be released.")) {
+    if (window.confirm(t("billingNote.cancelBNConfirm"))) {
       onSave({ ...draft, status: "cancelled" });
     }
   }
@@ -538,7 +536,7 @@ function BillingNoteDetailModal({
       >
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Billing Note</p>
+            <p className="eyebrow">{t("billingNote.eyebrow")}</p>
             <h3 id="bn-detail-title">{draft.reference_no || draft.id}</h3>
           </div>
           <div className="section-heading-actions">
@@ -546,7 +544,7 @@ function BillingNoteDetailModal({
             <button
               type="button"
               className="icon-button subtle"
-              aria-label="Close"
+              aria-label={t("common.close")}
               onClick={onClose}
             >
               X
@@ -557,7 +555,7 @@ function BillingNoteDetailModal({
         <form className="form-layout" onSubmit={handleSave}>
         <div className="form-grid">
           <label>
-            Reference No.
+            {t("billingNote.referenceNo")}
             <input
               value={draft.reference_no || ""}
               onChange={(event) => updateField("reference_no", event.target.value)}
@@ -565,12 +563,12 @@ function BillingNoteDetailModal({
           </label>
 
           <label>
-            Customer
+            {t("billingNote.customerLabel")}
             <input value={draft.customer_name || ""} disabled />
           </label>
 
           <label>
-            Billing Note Date
+            {t("billingNote.dateLabel")}
             <input
               type="date"
               value={draft.billing_note_date || ""}
@@ -581,7 +579,7 @@ function BillingNoteDetailModal({
           </label>
 
           <label>
-            Expected Payment Date
+            {t("billingNote.expectedPaymentDate")}
             <input
               type="date"
               value={draft.expected_payment_date || ""}
@@ -592,7 +590,7 @@ function BillingNoteDetailModal({
           </label>
 
           <label>
-            Actual Payment Date
+            {t("billingNote.actualPaymentDate")}
             <input
               type="date"
               value={draft.actual_payment_date || ""}
@@ -601,7 +599,7 @@ function BillingNoteDetailModal({
           </label>
 
           <label>
-            Bank Reference
+            {t("billingNote.bankReference")}
             <input
               value={draft.bank_reference || ""}
               onChange={(event) =>
@@ -611,7 +609,7 @@ function BillingNoteDetailModal({
           </label>
 
           <label className="full-width">
-            Note
+            {t("billingNote.noteLabel")}
             <textarea
               rows="2"
               value={draft.note || ""}
@@ -622,12 +620,14 @@ function BillingNoteDetailModal({
 
         <div className="line-items-header">
           <div>
-            <p className="eyebrow">Sales Orders</p>
-            <h4>Receive Payment</h4>
+            <p className="eyebrow">{t("billingNote.salesOrdersEyebrow")}</p>
+            <h4>{t("billingNote.receivePayment")}</h4>
           </div>
           <span>
-            {(draft.lines || []).filter((line) => line.received).length} /{" "}
-            {(draft.lines || []).length} received
+            {t("billingNote.receivedFraction", {
+              received: (draft.lines || []).filter((line) => line.received).length,
+              total: (draft.lines || []).length,
+            })}
           </span>
         </div>
 
@@ -638,14 +638,14 @@ function BillingNoteDetailModal({
               className="secondary-button"
               onClick={markAllReceived}
             >
-              Mark All Received
+              {t("billingNote.markAllReceived")}
             </button>
             <button
               type="button"
               className="secondary-button"
               onClick={clearAllReceived}
             >
-              Clear All
+              {t("billingNote.clearAll")}
             </button>
           </div>
         ) : null}
@@ -655,13 +655,13 @@ function BillingNoteDetailModal({
             <table className="transaction-history-table partner-line-table">
               <thead>
                 <tr>
-                  <th>Received?</th>
-                  <th>Reference</th>
-                  <th>Sale Date</th>
-                  <th>Payment Term</th>
-                  <th>Payment Due</th>
-                  <th>Payment Received Date</th>
-                  <th>Amount</th>
+                  <th>{t("billingNote.colReceived")}</th>
+                  <th>{t("billingNote.colReference")}</th>
+                  <th>{t("billingNote.colSaleDate")}</th>
+                  <th>{t("billingNote.colPaymentTerm")}</th>
+                  <th>{t("billingNote.colPaymentDue")}</th>
+                  <th>{t("billingNote.colPaymentReceivedDate")}</th>
+                  <th>{t("billingNote.colAmount")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -694,9 +694,9 @@ function BillingNoteDetailModal({
                     <td>{formatDate(line.sale_transaction_date)}</td>
                     <td>
                       {line.sale_payment_term_type === "credit"
-                        ? `Credit (${line.sale_payment_term_days || ""})`
+                        ? t("billingNote.paymentCreditTerm", { days: line.sale_payment_term_days || "" })
                         : line.sale_payment_term_type === "debit"
-                          ? "Debit"
+                          ? t("billingNote.paymentDebitTerm")
                           : "—"}
                     </td>
                     <td>{formatDate(line.sale_payment_date)}</td>
@@ -721,7 +721,7 @@ function BillingNoteDetailModal({
               <tfoot>
                 <tr>
                   <td colSpan="6" style={{ textAlign: "right" }}>
-                    <strong>Total</strong>
+                    <strong>{t("billingNote.colTotal")}</strong>
                   </td>
                   <td>
                     <strong>{fmt(draft.total_amount)}</strong>
@@ -736,10 +736,10 @@ function BillingNoteDetailModal({
           <>
             <div className="line-items-header">
               <div>
-                <p className="eyebrow">Credit Notes</p>
-                <h4>Applied Customer Credits</h4>
+                <p className="eyebrow">{t("billingNote.creditNotesEyebrow")}</p>
+                <h4>{t("billingNote.appliedCredits")}</h4>
               </div>
-              <span>{(draft.credit_notes || []).length} applied</span>
+              <span>{t("billingNote.appliedCount", { count: (draft.credit_notes || []).length })}</span>
             </div>
 
             <div className="transaction-table-window">
@@ -747,10 +747,10 @@ function BillingNoteDetailModal({
                 <table className="transaction-history-table partner-line-table">
                   <thead>
                     <tr>
-                      <th>Reference</th>
-                      <th>Date</th>
-                      <th>Status</th>
-                      <th>Credit Amount</th>
+                      <th>{t("billingNote.colReference")}</th>
+                      <th>{t("billingNote.colIssued")}</th>
+                      <th>{t("billingNote.colStatus")}</th>
+                      <th>{t("billingNote.colAmount")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -783,15 +783,15 @@ function BillingNoteDetailModal({
 
             <div className="sales-summary-card">
               <div className="sales-summary-row">
-                <span>Total Billed</span>
+                <span>{t("billingNote.totalBilled")}</span>
                 <span>{fmt(draft.total_amount)}</span>
               </div>
               <div className="sales-summary-row">
-                <span>Less Credit Notes</span>
+                <span>{t("billingNote.lessCredits")}</span>
                 <span>{fmt(creditTotal)}</span>
               </div>
               <div className="sales-summary-row sales-summary-grand">
-                <strong>Net Payable</strong>
+                <strong>{t("billingNote.netPayable")}</strong>
                 <strong>{fmt(netPayable)}</strong>
               </div>
             </div>
@@ -804,7 +804,7 @@ function BillingNoteDetailModal({
             className="danger-button"
             onClick={() => onDelete(draft)}
           >
-            Delete
+            {t("common.delete")}
           </button>
           {!isCancelled ? (
             <button
@@ -812,14 +812,14 @@ function BillingNoteDetailModal({
               className="secondary-button"
               onClick={handleCancelBN}
             >
-              Cancel Billing Note
+              {t("billingNote.cancelBN")}
             </button>
           ) : null}
           <button type="button" className="secondary-button" onClick={onClose}>
-            Close
+            {t("common.close")}
           </button>
           <button type="submit" className="primary-button">
-            Save
+            {t("common.save")}
           </button>
         </div>
       </form>
@@ -850,6 +850,7 @@ function BillingNotePage({
   onUpdateBillingNote,
   onDeleteBillingNote,
 }) {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -860,6 +861,12 @@ function BillingNotePage({
   const [showAllRows, setShowAllRows] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activeBillingNote, setActiveBillingNote] = useState(null);
+  const STATUS_OPTIONS = [
+    { value: "issued", label: t("billingNote.statusIssued") },
+    { value: "partially_received", label: t("billingNote.statusPartiallyReceived") },
+    { value: "fully_received", label: t("billingNote.statusFullyReceived") },
+    { value: "cancelled", label: t("billingNote.statusCancelled") },
+  ];
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const isServerPaginated = Boolean(pagination && onPageRequest);
@@ -869,7 +876,7 @@ function BillingNotePage({
     }
 
     return billingNotes.filter((note) => {
-      if (normalizedSearch && !billingNoteMatchesQuery(note, normalizedSearch)) {
+      if (normalizedSearch && !billingNoteMatchesQuery(note, normalizedSearch, t)) {
         return false;
       }
       if (statusFilter !== "all" && note.status !== statusFilter) {
@@ -937,7 +944,7 @@ function BillingNotePage({
   const last30Active = dateFrom === daysAgoString(30) && !dateTo;
   const quickPresets = [
     {
-      label: "Last 30 days",
+      label: t("billingNote.filterLastDays"),
       active: last30Active,
       onClick: () => {
         setDateFrom(last30Active ? "" : daysAgoString(30));
@@ -945,7 +952,7 @@ function BillingNotePage({
       },
     },
     {
-      label: "Awaiting payment",
+      label: t("billingNote.filterAwaiting"),
       active: statusFilter === "issued",
       onClick: () =>
         setStatusFilter((current) =>
@@ -953,7 +960,7 @@ function BillingNotePage({
         ),
     },
     {
-      label: "Fully received",
+      label: t("billingNote.filterFullyReceived"),
       active: statusFilter === "fully_received",
       onClick: () =>
         setStatusFilter((current) =>
@@ -964,27 +971,27 @@ function BillingNotePage({
   const activeChips = [
     statusFilter !== "all" && {
       key: "status",
-      label: `Status: ${formatStatus(statusFilter)}`,
+      label: t("filterControls.statusChip", { label: formatStatus(statusFilter, t) }),
       onRemove: () => setStatusFilter("all"),
     },
     dateFrom && {
       key: "dateFrom",
-      label: `From ${dateFrom}`,
+      label: t("filterControls.fromChip", { date: dateFrom }),
       onRemove: () => setDateFrom(""),
     },
     dateTo && {
       key: "dateTo",
-      label: `To ${dateTo}`,
+      label: t("filterControls.toChip", { date: dateTo }),
       onRemove: () => setDateTo(""),
     },
     amountMin && {
       key: "amountMin",
-      label: `Min ฿${amountMin}`,
+      label: t("filterControls.minChip", { value: amountMin }),
       onRemove: () => setAmountMin(""),
     },
     amountMax && {
       key: "amountMax",
-      label: `Max ฿${amountMax}`,
+      label: t("filterControls.maxChip", { value: amountMax }),
       onRemove: () => setAmountMax(""),
     },
   ].filter(Boolean);
@@ -1037,7 +1044,7 @@ function BillingNotePage({
   }
 
   async function handleDelete(note) {
-    if (!window.confirm(`Delete billing note ${note.reference_no || note.id}?`)) {
+    if (!window.confirm(t("billingNote.deleteBN", { ref: note.reference_no || note.id }))) {
       return;
     }
     const ok = await onDeleteBillingNote?.(note);
@@ -1066,26 +1073,26 @@ function BillingNotePage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Receivables</p>
-            <h3>Billing Notes (Customer Payment)</h3>
+            <p className="eyebrow">{t("billingNote.receivablesEyebrow")}</p>
+            <h3>{t("billingNote.receivablesTitle")}</h3>
           </div>
         </div>
 
         <div className="dashboard-summary-grid">
           <article className="dashboard-kpi-card neutral">
-            <p>Outstanding</p>
+            <p>{t("billingNote.outstanding")}</p>
             <strong>{fmt(summary.outstanding)}</strong>
-            <span>Not yet received from customers</span>
+            <span>{t("billingNote.outstandingDesc")}</span>
           </article>
           <article className="dashboard-kpi-card danger">
-            <p>Overdue</p>
+            <p>{t("billingNote.overdue")}</p>
             <strong>{fmt(summary.overdue)}</strong>
-            <span>Past expected payment date</span>
+            <span>{t("billingNote.overdueDesc")}</span>
           </article>
           <article className="dashboard-kpi-card positive">
-            <p>Received</p>
+            <p>{t("billingNote.received")}</p>
             <strong>{fmt(summary.received)}</strong>
-            <span>Fully received billing notes</span>
+            <span>{t("billingNote.receivedDesc")}</span>
           </article>
         </div>
       </section>
@@ -1093,8 +1100,8 @@ function BillingNotePage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Search</p>
-            <h3>Find Billing Notes</h3>
+            <p className="eyebrow">{t("billingNote.searchEyebrow")}</p>
+            <h3>{t("billingNote.searchTitle")}</h3>
           </div>
         </div>
 
@@ -1105,14 +1112,14 @@ function BillingNotePage({
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search reference, customer, status, sale ref"
+              placeholder={t("billingNote.searchPlaceholder")}
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
             <span>
               {isServerPaginated
-                ? `${filtered.length} on this page of ${totalBillingNoteCount} shown`
-                : `${filtered.length} of ${billingNotes.length} shown`}
+                ? t("billingNote.pageCountServer", { count: filtered.length, total: totalBillingNoteCount })
+                : t("billingNote.pageCountLocal", { count: filtered.length, total: billingNotes.length })}
             </span>
           </div>
         </div>
@@ -1124,11 +1131,11 @@ function BillingNotePage({
             aria-expanded={filterOpen}
             onClick={() => setFilterOpen((value) => !value)}
           >
-            Filter
+            {t("filterControls.filter")}
             {activeFilterCount ? <span>{activeFilterCount}</span> : null}
           </button>
           <button className="secondary-button" type="button" onClick={resetFilters}>
-            Reset Filter
+            {t("filterControls.resetFilter")}
           </button>
         </div>
 
@@ -1139,12 +1146,12 @@ function BillingNotePage({
           <div className="history-filter-panel">
             <div className="history-filter-grid">
               <label className="history-filter-field">
-                <span className="history-filter-title">Status</span>
+                <span className="history-filter-title">{t("common.status")}</span>
                 <select
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value)}
                 >
-                  <option value="all">All statuses</option>
+                  <option value="all">{t("filterControls.allStatuses")}</option>
                   {STATUS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -1153,7 +1160,7 @@ function BillingNotePage({
                 </select>
               </label>
               <label className="history-filter-field">
-                <span className="history-filter-title">From</span>
+                <span className="history-filter-title">{t("filterControls.from")}</span>
                 <input
                   type="date"
                   value={dateFrom}
@@ -1161,7 +1168,7 @@ function BillingNotePage({
                 />
               </label>
               <label className="history-filter-field">
-                <span className="history-filter-title">To</span>
+                <span className="history-filter-title">{t("filterControls.to")}</span>
                 <input
                   type="date"
                   value={dateTo}
@@ -1169,7 +1176,7 @@ function BillingNotePage({
                 />
               </label>
               <RangeField
-                title="Amount (฿)"
+                title={t("filterControls.amountBaht")}
                 prefix="฿"
                 minValue={amountMin}
                 maxValue={amountMax}
@@ -1184,8 +1191,8 @@ function BillingNotePage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">History</p>
-            <h3>Billing Notes</h3>
+            <p className="eyebrow">{t("billingNote.historyEyebrow")}</p>
+            <h3>{t("billingNote.historyTitle")}</h3>
           </div>
           <div className="transaction-table-actions">
             <button
@@ -1193,7 +1200,7 @@ function BillingNotePage({
               type="button"
               onClick={() => setCreating(true)}
             >
-              Create Billing Note
+              {t("billingNote.createButton")}
             </button>
             {shouldShowViewAll ? (
               <button
@@ -1201,14 +1208,14 @@ function BillingNotePage({
                 type="button"
                 onClick={() => setShowAllRows((value) => !value)}
               >
-                {showAllRows ? "Show Recent" : "View More"}
+                {showAllRows ? t("common.showRecent") : t("common.viewMore")}
               </button>
             ) : null}
           </div>
         </div>
 
         {filtered.length === 0 ? (
-          <p className="empty-copy">No billing notes match the current search.</p>
+          <p className="empty-copy">{t("billingNote.noMatch")}</p>
         ) : (
           <div
             className={
@@ -1222,13 +1229,13 @@ function BillingNotePage({
                 <thead>
                   <tr>
                     <th className="table-index-cell">#</th>
-                    <th>Reference</th>
-                    <th>Customer</th>
-                    <th>Issued</th>
-                    <th>Expected</th>
-                    <th>Actual</th>
-                    <th>Status</th>
-                    <th>Total</th>
+                    <th>{t("billingNote.colReference")}</th>
+                    <th>{t("billingNote.colCustomer")}</th>
+                    <th>{t("billingNote.colIssued")}</th>
+                    <th>{t("billingNote.colExpected")}</th>
+                    <th>{t("billingNote.colActual")}</th>
+                    <th>{t("billingNote.colStatus")}</th>
+                    <th>{t("billingNote.colTotal")}</th>
                     <th />
                   </tr>
                 </thead>
@@ -1258,7 +1265,7 @@ function BillingNotePage({
                           type="button"
                           onClick={() => setActiveBillingNote(note)}
                         >
-                          View
+                          {t("common.view")}
                         </button>
                       </td>
                     </tr>
@@ -1285,19 +1292,19 @@ function BillingNotePage({
                   </div>
                   <div className="mobile-record-grid">
                     <div>
-                      <span>Issued</span>
+                      <span>{t("billingNote.colIssued")}</span>
                       <strong>{formatDate(note.billing_note_date)}</strong>
                     </div>
                     <div>
-                      <span>Expected</span>
+                      <span>{t("billingNote.colExpected")}</span>
                       <strong>{formatDate(note.expected_payment_date)}</strong>
                     </div>
                     <div>
-                      <span>Actual</span>
+                      <span>{t("billingNote.colActual")}</span>
                       <strong>{formatDate(note.actual_payment_date)}</strong>
                     </div>
                     <div>
-                      <span>Total</span>
+                      <span>{t("billingNote.colTotal")}</span>
                       <strong>{fmt(note.total_amount)}</strong>
                     </div>
                   </div>
@@ -1315,7 +1322,7 @@ function BillingNotePage({
         )}
         <PaginationControls
           pagination={pagination}
-          itemLabel="billing notes"
+          itemLabel={t("billingNote.historyTitle")}
           onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
         />
       </section>

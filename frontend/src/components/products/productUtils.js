@@ -235,13 +235,14 @@ export function formatStockQuantity(value, product) {
   return `${Number(value || 0).toLocaleString()} ${unit}`;
 }
 
-export function getDocumentName(documentUrl = "") {
+export function getDocumentName(documentUrl = "", t = null) {
   const [path = ""] = `${documentUrl}`.split("?");
   const name = path.split("/").filter(Boolean).pop();
-  return name ? decodeURIComponent(name) : "Attached document";
+  const fallback = t ? t("transactionTable.attachedDocument") : "Attached document";
+  return name ? decodeURIComponent(name) : fallback;
 }
 
-export function getTransactionDocuments(transaction = {}) {
+export function getTransactionDocuments(transaction = {}, t = null) {
   if (Array.isArray(transaction.documents) && transaction.documents.length) {
     return transaction.documents;
   }
@@ -250,7 +251,7 @@ export function getTransactionDocuments(transaction = {}) {
     ? [
         {
           id: "__legacy_document__",
-          name: getDocumentName(transaction.document_url),
+          name: getDocumentName(transaction.document_url, t),
           url: transaction.document_url,
         },
       ]

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PurchaseForm from "./PurchaseForm";
+import { useLanguage } from "../i18n/LanguageContext";
 
 /**
  * Wizard for the quotation → purchase conversion. Each supplier group becomes
@@ -15,6 +16,7 @@ export default function MultiPurchaseWizard({
   onCancel,
   onViewPurchases,
 }) {
+  const { t } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [createdIndexes, setCreatedIndexes] = useState(() => new Set());
 
@@ -38,9 +40,9 @@ export default function MultiPurchaseWizard({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Quotation → Purchase Orders</p>
+            <p className="eyebrow">{t("multiPurchase.eyebrow")}</p>
             <h3>
-              Purchase Order {currentIndex + 1} of {groups.length}
+              {t("multiPurchase.title", { current: currentIndex + 1, total: groups.length })}
             </h3>
           </div>
           <button
@@ -48,7 +50,7 @@ export default function MultiPurchaseWizard({
             type="button"
             onClick={onCancel}
           >
-            Cancel
+            {t("multiPurchase.cancelButton")}
           </button>
         </div>
 
@@ -63,7 +65,7 @@ export default function MultiPurchaseWizard({
               <span className="wizard-step-index">{index + 1}</span>
               <span className="wizard-step-name">{group.supplier_name}</span>
               <span className="wizard-step-state">
-                {createdIndexes.has(index) ? "Created" : "Draft"}
+                {createdIndexes.has(index) ? t("multiPurchase.stepCreated") : t("multiPurchase.stepDraft")}
               </span>
             </button>
           ))}
@@ -76,7 +78,7 @@ export default function MultiPurchaseWizard({
             disabled={currentIndex === 0}
             onClick={() => setCurrentIndex((value) => Math.max(0, value - 1))}
           >
-            Previous
+            {t("common.previous")}
           </button>
           <button
             className="secondary-button"
@@ -86,17 +88,17 @@ export default function MultiPurchaseWizard({
               setCurrentIndex((value) => Math.min(groups.length - 1, value + 1))
             }
           >
-            Next
+            {t("common.next")}
           </button>
         </div>
 
         {allCreated ? (
           <div className="wizard-finish">
             <div className="notice-banner">
-              All {groups.length} purchase orders created.
+              {t("multiPurchase.allCreated", { total: groups.length })}
             </div>
             <button className="primary-button" type="button" onClick={onViewPurchases}>
-              Go to Purchases
+              {t("multiPurchase.goToPurchases")}
             </button>
           </div>
         ) : null}
@@ -107,7 +109,7 @@ export default function MultiPurchaseWizard({
           {createdIndexes.has(index) ? (
             <section className="section-card">
               <div className="notice-banner">
-                Purchase order for {group.supplier_name} has been created.
+                {t("multiPurchase.orderCreated", { supplier: group.supplier_name })}
               </div>
             </section>
           ) : (

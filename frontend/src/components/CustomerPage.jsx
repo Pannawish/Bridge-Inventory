@@ -6,12 +6,13 @@ import {
   getRequiredFieldError,
   getRequiredListError,
 } from "./contactValidation";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const CUSTOMER_PROFILE_OPTIONS = [
-  { value: "missing-tax-id", label: "Missing tax ID" },
-  { value: "has-email", label: "Has email" },
-  { value: "has-phone", label: "Has phone" },
-  { value: "has-note", label: "Has internal note" },
+  { value: "missing-tax-id", labelKey: "customer.missingTaxId" },
+  { value: "has-email", labelKey: "customer.hasEmail" },
+  { value: "has-phone", labelKey: "customer.hasPhone" },
+  { value: "has-note", labelKey: "customer.hasNote" },
 ];
 
 function createCustomer(overrides = {}) {
@@ -232,19 +233,19 @@ function getContactListKeyForIndex(indexKey) {
   return "";
 }
 
-const CUSTOMER_REQUIRED_FIELDS = {
-  companyName: "Customer company name",
-  taxpayerId: "Customer taxpayer identification number",
-  termType: "Payment term",
-  billingNoteDate: "Credit term",
+const CUSTOMER_REQUIRED_FIELD_KEYS = {
+  companyName: "customer.companyNameLabel",
+  taxpayerId: "customer.taxpayerLabel",
+  termType: "customer.paymentTermLabel",
+  billingNoteDate: "customer.creditTermLabel",
 };
 
-const CUSTOMER_REQUIRED_OPTIONS = {
-  branches: "Customer branch",
-  locations: "Customer company location",
-  emails: "Customer email",
-  tels: "Customer tel",
-  shippingAddresses: "Shipping address",
+const CUSTOMER_REQUIRED_OPTION_KEYS = {
+  branches: "customer.branchLabel",
+  locations: "customer.locationLabel",
+  emails: "customer.emailLabel",
+  tels: "customer.telLabel",
+  shippingAddresses: "customer.shippingLabel",
 };
 
 const CUSTOMER_OPTION_INDEX_KEYS = {
@@ -255,47 +256,47 @@ const CUSTOMER_OPTION_INDEX_KEYS = {
   shippingAddresses: "selectedShippingAddressIndex",
 };
 
-function getCustomerOptionError(listKey, value) {
+function getCustomerOptionError(listKey, value, t) {
   return (
-    getRequiredFieldError(CUSTOMER_REQUIRED_OPTIONS[listKey], value) ||
+    getRequiredFieldError(t(CUSTOMER_REQUIRED_OPTION_KEYS[listKey]), value) ||
     getContactFieldError(listKey, value)
   );
 }
 
-function getFirstInvalidCustomerOptionIndex(customer, listKey) {
-  return (customer[listKey] || []).findIndex((value) => getCustomerOptionError(listKey, value));
+function getFirstInvalidCustomerOptionIndex(customer, listKey, t) {
+  return (customer[listKey] || []).findIndex((value) => getCustomerOptionError(listKey, value, t));
 }
 
-function getCustomerFormErrors(customer) {
+function getCustomerFormErrors(customer, t) {
   return {
-    companyName: getRequiredFieldError(CUSTOMER_REQUIRED_FIELDS.companyName, customer.companyName),
-    taxpayerId: getRequiredFieldError(CUSTOMER_REQUIRED_FIELDS.taxpayerId, customer.taxpayerId),
+    companyName: getRequiredFieldError(t(CUSTOMER_REQUIRED_FIELD_KEYS.companyName), customer.companyName),
+    taxpayerId: getRequiredFieldError(t(CUSTOMER_REQUIRED_FIELD_KEYS.taxpayerId), customer.taxpayerId),
     branches:
-      getRequiredListError(CUSTOMER_REQUIRED_OPTIONS.branches, customer.branches) ||
-      (customer.branches || []).map((value) => getCustomerOptionError("branches", value)).find(Boolean) ||
+      getRequiredListError(t(CUSTOMER_REQUIRED_OPTION_KEYS.branches), customer.branches) ||
+      (customer.branches || []).map((value) => getCustomerOptionError("branches", value, t)).find(Boolean) ||
       "",
     locations:
-      getRequiredListError(CUSTOMER_REQUIRED_OPTIONS.locations, customer.locations) ||
-      (customer.locations || []).map((value) => getCustomerOptionError("locations", value)).find(Boolean) ||
+      getRequiredListError(t(CUSTOMER_REQUIRED_OPTION_KEYS.locations), customer.locations) ||
+      (customer.locations || []).map((value) => getCustomerOptionError("locations", value, t)).find(Boolean) ||
       "",
     emails:
-      getRequiredListError(CUSTOMER_REQUIRED_OPTIONS.emails, customer.emails) ||
-      (customer.emails || []).map((value) => getCustomerOptionError("emails", value)).find(Boolean) ||
+      getRequiredListError(t(CUSTOMER_REQUIRED_OPTION_KEYS.emails), customer.emails) ||
+      (customer.emails || []).map((value) => getCustomerOptionError("emails", value, t)).find(Boolean) ||
       "",
     tels:
-      getRequiredListError(CUSTOMER_REQUIRED_OPTIONS.tels, customer.tels) ||
-      (customer.tels || []).map((value) => getCustomerOptionError("tels", value)).find(Boolean) ||
+      getRequiredListError(t(CUSTOMER_REQUIRED_OPTION_KEYS.tels), customer.tels) ||
+      (customer.tels || []).map((value) => getCustomerOptionError("tels", value, t)).find(Boolean) ||
       "",
     shippingAddresses:
-      getRequiredListError(CUSTOMER_REQUIRED_OPTIONS.shippingAddresses, customer.shippingAddresses) ||
+      getRequiredListError(t(CUSTOMER_REQUIRED_OPTION_KEYS.shippingAddresses), customer.shippingAddresses) ||
       (customer.shippingAddresses || [])
-        .map((value) => getCustomerOptionError("shippingAddresses", value))
+        .map((value) => getCustomerOptionError("shippingAddresses", value, t))
         .find(Boolean) ||
       "",
-    termType: getRequiredFieldError(CUSTOMER_REQUIRED_FIELDS.termType, customer.termType),
+    termType: getRequiredFieldError(t(CUSTOMER_REQUIRED_FIELD_KEYS.termType), customer.termType),
     billingNoteDate:
       customer.termType === "credit"
-        ? getRequiredFieldError(CUSTOMER_REQUIRED_FIELDS.billingNoteDate, customer.billingNoteDate)
+        ? getRequiredFieldError(t(CUSTOMER_REQUIRED_FIELD_KEYS.billingNoteDate), customer.billingNoteDate)
         : "",
   };
 }
@@ -317,6 +318,7 @@ function CustomerOptionField({
   onAdd,
   onDelete,
 }) {
+  const { t } = useLanguage();
   return (
     <div className="supplier-option-field">
       <label>
@@ -345,10 +347,10 @@ function CustomerOptionField({
         />
         <div className="supplier-option-edit-actions">
           <button className="secondary-button" type="button" onClick={onAdd}>
-            Add
+            {t("common.add")}
           </button>
           <button className="danger-button" type="button" onClick={onDelete}>
-            Delete
+            {t("common.delete")}
           </button>
         </div>
       </div>
@@ -365,6 +367,7 @@ function CustomerPage({
   onSaveCustomer,
   onDeleteCustomer,
 }) {
+  const { t } = useLanguage();
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [draftCustomer, setDraftCustomer] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -465,7 +468,7 @@ function CustomerPage({
   }
 
   const quickPresets = CUSTOMER_PROFILE_OPTIONS.map((option) => ({
-    label: option.label,
+    label: t(option.labelKey),
     active: profileFilter === option.value,
     onClick: () =>
       setProfileFilter((current) =>
@@ -475,10 +478,11 @@ function CustomerPage({
   const activeChips = [
     profileFilter !== "all" && {
       key: "profile",
-      label: `Profile: ${
-        CUSTOMER_PROFILE_OPTIONS.find((option) => option.value === profileFilter)
-          ?.label || profileFilter
-      }`,
+      label: t("customer.profileChip", {
+        label:
+          t(CUSTOMER_PROFILE_OPTIONS.find((option) => option.value === profileFilter)?.labelKey || "") ||
+          profileFilter,
+      }),
       onRemove: () => setProfileFilter("all"),
     },
   ].filter(Boolean);
@@ -507,7 +511,7 @@ function CustomerPage({
       [key]:
         key === "remark"
           ? ""
-          : getRequiredFieldError(CUSTOMER_REQUIRED_FIELDS[key], value),
+          : getRequiredFieldError(t(CUSTOMER_REQUIRED_FIELD_KEYS[key]), value),
     }));
   }
 
@@ -518,7 +522,7 @@ function CustomerPage({
     if (listKey && draftCustomer) {
       setFormErrors((currentErrors) => ({
         ...currentErrors,
-        [listKey]: getCustomerOptionError(listKey, draftCustomer[listKey]?.[nextIndex] || ""),
+        [listKey]: getCustomerOptionError(listKey, draftCustomer[listKey]?.[nextIndex] || "", t),
       }));
     }
   }
@@ -530,18 +534,18 @@ function CustomerPage({
       return { ...customer, [listKey]: nextOptions };
     });
 
-    if (CUSTOMER_REQUIRED_OPTIONS[listKey]) {
+    if (CUSTOMER_REQUIRED_OPTION_KEYS[listKey]) {
       setFormErrors((currentErrors) => ({
         ...currentErrors,
-        [listKey]: getCustomerOptionError(listKey, nextValue),
+        [listKey]: getCustomerOptionError(listKey, nextValue, t),
       }));
     }
   }
 
   function addOption(listKey, indexKey) {
-    if (CUSTOMER_REQUIRED_OPTIONS[listKey] && draftCustomer) {
+    if (CUSTOMER_REQUIRED_OPTION_KEYS[listKey] && draftCustomer) {
       const currentValue = draftCustomer[listKey]?.[draftCustomer[indexKey]] || "";
-      const error = getCustomerOptionError(listKey, currentValue);
+      const error = getCustomerOptionError(listKey, currentValue, t);
 
       if (error) {
         setFormErrors((currentErrors) => ({
@@ -583,7 +587,7 @@ function CustomerPage({
       };
     });
 
-    if (CUSTOMER_REQUIRED_OPTIONS[listKey]) {
+    if (CUSTOMER_REQUIRED_OPTION_KEYS[listKey]) {
       setFormErrors((currentErrors) => ({
         ...currentErrors,
         [listKey]: "",
@@ -602,12 +606,12 @@ function CustomerPage({
     }
 
     const nextCustomer = normalizeCustomer(draftCustomer);
-    const nextFormErrors = getCustomerFormErrors(nextCustomer);
+    const nextFormErrors = getCustomerFormErrors(nextCustomer, t);
 
     if (hasFormErrors(nextFormErrors)) {
       const nextIndexes = Object.entries(CUSTOMER_OPTION_INDEX_KEYS).reduce(
         (indexes, [listKey, indexKey]) => {
-          const invalidIndex = getFirstInvalidCustomerOptionIndex(nextCustomer, listKey);
+          const invalidIndex = getFirstInvalidCustomerOptionIndex(nextCustomer, listKey, t);
           return invalidIndex >= 0 ? { ...indexes, [indexKey]: invalidIndex } : indexes;
         },
         {}
@@ -641,7 +645,7 @@ function CustomerPage({
     }
 
     const confirmed = window.confirm(
-      `Delete customer ${draftCustomer.companyName || "this customer"}?`
+      t("customer.deleteConfirm", { name: draftCustomer.companyName || t("customer.unnamedCustomer") })
     );
 
     if (!confirmed) {
@@ -665,8 +669,8 @@ function CustomerPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Customers</p>
-            <h3>Find Customers</h3>
+            <p className="eyebrow">{t("customer.eyebrow")}</p>
+            <h3>{t("customer.findTitle")}</h3>
           </div>
         </div>
 
@@ -677,14 +681,14 @@ function CustomerPage({
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search customer, taxpayer ID, location, email, or tel"
+              placeholder={t("customer.searchPlaceholder")}
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
             <span>
               {isServerPaginated
-                ? `${filteredCustomers.length} on this page of ${totalCustomerCount} customers`
-                : `${filteredCustomers.length} of ${customers.length} customers shown`}
+                ? t("customer.pageCountServer", { count: filteredCustomers.length, total: totalCustomerCount })
+                : t("customer.pageCountLocal", { count: filteredCustomers.length, total: customers.length })}
             </span>
           </div>
         </div>
@@ -696,11 +700,11 @@ function CustomerPage({
             aria-expanded={filterOpen}
             onClick={() => setFilterOpen((currentValue) => !currentValue)}
           >
-            Filter
+            {t("common.filter")}
             {activeFilterCount ? <span>{activeFilterCount}</span> : null}
           </button>
           <button className="secondary-button" type="button" onClick={resetFilters}>
-            Reset Filter
+            {t("common.resetFilter")}
           </button>
         </div>
 
@@ -711,15 +715,15 @@ function CustomerPage({
           <div className="history-filter-panel">
             <div className="history-filter-grid">
               <label className="history-filter-field">
-                <span className="history-filter-title">Customer Profile</span>
+                <span className="history-filter-title">{t("customer.profileFilter")}</span>
                 <select
                   value={profileFilter}
                   onChange={(event) => setProfileFilter(event.target.value)}
                 >
-                  <option value="all">All customers</option>
+                  <option value="all">{t("customer.allCustomers")}</option>
                   {CUSTOMER_PROFILE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {option.label}
+                      {t(option.labelKey)}
                     </option>
                   ))}
                 </select>
@@ -732,12 +736,12 @@ function CustomerPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">History</p>
-            <h3>Customers</h3>
+            <p className="eyebrow">{t("customer.historyEyebrow")}</p>
+            <h3>{t("customer.historyTitle")}</h3>
           </div>
           <div className="transaction-table-actions">
             <button className="primary-button" type="button" onClick={handleCreateCustomer}>
-              New Customer
+              {t("customer.newCustomer")}
             </button>
             {shouldShowViewAll ? (
               <button
@@ -745,14 +749,14 @@ function CustomerPage({
                 type="button"
                 onClick={() => setShowAllRows((currentValue) => !currentValue)}
               >
-                {showAllRows ? "Show Recent" : "View More"}
+                {showAllRows ? t("common.showRecent") : t("common.viewMore")}
               </button>
             ) : null}
           </div>
         </div>
 
         {filteredCustomers.length === 0 ? (
-          <p className="empty-copy">No customers match the current search.</p>
+          <p className="empty-copy">{t("customer.noMatch")}</p>
         ) : (
           <div
             className={
@@ -774,10 +778,10 @@ function CustomerPage({
                 <thead>
                   <tr>
                     <th className="table-index-cell">#</th>
-                    <th>Customer</th>
-                    <th>Contact</th>
-                    <th>Location</th>
-                    <th>Profile</th>
+                    <th>{t("customer.colCustomer")}</th>
+                    <th>{t("customer.colContact")}</th>
+                    <th>{t("customer.colLocation")}</th>
+                    <th>{t("customer.colProfile")}</th>
                     <th />
                   </tr>
                 </thead>
@@ -793,9 +797,9 @@ function CustomerPage({
                         <td className="table-index-cell">{index + 1}</td>
                         <td>
                           <div className="transaction-reference-cell">
-                            <strong>{customer.companyName || "Unnamed Customer"}</strong>
+                            <strong>{customer.companyName || t("customer.unnamedCustomer")}</strong>
                             <span>
-                              {customer.taxpayerId ? `Tax ID ${customer.taxpayerId}` : "Tax ID not set"}
+                              {customer.taxpayerId ? t("customer.taxIdLabel", { id: customer.taxpayerId }) : t("customer.taxIdNotSet")}
                             </span>
                           </div>
                         </td>
@@ -825,7 +829,7 @@ function CustomerPage({
                             <strong>
                               {getSelectedValue(customer.branches, customer.selectedBranchIndex)}
                             </strong>
-                            <span>{customer.remark || customer.billingNoteDate || "No internal note"}</span>
+                            <span>{customer.remark || customer.billingNoteDate || t("customer.noInternalNote")}</span>
                           </div>
                         </td>
                         <td>
@@ -834,7 +838,7 @@ function CustomerPage({
                             type="button"
                             onClick={() => openCustomerEditor(customer)}
                           >
-                            View
+                            {t("common.view")}
                           </button>
                         </td>
                       </tr>
@@ -851,9 +855,9 @@ function CustomerPage({
                     <div className="mobile-record-title">
                       <span className="mobile-record-index">{index + 1}</span>
                       <div className="cell-stack">
-                        <strong>{customer.companyName || "Unnamed Customer"}</strong>
+                        <strong>{customer.companyName || t("customer.unnamedCustomer")}</strong>
                         <span>
-                          {customer.taxpayerId ? `Tax ID ${customer.taxpayerId}` : "Tax ID not set"}
+                          {customer.taxpayerId ? t("customer.taxIdLabel", { id: customer.taxpayerId }) : t("customer.taxIdNotSet")}
                         </span>
                       </div>
                     </div>
@@ -861,19 +865,19 @@ function CustomerPage({
 
                   <div className="mobile-record-grid">
                     <div>
-                      <span>Email</span>
+                      <span>{t("customer.colEmail")}</span>
                       <strong>{getSelectedValue(customer.emails, customer.selectedEmailIndex)}</strong>
                     </div>
                     <div>
-                      <span>Phone</span>
+                      <span>{t("customer.colPhone")}</span>
                       <strong>{getSelectedValue(customer.tels, customer.selectedTelIndex)}</strong>
                     </div>
                     <div>
-                      <span>Location</span>
+                      <span>{t("customer.colLocation")}</span>
                       <strong>{getSelectedValue(customer.locations, customer.selectedLocationIndex)}</strong>
                     </div>
                     <div>
-                      <span>Branch</span>
+                      <span>{t("customer.colBranch")}</span>
                       <strong>{getSelectedValue(customer.branches, customer.selectedBranchIndex)}</strong>
                     </div>
                   </div>
@@ -883,7 +887,7 @@ function CustomerPage({
                     type="button"
                     onClick={() => openCustomerEditor(customer)}
                   >
-                    View
+                    {t("common.view")}
                   </button>
                 </article>
               ))}
@@ -892,7 +896,7 @@ function CustomerPage({
         )}
         <PaginationControls
           pagination={pagination}
-          itemLabel="customers"
+          itemLabel={t("customer.historyTitle")}
           onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
         />
       </section>
@@ -907,15 +911,15 @@ function CustomerPage({
           >
             <div className="section-heading supplier-modal-header">
               <div>
-                <p className="eyebrow">Customer Details</p>
+                <p className="eyebrow">{t("customer.detailsEyebrow")}</p>
                 <h3 id="customer-modal-title">
-                  {draftCustomer.companyName || "New Customer"}
+                  {draftCustomer.companyName || t("customer.newCustomer")}
                 </h3>
               </div>
               <button
                 className="icon-button subtle"
                 type="button"
-                aria-label="Close customer details"
+                aria-label={t("customer.closeLabel")}
                 onClick={closeCustomerEditor}
               >
                 X
@@ -934,21 +938,21 @@ function CustomerPage({
                 <section className="contact-editor-section">
                   <div className="contact-editor-section-heading">
                     <div>
-                      <p className="eyebrow">Company</p>
-                      <h4>Customer Identity</h4>
+                      <p className="eyebrow">{t("customer.identityEyebrow")}</p>
+                      <h4>{t("customer.identityTitle")}</h4>
                     </div>
-                    <span>Account profile</span>
+                    <span>{t("customer.identityDescription")}</span>
                   </div>
 
                   <div className="contact-editor-grid">
                     <label>
-                      <span className="required-label">Customer Company Name</span>
+                      <span className="required-label">{t("customer.companyNameLabel")}</span>
                       <input
                         autoFocus
                         required
                         value={draftCustomer.companyName}
                         onChange={(event) => updateTextField("companyName", event.target.value)}
-                        placeholder="Customer company name"
+                        placeholder={t("customer.companyNamePlaceholder")}
                         aria-invalid={formErrors.companyName ? "true" : undefined}
                       />
                       {formErrors.companyName ? (
@@ -957,12 +961,12 @@ function CustomerPage({
                     </label>
 
                     <label>
-                      <span className="required-label">Customer Taxpayer Identification Number</span>
+                      <span className="required-label">{t("customer.taxpayerLabel")}</span>
                       <input
                         required
                         value={draftCustomer.taxpayerId}
                         onChange={(event) => updateTextField("taxpayerId", event.target.value)}
-                        placeholder="Taxpayer identification number"
+                        placeholder={t("customer.taxpayerPlaceholder")}
                         aria-invalid={formErrors.taxpayerId ? "true" : undefined}
                       />
                       {formErrors.taxpayerId ? (
@@ -972,10 +976,10 @@ function CustomerPage({
 
                     <div className="full-width">
                       <CustomerOptionField
-                        label="Customer Branch"
+                        label={t("customer.branchLabel")}
                         options={draftCustomer.branches}
                         selectedIndex={draftCustomer.selectedBranchIndex}
-                        placeholder="Add or edit a branch"
+                        placeholder={t("customer.branchPlaceholder")}
                         required
                         error={formErrors.branches}
                         onSelect={(nextIndex) => updateOptionIndex("selectedBranchIndex", nextIndex)}
@@ -992,18 +996,18 @@ function CustomerPage({
                 <section className="contact-editor-section">
                   <div className="contact-editor-section-heading">
                     <div>
-                      <p className="eyebrow">Contact</p>
-                      <h4>Location, Email, and Telephone</h4>
+                      <p className="eyebrow">{t("customer.contactEyebrow")}</p>
+                      <h4>{t("customer.contactTitle")}</h4>
                     </div>
-                    <span>Communication</span>
+                    <span>{t("customer.contactDescription")}</span>
                   </div>
 
                   <div className="contact-editor-grid">
                     <CustomerOptionField
-                      label="Customer Company Location"
+                      label={t("customer.locationLabel")}
                       options={draftCustomer.locations}
                       selectedIndex={draftCustomer.selectedLocationIndex}
-                      placeholder="Add or edit a company location"
+                      placeholder={t("customer.locationPlaceholder")}
                       required
                       error={formErrors.locations}
                       onSelect={(nextIndex) => updateOptionIndex("selectedLocationIndex", nextIndex)}
@@ -1015,10 +1019,10 @@ function CustomerPage({
                     />
 
                     <CustomerOptionField
-                      label="Customer Email"
+                      label={t("customer.emailLabel")}
                       options={draftCustomer.emails}
                       selectedIndex={draftCustomer.selectedEmailIndex}
-                      placeholder="Add or edit an email"
+                      placeholder={t("customer.emailPlaceholder")}
                       type="email"
                       required
                       error={formErrors.emails}
@@ -1032,10 +1036,10 @@ function CustomerPage({
 
                     <div className="full-width">
                       <CustomerOptionField
-                        label="Customer Tel"
+                        label={t("customer.telLabel")}
                         options={draftCustomer.tels}
                         selectedIndex={draftCustomer.selectedTelIndex}
-                        placeholder="Add or edit a telephone number"
+                        placeholder={t("customer.telPlaceholder")}
                         type="tel"
                         required
                         error={formErrors.tels}
@@ -1053,19 +1057,19 @@ function CustomerPage({
                 <section className="contact-editor-section">
                   <div className="contact-editor-section-heading">
                     <div>
-                      <p className="eyebrow">Delivery & Billing</p>
-                      <h4>Shipping Address and Notes</h4>
+                      <p className="eyebrow">{t("customer.deliveryEyebrow")}</p>
+                      <h4>{t("customer.deliveryTitle")}</h4>
                     </div>
-                    <span>Fulfillment</span>
+                    <span>{t("customer.deliveryDescription")}</span>
                   </div>
 
                   <div className="contact-editor-grid">
                     <div className="full-width">
                       <CustomerOptionField
-                        label="Shipping Address"
+                        label={t("customer.shippingLabel")}
                         options={draftCustomer.shippingAddresses}
                         selectedIndex={draftCustomer.selectedShippingAddressIndex}
-                        placeholder="Add or edit a shipping address"
+                        placeholder={t("customer.shippingPlaceholder")}
                         required
                         error={formErrors.shippingAddresses}
                         onSelect={(nextIndex) =>
@@ -1088,17 +1092,17 @@ function CustomerPage({
                     </div>
 
                     <label>
-                      Remark
+                      {t("customer.remarkLabel")}
                       <textarea
                         rows="4"
                         value={draftCustomer.remark}
                         onChange={(event) => updateTextField("remark", event.target.value)}
-                        placeholder="Internal note about this customer"
+                        placeholder={t("customer.remarkPlaceholder")}
                       />
                     </label>
 
                     <label>
-                      <span className="required-label">Payment Term</span>
+                      <span className="required-label">{t("customer.paymentTermLabel")}</span>
                       <select
                         required
                         value={draftCustomer.termType}
@@ -1112,13 +1116,13 @@ function CustomerPage({
                           setFormErrors((currentErrors) => ({
                             ...currentErrors,
                             termType: getRequiredFieldError(
-                              CUSTOMER_REQUIRED_FIELDS.termType,
+                              t(CUSTOMER_REQUIRED_FIELD_KEYS.termType),
                               next
                             ),
                             billingNoteDate:
                               next === "credit"
                                 ? getRequiredFieldError(
-                                    CUSTOMER_REQUIRED_FIELDS.billingNoteDate,
+                                    t(CUSTOMER_REQUIRED_FIELD_KEYS.billingNoteDate),
                                     draftCustomer.billingNoteDate
                                   )
                                 : "",
@@ -1126,9 +1130,9 @@ function CustomerPage({
                         }}
                         aria-invalid={formErrors.termType ? "true" : undefined}
                       >
-                        <option value="">— Select payment term —</option>
-                        <option value="debit">Debit</option>
-                        <option value="credit">Credit</option>
+                        <option value="">{t("customer.selectPaymentTerm")}</option>
+                        <option value="debit">{t("customer.termDebit")}</option>
+                        <option value="credit">{t("customer.termCredit")}</option>
                       </select>
                       {formErrors.termType ? (
                         <span className="field-error-text">{formErrors.termType}</span>
@@ -1137,17 +1141,17 @@ function CustomerPage({
 
                     {draftCustomer.termType === "credit" && (
                       <label>
-                        <span className="required-label">Credit Term</span>
+                        <span className="required-label">{t("customer.creditTermLabel")}</span>
                         <select
                           required
                           value={draftCustomer.billingNoteDate}
                           onChange={(event) => updateTextField("billingNoteDate", event.target.value)}
                           aria-invalid={formErrors.billingNoteDate ? "true" : undefined}
                         >
-                          <option value="">— Select credit term —</option>
-                          <option value="30 days">30 days</option>
-                          <option value="60 days">60 days</option>
-                          <option value="90 days">90 days</option>
+                          <option value="">{t("customer.selectCreditTerm")}</option>
+                          <option value="30 days">{t("customer.days30")}</option>
+                          <option value="60 days">{t("customer.days60")}</option>
+                          <option value="90 days">{t("customer.days90")}</option>
                         </select>
                         {formErrors.billingNoteDate ? (
                           <span className="field-error-text">{formErrors.billingNoteDate}</span>
@@ -1160,13 +1164,13 @@ function CustomerPage({
 
               <div className="supplier-modal-actions">
                 <button className="danger-button" type="button" onClick={handleDeleteCustomer}>
-                  Delete Customer
+                  {t("customer.deleteButton")}
                 </button>
                 <button className="secondary-button" type="button" onClick={closeCustomerEditor}>
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button className="primary-button" type="submit">
-                  Save Customer
+                  {t("customer.saveButton")}
                 </button>
               </div>
             </form>

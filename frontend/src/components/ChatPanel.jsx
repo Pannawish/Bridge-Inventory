@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useLanguage } from "../i18n/LanguageContext";
 
 function ChatPanel({ messages, onAsk, busy }) {
+  const { t } = useLanguage();
   const [question, setQuestion] = useState("");
 
   async function handleSubmit(event) {
@@ -19,21 +21,21 @@ function ChatPanel({ messages, onAsk, busy }) {
     <section className="section-card chat-card">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Natural Language Query</p>
-          <h3>AI Inventory Assistant</h3>
+          <p className="eyebrow">{t("chat.eyebrow")}</p>
+          <h3>{t("chat.title")}</h3>
         </div>
       </div>
 
       <div className="prompt-list">
-        <span>Example:</span>
-        <button type="button" className="prompt-chip" onClick={() => setQuestion("Which items are low stock?")}>
-          Which items are low stock?
+        <span>{t("chat.exampleLabel")}</span>
+        <button type="button" className="prompt-chip" onClick={() => setQuestion(t("chat.prompt1"))}>
+          {t("chat.prompt1")}
         </button>
-        <button type="button" className="prompt-chip" onClick={() => setQuestion("What are the latest sales transactions?")}>
-          What are the latest sales transactions?
+        <button type="button" className="prompt-chip" onClick={() => setQuestion(t("chat.prompt2"))}>
+          {t("chat.prompt2")}
         </button>
-        <button type="button" className="prompt-chip" onClick={() => setQuestion("Which product should I restock first?")}>
-          Which product should I restock first?
+        <button type="button" className="prompt-chip" onClick={() => setQuestion(t("chat.prompt3"))}>
+          {t("chat.prompt3")}
         </button>
       </div>
 
@@ -43,13 +45,13 @@ function ChatPanel({ messages, onAsk, busy }) {
             key={`${message.role}-${index}`}
             className={message.role === "user" ? "chat-bubble user" : "chat-bubble assistant"}
           >
-            <strong>{message.role === "user" ? "You" : "Assistant"}</strong>
+            <strong>{message.role === "user" ? t("chat.you") : t("chat.assistant")}</strong>
             <p>{message.content}</p>
-            {message.model ? <span>Model: {message.model}</span> : null}
+            {message.model ? <span>{t("chat.model", { model: message.model })}</span> : null}
           </article>
         ))}
 
-        {busy ? <p className="busy-copy">Generating answer...</p> : null}
+        {busy ? <p className="busy-copy">{t("chat.generating")}</p> : null}
       </div>
 
       <form className="chat-form" onSubmit={handleSubmit}>
@@ -57,10 +59,10 @@ function ChatPanel({ messages, onAsk, busy }) {
           rows="4"
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
-          placeholder="Ask a question about stock, purchases, sales, or restocking."
+          placeholder={t("chat.placeholder")}
         />
         <button className="primary-button" type="submit" disabled={busy}>
-          Ask Assistant
+          {t("chat.askButton")}
         </button>
       </form>
     </section>

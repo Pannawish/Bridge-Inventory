@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { formatDate, formatMoney as fmt } from "../format";
 import DocumentRefChip from "./DocumentRefChip";
+import { useLanguage } from "../i18n/LanguageContext";
 
 function prettyStatus(status) {
   if (!status) return "—";
@@ -20,12 +21,6 @@ function renderDiscounts(discounts) {
     return "—";
   }
   return active.map((value) => `${Number(value)}%`).join("|");
-}
-
-function paymentTerm(type, days) {
-  if (type === "credit") return `Credit (${days || ""})`;
-  if (type === "debit") return "Debit";
-  return "—";
 }
 
 function getBaseQuantity(item) {
@@ -106,321 +101,345 @@ function quotationLink(id, referenceNo) {
   return id ? [{ id, reference_no: referenceNo || "" }] : [];
 }
 
-// Per-document configuration: how to fetch, and how to render header fields,
-// the line-items table, totals, and the outgoing reference chips.
-const DOC_CONFIG = {
-  quotation: {
-    label: "Quotation",
-    fetch: (id) => api.getQuotation(id),
-    header: (doc) => [
-      { label: "Date", value: formatDate(doc.quotation_date) },
-      { label: "Valid Until", value: formatDate(doc.valid_until_date) },
-      { label: "Customer", value: doc.customer_name || "—" },
-      { label: "Supplier", value: doc.supplier_name || "—" },
-      { label: "Note", value: doc.note || "—", fullWidth: true },
-    ],
-    items: (doc) => ({
-      columns: ["#", "Product", "SKU", "Qty", "Unit", "Sale Price", "Discounts", "Amount"],
-      rows: (doc.items || []).map((item, index) => [
-        index + 1,
-        item.product_name || "—",
-        item.sku || "—",
-        item.quantity,
-        item.unit || "—",
-        fmt(item.sale_price),
-        renderDiscounts(item.discounts),
-        fmt(item.sale_amount),
-      ]),
-    }),
-    totals: (doc) => [
-      { label: "Subtotal", value: fmt(doc.total_before_vat) },
-      { label: "VAT", value: fmt(doc.vat_amount) },
-      { label: "Grand Total", value: fmt(doc.grand_total), strong: true },
-    ],
-    refs: (doc) => [
-      {
-        label: "Purchase Orders Created",
-        docType: "purchase",
-        links: doc.derived_purchase_links || [],
-      },
-      {
-        label: "Sales Created",
-        docType: "sale",
-        links: doc.derived_sale_links || [],
-      },
-    ],
-  },
-  purchase: {
-    label: "Purchase Order",
-    fetch: (id) => api.getPurchase(id),
-    header: (doc) => [
-      { label: "Date", value: formatDate(doc.transaction_date) },
-      { label: "Supplier", value: doc.supplier_name || "—" },
-      { label: "Status", status: doc.status },
-      { label: "Supplier's Tax Invoice", value: doc.supplier_tax_invoice || "—" },
-      { label: "Note", value: doc.note || "—", fullWidth: true },
-    ],
-    items: (doc) => ({
-      columns: [
-        "#",
-        "Product",
-        "SKU",
-        "Expected",
-        "Item Status",
-        "Received",
-        "Qty",
-        "Base Qty",
-        "Base Cost",
-        "Base Cost After Disc.",
-        "Unit Cost",
-        "Discounts",
-        "Amount",
+function buildDocConfig(t) {
+  function paymentTerm(type, days) {
+    if (type === "credit") return t("documentRef.creditTermCredit", { days: days || "" });
+    if (type === "debit") return t("documentRef.creditTermDebit");
+    return "—";
+  }
+
+  return {
+    quotation: {
+      label: t("documentRef.quotation"),
+      fetch: (id) => api.getQuotation(id),
+      header: (doc) => [
+        { label: t("documentRef.dateLabel"), value: formatDate(doc.quotation_date) },
+        { label: t("documentRef.validUntil"), value: formatDate(doc.valid_until_date) },
+        { label: t("documentRef.customer"), value: doc.customer_name || "—" },
+        { label: t("documentRef.supplier"), value: doc.supplier_name || "—" },
+        { label: t("documentRef.noteLabel"), value: doc.note || "—", fullWidth: true },
       ],
-      rows: (doc.items || []).map((item, index) => [
-        index + 1,
-        item.product_name || "—",
-        item.sku || "—",
-        formatDate(item.expected_delivery_date),
-        prettyStatus(item.item_status),
-        formatDate(item.received_date),
-        formatQuantityWithUnit(item.quantity, item.unit),
-        formatQuantityWithUnit(item.base_quantity, item.base_unit),
-        formatOptionalMoney(getPurchaseBaseUnitCost(item)),
-        formatOptionalMoney(getPurchaseBaseUnitCostAfterDiscount(item)),
-        fmt(item.unit_cost),
-        renderDiscounts(item.discounts),
-        fmt(item.amount),
-      ]),
-    }),
-    totals: (doc) => [
-      { label: "Total", value: fmt(doc.total_before_vat) },
-      { label: "VAT", value: fmt(doc.vat_amount) },
-      { label: "Grand Total", value: fmt(doc.grand_total), strong: true },
-    ],
-    refs: (doc) => [
-      {
-        label: "Source Quotation",
-        docType: "quotation",
-        links: quotationLink(doc.source_quotation_id, doc.source_quotation_reference_no),
-      },
-      {
-        label: "Payment Batch",
-        docType: "payment-batch",
-        links: doc.payment_batch_links || [],
-      },
-    ],
-  },
-  sale: {
-    label: "Tax Invoice",
-    fetch: (id) => api.getSale(id),
-    header: (doc) => [
-      { label: "Date", value: formatDate(doc.transaction_date) },
-      { label: "Customer", value: doc.customer_name || "—" },
-      { label: "Status", status: doc.status },
-      { label: "Customer's PO Ref.", value: doc.customer_po_reference || "—" },
-      { label: "Note", value: doc.note || "—", fullWidth: true },
-    ],
-    items: (doc) => ({
-      columns: [
-        "#",
-        "Product",
-        "SKU",
-        "Item Status",
-        "Shipped",
-        "Delivered",
-        "Qty",
-        "Base Qty",
-        "Base Unit Price",
-        "Base Unit Price After Disc.",
-        "Unit Price",
-        "Supplier",
-        "Unit Cost",
-        "Discounts",
-        "Amount",
+      items: (doc) => ({
+        columns: [
+          "#",
+          t("documentRef.colProduct"),
+          t("documentRef.colSKU"),
+          t("documentRef.colQty"),
+          t("documentRef.colUnit"),
+          t("documentRef.colSalePrice"),
+          t("documentRef.colDiscounts"),
+          t("documentRef.colAmount"),
+        ],
+        rows: (doc.items || []).map((item, index) => [
+          index + 1,
+          item.product_name || "—",
+          item.sku || "—",
+          item.quantity,
+          item.unit || "—",
+          fmt(item.sale_price),
+          renderDiscounts(item.discounts),
+          fmt(item.sale_amount),
+        ]),
+      }),
+      totals: (doc) => [
+        { label: t("common.subtotal"), value: fmt(doc.total_before_vat) },
+        { label: t("documentRef.paymentTermVAT"), value: fmt(doc.vat_amount) },
+        { label: t("common.grandTotal"), value: fmt(doc.grand_total), strong: true },
       ],
-      rows: (doc.items || []).map((item, index) => [
-        index + 1,
-        item.product_name || "—",
-        item.sku || "—",
-        prettyStatus(item.item_status),
-        formatDate(item.shipped_date),
-        formatDate(item.delivered_date),
-        formatQuantityWithUnit(item.quantity, item.unit),
-        formatQuantityWithUnit(item.base_quantity, item.base_unit),
-        formatOptionalMoney(getSaleBaseUnitPrice(item)),
-        formatOptionalMoney(getSaleBaseUnitPriceAfterDiscount(item)),
-        fmt(item.unit_price),
-        item.supplier_name || "—",
-        Number(item.unit_cost) > 0 ? fmt(item.unit_cost) : "—",
-        renderDiscounts(item.discounts),
-        fmt(item.amount),
-      ]),
-    }),
-    totals: (doc) => [
-      { label: "Subtotal", value: fmt(doc.total_before_vat) },
-      { label: "VAT", value: fmt(doc.vat_amount) },
-      { label: "Grand Total", value: fmt(doc.grand_total), strong: true },
-    ],
-    refs: (doc) => [
-      {
-        label: "Source Quotation",
-        docType: "quotation",
-        links: quotationLink(doc.source_quotation_id, doc.source_quotation_reference_no),
-      },
-      {
-        label: "Billing Notes",
-        docType: "billing-note",
-        links: doc.billing_note_links || [],
-      },
-      {
-        label: "Credit Notes",
-        docType: "credit-note",
-        links: doc.credit_note_links || [],
-      },
-    ],
-  },
-  "billing-note": {
-    label: "Billing Note",
-    fetch: (id) => api.getBillingNote(id),
-    header: (doc) => [
-      { label: "Date", value: formatDate(doc.billing_note_date) },
-      { label: "Customer", value: doc.customer_name || "—" },
-      { label: "Status", status: doc.status },
-      { label: "Expected Payment", value: formatDate(doc.expected_payment_date) },
-      { label: "Actual Payment", value: formatDate(doc.actual_payment_date) },
-      { label: "Bank Reference", value: doc.bank_reference || "—" },
-      { label: "Note", value: doc.note || "—", fullWidth: true },
-    ],
-    items: (doc) => ({
-      columns: [
-        "#",
-        "Reference",
-        "Sale Date",
-        "Payment Term",
-        "Payment Due",
-        "Received",
-        "Received Date",
-        "Amount",
+      refs: (doc) => [
+        {
+          label: t("documentRef.purchaseOrders"),
+          docType: "purchase",
+          links: doc.derived_purchase_links || [],
+        },
+        {
+          label: t("documentRef.salesCreated"),
+          docType: "sale",
+          links: doc.derived_sale_links || [],
+        },
       ],
-      rows: (doc.lines || []).map((line, index) => [
-        index + 1,
-        line.sale_reference_no || line.sale || "—",
-        formatDate(line.sale_transaction_date),
-        paymentTerm(line.sale_payment_term_type, line.sale_payment_term_days),
-        formatDate(line.sale_payment_date),
-        line.received ? "Yes" : "No",
-        formatDate(line.received_date),
-        fmt(line.amount),
-      ]),
-    }),
-    totals: (doc) => [
-      { label: "Total Billed", value: fmt(doc.total_amount) },
-      { label: "Net (after credits)", value: fmt(doc.net_amount), strong: true },
-    ],
-    refs: (doc) => [
-      {
-        label: "Sales",
-        docType: "sale",
-        links: (doc.lines || []).map((line) => ({
-          id: line.sale_id || line.sale,
-          reference_no: line.sale_reference_no || "",
-        })),
-      },
-      {
-        label: "Credit Notes",
-        docType: "credit-note",
-        links: (doc.credit_notes || []).map((cn) => ({
-          id: cn.id,
-          reference_no: cn.reference_no || "",
-        })),
-      },
-    ],
-  },
-  "payment-batch": {
-    label: "Payment Batch",
-    fetch: (id) => api.getPaymentBatch(id),
-    header: (doc) => [
-      { label: "Date", value: formatDate(doc.batch_date) },
-      { label: "Supplier", value: doc.supplier_name || "—" },
-      { label: "Status", status: doc.status },
-      { label: "Planned Payment", value: formatDate(doc.planned_payment_date) },
-      { label: "Actual Payment", value: formatDate(doc.actual_payment_date) },
-      { label: "Bank Reference", value: doc.bank_reference || "—" },
-      { label: "Note", value: doc.note || "—", fullWidth: true },
-    ],
-    items: (doc) => ({
-      columns: [
-        "#",
-        "Reference",
-        "Date",
-        "Payment Term",
-        "Payment Due",
-        "Paid",
-        "Paid Date",
-        "Amount",
+    },
+    purchase: {
+      label: t("documentRef.purchase"),
+      fetch: (id) => api.getPurchase(id),
+      header: (doc) => [
+        { label: t("documentRef.dateLabel"), value: formatDate(doc.transaction_date) },
+        { label: t("documentRef.supplier"), value: doc.supplier_name || "—" },
+        { label: t("documentRef.status"), status: doc.status },
+        { label: t("documentRef.supplierTaxInvoice"), value: doc.supplier_tax_invoice || "—" },
+        { label: t("documentRef.noteLabel"), value: doc.note || "—", fullWidth: true },
       ],
-      rows: (doc.lines || []).map((line, index) => [
-        index + 1,
-        line.purchase_reference_no || line.purchase || "—",
-        formatDate(line.purchase_transaction_date),
-        paymentTerm(line.purchase_payment_term_type, line.purchase_payment_term_days),
-        formatDate(line.purchase_payment_date),
-        line.paid ? "Yes" : "No",
-        formatDate(line.paid_date),
-        fmt(line.amount),
-      ]),
-    }),
-    totals: (doc) => [{ label: "Total", value: fmt(doc.total_amount), strong: true }],
-    refs: (doc) => [
-      {
-        label: "Purchases",
-        docType: "purchase",
-        links: (doc.lines || []).map((line) => ({
-          id: line.purchase_id || line.purchase,
-          reference_no: line.purchase_reference_no || "",
-        })),
-      },
-    ],
-  },
-  "credit-note": {
-    label: "Credit Note",
-    fetch: (id) => api.getCreditNote(id),
-    header: (doc) => [
-      { label: "Date", value: formatDate(doc.credit_note_date) },
-      { label: "Customer", value: doc.customer_name || "—" },
-      { label: "Status", status: doc.status },
-      { label: "Note", value: doc.note || "—", fullWidth: true },
-    ],
-    items: (doc) => ({
-      columns: ["#", "Product", "SKU", "Qty", "Unit Price", "Amount"],
-      rows: (doc.lines || []).map((line, index) => [
-        index + 1,
-        line.product_name || "—",
-        line.sku || "—",
-        line.quantity,
-        fmt(line.unit_price),
-        fmt(line.amount),
-      ]),
-    }),
-    totals: (doc) => [{ label: "Total Credited", value: fmt(doc.total_amount), strong: true }],
-    refs: (doc) => [
-      {
-        label: "Source Sale",
-        docType: "sale",
-        links: doc.sale ? [{ id: doc.sale, reference_no: doc.sale_reference_no || "" }] : [],
-      },
-      {
-        label: "Billing Note",
-        docType: "billing-note",
-        links: doc.billing_note
-          ? [{ id: doc.billing_note, reference_no: doc.billing_note_reference_no || "" }]
-          : [],
-      },
-    ],
-  },
-};
+      items: (doc) => ({
+        columns: [
+          "#",
+          t("documentRef.colProduct"),
+          t("documentRef.colSKU"),
+          t("documentRef.colExpected"),
+          t("documentRef.colItemStatus"),
+          t("documentRef.colReceived"),
+          t("documentRef.colQty"),
+          t("documentRef.colBaseQty"),
+          t("documentRef.colBaseCost"),
+          t("documentRef.colBaseCostAfterDisc"),
+          t("documentRef.colUnitCost"),
+          t("documentRef.colDiscounts"),
+          t("documentRef.colAmount"),
+        ],
+        rows: (doc.items || []).map((item, index) => [
+          index + 1,
+          item.product_name || "—",
+          item.sku || "—",
+          formatDate(item.expected_delivery_date),
+          prettyStatus(item.item_status),
+          formatDate(item.received_date),
+          formatQuantityWithUnit(item.quantity, item.unit),
+          formatQuantityWithUnit(item.base_quantity, item.base_unit),
+          formatOptionalMoney(getPurchaseBaseUnitCost(item)),
+          formatOptionalMoney(getPurchaseBaseUnitCostAfterDiscount(item)),
+          fmt(item.unit_cost),
+          renderDiscounts(item.discounts),
+          fmt(item.amount),
+        ]),
+      }),
+      totals: (doc) => [
+        { label: t("common.total"), value: fmt(doc.total_before_vat) },
+        { label: t("documentRef.paymentTermVAT"), value: fmt(doc.vat_amount) },
+        { label: t("common.grandTotal"), value: fmt(doc.grand_total), strong: true },
+      ],
+      refs: (doc) => [
+        {
+          label: t("documentRef.sourceQuotation"),
+          docType: "quotation",
+          links: quotationLink(doc.source_quotation_id, doc.source_quotation_reference_no),
+        },
+        {
+          label: t("documentRef.paymentBatchLabel"),
+          docType: "payment-batch",
+          links: doc.payment_batch_links || [],
+        },
+      ],
+    },
+    sale: {
+      label: t("documentRef.sale"),
+      fetch: (id) => api.getSale(id),
+      header: (doc) => [
+        { label: t("documentRef.dateLabel"), value: formatDate(doc.transaction_date) },
+        { label: t("documentRef.customer"), value: doc.customer_name || "—" },
+        { label: t("documentRef.status"), status: doc.status },
+        { label: t("documentRef.customerPORef"), value: doc.customer_po_reference || "—" },
+        { label: t("documentRef.noteLabel"), value: doc.note || "—", fullWidth: true },
+      ],
+      items: (doc) => ({
+        columns: [
+          "#",
+          t("documentRef.colProduct"),
+          t("documentRef.colSKU"),
+          t("documentRef.colItemStatus"),
+          t("documentRef.colShipped"),
+          t("documentRef.colDelivered"),
+          t("documentRef.colQty"),
+          t("documentRef.colBaseQty"),
+          t("documentRef.colBaseUnitPrice"),
+          t("documentRef.colBaseUnitPriceAfterDisc"),
+          t("documentRef.colUnitPrice"),
+          t("documentRef.supplier"),
+          t("documentRef.colUnitCost"),
+          t("documentRef.colDiscounts"),
+          t("documentRef.colAmount"),
+        ],
+        rows: (doc.items || []).map((item, index) => [
+          index + 1,
+          item.product_name || "—",
+          item.sku || "—",
+          prettyStatus(item.item_status),
+          formatDate(item.shipped_date),
+          formatDate(item.delivered_date),
+          formatQuantityWithUnit(item.quantity, item.unit),
+          formatQuantityWithUnit(item.base_quantity, item.base_unit),
+          formatOptionalMoney(getSaleBaseUnitPrice(item)),
+          formatOptionalMoney(getSaleBaseUnitPriceAfterDiscount(item)),
+          fmt(item.unit_price),
+          item.supplier_name || "—",
+          Number(item.unit_cost) > 0 ? fmt(item.unit_cost) : "—",
+          renderDiscounts(item.discounts),
+          fmt(item.amount),
+        ]),
+      }),
+      totals: (doc) => [
+        { label: t("common.subtotal"), value: fmt(doc.total_before_vat) },
+        { label: t("documentRef.paymentTermVAT"), value: fmt(doc.vat_amount) },
+        { label: t("common.grandTotal"), value: fmt(doc.grand_total), strong: true },
+      ],
+      refs: (doc) => [
+        {
+          label: t("documentRef.sourceQuotation"),
+          docType: "quotation",
+          links: quotationLink(doc.source_quotation_id, doc.source_quotation_reference_no),
+        },
+        {
+          label: t("documentRef.billingNotes"),
+          docType: "billing-note",
+          links: doc.billing_note_links || [],
+        },
+        {
+          label: t("documentRef.creditNotes"),
+          docType: "credit-note",
+          links: doc.credit_note_links || [],
+        },
+      ],
+    },
+    "billing-note": {
+      label: t("documentRef.billingNote"),
+      fetch: (id) => api.getBillingNote(id),
+      header: (doc) => [
+        { label: t("documentRef.dateLabel"), value: formatDate(doc.billing_note_date) },
+        { label: t("documentRef.customer"), value: doc.customer_name || "—" },
+        { label: t("documentRef.status"), status: doc.status },
+        { label: t("documentRef.expectedPayment"), value: formatDate(doc.expected_payment_date) },
+        { label: t("documentRef.actualPayment"), value: formatDate(doc.actual_payment_date) },
+        { label: t("documentRef.bankReference"), value: doc.bank_reference || "—" },
+        { label: t("documentRef.noteLabel"), value: doc.note || "—", fullWidth: true },
+      ],
+      items: (doc) => ({
+        columns: [
+          "#",
+          t("documentRef.colReference"),
+          t("documentRef.colSaleDate"),
+          t("documentRef.colPaymentTerm"),
+          t("documentRef.colPaymentDue"),
+          t("documentRef.colReceived"),
+          t("documentRef.colReceivedDate"),
+          t("documentRef.colAmount"),
+        ],
+        rows: (doc.lines || []).map((line, index) => [
+          index + 1,
+          line.sale_reference_no || line.sale || "—",
+          formatDate(line.sale_transaction_date),
+          paymentTerm(line.sale_payment_term_type, line.sale_payment_term_days),
+          formatDate(line.sale_payment_date),
+          line.received ? t("common.yes") : t("common.no"),
+          formatDate(line.received_date),
+          fmt(line.amount),
+        ]),
+      }),
+      totals: (doc) => [
+        { label: t("documentRef.totalBilled"), value: fmt(doc.total_amount) },
+        { label: t("documentRef.netAfterCredits"), value: fmt(doc.net_amount), strong: true },
+      ],
+      refs: (doc) => [
+        {
+          label: t("documentRef.sales"),
+          docType: "sale",
+          links: (doc.lines || []).map((line) => ({
+            id: line.sale_id || line.sale,
+            reference_no: line.sale_reference_no || "",
+          })),
+        },
+        {
+          label: t("documentRef.creditNotes"),
+          docType: "credit-note",
+          links: (doc.credit_notes || []).map((cn) => ({
+            id: cn.id,
+            reference_no: cn.reference_no || "",
+          })),
+        },
+      ],
+    },
+    "payment-batch": {
+      label: t("documentRef.paymentBatch"),
+      fetch: (id) => api.getPaymentBatch(id),
+      header: (doc) => [
+        { label: t("documentRef.dateLabel"), value: formatDate(doc.batch_date) },
+        { label: t("documentRef.supplier"), value: doc.supplier_name || "—" },
+        { label: t("documentRef.status"), status: doc.status },
+        { label: t("documentRef.plannedPayment"), value: formatDate(doc.planned_payment_date) },
+        { label: t("documentRef.actualPayment"), value: formatDate(doc.actual_payment_date) },
+        { label: t("documentRef.bankReference"), value: doc.bank_reference || "—" },
+        { label: t("documentRef.noteLabel"), value: doc.note || "—", fullWidth: true },
+      ],
+      items: (doc) => ({
+        columns: [
+          "#",
+          t("documentRef.colReference"),
+          t("documentRef.colPODate"),
+          t("documentRef.colPaymentTerm"),
+          t("documentRef.colPaymentDue"),
+          t("documentRef.colPaid"),
+          t("documentRef.colPaidDate"),
+          t("documentRef.colAmount"),
+        ],
+        rows: (doc.lines || []).map((line, index) => [
+          index + 1,
+          line.purchase_reference_no || line.purchase || "—",
+          formatDate(line.purchase_transaction_date),
+          paymentTerm(line.purchase_payment_term_type, line.purchase_payment_term_days),
+          formatDate(line.purchase_payment_date),
+          line.paid ? t("common.yes") : t("common.no"),
+          formatDate(line.paid_date),
+          fmt(line.amount),
+        ]),
+      }),
+      totals: (doc) => [{ label: t("common.total"), value: fmt(doc.total_amount), strong: true }],
+      refs: (doc) => [
+        {
+          label: t("documentRef.purchases"),
+          docType: "purchase",
+          links: (doc.lines || []).map((line) => ({
+            id: line.purchase_id || line.purchase,
+            reference_no: line.purchase_reference_no || "",
+          })),
+        },
+      ],
+    },
+    "credit-note": {
+      label: t("documentRef.creditNote"),
+      fetch: (id) => api.getCreditNote(id),
+      header: (doc) => [
+        { label: t("documentRef.dateLabel"), value: formatDate(doc.credit_note_date) },
+        { label: t("documentRef.customer"), value: doc.customer_name || "—" },
+        { label: t("documentRef.status"), status: doc.status },
+        { label: t("documentRef.noteLabel"), value: doc.note || "—", fullWidth: true },
+      ],
+      items: (doc) => ({
+        columns: [
+          "#",
+          t("documentRef.colProduct"),
+          t("documentRef.colSKU"),
+          t("documentRef.colQty"),
+          t("documentRef.colUnitPrice"),
+          t("documentRef.colAmount"),
+        ],
+        rows: (doc.lines || []).map((line, index) => [
+          index + 1,
+          line.product_name || "—",
+          line.sku || "—",
+          line.quantity,
+          fmt(line.unit_price),
+          fmt(line.amount),
+        ]),
+      }),
+      totals: (doc) => [{ label: t("documentRef.totalCredited"), value: fmt(doc.total_amount), strong: true }],
+      refs: (doc) => [
+        {
+          label: t("documentRef.sourceSale"),
+          docType: "sale",
+          links: doc.sale ? [{ id: doc.sale, reference_no: doc.sale_reference_no || "" }] : [],
+        },
+        {
+          label: t("documentRef.billingNoteLabel"),
+          docType: "billing-note",
+          links: doc.billing_note
+            ? [{ id: doc.billing_note, reference_no: doc.billing_note_reference_no || "" }]
+            : [],
+        },
+      ],
+    },
+  };
+}
 
 function DocumentDetailBody({ entry, onOpenRef }) {
+  const { t } = useLanguage();
+  const DOC_CONFIG = buildDocConfig(t);
   const config = DOC_CONFIG[entry.docType];
   const [doc, setDoc] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -440,7 +459,7 @@ function DocumentDetailBody({ entry, onOpenRef }) {
         if (active) setDoc(data);
       })
       .catch(() => {
-        if (active) setError("Failed to load document.");
+        if (active) setError(t("documentRef.failed"));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -451,7 +470,7 @@ function DocumentDetailBody({ entry, onOpenRef }) {
   }, [entry.docType, entry.docId]);
 
   if (!config) return null;
-  if (loading) return <p className="doc-ref-modal-loading">Loading…</p>;
+  if (loading) return <p className="doc-ref-modal-loading">{t("documentRef.loading")}</p>;
   if (error) return <p className="doc-ref-modal-error">{error}</p>;
   if (!doc) return null;
 
@@ -563,6 +582,7 @@ function DocumentDetailBody({ entry, onOpenRef }) {
 }
 
 function DocumentRefModal({ docType, docId, referenceNo, onClose }) {
+  const { t } = useLanguage();
   const [stack, setStack] = useState([{ docType, docId, referenceNo }]);
 
   // A fresh open (props change) resets the drill-down stack.
@@ -571,6 +591,7 @@ function DocumentRefModal({ docType, docId, referenceNo, onClose }) {
   }, [docType, docId, referenceNo]);
 
   const entry = stack[stack.length - 1];
+  const DOC_CONFIG = buildDocConfig(t);
   const config = DOC_CONFIG[entry.docType];
 
   if (!config) return null;
@@ -606,7 +627,7 @@ function DocumentRefModal({ docType, docId, referenceNo, onClose }) {
                 className="secondary-button table-action-button"
                 onClick={goBack}
               >
-                ← Back
+                {t("documentRef.back")}
               </button>
             )}
             <button
@@ -614,7 +635,7 @@ function DocumentRefModal({ docType, docId, referenceNo, onClose }) {
               className="secondary-button table-action-button"
               onClick={onClose}
             >
-              Close
+              {t("common.close")}
             </button>
           </div>
         </div>

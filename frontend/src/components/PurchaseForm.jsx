@@ -17,13 +17,11 @@ import {
   getActiveTransactionDiscount,
   getEffectiveDiscounts,
 } from "./transactionDiscounts";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const today = getTodayString();
 const VAT_RATE = 0.07;
-const vatOptions = [
-  { value: "included", label: "Include VAT" },
-  { value: "not_included", label: "Exclude VAT" },
-];
+const vatOptionValues = ["included", "not_included"];
 const defaultSupplierOptions = [];
 
 function getPurchaseReferencePrefix(date = new Date()) {
@@ -239,6 +237,11 @@ function PurchaseForm({
   const [openProductIndex, setOpenProductIndex] = useState(null);
   const [itemErrors, setItemErrors] = useState({});
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+  const { t } = useLanguage();
+  const vatOptions = vatOptionValues.map((v) => ({
+    value: v,
+    label: v === "included" ? t("purchaseForm.vatIncluded") : t("purchaseForm.vatExcluded"),
+  }));
   const productOptions = products;
   const filteredSuppliers = useMemo(() => {
     const normalizedQuery = supplierQuery.trim().toLowerCase();
@@ -519,7 +522,7 @@ function PurchaseForm({
     const supplierName = resolveSupplierName();
 
     if (!supplierName) {
-      setSupplierError("Select an existing supplier from the list.");
+      setSupplierError(t("purchaseForm.errorSelectSupplier"));
       setSupplierOpen(true);
       return;
     }
@@ -531,12 +534,12 @@ function PurchaseForm({
       );
 
       if (!selectedProduct) {
-        nextItemErrors[index] = "Select an existing product from the list.";
+        nextItemErrors[index] = t("purchaseForm.errorSelectProduct");
         return nextItems;
       }
 
       if (!item.expected_delivery_date) {
-        nextItemErrors[index] = "Select expected delivery date.";
+        nextItemErrors[index] = t("purchaseForm.errorSelectDelivery");
         return nextItems;
       }
 
@@ -637,12 +640,12 @@ function PurchaseForm({
     <section className="section-card">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Purchase Entry</p>
-          <h3>Add Purchase Transaction</h3>
+          <p className="eyebrow">{t("purchaseForm.eyebrow")}</p>
+          <h3>{t("purchaseForm.newTitle")}</h3>
         </div>
         {onCancel ? (
           <button className="secondary-button" type="button" onClick={onCancel}>
-            Close
+            {t("purchaseForm.closeButton")}
           </button>
         ) : null}
       </div>
@@ -650,7 +653,7 @@ function PurchaseForm({
       <form className="form-layout" onSubmit={handleSubmit}>
         <div className="form-grid">
           <label>
-            Reference No.
+            {t("purchaseForm.referenceLabel")}
             <input
               value={form.reference_no}
               readOnly
@@ -659,7 +662,7 @@ function PurchaseForm({
           </label>
 
           <label className="supplier-combobox-field">
-            <span className="required-label">Supplier Name</span>
+            <span className="required-label">{t("purchaseForm.supplierNameLabel")}</span>
             <div className="supplier-combobox">
               <input
                 value={supplierQuery}
@@ -673,7 +676,7 @@ function PurchaseForm({
                 onBlur={() => {
                   window.setTimeout(() => setSupplierOpen(false), 120);
                 }}
-                placeholder="Search existing supplier"
+                placeholder={t("purchaseForm.searchSupplierPlaceholder")}
                 autoComplete="off"
                 aria-expanded={supplierOpen}
                 aria-controls="purchase-supplier-list"
@@ -704,7 +707,7 @@ function PurchaseForm({
                     ))
                   ) : (
                     <div className="supplier-combobox-empty">
-                      No supplier found. Add it in Supplier page first.
+                      {t("purchaseForm.noSupplierFound")}
                     </div>
                   )}
                 </div>
@@ -714,7 +717,7 @@ function PurchaseForm({
           </label>
 
           <label>
-            Payment Term
+            {t("purchaseForm.paymentTermLabel")}
             <select
               value={form.payment_term_type}
               onChange={(event) => {
@@ -726,42 +729,42 @@ function PurchaseForm({
                 }));
               }}
             >
-              <option value="">— Select payment term —</option>
-              <option value="debit">Debit</option>
-              <option value="credit">Credit</option>
+              <option value="">{t("purchaseForm.paymentTermPlaceholder")}</option>
+              <option value="debit">{t("purchaseForm.paymentTermDebit")}</option>
+              <option value="credit">{t("purchaseForm.paymentTermCredit")}</option>
             </select>
           </label>
 
           {form.payment_term_type === "credit" && (
             <label>
-              Credit Term
+              {t("purchaseForm.creditTermLabel")}
               <select
                 value={form.payment_term_days}
                 onChange={(event) =>
                   setForm((f) => ({ ...f, payment_term_days: event.target.value }))
                 }
               >
-                <option value="">— Select credit term —</option>
-                <option value="30 days">30 days</option>
-                <option value="60 days">60 days</option>
-                <option value="90 days">90 days</option>
+                <option value="">{t("purchaseForm.creditTermPlaceholder")}</option>
+                <option value="30 days">{t("purchaseForm.creditTerm30")}</option>
+                <option value="60 days">{t("purchaseForm.creditTerm60")}</option>
+                <option value="90 days">{t("purchaseForm.creditTerm90")}</option>
               </select>
             </label>
           )}
 
           <label>
-            Supplier's Tax Invoice
+            {t("purchaseForm.taxInvoiceLabel")}
             <input
               value={form.supplier_tax_invoice}
               onChange={(event) =>
                 setForm({ ...form, supplier_tax_invoice: event.target.value })
               }
-              placeholder="Optional supplier tax invoice"
+              placeholder={t("purchaseForm.taxInvoicePlaceholder")}
             />
           </label>
 
           <label>
-            <span className="required-label">Status</span>
+            <span className="required-label">{t("purchaseForm.statusLabel")}</span>
             <select
               value={form.status}
               onChange={(event) => setForm({ ...form, status: event.target.value })}
@@ -779,7 +782,7 @@ function PurchaseForm({
           </label>
 
           <label>
-            <span className="required-label">Date</span>
+            <span className="required-label">{t("purchaseForm.dateLabel")}</span>
             <input
               type="date"
               value={form.transaction_date}
@@ -790,17 +793,17 @@ function PurchaseForm({
           </label>
 
           <label>
-            Payment Date
+            {t("purchaseForm.paymentDateLabel")}
             <input
               type="date"
               value={paymentDate}
               readOnly
-              placeholder="Set payment term above"
+              placeholder={t("purchaseForm.paymentDatePlaceholder")}
             />
           </label>
 
           <label className="full-width">
-            Notes
+            {t("purchaseForm.noteLabel")}
             <textarea
               rows="3"
               value={form.note}
@@ -811,15 +814,15 @@ function PurchaseForm({
           <div className="transaction-document-panel full-width">
             <div className="transaction-document-panel-header">
               <div>
-                <strong>Documents</strong>
+                <strong>{t("purchaseForm.documentsLabel")}</strong>
                 <span>
                   {form.documents.length
-                    ? `${form.documents.length} selected`
-                    : "No documents selected"}
+                    ? t("purchaseForm.documentsSelected", { count: form.documents.length })
+                    : t("purchaseForm.noDocumentsSelected")}
                 </span>
               </div>
               <label className="document-upload-button">
-                Add Files
+                {t("purchaseForm.documentsAddFiles")}
                 <input
                   type="file"
                   multiple
@@ -841,6 +844,7 @@ function PurchaseForm({
                     <button
                       className="text-danger-button"
                       type="button"
+                      aria-label={t("purchaseForm.documentRemove")}
                       onClick={() =>
                         setForm({
                           ...form,
@@ -848,22 +852,22 @@ function PurchaseForm({
                         })
                       }
                     >
-                      Remove
+                      {t("purchaseForm.documentRemove")}
                     </button>
                   </span>
                 ))}
               </div>
             ) : (
-              <p className="transaction-document-empty">Attach invoices, receipts, or related files.</p>
+              <p className="transaction-document-empty">{t("purchaseForm.documentsEmpty")}</p>
             )}
           </div>
         </div>
 
         <div className="line-items-card">
           <div className="line-items-header">
-            <h4>Purchase Items</h4>
+            <h4>{t("purchaseForm.itemsTitle")}</h4>
             <button className="secondary-button" type="button" onClick={addItem}>
-              Add Item
+              {t("purchaseForm.addItem")}
             </button>
           </div>
 
@@ -898,8 +902,8 @@ function PurchaseForm({
                       : "line-item-index"
                   }
                   draggable={items.length > 1}
-                  title={items.length > 1 ? "Drag to reorder" : "Item order"}
-                  aria-label={`Item ${index + 1}. Drag to reorder`}
+                  title={items.length > 1 ? t("purchaseForm.dragToReorder") : t("purchaseForm.itemOrder")}
+                  aria-label={t("purchaseForm.itemAriaLabel", { index: index + 1 })}
                   onDragStart={(event) => handleItemDragStart(event, index)}
                   onDragEnd={handleItemDragEnd}
                 >
@@ -907,7 +911,7 @@ function PurchaseForm({
                 </div>
 
                 <label className="purchase-item-field purchase-item-product purchase-product-field">
-                  <span className="required-label">Product</span>
+                  <span className="required-label">{t("purchaseForm.colProduct")}</span>
                   <div className="supplier-combobox">
                     <input
                       value={item.product_query}
@@ -916,7 +920,7 @@ function PurchaseForm({
                       onBlur={() => {
                         window.setTimeout(() => setOpenProductIndex(null), 120);
                       }}
-                      placeholder="Search existing product"
+                      placeholder={t("purchaseForm.searchProductPlaceholder")}
                       autoComplete="off"
                       aria-expanded={openProductIndex === index}
                       aria-controls={`purchase-product-list-${item.line_id}`}
@@ -957,7 +961,7 @@ function PurchaseForm({
                           })
                         ) : (
                           <div className="supplier-combobox-empty">
-                            No product found. Add it in Product page first.
+                            {t("purchaseForm.noProductFound")}
                           </div>
                         )}
                       </div>
@@ -969,17 +973,17 @@ function PurchaseForm({
                 </label>
 
                 <label className="purchase-item-field purchase-item-sku">
-                  <span>SKU</span>
+                  <span>{t("purchaseForm.colSKU")}</span>
                   <input
                     value={item.sku}
                     readOnly
-                    placeholder="SKU"
+                    placeholder={t("purchaseForm.skuPlaceholder")}
                     required
                   />
                 </label>
 
                 <label className="purchase-item-field purchase-item-unit">
-                  <span className="required-label">Unit</span>
+                  <span className="required-label">{t("purchaseForm.colUnit")}</span>
                   <select
                     value={item.unit}
                     onChange={(event) => updateItem(index, "unit", event.target.value)}
@@ -1003,7 +1007,7 @@ function PurchaseForm({
                 </label>
 
                 <label className="purchase-item-field purchase-item-delivery">
-                  <span className="required-label">Expected Delivery</span>
+                  <span className="required-label">{t("purchaseForm.colExpectedDelivery")}</span>
                   <input
                     type="date"
                     value={item.expected_delivery_date}
@@ -1016,19 +1020,19 @@ function PurchaseForm({
                 </label>
 
                 <label className="purchase-item-field purchase-item-qty">
-                  <span className="required-label">Qty</span>
+                  <span className="required-label">{t("purchaseForm.colQty")}</span>
                   <input
                     type="number"
                     min="1"
                     value={item.quantity}
                     onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                    placeholder="Qty"
+                    placeholder={t("purchaseForm.qtyPlaceholder")}
                     required
                   />
                 </label>
 
                 <label className="purchase-item-field purchase-item-cost">
-                  <span className="required-label">Unit Cost</span>
+                  <span className="required-label">{t("purchaseForm.colUnitCost")}</span>
                   <input
                     type="number"
                     min="0"
@@ -1041,12 +1045,12 @@ function PurchaseForm({
                 </label>
 
                 <div className="purchase-item-field purchase-item-discounts">
-                  <span>Discounts</span>
+                  <span>{t("purchaseForm.colDiscounts")}</span>
                   <div className="sales-discount-cell">
                     {(item.discounts || [""]).map((discount, discountIndex) => (
                       <div key={discountIndex} className="sales-discount-entry">
                         {discountIndex > 0 ? (
-                          <span className="sales-discount-chain-label">then</span>
+                          <span className="sales-discount-chain-label">{t("purchaseForm.discountThen")}</span>
                         ) : null}
                         <input
                           className="sales-discount-input"
@@ -1065,7 +1069,7 @@ function PurchaseForm({
                           <button
                             className="sales-discount-remove"
                             type="button"
-                            aria-label="Remove discount"
+                            aria-label={t("purchaseForm.removeDiscount")}
                             onClick={() => removeDiscount(index, discountIndex)}
                           >
                             X
@@ -1078,13 +1082,13 @@ function PurchaseForm({
                       type="button"
                       onClick={() => addDiscount(index)}
                     >
-                      + Add
+                      {t("purchaseForm.addDiscount")}
                     </button>
                   </div>
                 </div>
 
                 <div className="purchase-item-field purchase-item-amount">
-                  <span>Amount</span>
+                  <span>{t("purchaseForm.colAmount")}</span>
                   <div className="sales-line-amount">
                     {fmt(amount)}
                   </div>
@@ -1096,7 +1100,7 @@ function PurchaseForm({
                   onClick={() => removeItem(index)}
                   disabled={items.length === 1}
                 >
-                  Remove
+                  {t("purchaseForm.removeItem")}
                 </button>
               </div>
             );
@@ -1112,7 +1116,7 @@ function PurchaseForm({
 
         <section className="purchase-vat-card">
           <div className="purchase-vat-card-header">
-            <p className="purchase-vat-label">VAT Setting</p>
+            <p className="purchase-vat-label">{t("purchaseForm.vatSetting")}</p>
             <label className="vat-toggle">
               <input
                 type="checkbox"
@@ -1123,12 +1127,12 @@ function PurchaseForm({
               />
               <span className="vat-toggle-track" />
               <span className="vat-toggle-text">
-                {isVatEnabled(vatMode) ? "On" : "Off"}
+                {isVatEnabled(vatMode) ? t("purchaseForm.vatOn") : t("purchaseForm.vatOff")}
               </span>
             </label>
           </div>
           {isVatEnabled(vatMode) ? (
-            <div className="purchase-vat-options" role="radiogroup" aria-label="Purchase VAT setting">
+            <div className="purchase-vat-options" role="radiogroup" aria-label={t("purchaseForm.vatAriaLabel")}>
               {vatOptions.map((option) => (
                 <label
                   key={option.value}
@@ -1152,23 +1156,23 @@ function PurchaseForm({
           {isVatEnabled(vatMode) ? (
             <>
               <div className="sales-summary-row">
-                <span>Total</span>
+                <span>{t("purchaseForm.subtotal")}</span>
                 <span>{fmt(vatSummary.total)}</span>
               </div>
               <div className="sales-summary-row">
-                <span>VAT (7%)</span>
+                <span>{t("purchaseForm.vat")}</span>
                 <span>{fmt(vatSummary.vat)}</span>
               </div>
             </>
           ) : null}
           <div className="sales-summary-row sales-summary-grand">
-            <strong>Grand Total</strong>
+            <strong>{t("purchaseForm.grandTotal")}</strong>
             <strong>{fmt(vatSummary.grandTotal)}</strong>
           </div>
         </div>
 
         <button className="primary-button" type="submit">
-          Save Purchase
+          {t("purchaseForm.saveButton")}
         </button>
       </form>
     </section>

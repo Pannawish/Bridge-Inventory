@@ -1,3 +1,5 @@
+import { useLanguage } from "../i18n/LanguageContext";
+
 function matchesStatusSelection(selectedStatuses = [], presetStatuses = []) {
   return (
     selectedStatuses.length === presetStatuses.length &&
@@ -13,6 +15,7 @@ export default function StatusFilterGroup({
   formatStatusLabel = (status) => status,
   onChange,
 }) {
+  const { t } = useLanguage();
   const allSelected = matchesStatusSelection(selectedStatuses, statuses);
   const noneSelected = selectedStatuses.length === 0;
 
@@ -52,7 +55,7 @@ export default function StatusFilterGroup({
             onClick={() => onChange([...statuses])}
             disabled={allSelected}
           >
-            Select all
+            {t("common.selectAll")}
           </button>
           <button
             className="history-filter-status-action"
@@ -60,7 +63,7 @@ export default function StatusFilterGroup({
             onClick={() => onChange([])}
             disabled={noneSelected}
           >
-            Clear all
+            {t("common.clearAll")}
           </button>
         </div>
       </div>
@@ -80,7 +83,7 @@ export default function StatusFilterGroup({
 
       {noneSelected ? (
         <p className="history-filter-status-note">
-          No statuses selected. No records will be shown.
+          {t("common.noStatusesSelected")}
         </p>
       ) : null}
     </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatMoney as fmt } from "../format";
+import { useLanguage } from "../i18n/LanguageContext";
 
 function getToday() {
   return new Date().toISOString().split("T")[0];
@@ -42,6 +43,7 @@ function CreditNotePrompt({
   );
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     setSelectedLineIds(new Set(newlyCancelledLines.map((line) => line.sale_item)));
@@ -76,7 +78,7 @@ function CreditNotePrompt({
     event.preventDefault();
 
     if (!sale) {
-      setError("Sale information is missing.");
+      setError(t("creditNotePrompt.errorNoSale"));
       return;
     }
 
@@ -85,7 +87,7 @@ function CreditNotePrompt({
     );
 
     if (!chosenLines.length) {
-      setError("Select at least one cancelled or returned item to credit.");
+      setError(t("creditNotePrompt.errorNoItems"));
       return;
     }
 
@@ -134,22 +136,22 @@ function CreditNotePrompt({
       >
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Items cancelled or returned</p>
-            <h3 id="cn-prompt-title">Create a Credit Note?</h3>
+            <p className="eyebrow">{t("creditNotePrompt.eyebrow")}</p>
+            <h3 id="cn-prompt-title">{t("creditNotePrompt.title")}</h3>
             <p className="credit-note-prompt-subtitle">
-              {newlyCancelledLines.length} cancelled or returned item
-              {newlyCancelledLines.length === 1 ? "" : "s"} on{" "}
-              <strong>{sale.reference_no || `Sale ${sale.id}`}</strong> for{" "}
-              <strong>{sale.customer_name || "this customer"}</strong>{" "}
-              {newlyCancelledLines.length === 1 ? "needs" : "need"} a credit
-              note. Issue it now to keep records aligned, or click{" "}
-              <em>Create Later</em> to handle it from the Credit Notes page.
+              {t("creditNotePrompt.subtitle", {
+                count: newlyCancelledLines.length,
+                item: newlyCancelledLines.length === 1 ? t("creditNotePrompt.itemSingular") : t("creditNotePrompt.itemPlural"),
+                ref: sale.reference_no || `Sale ${sale.id}`,
+                customer: sale.customer_name || "this customer",
+                verb: newlyCancelledLines.length === 1 ? t("creditNotePrompt.needsSingular") : t("creditNotePrompt.needsPlural"),
+              })}
             </p>
           </div>
           <button
             type="button"
             className="icon-button subtle"
-            aria-label="Close"
+            aria-label={t("common.close")}
             onClick={onClose}
           >
             X
@@ -159,17 +161,17 @@ function CreditNotePrompt({
         <form className="form-layout" onSubmit={handleSubmit}>
           <div className="form-grid">
             <label>
-              Customer
+              {t("creditNotePrompt.customerLabel")}
               <input value={sale.customer_name || ""} disabled />
             </label>
 
             <label>
-              Source Sale
+              {t("creditNotePrompt.sourceSale")}
               <input value={sale.reference_no || `Sale ${sale.id}`} disabled />
             </label>
 
             <label>
-              Credit Note Date
+              {t("creditNotePrompt.creditNoteDate")}
               <input
                 type="date"
                 value={creditNoteDate}
@@ -178,12 +180,12 @@ function CreditNotePrompt({
             </label>
 
             <label>
-              Apply to Billing Note (optional)
+              {t("creditNotePrompt.applyToBillingNote")}
               <select
                 value={billingNoteId}
                 onChange={(event) => setBillingNoteId(event.target.value)}
               >
-                <option value="">Not applied to a billing note</option>
+                <option value="">{t("creditNotePrompt.notApplied")}</option>
                 {billingNoteOptions.map((billingNote) => (
                   <option key={billingNote.id} value={billingNote.id}>
                     {(billingNote.reference_no || billingNote.id) +
@@ -194,22 +196,22 @@ function CreditNotePrompt({
             </label>
 
             <label className="full-width">
-              Note
+              {t("creditNotePrompt.noteLabel")}
               <textarea
                 rows="2"
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
-                placeholder="Optional note"
+                placeholder={t("creditNotePrompt.optionalNote")}
               />
             </label>
           </div>
 
           <div className="line-items-header">
             <div>
-              <p className="eyebrow">Cancelled items</p>
-              <h4>Items to credit</h4>
+              <p className="eyebrow">{t("creditNotePrompt.cancelledEyebrow")}</p>
+              <h4>{t("creditNotePrompt.itemsToCredit")}</h4>
             </div>
-            <span>{selectedLineIds.size} selected</span>
+            <span>{t("creditNotePrompt.selectedCount", { count: selectedLineIds.size })}</span>
           </div>
 
           <div className="transaction-table-window credit-note-prompt-table-window">
@@ -226,11 +228,11 @@ function CreditNotePrompt({
                 <thead>
                   <tr>
                     <th />
-                    <th>Product</th>
-                    <th>SKU</th>
-                    <th>Quantity</th>
-                    <th>Unit Price</th>
-                    <th>Amount</th>
+                    <th>{t("creditNotePrompt.colProduct")}</th>
+                    <th>{t("creditNotePrompt.colSKU")}</th>
+                    <th>{t("creditNotePrompt.colQuantity")}</th>
+                    <th>{t("creditNotePrompt.colUnitPrice")}</th>
+                    <th>{t("creditNotePrompt.colAmount")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -267,7 +269,7 @@ function CreditNotePrompt({
 
           <div className="sales-summary-card">
             <div className="sales-summary-row sales-summary-grand">
-              <strong>Total Credit</strong>
+              <strong>{t("creditNotePrompt.totalCredit")}</strong>
               <strong>{fmt(totalAmount)}</strong>
             </div>
           </div>
@@ -281,14 +283,14 @@ function CreditNotePrompt({
               onClick={onClose}
               disabled={submitting}
             >
-              Create Later
+              {t("creditNotePrompt.createLater")}
             </button>
             <button
               className="primary-button"
               type="submit"
               disabled={submitting || !selectedLineIds.size}
             >
-              {submitting ? "Creating..." : "Create Credit Note"}
+              {submitting ? t("creditNotePrompt.creating") : t("creditNotePrompt.createNow")}
             </button>
           </div>
         </form>

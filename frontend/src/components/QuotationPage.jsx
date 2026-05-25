@@ -20,10 +20,7 @@ import { useLanguage } from "../i18n/LanguageContext";
 import { PAGE_SIZE } from "../app/appUtils";
 
 const VAT_RATE = 0.07;
-const vatOptions = [
-  { value: "included", label: "Include VAT" },
-  { value: "not_included", label: "Exclude VAT" },
-];
+const vatOptionValues = ["included", "not_included"];
 
 function getToday() {
   return formatDateInputValue(new Date());
@@ -677,6 +674,10 @@ function QuotationForm({
   onCancel,
 }) {
   const { t } = useLanguage();
+  const vatOptions = vatOptionValues.map((v) => ({
+    value: v,
+    label: v === "included" ? t("quotation.vatIncluded") : t("quotation.vatExcluded"),
+  }));
   const isEditing = Boolean(quotation);
   const initialReference = quotation?.reference_no || getNextQuotationReference(quotations);
   const [form, setForm] = useState(() =>
@@ -921,18 +922,18 @@ function QuotationForm({
     setItemErrors({});
 
     if (!form.quotation_date) {
-      setFormError("Quotation date is required.");
+      setFormError(t("quotation.errorDateRequired"));
       return;
     }
 
     const days = Number(form.valid_until_days);
     const isNoValidDate = form.valid_until_day_type === "no_valid_date";
     if (!isNoValidDate && (isNaN(days) || days < 1 || days > 100)) {
-      setFormError("Valid until days must be between 1 and 100.");
+      setFormError(t("quotation.errorValidUntilDays"));
       return;
     }
     if (!isNoValidDate && !validUntilDate) {
-      setFormError("Could not compute a valid until date. Check the quotation date.");
+      setFormError(t("quotation.errorValidUntilCompute"));
       return;
     }
 
@@ -946,7 +947,7 @@ function QuotationForm({
           option.cost_price === undefined;
         if (hasSupplierName && missingCost) {
           setFormError(
-            `Enter a cost price for supplier "${option.supplier_name}" on item ${itemIndex + 1}.`
+            t("quotation.errorSupplierCostPrice", { supplier: option.supplier_name, index: itemIndex + 1 })
           );
           return;
         }
@@ -957,9 +958,9 @@ function QuotationForm({
       const selectedProduct = products.find((product) => `${product.id}` === `${item.product_id}`);
 
       if (!selectedProduct) {
-        setItemErrors({ [index]: "Select an existing product from the list." });
+        setItemErrors({ [index]: t("quotation.errorSelectProduct") });
         setOpenProductIndex(index);
-        throw new Error(`Select an existing product for item ${index + 1}.`);
+        throw new Error(t("quotation.errorSelectProduct"));
       }
 
       if (!item.quantity || Number(item.quantity) <= 0) {
@@ -1034,12 +1035,12 @@ function QuotationForm({
     <section className="section-card">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">{isEditing ? "Quotation Edit" : "Quotation Entry"}</p>
-          <h3>{isEditing ? "Edit Quotation" : "New Quotation"}</h3>
+          <p className="eyebrow">{isEditing ? t("quotation.editEyebrow") : t("quotation.entryEyebrow")}</p>
+          <h3>{isEditing ? t("quotation.editTitle") : t("quotation.newTitle")}</h3>
         </div>
         {onCancel ? (
           <button className="secondary-button table-action-button" type="button" onClick={onCancel}>
-            Cancel
+            {t("quotation.cancelButton")}
           </button>
         ) : null}
       </div>
@@ -1049,7 +1050,7 @@ function QuotationForm({
       <form className="form-layout" onSubmit={handleSubmit}>
         <div className="form-grid">
           <label>
-            Quotation Number
+            {t("quotation.referenceLabel")}
             <input
               value={form.reference_no}
               readOnly={!isEditing}
@@ -1059,7 +1060,7 @@ function QuotationForm({
           </label>
 
           <label>
-            <span className="required-label">Quotation Date</span>
+            <span className="required-label">{t("quotation.dateLabel")}</span>
             <input
               type="date"
               value={form.quotation_date}
@@ -1069,7 +1070,7 @@ function QuotationForm({
           </label>
 
           <div className="valid-until-field">
-            <span className="required-label">Valid Until Date</span>
+            <span className="required-label">{t("quotation.validUntilLabel")}</span>
             <div className="valid-until-days-row">
               <input
                 type="number"
@@ -1080,13 +1081,13 @@ function QuotationForm({
                 value={form.valid_until_days}
                 onChange={(event) => handleValidUntilDaysChange(event.target.value)}
               />
-              <span className="valid-until-days-unit">days</span>
+              <span className="valid-until-days-unit">{t("quotation.days")}</span>
             </div>
-            <div className="valid-until-type-options" role="radiogroup" aria-label="Valid until day type">
+            <div className="valid-until-type-options" role="radiogroup" aria-label={t("quotation.validUntilTypeAriaLabel")}>
               {[
-                { value: "calendar", label: "Calendar days" },
-                { value: "business", label: "Business days" },
-                { value: "no_valid_date", label: "No Valid Date" },
+                { value: "calendar", label: t("quotation.calendarDays") },
+                { value: "business", label: t("quotation.businessDays") },
+                { value: "no_valid_date", label: t("quotation.noValidDate") },
               ].map((option) => (
                 <label
                   key={option.value}
@@ -1108,7 +1109,7 @@ function QuotationForm({
               ))}
             </div>
             <p className="valid-until-computed-date">
-              Expires:{" "}
+              {t("quotation.expiresLabel")}{" "}
               <strong>
                 {form.valid_until_day_type === "no_valid_date" || !validUntilDate
                   ? "—"
@@ -1119,16 +1120,16 @@ function QuotationForm({
 
           <EligiblePartyCombobox
             id="quotation-customer"
-            label="Customer Name"
+            label={t("quotation.customerLabel")}
             value={form.customer_name}
             options={customerOptions}
-            placeholder="Search customer"
-            emptyMessage="No customers found."
+            placeholder={t("quotation.searchCustomerPlaceholder")}
+            emptyMessage={t("quotation.noCustomerFound")}
             onChange={(nextCustomerName) => updateForm("customer_name", nextCustomerName)}
           />
 
           <label className="full-width">
-            Note
+            {t("quotation.noteLabel")}
             <textarea
               rows="3"
               value={form.note}
@@ -1139,9 +1140,9 @@ function QuotationForm({
 
         <div className="line-items-card">
           <div className="line-items-header">
-            <h4>Quotation Items</h4>
+            <h4>{t("quotation.itemsTitle")}</h4>
             <button className="secondary-button" type="button" onClick={addItem}>
-              Add Item
+              {t("quotation.addItem")}
             </button>
           </div>
 
@@ -1157,12 +1158,12 @@ function QuotationForm({
 
             return (
               <div className="line-item-row quotation-line-item-row" key={item.line_id}>
-                <div className="line-item-index" aria-label={`Item ${index + 1}`}>
+                <div className="line-item-index" aria-label={t("quotation.itemAriaLabel", { index: index + 1 })}>
                   {index + 1}
                 </div>
 
                 <label className="purchase-item-field quotation-item-product">
-                  <span className="required-label">Product</span>
+                  <span className="required-label">{t("quotation.colProduct")}</span>
                   <div className="supplier-combobox">
                     <input
                       value={item.product_query}
@@ -1171,7 +1172,7 @@ function QuotationForm({
                       onBlur={() => {
                         window.setTimeout(() => setOpenProductIndex(null), 120);
                       }}
-                      placeholder="Search existing product"
+                      placeholder={t("quotation.searchProductPlaceholder")}
                       autoComplete="off"
                       aria-expanded={openProductIndex === index}
                       aria-controls={`quotation-product-list-${item.line_id}`}
@@ -1212,7 +1213,7 @@ function QuotationForm({
                           })
                         ) : (
                           <div className="supplier-combobox-empty">
-                            No product found. Add it in Product page first.
+                            {t("quotation.noProductFound")}
                           </div>
                         )}
                       </div>
@@ -1224,7 +1225,7 @@ function QuotationForm({
                 </label>
 
                 <label className="purchase-item-field quotation-item-unit">
-                  <span className="required-label">Unit</span>
+                  <span className="required-label">{t("quotation.colUnit")}</span>
                   <select
                     value={item.unit}
                     onChange={(event) => updateItem(index, "unit", event.target.value)}
@@ -1243,7 +1244,7 @@ function QuotationForm({
                 </label>
 
                 <label className="purchase-item-field quotation-item-qty">
-                  <span className="required-label">Qty</span>
+                  <span className="required-label">{t("quotation.colQty")}</span>
                   <input
                     type="number"
                     min="1"
@@ -1254,7 +1255,7 @@ function QuotationForm({
                 </label>
 
                 <label className="purchase-item-field quotation-item-sale">
-                  <span className="required-label">Sale Price</span>
+                  <span className="required-label">{t("quotation.colSalePrice")}</span>
                   <input
                     type="number"
                     min="0"
@@ -1275,12 +1276,12 @@ function QuotationForm({
                 </label>
 
                 <div className="purchase-item-field quotation-item-discounts">
-                  <span>Discounts</span>
+                  <span>{t("quotation.colDiscounts")}</span>
                   <div className="sales-discount-cell">
                     {normalizeDiscounts(item).map((discount, discountIndex) => (
                       <div key={discountIndex} className="sales-discount-entry">
                         {discountIndex > 0 ? (
-                          <span className="sales-discount-chain-label">then</span>
+                          <span className="sales-discount-chain-label">{t("quotation.discountThen")}</span>
                         ) : null}
                         <input
                           className="sales-discount-input"
@@ -1299,7 +1300,7 @@ function QuotationForm({
                           <button
                             className="sales-discount-remove"
                             type="button"
-                            aria-label="Remove discount"
+                            aria-label={t("quotation.removeDiscount")}
                             onClick={() => removeDiscount(index, discountIndex)}
                           >
                             X
@@ -1312,13 +1313,13 @@ function QuotationForm({
                       type="button"
                       onClick={() => addDiscount(index)}
                     >
-                      + Add
+                      {t("quotation.addDiscount")}
                     </button>
                   </div>
                 </div>
 
                 <div className="purchase-item-field quotation-item-amount">
-                  <span>Sale Amount</span>
+                  <span>{t("quotation.colSaleAmount")}</span>
                   <div className="sales-line-amount">{fmt(saleAmount)}</div>
                 </div>
 
@@ -1328,21 +1329,21 @@ function QuotationForm({
                   onClick={() => removeItem(index)}
                   disabled={items.length === 1}
                 >
-                  Remove
+                  {t("quotation.removeItem")}
                 </button>
 
                 <div className="purchase-item-field quotation-item-suppliers">
-                  <span>Suppliers (cost comparison)</span>
+                  <span>{t("quotation.suppliersLabel")}</span>
                   <div className="quotation-supplier-list">
                     {(item.supplier_options || []).map((option, optionIndex) => (
                       <div className="quotation-supplier-row" key={option.option_id}>
                         <EligiblePartyCombobox
                           id={`quotation-item-${item.line_id}-supplier-${option.option_id}`}
-                          label="Supplier"
+                          label={t("quotation.supplierLabel")}
                           value={option.supplier_name}
                           options={supplierOptions}
-                          placeholder="Search supplier"
-                          emptyMessage="No suppliers found."
+                          placeholder={t("quotation.searchSupplierPlaceholder")}
+                          emptyMessage={t("quotation.noSupplierFound")}
                           onChange={(nextSupplierName) =>
                             updateSupplierOption(
                               index,
@@ -1353,7 +1354,7 @@ function QuotationForm({
                           }
                         />
                         <label className="quotation-supplier-cost">
-                          <span>Cost Price</span>
+                          <span>{t("quotation.colCostPrice")}</span>
                           <input
                             type="number"
                             min="0"
@@ -1375,7 +1376,7 @@ function QuotationForm({
                           type="button"
                           onClick={() => removeSupplierOption(index, optionIndex)}
                         >
-                          Remove
+                          {t("quotation.removeSupplierOption")}
                         </button>
                       </div>
                     ))}
@@ -1384,7 +1385,7 @@ function QuotationForm({
                       type="button"
                       onClick={() => addSupplierOption(index)}
                     >
-                      + Add Supplier
+                      {t("quotation.addSupplierOption")}
                     </button>
                   </div>
                 </div>
@@ -1395,7 +1396,7 @@ function QuotationForm({
 
         <section className="purchase-vat-card">
           <div className="purchase-vat-card-header">
-            <p className="purchase-vat-label">VAT Setting</p>
+            <p className="purchase-vat-label">{t("quotation.vatSetting")}</p>
             <label className="vat-toggle">
               <input
                 type="checkbox"
@@ -1406,12 +1407,12 @@ function QuotationForm({
               />
               <span className="vat-toggle-track" />
               <span className="vat-toggle-text">
-                {isVatEnabled(form.vat_mode) ? "On" : "Off"}
+                {isVatEnabled(form.vat_mode) ? t("quotation.vatOn") : t("quotation.vatOff")}
               </span>
             </label>
           </div>
           {isVatEnabled(form.vat_mode) ? (
-            <div className="purchase-vat-options" role="radiogroup" aria-label="Quotation VAT setting">
+            <div className="purchase-vat-options" role="radiogroup" aria-label={t("quotation.vatAriaLabel")}>
               {vatOptions.map((option) => (
                 <label
                   key={option.value}
@@ -1435,17 +1436,17 @@ function QuotationForm({
           {isVatEnabled(form.vat_mode) ? (
             <>
               <div className="sales-summary-row">
-                <span>Total</span>
+                <span>{t("quotation.subtotal")}</span>
                 <span>{fmt(vatSummary.total)}</span>
               </div>
               <div className="sales-summary-row">
-                <span>VAT (7%)</span>
+                <span>{t("quotation.vat")}</span>
                 <span>{fmt(vatSummary.vat)}</span>
               </div>
             </>
           ) : null}
           <div className="sales-summary-row sales-summary-grand">
-            <strong>Grand Total</strong>
+            <strong>{t("quotation.grandTotal")}</strong>
             <strong>{fmt(vatSummary.grandTotal)}</strong>
           </div>
         </div>
@@ -1453,11 +1454,11 @@ function QuotationForm({
         <div className="supplier-modal-actions">
           {onCancel ? (
             <button className="secondary-button" type="button" onClick={onCancel}>
-              Cancel
+              {t("quotation.cancelButton")}
             </button>
           ) : null}
           <button className="primary-button" type="submit">
-            {isEditing ? "Save Quotation" : "Create Quotation"}
+            {isEditing ? t("quotation.saveButton") : t("quotation.createButton")}
           </button>
         </div>
       </form>
@@ -1605,19 +1606,19 @@ function QuotationPage({
   }
 
   const vatLabels = {
-    included: "Include VAT",
-    not_included: "Exclude VAT",
-    none: "No VAT",
+    included: t("quotation.vatIncluded"),
+    not_included: t("quotation.vatExcluded"),
+    none: t("quotation.vatNone"),
   };
   const quickPresets = [
     {
-      label: "Valid only",
+      label: t("quotation.quickValidOnly"),
       active: stateFilter === "valid",
       onClick: () =>
         setStateFilter((current) => (current === "valid" ? "all" : "valid")),
     },
     {
-      label: "Expired",
+      label: t("quotation.quickExpired"),
       active: stateFilter === "expired",
       onClick: () =>
         setStateFilter((current) =>
@@ -1625,7 +1626,7 @@ function QuotationPage({
         ),
     },
     {
-      label: "Last 30 days",
+      label: t("quotation.quickLast30Days"),
       active: dateFrom === daysAgoInputValue(30) && !dateTo,
       onClick: () => {
         const last30 = dateFrom === daysAgoInputValue(30) && !dateTo;
@@ -1637,44 +1638,44 @@ function QuotationPage({
   const activeChips = [
     selectedCustomer && {
       key: "customer",
-      label: `Customer: ${selectedCustomer}`,
+      label: t("quotation.chipCustomer", { value: selectedCustomer }),
       onRemove: () => setSelectedCustomer(""),
     },
     stateFilter !== "all" && {
       key: "state",
-      label: `State: ${stateFilter === "valid" ? "Valid" : "Expired"}`,
+      label: t("quotation.chipState", { value: stateFilter === "valid" ? t("quotation.stateValid") : t("quotation.stateExpired") }),
       onRemove: () => setStateFilter("all"),
     },
     vatFilter !== "all" && {
       key: "vat",
-      label: `VAT: ${vatLabels[vatFilter] || vatFilter}`,
+      label: t("quotation.chipVat", { value: vatLabels[vatFilter] || vatFilter }),
       onRemove: () => setVatFilter("all"),
     },
     dateFrom && {
       key: "dateFrom",
-      label: `From ${dateFrom}`,
+      label: t("quotation.chipDateFrom", { date: dateFrom }),
       onRemove: () => setDateFrom(""),
     },
     dateTo && {
       key: "dateTo",
-      label: `To ${dateTo}`,
+      label: t("quotation.chipDateTo", { date: dateTo }),
       onRemove: () => setDateTo(""),
     },
     amountMin && {
       key: "amountMin",
-      label: `Min ฿${amountMin}`,
+      label: t("quotation.chipAmountMin", { value: amountMin }),
       onRemove: () => setAmountMin(""),
     },
     amountMax && {
       key: "amountMax",
-      label: `Max ฿${amountMax}`,
+      label: t("quotation.chipAmountMax", { value: amountMax }),
       onRemove: () => setAmountMax(""),
     },
   ].filter(Boolean);
 
   async function handleDelete(quotation) {
     const confirmed = window.confirm(
-      `Delete quotation ${quotation.reference_no || quotation.id}? This action cannot be undone.`
+      t("quotation.deleteButton") + " " + (quotation.reference_no || quotation.id) + "?"
     );
 
     if (!confirmed) {
@@ -1803,15 +1804,15 @@ function QuotationPage({
         <section className="section-card quotation-link-card">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Quotation Link</p>
-              <h3>Create Sale from {conversion.quotation.reference_no}</h3>
+              <p className="eyebrow">{t("quotation.quotationLinkEyebrow")}</p>
+              <h3>{t("quotation.quotationLinkTitle", { ref: conversion.quotation.reference_no })}</h3>
             </div>
             <button
               className="secondary-button"
               type="button"
               onClick={() => setConversion(null)}
             >
-              Back
+              {t("quotation.quotationLinkBack")}
             </button>
           </div>
         </section>
@@ -1852,8 +1853,8 @@ function QuotationPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">History Search</p>
-            <h3>Find Quotation Records</h3>
+            <p className="eyebrow">{t("quotation.searchEyebrow")}</p>
+            <h3>{t("quotation.searchTitle")}</h3>
           </div>
         </div>
 
@@ -1864,12 +1865,12 @@ function QuotationPage({
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search quotation, customer, date, note, or item"
+              placeholder={t("quotation.quotationSearchPlaceholder")}
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
             <span>
-              {filteredQuotations.length} of {quotations.length} quotations shown
+              {t("quotation.shownCount", { shown: filteredQuotations.length, total: quotations.length })}
             </span>
           </div>
         </div>
@@ -1881,11 +1882,11 @@ function QuotationPage({
             aria-expanded={filterOpen}
             onClick={() => setFilterOpen((currentValue) => !currentValue)}
           >
-            Filter
+            {t("quotation.filterButton")}
             {activeFilterCount ? <span>{activeFilterCount}</span> : null}
           </button>
           <button className="secondary-button" type="button" onClick={resetFilters}>
-            Reset Filter
+            {t("quotation.resetFilterButton")}
           </button>
         </div>
 
@@ -1896,12 +1897,12 @@ function QuotationPage({
           <div className="history-filter-panel">
             <div className="history-filter-grid">
               <label className="history-filter-field">
-                <span className="history-filter-title">Customer</span>
+                <span className="history-filter-title">{t("quotation.filterCustomerTitle")}</span>
                 <select
                   value={selectedCustomer}
                   onChange={(event) => setSelectedCustomer(event.target.value)}
                 >
-                  <option value="">All customers</option>
+                  <option value="">{t("quotation.filterAllCustomers")}</option>
                   {customerOptions.map((customerName) => (
                     <option key={customerName} value={customerName}>
                       {customerName}
@@ -1911,32 +1912,32 @@ function QuotationPage({
               </label>
 
               <label className="history-filter-field">
-                <span className="history-filter-title">State</span>
+                <span className="history-filter-title">{t("quotation.filterStateTitle")}</span>
                 <select
                   value={stateFilter}
                   onChange={(event) => setStateFilter(event.target.value)}
                 >
-                  <option value="all">All states</option>
-                  <option value="valid">Valid</option>
-                  <option value="expired">Expired</option>
+                  <option value="all">{t("quotation.filterAllStates")}</option>
+                  <option value="valid">{t("quotation.filterStateValid")}</option>
+                  <option value="expired">{t("quotation.filterStateExpired")}</option>
                 </select>
               </label>
 
               <label className="history-filter-field">
-                <span className="history-filter-title">VAT</span>
+                <span className="history-filter-title">{t("quotation.filterVatTitle")}</span>
                 <select
                   value={vatFilter}
                   onChange={(event) => setVatFilter(event.target.value)}
                 >
-                  <option value="all">All VAT settings</option>
-                  <option value="included">Include VAT</option>
-                  <option value="not_included">Exclude VAT</option>
-                  <option value="none">No VAT</option>
+                  <option value="all">{t("quotation.filterAllVat")}</option>
+                  <option value="included">{t("quotation.filterVatIncluded")}</option>
+                  <option value="not_included">{t("quotation.filterVatExcluded")}</option>
+                  <option value="none">{t("quotation.filterVatNone")}</option>
                 </select>
               </label>
 
               <label className="history-filter-field">
-                <span className="history-filter-title">Date From</span>
+                <span className="history-filter-title">{t("quotation.filterDateFromTitle")}</span>
                 <input
                   type="date"
                   value={dateFrom}
@@ -1945,7 +1946,7 @@ function QuotationPage({
               </label>
 
               <label className="history-filter-field">
-                <span className="history-filter-title">Date To</span>
+                <span className="history-filter-title">{t("quotation.filterDateToTitle")}</span>
                 <input
                   type="date"
                   value={dateTo}
@@ -1954,7 +1955,7 @@ function QuotationPage({
               </label>
 
               <RangeField
-                title="Amount (฿)"
+                title={t("quotation.filterAmountTitle")}
                 prefix="฿"
                 minValue={amountMin}
                 maxValue={amountMax}
@@ -1969,8 +1970,8 @@ function QuotationPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">History</p>
-            <h3>Quotations</h3>
+            <p className="eyebrow">{t("quotation.historyEyebrow")}</p>
+            <h3>{t("quotation.historyTitle")}</h3>
           </div>
           <div className="transaction-table-actions">
             <button
@@ -1982,7 +1983,7 @@ function QuotationPage({
                 setShowNewQuotationForm(true);
               }}
             >
-              Create Quotation
+              {t("quotation.createButton")}
             </button>
           </div>
         </div>
@@ -2002,12 +2003,12 @@ function QuotationPage({
                 </colgroup>
                 <thead>
                   <tr>
-                    <th className="table-index-cell">#</th>
-                    <th>Quotation</th>
-                    <th>Customer</th>
-                    <th>Dates</th>
-                    <th>Items</th>
-                    <th>Total</th>
+                    <th className="table-index-cell">{t("quotation.colIndex")}</th>
+                    <th>{t("quotation.colQuotation")}</th>
+                    <th>{t("quotation.colCustomer")}</th>
+                    <th>{t("quotation.colDates")}</th>
+                    <th>{t("quotation.colItems")}</th>
+                    <th>{t("quotation.colTotal")}</th>
                     <th />
                   </tr>
                 </thead>
@@ -2023,14 +2024,14 @@ function QuotationPage({
                           <div className="transaction-reference-cell">
                             <strong>{quotation.reference_no || "—"}</strong>
                             <span className={`quotation-state-pill ${getQuotationState(quotation).toLowerCase()}`}>
-                              {getQuotationState(quotation)}
+                              {getQuotationState(quotation) === "Valid" ? t("quotation.stateValid") : t("quotation.stateExpired")}
                             </span>
                           </div>
                         </td>
                         <td>
                           <div className="cell-stack">
                             <strong>{quotation.customer_name || "—"}</strong>
-                            <span>Customer</span>
+                            <span>{t("quotation.filterCustomerTitle")}</span>
                           </div>
                         </td>
                         <td>
@@ -2038,7 +2039,7 @@ function QuotationPage({
                             <span className="quotation-date-value">
                               {quotation.quotation_date || "—"}
                             </span>
-                            <span>Valid until {quotation.valid_until_date || "—"}</span>
+                            <span>{t("quotation.validUntilRow", { date: quotation.valid_until_date || "—" })}</span>
                           </div>
                         </td>
                         <td>
@@ -2055,7 +2056,7 @@ function QuotationPage({
                             type="button"
                             onClick={() => setViewingQuotation(quotation)}
                           >
-                            Detail
+                            {t("quotation.detailButton")}
                           </button>
                         </td>
                       </tr>
@@ -2081,25 +2082,25 @@ function QuotationPage({
                         </div>
                       </div>
                       <span className={`quotation-state-pill ${getQuotationState(quotation).toLowerCase()}`}>
-                        {getQuotationState(quotation)}
+                        {getQuotationState(quotation) === "Valid" ? t("quotation.stateValid") : t("quotation.stateExpired")}
                       </span>
                     </div>
 
                     <div className="mobile-record-grid">
                       <div>
-                        <span>Date</span>
+                        <span>{t("quotation.mobileDate")}</span>
                         <strong>{formatDate(quotation.quotation_date)}</strong>
                       </div>
                       <div>
-                        <span>Valid Until</span>
+                        <span>{t("quotation.mobileValidUntil")}</span>
                         <strong>{formatDate(quotation.valid_until_date)}</strong>
                       </div>
                       <div>
-                        <span>Total</span>
+                        <span>{t("quotation.mobileTotal")}</span>
                         <strong>{fmt(quotation.grand_total)}</strong>
                       </div>
                       <div className="full-width-mobile">
-                        <span>Items</span>
+                        <span>{t("quotation.mobileItems")}</span>
                         <div className="history-item-summary mobile-history-item-summary history-item-quantity-only">
                           <span className="history-item-count">{itemCount}</span>
                         </div>
@@ -2111,7 +2112,7 @@ function QuotationPage({
                       type="button"
                       onClick={() => setViewingQuotation(quotation)}
                     >
-                      Detail
+                      {t("quotation.detailButton")}
                     </button>
                   </article>
                 );
@@ -2119,11 +2120,11 @@ function QuotationPage({
             </div>
           </div>
         ) : (
-          <p className="empty-copy">No quotations saved yet.</p>
+          <p className="empty-copy">{t("quotation.noSavedYet")}</p>
         )}
         <PaginationControls
           pagination={quotationPagination}
-          itemLabel="quotations"
+          itemLabel={t("quotation.paginationLabel")}
           onPageChange={setHistoryPage}
         />
       </section>
@@ -2143,7 +2144,7 @@ function QuotationPage({
           >
             <div className="section-heading">
               <div>
-                <p className="eyebrow">Quotation Detail</p>
+                <p className="eyebrow">{t("quotation.detailEyebrow")}</p>
                 <h3 id="quotation-detail-title">{viewingQuotation.reference_no}</h3>
               </div>
               <div className="transaction-detail-actions">
@@ -2157,7 +2158,7 @@ function QuotationPage({
                     setConversion(null);
                   }}
                 >
-                  Edit
+                  {t("quotation.editButton")}
                 </button>
                 <button
                   className="table-action-button"
@@ -2183,7 +2184,7 @@ function QuotationPage({
                     });
                   }}
                 >
-                  Purchase
+                  {t("quotation.purchaseActionButton")}
                 </button>
                 <button
                   className="table-action-button"
@@ -2195,45 +2196,45 @@ function QuotationPage({
                     setConversion({ type: "sale", quotation: viewingQuotation });
                   }}
                 >
-                  Sale
+                  {t("quotation.saleActionButton")}
                 </button>
                 <button
                   className="secondary-button table-action-button"
                   type="button"
                   onClick={() => setViewingQuotation(null)}
                 >
-                  Close
+                  {t("quotation.closeButton")}
                 </button>
               </div>
             </div>
 
             <div className="detail-grid">
               <div>
-                <p className="detail-label">Customer</p>
+                <p className="detail-label">{t("quotation.detailCustomer")}</p>
                 <strong>{viewingQuotation.customer_name || "—"}</strong>
               </div>
               <div>
-                <p className="detail-label">Quotation Date</p>
+                <p className="detail-label">{t("quotation.detailQuotationDate")}</p>
                 <strong>{formatDate(viewingQuotation.quotation_date)}</strong>
               </div>
               <div>
-                <p className="detail-label">Valid Until</p>
+                <p className="detail-label">{t("quotation.detailValidUntil")}</p>
                 <strong>{formatDate(viewingQuotation.valid_until_date)}</strong>
               </div>
               <div>
-                <p className="detail-label">Status</p>
+                <p className="detail-label">{t("quotation.detailStatus")}</p>
                 <strong>
                   <span className={`quotation-state-pill ${getQuotationState(viewingQuotation).toLowerCase()}`}>
-                    {getQuotationState(viewingQuotation)}
+                    {getQuotationState(viewingQuotation) === "Valid" ? t("quotation.stateValid") : t("quotation.stateExpired")}
                   </span>
                 </strong>
               </div>
               <div>
-                <p className="detail-label">Note</p>
+                <p className="detail-label">{t("quotation.detailNote")}</p>
                 <strong>{viewingQuotation.note || "—"}</strong>
               </div>
               <div>
-                <p className="detail-label">Purchase Orders Created</p>
+                <p className="detail-label">{t("quotation.detailPurchaseOrdersCreated")}</p>
                 {(viewingQuotation.derived_purchase_links || []).length > 0 ? (
                   <div className="doc-ref-chips">
                     {viewingQuotation.derived_purchase_links.map((link) => (

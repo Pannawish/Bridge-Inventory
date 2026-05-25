@@ -24,6 +24,7 @@ import { getItemBaseQuantity, getItemQuantityDetails } from "../unitConversion";
 import { formatDate } from "../format";
 import DocumentRefChip from "./DocumentRefChip";
 import DocumentRefModal from "./DocumentRefModal";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const VAT_RATE = 0.07;
 
@@ -124,14 +125,15 @@ function renderBillDiscount(transaction) {
 }
 
 function DiscountBreakdown({ item, transaction }) {
+  const { t } = useLanguage();
   return (
     <div className="tx-discount-breakdown">
       <span className="tx-discount-breakdown-row">
-        <span className="tx-discount-type">Item</span>
+        <span className="tx-discount-type">{t("transactionTable.discountItem")}</span>
         <span className="tx-discount-label">{renderDiscounts(item)}</span>
       </span>
       <span className="tx-discount-breakdown-row">
-        <span className="tx-discount-type">Bill</span>
+        <span className="tx-discount-type">{t("transactionTable.discountBill")}</span>
         <span className="tx-discount-label">{renderBillDiscount(transaction)}</span>
       </span>
     </div>
@@ -192,13 +194,14 @@ function getItemCount(items = []) {
   return items.length.toLocaleString("en-US");
 }
 
-function getDocumentName(documentUrl = "") {
+function getDocumentName(documentUrl = "", t = null) {
   const [path = ""] = `${documentUrl}`.split("?");
   const name = path.split("/").filter(Boolean).pop();
-  return name ? decodeURIComponent(name) : "Attached document";
+  const fallback = t ? t("transactionTable.attachedDocument") : "Attached document";
+  return name ? decodeURIComponent(name) : fallback;
 }
 
-function getTransactionDocuments(row = {}) {
+function getTransactionDocuments(row = {}, t = null) {
   if (Array.isArray(row.documents) && row.documents.length) {
     return row.documents;
   }
@@ -207,7 +210,7 @@ function getTransactionDocuments(row = {}) {
     ? [
         {
           id: "__legacy_document__",
-          name: getDocumentName(row.document_url),
+          name: getDocumentName(row.document_url, t),
           url: row.document_url,
         },
       ]
@@ -232,15 +235,16 @@ function TransactionTable({
   enableViewAll = false,
   headerActions = null,
 }) {
+  const { t } = useLanguage();
   const [selectedRow, setSelectedRow] = useState(null);
   const [hasUnsavedItemChanges, setHasUnsavedItemChanges] = useState(false);
   const [showAllRows, setShowAllRows] = useState(false);
   const [docRefModal, setDocRefModal] = useState(null);
-  const title = type === "purchase" ? "Purchases" : "Sales";
+  const title = type === "purchase" ? t("transactionTable.titlePurchases") : t("transactionTable.titleSales");
   const personKey = type === "purchase" ? "supplier_name" : "customer_name";
   const statuses = type === "purchase" ? purchaseStatuses : saleStatuses;
-  const detailTitle = type === "purchase" ? "Purchase Detail" : "Sales Detail";
-  const detailNameLabel = type === "purchase" ? "Supplier" : "Customer";
+  const detailTitle = type === "purchase" ? t("transactionTable.detailTitlePurchase") : t("transactionTable.detailTitleSale");
+  const detailNameLabel = type === "purchase" ? t("transactionTable.supplierLabel") : t("transactionTable.customerLabel");
   const shouldShowViewAll = enableViewAll && compactRows > 0 && rows.length > compactRows;
   const isCompact = shouldShowViewAll && !showAllRows;
 
@@ -289,7 +293,7 @@ function TransactionTable({
 
   function handleDeleteSelectedRow() {
     const confirmed = window.confirm(
-      `Delete ${selectedRow.reference_no || "this transaction"}? This action cannot be undone.`
+      t("transactionTable.deleteConfirm", { ref: selectedRow.reference_no || t("transactionTable.thisTransaction") })
     );
 
     if (!confirmed) {
@@ -319,9 +323,7 @@ function TransactionTable({
 
   function handlePurchaseItemStatusChange(itemIndex, nextStatus) {
     if (nextStatus === "cancelled") {
-      const confirmed = window.confirm(
-        "Cancel this purchase item? This will remove its received date, exclude it from received stock, and may update the purchase status."
-      );
+      const confirmed = window.confirm(t("transactionTable.cancelPurchaseItemConfirm"));
 
       if (!confirmed) {
         return;
@@ -377,9 +379,10 @@ function TransactionTable({
 
   function handleSaleItemStatusChange(itemIndex, nextStatus) {
     if (nextStatus === "cancelled" || nextStatus === "returned") {
-      const actionLabel = nextStatus === "returned" ? "Return" : "Cancel";
       const confirmed = window.confirm(
-        `${actionLabel} this sales item? This will clear shipped and delivered dates, release its stock commitment, and may update the sale status.`
+        nextStatus === "returned"
+          ? t("transactionTable.returnSaleItemConfirm")
+          : t("transactionTable.cancelSaleItemConfirm")
       );
 
       if (!confirmed) {
@@ -455,7 +458,7 @@ function TransactionTable({
     <section className="section-card">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">History</p>
+          <p className="eyebrow">{t("transactionTable.historyEyebrow")}</p>
           <h3>{title}</h3>
         </div>
         <div className="transaction-table-actions">
@@ -466,14 +469,14 @@ function TransactionTable({
               type="button"
               onClick={() => setShowAllRows((currentValue) => !currentValue)}
             >
-              {showAllRows ? "Show Recent" : "View More"}
+              {showAllRows ? t("common.showRecent") : t("common.viewMore")}
             </button>
           ) : null}
         </div>
       </div>
 
       {rows.length === 0 ? (
-        <p className="empty-copy">No transactions saved yet.</p>
+        <p className="empty-copy">{t("transactionTable.noTransactions")}</p>
       ) : (
         <div className={isCompact ? "transaction-table-window compact-history" : "transaction-table-window"}>
           <div className="table-scroll desktop-table">
@@ -499,20 +502,20 @@ function TransactionTable({
               <thead>
                 <tr>
                   <th className="table-index-cell">#</th>
-                  <th>Ref</th>
-                  <th>{type === "purchase" ? "Supplier" : "Customer"}</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th>Items</th>
+                  <th>{t("transactionTable.colRef")}</th>
+                  <th>{type === "purchase" ? t("transactionTable.supplierLabel") : t("transactionTable.customerLabel")}</th>
+                  <th>{t("transactionTable.colStatus")}</th>
+                  <th>{t("transactionTable.colDate")}</th>
+                  <th>{t("transactionTable.colItems")}</th>
                   {type === "sale" ? (
                     <>
-                      <th>Customer's PO Ref.</th>
-                      <th>Grand Total</th>
+                      <th>{t("transactionTable.colCustomerPORef")}</th>
+                      <th>{t("transactionTable.colGrandTotal")}</th>
                     </>
                   ) : (
                     <>
-                      <th>Tax Inv.</th>
-                      <th>Total</th>
+                      <th>{t("transactionTable.colTaxInv")}</th>
+                      <th>{t("transactionTable.colTotal")}</th>
                     </>
                   )}
                   <th />
@@ -527,13 +530,13 @@ function TransactionTable({
                       <td>
                         <div className="transaction-reference-cell">
                           <strong>{row.reference_no || "—"}</strong>
-                          <span>{type === "purchase" ? "Purchase order" : "Sales invoice"}</span>
+                          <span>{type === "purchase" ? t("transactionTable.purchaseOrderLabel") : t("transactionTable.salesInvoiceLabel")}</span>
                         </div>
                       </td>
                       <td>
                         <div className="cell-stack">
                           <strong>{row[personKey] || "—"}</strong>
-                          <span>{type === "purchase" ? "Supplier" : "Customer"}</span>
+                          <span>{type === "purchase" ? t("transactionTable.supplierLabel") : t("transactionTable.customerLabel")}</span>
                         </div>
                       </td>
                       <td>
@@ -590,7 +593,7 @@ function TransactionTable({
                           type="button"
                           onClick={() => openSelectedRow(row)}
                         >
-                          Details
+                          {t("transactionTable.detailsButton")}
                         </button>
                       </td>
                     </tr>
@@ -603,7 +606,7 @@ function TransactionTable({
           <div className="mobile-record-list">
             {rows.map((row, rowIndex) => {
               const itemCount = getItemCount(row.items || []);
-              const documents = getTransactionDocuments(row);
+              const documents = getTransactionDocuments(row, t);
 
               return (
                 <article className="mobile-record-card" key={`mobile-${type}-${row.id}`}>
@@ -644,42 +647,42 @@ function TransactionTable({
 
                   <div className="mobile-record-grid">
                     <div>
-                      <span>Date</span>
+                      <span>{t("transactionTable.colDate")}</span>
                       <strong>{formatDate(row.transaction_date)}</strong>
                     </div>
                     {type === "sale" ? (
                       <div>
-                        <span>Grand Total</span>
+                        <span>{t("transactionTable.colGrandTotal")}</span>
                         <strong>{formatCurrency(getRowGrandTotal(row))}</strong>
                       </div>
                     ) : (
                       <div>
-                        <span>Supplier's Tax Invoice</span>
+                        <span>{t("transactionTable.supplierTaxInvoice")}</span>
                         <strong>{row.supplier_tax_invoice || "—"}</strong>
                       </div>
                     )}
                     {type === "purchase" ? (
                       <div>
-                        <span>Total</span>
+                        <span>{t("transactionTable.colTotal")}</span>
                         <strong>{formatCurrency(getRowGrandTotal(row))}</strong>
                       </div>
                     ) : null}
                     <div className="full-width-mobile">
-                      <span>Items</span>
+                      <span>{t("transactionTable.colItems")}</span>
                       <div className="history-item-summary mobile-history-item-summary history-item-quantity-only">
                         <span className="history-item-count">{itemCount}</span>
                       </div>
                     </div>
                     {type === "sale" ? (
                       <div>
-                        <span>Customer's PO Reference</span>
+                        <span>{t("transactionTable.customerPOReference")}</span>
                         <strong>{row.customer_po_reference || "—"}</strong>
                       </div>
                     ) : null}
                     <div>
-                      <span>Documents</span>
+                      <span>{t("transactionTable.colDocuments")}</span>
                       <strong>
-                        {documents.length ? `${documents.length} attached` : "—"}
+                        {documents.length ? t("transactionTable.attachedCount", { count: documents.length }) : "—"}
                       </strong>
                     </div>
                   </div>
@@ -701,7 +704,7 @@ function TransactionTable({
       {rows.length ? (
         <div className="tx-sales-summary transaction-grand-total">
           <div className="tx-summary-row tx-summary-grand">
-            <strong>Grand Total</strong>
+            <strong>{t("transactionTable.colGrandTotal")}</strong>
             <strong>{formatCurrency(rowsGrandTotal)}</strong>
           </div>
         </div>
@@ -735,7 +738,7 @@ function TransactionTable({
                       closeSelectedRow();
                     }}
                   >
-                    Edit
+                    {t("common.edit")}
                   </button>
                 ) : null}
                 {type === "purchase" && onPurchaseItemStatusChange ? (
@@ -745,7 +748,7 @@ function TransactionTable({
                     onClick={handleSavePurchaseUpdates}
                     disabled={!hasUnsavedItemChanges}
                   >
-                    Save Purchase Updates
+                    {t("transactionTable.savePurchaseUpdates")}
                   </button>
                 ) : null}
                 {type === "sale" && onSaleUpdate ? (
@@ -755,7 +758,7 @@ function TransactionTable({
                     onClick={handleSaveSaleUpdates}
                     disabled={!hasUnsavedItemChanges}
                   >
-                    Save Sale Updates
+                    {t("transactionTable.saveSaleUpdates")}
                   </button>
                 ) : null}
                 <button
@@ -763,7 +766,7 @@ function TransactionTable({
                   type="button"
                   onClick={closeSelectedRow}
                 >
-                  Close
+                  {t("common.close")}
                 </button>
               </div>
             </div>
@@ -774,7 +777,7 @@ function TransactionTable({
                 <strong>{selectedRow[personKey] || "—"}</strong>
               </div>
               <div>
-                <p className="detail-label">Status</p>
+                <p className="detail-label">{t("transactionTable.colStatus")}</p>
                 <strong>
                   <span className={`status-badge status-${selectedRow.status}`}>
                     {formatStatusLabel(selectedRow.status)}
@@ -782,30 +785,30 @@ function TransactionTable({
                 </strong>
               </div>
               <div>
-                <p className="detail-label">Transaction Date</p>
+                <p className="detail-label">{t("transactionTable.transactionDate")}</p>
                 <strong>{formatDate(selectedRow.transaction_date)}</strong>
               </div>
               <div>
-                <p className="detail-label">Payment Term</p>
+                <p className="detail-label">{t("transactionTable.paymentTerm")}</p>
                 <strong>
                   {selectedRow.payment_term_type === "credit"
-                    ? `Credit (${selectedRow.payment_term_days || "—"})`
+                    ? t("transactionTable.paymentCredit", { days: selectedRow.payment_term_days || "—" })
                     : selectedRow.payment_term_type === "debit"
-                      ? "Debit"
+                      ? t("transactionTable.paymentDebit")
                       : "—"}
                 </strong>
               </div>
               <div>
-                <p className="detail-label">Payment Date</p>
+                <p className="detail-label">{t("transactionTable.paymentDate")}</p>
                 <strong>{formatDate(selectedRow.payment_date)}</strong>
               </div>
               <div>
-                <p className="detail-label">Documents</p>
-                {getTransactionDocuments(selectedRow).length ? (
+                <p className="detail-label">{t("transactionTable.colDocuments")}</p>
+                {getTransactionDocuments(selectedRow, t).length ? (
                   <div className="transaction-document-list">
-                    {getTransactionDocuments(selectedRow).map((document) => (
+                    {getTransactionDocuments(selectedRow, t).map((document) => (
                       <a key={document.id} href={document.url} target="_blank" rel="noreferrer">
-                        {document.name || getDocumentName(document.url)}
+                        {document.name || getDocumentName(document.url, t)}
                       </a>
                     ))}
                   </div>
@@ -815,19 +818,19 @@ function TransactionTable({
               </div>
               {type === "purchase" ? (
                 <div className="purchase-tax-invoice-field">
-                  <p className="detail-label">Supplier's Tax Invoice</p>
+                  <p className="detail-label">{t("transactionTable.supplierTaxInvoice")}</p>
                   <input
                     className="purchase-tax-invoice-input"
                     type="text"
                     value={selectedRow.supplier_tax_invoice || ""}
                     onChange={(event) => handlePurchaseTaxInvoiceChange(event.target.value)}
-                    placeholder="Enter supplier tax invoice"
+                    placeholder={t("transactionTable.enterSupplierTaxInvoice")}
                   />
                 </div>
               ) : null}
               {type === "sale" ? (
                 <div className="purchase-tax-invoice-field">
-                  <p className="detail-label">Customer's PO Reference</p>
+                  <p className="detail-label">{t("transactionTable.customerPOReference")}</p>
                   <input
                     className="purchase-tax-invoice-input"
                     type="text"
@@ -835,14 +838,14 @@ function TransactionTable({
                     onChange={(event) =>
                       handleSaleCustomerPoReferenceChange(event.target.value)
                     }
-                    placeholder="Enter customer PO reference"
+                    placeholder={t("transactionTable.enterCustomerPOReference")}
                   />
                 </div>
               ) : null}
               {type === "purchase" ? (
                 <>
                   {renderRefCell(
-                    "Source Quotation",
+                    t("transactionTable.sourceQuotation"),
                     "quotation",
                     selectedRow.source_quotation_id
                       ? [
@@ -854,7 +857,7 @@ function TransactionTable({
                       : []
                   )}
                   {renderRefCell(
-                    "Payment Batch",
+                    t("transactionTable.paymentBatch"),
                     "payment-batch",
                     selectedRow.payment_batch_links
                   )}
@@ -863,7 +866,7 @@ function TransactionTable({
               {type === "sale" ? (
                 <>
                   {renderRefCell(
-                    "Source Quotation",
+                    t("transactionTable.sourceQuotation"),
                     "quotation",
                     selectedRow.source_quotation_id
                       ? [
@@ -874,21 +877,21 @@ function TransactionTable({
                         ]
                       : []
                   )}
-                  {renderRefCell("Billing Notes", "billing-note", selectedRow.billing_note_links)}
-                  {renderRefCell("Credit Notes", "credit-note", selectedRow.credit_note_links)}
+                  {renderRefCell(t("transactionTable.billingNotes"), "billing-note", selectedRow.billing_note_links)}
+                  {renderRefCell(t("transactionTable.creditNotes"), "credit-note", selectedRow.credit_note_links)}
                 </>
               ) : null}
               <div className="full-width">
-                <p className="detail-label">Notes</p>
+                <p className="detail-label">{t("transactionTable.notes")}</p>
                 <strong>{selectedRow.note || "—"}</strong>
               </div>
             </div>
 
             <div className="detail-items">
-              <p className="detail-label">Items</p>
+              <p className="detail-label">{t("transactionTable.colItems")}</p>
               {type === "purchase" ? (
-                <div className="item-receiving-summary" aria-label="Item receiving status">
-                  <span className="item-receiving-title">Item Receiving Status</span>
+                <div className="item-receiving-summary" aria-label={t("transactionTable.itemReceivingStatus")}>
+                  <span className="item-receiving-title">{t("transactionTable.itemReceivingStatus")}</span>
                   {(() => {
                     const counts = getPurchaseItemStatusCounts(
                       selectedRow.items || [],
@@ -907,8 +910,8 @@ function TransactionTable({
                 </div>
               ) : null}
               {type === "sale" ? (
-                <div className="item-receiving-summary" aria-label="Item sales status">
-                  <span className="item-receiving-title">Item Sales Status</span>
+                <div className="item-receiving-summary" aria-label={t("transactionTable.itemSalesStatus")}>
+                  <span className="item-receiving-title">{t("transactionTable.itemSalesStatus")}</span>
                   {(() => {
                     const counts = getSaleItemStatusCounts(
                       selectedRow.items || [],
@@ -939,18 +942,18 @@ function TransactionTable({
                     <thead>
                       <tr>
                         <th className="table-index-cell">#</th>
-                        <th>Product</th>
-                        <th>Item Status</th>
-                        <th>Shipped Date</th>
-                        <th>Delivered Date</th>
-                        <th>Qty</th>
-                        <th>Base Qty</th>
-                        <th>Unit Price</th>
-                        <th>Supplier</th>
-                        <th>Unit Cost</th>
-                        <th>Discounts</th>
-                        <th>Amount</th>
-                        <th>Margin</th>
+                        <th>{t("transactionTable.colProduct")}</th>
+                        <th>{t("transactionTable.colItemStatus")}</th>
+                        <th>{t("transactionTable.colShippedDate")}</th>
+                        <th>{t("transactionTable.colDeliveredDate")}</th>
+                        <th>{t("transactionTable.colQty")}</th>
+                        <th>{t("transactionTable.colBaseQty")}</th>
+                        <th>{t("transactionTable.colUnitPrice")}</th>
+                        <th>{t("transactionTable.supplierLabel")}</th>
+                        <th>{t("transactionTable.colUnitCost")}</th>
+                        <th>{t("transactionTable.colDiscounts")}</th>
+                        <th>{t("transactionTable.colAmount")}</th>
+                        <th>{t("transactionTable.colMargin")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1051,29 +1054,29 @@ function TransactionTable({
                     <thead>
                       <tr>
                         <th className="table-index-cell">#</th>
-                        <th>Product</th>
-                        <th>SKU</th>
-                        <th>Expected Delivery</th>
-                        <th>Lead Time</th>
-                        <th>Item Status</th>
-                        <th>Received Date</th>
-                        <th>Qty</th>
-                        <th>Base Qty</th>
-                        <th>Unit Cost</th>
+                        <th>{t("transactionTable.colProduct")}</th>
+                        <th>{t("transactionTable.colSKU")}</th>
+                        <th>{t("transactionTable.colExpectedDelivery")}</th>
+                        <th>{t("transactionTable.colLeadTime")}</th>
+                        <th>{t("transactionTable.colItemStatus")}</th>
+                        <th>{t("transactionTable.colReceivedDate")}</th>
+                        <th>{t("transactionTable.colQty")}</th>
+                        <th>{t("transactionTable.colBaseQty")}</th>
+                        <th>{t("transactionTable.colUnitCost")}</th>
                         <th>
                           <span className="compact-column-heading">
-                            <span>Base Cost</span>
-                            <span>Before Disc.</span>
+                            <span>{t("transactionTable.colBaseCost")}</span>
+                            <span>{t("transactionTable.beforeDisc")}</span>
                           </span>
                         </th>
                         <th>
                           <span className="compact-column-heading">
-                            <span>Base Cost</span>
-                            <span>After Disc.</span>
+                            <span>{t("transactionTable.colBaseCost")}</span>
+                            <span>{t("transactionTable.afterDisc")}</span>
                           </span>
                         </th>
-                        <th>Discounts</th>
-                        <th>Amount</th>
+                        <th>{t("transactionTable.colDiscounts")}</th>
+                        <th>{t("transactionTable.colAmount")}</th>
                         <th />
                       </tr>
                     </thead>
@@ -1127,7 +1130,7 @@ function TransactionTable({
                                 </select>
                                 {displayStatus === "delayed" ? (
                                   <span className="status-badge item-status-badge status-delayed">
-                                    Delayed
+                                    {t("transactionTable.delayed")}
                                   </span>
                                 ) : null}
                               </div>
@@ -1171,7 +1174,7 @@ function TransactionTable({
                                 onClick={() => handleMarkPurchaseItemReceived(itemIndex)}
                                 disabled={!canMarkReceived}
                               >
-                                Mark Received
+                                {t("transactionTable.markReceived")}
                               </button>
                             </td>
                           </tr>
@@ -1191,24 +1194,24 @@ function TransactionTable({
                 <div className="tx-sales-summary">
                   {renderBillDiscount(selectedRow) !== "—" ? (
                     <div className="tx-summary-row">
-                      <span>Bill Discount</span>
+                      <span>{t("transactionTable.billDiscount")}</span>
                       <span>{renderBillDiscount(selectedRow)}</span>
                     </div>
                   ) : null}
                   {showVat ? (
                     <>
                       <div className="tx-summary-row">
-                        <span>{type === "purchase" ? "Total" : "Subtotal"}</span>
+                        <span>{type === "purchase" ? t("transactionTable.colTotal") : t("transactionTable.subtotal")}</span>
                         <span>{formatCurrency(subtotal)}</span>
                       </div>
                       <div className="tx-summary-row">
-                        <span>VAT (7%)</span>
+                        <span>{t("transactionTable.vat", { rate: 7 })}</span>
                         <span>{formatCurrency(vat)}</span>
                       </div>
                     </>
                   ) : null}
                   <div className="tx-summary-row tx-summary-grand">
-                    <strong>Grand Total</strong>
+                    <strong>{t("transactionTable.colGrandTotal")}</strong>
                     <strong>{formatCurrency(grandTotal)}</strong>
                   </div>
                 </div>
@@ -1222,7 +1225,7 @@ function TransactionTable({
                   type="button"
                   onClick={handleDeleteSelectedRow}
                 >
-                  Delete
+                  {t("common.delete")}
                 </button>
               </div>
             ) : null}

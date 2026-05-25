@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FilterPresets, ActiveFilterChips } from "./FilterControls";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export const CATEGORY_STORAGE_KEY = "inventory-management-categories";
 
@@ -283,6 +284,7 @@ function CategoryPage({
   onSaveCategory,
   onDeleteCategory,
 }) {
+  const { t } = useLanguage();
   const [draftCategory, setDraftCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -572,25 +574,25 @@ function CategoryPage({
   }
 
   const levelLabels = {
-    root: "Root categories",
-    subcategory: "Subcategories",
-    deep: "Deep nested",
+    root: t("category.levelRootLabel"),
+    subcategory: t("category.levelSubLabel"),
+    deep: t("category.levelDeepLabel"),
   };
   const usageLabels = {
-    assigned: "Assigned to products",
-    unassigned: "No assigned products",
-    "has-children": "Has subcategories",
-    leaf: "Leaf categories",
+    assigned: t("category.usageAssignedLabel"),
+    unassigned: t("category.usageUnassignedLabel"),
+    "has-children": t("category.usageChildrenLabel"),
+    leaf: t("category.usageLeafLabel"),
   };
   const quickPresets = [
     {
-      label: "Root only",
+      label: t("category.quickRoot"),
       active: levelFilter === "root",
       onClick: () =>
         setLevelFilter((current) => (current === "root" ? "all" : "root")),
     },
     {
-      label: "Unassigned",
+      label: t("category.quickUnassigned"),
       active: usageFilter === "unassigned",
       onClick: () =>
         setUsageFilter((current) =>
@@ -598,7 +600,7 @@ function CategoryPage({
         ),
     },
     {
-      label: "Leaf categories",
+      label: t("category.quickLeaf"),
       active: usageFilter === "leaf",
       onClick: () =>
         setUsageFilter((current) => (current === "leaf" ? "all" : "leaf")),
@@ -607,12 +609,12 @@ function CategoryPage({
   const activeChips = [
     levelFilter !== "all" && {
       key: "level",
-      label: `Level: ${levelLabels[levelFilter] || levelFilter}`,
+      label: t("category.levelChip", { label: levelLabels[levelFilter] || levelFilter }),
       onRemove: () => setLevelFilter("all"),
     },
     usageFilter !== "all" && {
       key: "usage",
-      label: `Use: ${usageLabels[usageFilter] || usageFilter}`,
+      label: t("category.usageChip", { label: usageLabels[usageFilter] || usageFilter }),
       onRemove: () => setUsageFilter("all"),
     },
   ].filter(Boolean);
@@ -628,7 +630,7 @@ function CategoryPage({
     const nextKey = getCategoryKey(nextCategory.name);
 
     if (!nextKey) {
-      setFormError("Category name is required.");
+      setFormError(t("category.errorNameRequired"));
       return;
     }
 
@@ -637,9 +639,7 @@ function CategoryPage({
       selectedParentCategoryOption?.label.toLowerCase() !==
         parentCategoryInput.trim().toLowerCase()
     ) {
-      setFormError(
-        "Choose a matching parent category from the dropdown, or clear the field for Root Category."
-      );
+      setFormError(t("category.errorParentMismatch"));
       return;
     }
 
@@ -647,7 +647,7 @@ function CategoryPage({
       nextCategory.parentId &&
       isDescendantCategory(categories, nextCategory.id, nextCategory.parentId)
     ) {
-      setFormError("Parent category cannot be the current category or its child.");
+      setFormError(t("category.errorCircular"));
       return;
     }
 
@@ -659,7 +659,7 @@ function CategoryPage({
     );
 
     if (duplicate) {
-      setFormError("This category already exists in the selected parent folder.");
+      setFormError(t("category.errorDuplicate"));
       return;
     }
 
@@ -678,17 +678,17 @@ function CategoryPage({
     }
 
     if (hasCategoryChildren(categories, draftCategory.id)) {
-      setFormError("Delete or move subcategories before deleting this folder.");
+      setFormError(t("category.errorHasChildren"));
       return;
     }
 
     if ((productAssignments.get(draftCategory.id) || 0) > 0) {
-      setFormError("This category is assigned to products and cannot be deleted.");
+      setFormError(t("category.errorHasProducts"));
       return;
     }
 
     const confirmed = window.confirm(
-      `Delete category ${draftCategory.name || "this category"}?`
+      t("category.deleteConfirm", { name: draftCategory.name || t("category.unnamedCategory") })
     );
 
     if (!confirmed) {
@@ -709,8 +709,8 @@ function CategoryPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Category</p>
-            <h3>Find Categories</h3>
+            <p className="eyebrow">{t("category.eyebrow")}</p>
+            <h3>{t("category.findTitle")}</h3>
           </div>
         </div>
 
@@ -721,11 +721,11 @@ function CategoryPage({
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search category name or description"
+              placeholder={t("category.searchPlaceholder")}
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
-            <span>{filteredCategories.length} of {categories.length} categories shown</span>
+            <span>{t("category.pageCount", { count: filteredCategories.length, total: categories.length })}</span>
           </div>
         </div>
 
@@ -736,11 +736,11 @@ function CategoryPage({
             aria-expanded={filterOpen}
             onClick={() => setFilterOpen((currentValue) => !currentValue)}
           >
-            Filter
+            {t("common.filter")}
             {activeFilterCount ? <span>{activeFilterCount}</span> : null}
           </button>
           <button className="secondary-button" type="button" onClick={resetFilters}>
-            Reset Filter
+            {t("common.resetFilter")}
           </button>
         </div>
 
@@ -751,29 +751,29 @@ function CategoryPage({
           <div className="history-filter-panel">
             <div className="history-filter-grid">
               <label className="history-filter-field">
-                <span className="history-filter-title">Category Level</span>
+                <span className="history-filter-title">{t("category.levelFilter")}</span>
                 <select
                   value={levelFilter}
                   onChange={(event) => setLevelFilter(event.target.value)}
                 >
-                  <option value="all">All levels</option>
-                  <option value="root">Root categories</option>
-                  <option value="subcategory">Subcategories</option>
-                  <option value="deep">Deep nested categories</option>
+                  <option value="all">{t("category.allLevels")}</option>
+                  <option value="root">{t("category.rootCategories")}</option>
+                  <option value="subcategory">{t("category.subcategories")}</option>
+                  <option value="deep">{t("category.deepNested")}</option>
                 </select>
               </label>
 
               <label className="history-filter-field">
-                <span className="history-filter-title">Category Use</span>
+                <span className="history-filter-title">{t("category.usageFilter")}</span>
                 <select
                   value={usageFilter}
                   onChange={(event) => setUsageFilter(event.target.value)}
                 >
-                  <option value="all">All categories</option>
-                  <option value="assigned">Assigned to products</option>
-                  <option value="unassigned">No assigned products</option>
-                  <option value="has-children">Has subcategories</option>
-                  <option value="leaf">Leaf categories</option>
+                  <option value="all">{t("category.allCategories")}</option>
+                  <option value="assigned">{t("category.assignedToProducts")}</option>
+                  <option value="unassigned">{t("category.noAssigned")}</option>
+                  <option value="has-children">{t("category.hasChildren")}</option>
+                  <option value="leaf">{t("category.leafCategories")}</option>
                 </select>
               </label>
             </div>
@@ -784,8 +784,8 @@ function CategoryPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Category Directory</p>
-            <h3>Category List</h3>
+            <p className="eyebrow">{t("category.directoryEyebrow")}</p>
+            <h3>{t("category.directoryTitle")}</h3>
           </div>
           <div className="transaction-table-actions">
             {collapsibleCategoryIds.length ? (
@@ -794,11 +794,11 @@ function CategoryPage({
                 type="button"
                 onClick={toggleFullCategoryTree}
               >
-                {isTreeCollapsed ? "Expand Tree" : "Collapse Tree"}
+                {isTreeCollapsed ? t("category.expandTree") : t("category.collapseTree")}
               </button>
             ) : null}
             <button className="primary-button" type="button" onClick={() => openCategoryEditor()}>
-              New Category
+              {t("category.newCategory")}
             </button>
           </div>
         </div>
@@ -806,7 +806,7 @@ function CategoryPage({
         <div className="transaction-table-window partner-table-window category-tree-window">
           <div className="table-scroll category-tree-table">
           {categoryRows.length === 0 ? (
-            <p className="empty-copy">No categories match the current search.</p>
+            <p className="empty-copy">{t("category.noMatch")}</p>
           ) : (
             <table>
               <colgroup>
@@ -817,10 +817,10 @@ function CategoryPage({
               </colgroup>
               <thead>
                 <tr>
-                  <th>Category</th>
-                  <th>Products</th>
-                  <th>Subcategories</th>
-                  <th>Action</th>
+                  <th>{t("category.colCategory")}</th>
+                  <th>{t("category.colProducts")}</th>
+                  <th>{t("category.colSubcategories")}</th>
+                  <th>{t("category.colAction")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -863,8 +863,8 @@ function CategoryPage({
                               type="button"
                               aria-label={
                                 collapsedCategoryIds.has(category.id)
-                                  ? `Expand ${category.name}`
-                                  : `Collapse ${category.name}`
+                                  ? t("category.expandCategory", { name: category.name })
+                                  : t("category.collapseCategory", { name: category.name })
                               }
                               onClick={() => toggleCategoryFolder(category.id)}
                             >
@@ -876,7 +876,7 @@ function CategoryPage({
                             </span>
                           )}
                           <span className="category-tree-main">
-                            <strong>{category.name || "Unnamed Category"}</strong>
+                            <strong>{category.name || t("category.unnamedCategory")}</strong>
                           </span>
                         </div>
                       </td>
@@ -889,14 +889,14 @@ function CategoryPage({
                             type="button"
                             onClick={() => openCategoryEditor(category)}
                           >
-                            Edit
+                            {t("common.edit")}
                           </button>
                           <button
                             className="table-action-button secondary-table-action"
                             type="button"
                             onClick={() => openSubcategoryEditor(category)}
                           >
-                            Add Sub
+                            {t("category.addSubcategory")}
                           </button>
                         </div>
                       </td>
@@ -922,15 +922,15 @@ function CategoryPage({
               <div>
                 <p className="eyebrow">
                   {categories.some((category) => category.id === draftCategory.id)
-                    ? "Edit Category"
-                    : "New Category"}
+                    ? t("category.editEyebrow")
+                    : t("category.newEyebrow")}
                 </p>
-                <h3 id="category-modal-title">{draftCategory.name || "Category"}</h3>
+                <h3 id="category-modal-title">{draftCategory.name || t("category.unnamedCategory")}</h3>
               </div>
               <button
                 className="icon-button subtle"
                 type="button"
-                aria-label="Close"
+                aria-label={t("category.closeLabel")}
                 onClick={closeCategoryEditor}
               >
                 X
@@ -942,7 +942,7 @@ function CategoryPage({
             <form className="form-layout" onSubmit={handleSaveCategory}>
               <div className="form-grid">
                 <label className="full-width">
-                  Category Name
+                  {t("category.categoryNameLabel")}
                   <input
                     autoFocus
                     value={draftCategory.name}
@@ -950,13 +950,13 @@ function CategoryPage({
                       updateDraftField("name", event.target.value);
                       setFormError("");
                     }}
-                    placeholder="e.g. Stationery"
+                    placeholder={t("category.categoryNamePlaceholder")}
                     required
                   />
                 </label>
 
                 <label className="full-width supplier-combobox-field">
-                  Parent Category
+                  {t("category.parentCategoryLabel")}
                   <div className="supplier-combobox">
                     <input
                       type="search"
@@ -969,7 +969,7 @@ function CategoryPage({
                       onFocus={() => setIsParentCategoryMenuOpen(true)}
                       onBlur={() => setIsParentCategoryMenuOpen(false)}
                       onKeyDown={handleParentCategoryInputKeyDown}
-                      placeholder="Root Category or type category name"
+                      placeholder={t("category.parentCategoryPlaceholder")}
                     />
 
                     {isParentCategoryMenuOpen ? (
@@ -993,7 +993,7 @@ function CategoryPage({
                               selectParentCategory(null);
                             }}
                           >
-                            Root Category
+                            {t("category.rootCategoryOption")}
                           </button>
                         ) : null}
 
@@ -1020,37 +1020,37 @@ function CategoryPage({
                         {!shouldShowRootParentOption &&
                         filteredParentCategoryOptions.length === 0 ? (
                           <div className="supplier-combobox-empty">
-                            No matching parent category found.
+                            {t("category.noMatchingParent")}
                           </div>
                         ) : null}
                       </div>
                     ) : null}
                   </div>
                   <span className="field-helper-text">
-                    Clear this field to keep the category at root level.
+                    {t("category.clearForRoot")}
                   </span>
                 </label>
 
                 <label className="full-width">
-                  Description
+                  {t("category.descriptionLabel")}
                   <textarea
                     rows="3"
                     value={draftCategory.description}
                     onChange={(event) => updateDraftField("description", event.target.value)}
-                    placeholder="Category notes or usage"
+                    placeholder={t("category.descriptionPlaceholder")}
                   />
                 </label>
               </div>
 
               <div className="supplier-modal-actions">
                 <button className="danger-button" type="button" onClick={handleDeleteCategory}>
-                  Delete Category
+                  {t("category.deleteButton")}
                 </button>
                 <button className="secondary-button" type="button" onClick={closeCategoryEditor}>
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button className="primary-button" type="submit">
-                  Save Category
+                  {t("category.saveButton")}
                 </button>
               </div>
             </form>

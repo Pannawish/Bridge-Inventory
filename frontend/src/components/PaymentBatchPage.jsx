@@ -10,21 +10,15 @@ import {
   RangeField,
   withinRange,
 } from "./FilterControls";
+import { useLanguage } from "../i18n/LanguageContext";
 
-const STATUS_LABELS = {
-  draft: "Draft",
-  scheduled: "Scheduled",
-  partially_paid: "Partially Paid",
-  paid: "Paid",
-  cancelled: "Cancelled",
+const STATUS_LABEL_KEYS = {
+  draft: "paymentBatch.statusDraft",
+  scheduled: "paymentBatch.statusScheduled",
+  partially_paid: "paymentBatch.statusPartiallyPaid",
+  paid: "paymentBatch.statusPaid",
+  cancelled: "paymentBatch.statusCancelled",
 };
-
-const STATUS_OPTIONS = [
-  { value: "scheduled", label: "Scheduled" },
-  { value: "partially_paid", label: "Partially Paid" },
-  { value: "paid", label: "Paid" },
-  { value: "cancelled", label: "Cancelled" },
-];
 
 function getToday() {
   return new Date().toISOString().split("T")[0];
@@ -39,8 +33,9 @@ function daysAgoString(days) {
   return `${year}-${month}-${day}`;
 }
 
-function formatStatus(status) {
-  return STATUS_LABELS[status] || status || "—";
+function formatStatus(status, t) {
+  const key = STATUS_LABEL_KEYS[status];
+  return key ? t(key) : (status || "—");
 }
 
 function getNextReferenceNo(paymentBatches) {
@@ -109,11 +104,11 @@ function computeActualPaymentDate(lines) {
   return dates.reduce((max, current) => (current > max ? current : max));
 }
 
-function batchMatchesQuery(batch, query) {
+function batchMatchesQuery(batch, query, t) {
   const text = [
     batch.reference_no,
     batch.supplier_name,
-    formatStatus(batch.status),
+    formatStatus(batch.status, t),
     batch.batch_date,
     batch.planned_payment_date,
     batch.actual_payment_date,
@@ -138,8 +133,9 @@ function batchInDateRange(batch, dateFrom, dateTo) {
 }
 
 function StatusPill({ status }) {
+  const { t } = useLanguage();
   const className = `status-badge status-${status || "scheduled"}`;
-  return <span className={className}>{formatStatus(status)}</span>;
+  return <span className={className}>{formatStatus(status, t)}</span>;
 }
 
 function CreatePaymentBatchModal({
@@ -149,6 +145,7 @@ function CreatePaymentBatchModal({
   onClose,
   onCreate,
 }) {
+  const { t } = useLanguage();
   const [supplierName, setSupplierName] = useState("");
   const [batchDate, setBatchDate] = useState(getToday());
   const [plannedPaymentDate, setPlannedPaymentDate] = useState("");
@@ -206,7 +203,7 @@ function CreatePaymentBatchModal({
     event.preventDefault();
 
     if (!supplierName) {
-      setError("Choose a supplier first.");
+      setError(t("paymentBatch.selectSupplierFirst"));
       return;
     }
 
@@ -215,7 +212,7 @@ function CreatePaymentBatchModal({
     );
 
     if (!chosen.length) {
-      setError("Select at least one purchase order.");
+      setError(t("paymentBatch.noEligiblePurchases"));
       return;
     }
 
@@ -240,15 +237,15 @@ function CreatePaymentBatchModal({
     <section className="section-card payment-batch-create-card" aria-labelledby="pb-create-title">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Payment Batch</p>
-          <h3 id="pb-create-title">Create Payment Batch</h3>
+          <p className="eyebrow">{t("paymentBatch.eyebrow")}</p>
+          <h3 id="pb-create-title">{t("paymentBatch.createTitle")}</h3>
         </div>
         <button
           className="secondary-button table-action-button"
           type="button"
           onClick={onClose}
         >
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
 
@@ -256,11 +253,11 @@ function CreatePaymentBatchModal({
         <div className="form-grid">
           <EligiblePartyCombobox
             id="payment-batch-supplier"
-            label="Supplier"
+            label={t("paymentBatch.supplierLabel")}
             value={supplierName}
             options={supplierOptions}
-            placeholder="Search eligible supplier"
-            emptyMessage="No eligible suppliers found."
+            placeholder={t("paymentBatch.searchPlaceholder")}
+            emptyMessage={t("paymentBatch.noEligiblePurchases")}
             onChange={(nextSupplierName) => {
               setSupplierName(nextSupplierName);
               setSelectedPurchaseIds(new Set());
@@ -269,7 +266,7 @@ function CreatePaymentBatchModal({
           />
 
           <label>
-            Batch Date
+            {t("paymentBatch.batchDate")}
             <input
               type="date"
               value={batchDate}
@@ -278,7 +275,7 @@ function CreatePaymentBatchModal({
           </label>
 
           <label>
-            Planned Payment Date
+            {t("paymentBatch.plannedPaymentDate")}
             <input
               type="date"
               value={plannedPaymentDate}
@@ -287,37 +284,37 @@ function CreatePaymentBatchModal({
           </label>
 
           <label>
-            Bank Reference
+            {t("paymentBatch.bankReference")}
             <input
               value={bankReference}
               onChange={(event) => setBankReference(event.target.value)}
-              placeholder="Optional"
+              placeholder={t("common.optional")}
             />
           </label>
 
           <label className="full-width">
-            Note
+            {t("paymentBatch.noteLabel")}
             <textarea
               rows="2"
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              placeholder="Optional note"
+              placeholder={t("common.optional")}
             />
           </label>
         </div>
 
         <div className="line-items-header">
           <div>
-            <p className="eyebrow">Step 2</p>
-            <h4>Choose Purchase Orders</h4>
+            <p className="eyebrow">{t("paymentBatch.step2")}</p>
+            <h4>{t("paymentBatch.choosePurchases")}</h4>
           </div>
-          <span>{selectedPurchaseIds.size} selected</span>
+          <span>{t("paymentBatch.selectedCount", { count: selectedPurchaseIds.size })}</span>
         </div>
 
         {supplierName ? (
           eligiblePurchases.length === 0 ? (
             <p className="empty-copy">
-              No eligible purchases for this supplier. (POs must be received and not in another active payment batch.)
+              {t("paymentBatch.noEligiblePurchases")}
             </p>
           ) : (
             <>
@@ -327,14 +324,14 @@ function CreatePaymentBatchModal({
                   type="button"
                   onClick={selectAll}
                 >
-                  Select All
+                  {t("common.selectAll")}
                 </button>
                 <button
                   className="secondary-button"
                   type="button"
                   onClick={clearAll}
                 >
-                  Clear
+                  {t("common.clear")}
                 </button>
               </div>
 
@@ -353,12 +350,12 @@ function CreatePaymentBatchModal({
                     <thead>
                       <tr>
                         <th />
-                        <th>Reference</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Payment Term</th>
-                        <th>Payment Due</th>
-                        <th>Amount</th>
+                        <th>{t("paymentBatch.colReference")}</th>
+                        <th>{t("paymentBatch.batchDate")}</th>
+                        <th>{t("common.status")}</th>
+                        <th>{t("paymentBatch.colPaymentTerm")}</th>
+                        <th>{t("paymentBatch.colPaymentDue")}</th>
+                        <th>{t("paymentBatch.colAmount")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -385,9 +382,9 @@ function CreatePaymentBatchModal({
                             </td>
                             <td>
                               {purchase.payment_term_type === "credit"
-                                ? `Credit (${purchase.payment_term_days || ""})`
+                                ? t("paymentBatch.paymentCreditTerm", { days: purchase.payment_term_days || "" })
                                 : purchase.payment_term_type === "debit"
-                                  ? "Debit"
+                                  ? t("paymentBatch.paymentDebitTerm")
                                   : "—"}
                             </td>
                             <td>{formatDate(purchase.payment_date)}</td>
@@ -402,12 +399,12 @@ function CreatePaymentBatchModal({
             </>
           )
         ) : (
-          <p className="empty-copy">Select a supplier to see eligible purchases.</p>
+          <p className="empty-copy">{t("paymentBatch.selectSupplierFirst")}</p>
         )}
 
         <div className="sales-summary-card">
           <div className="sales-summary-row sales-summary-grand">
-            <strong>Total Amount</strong>
+            <strong>{t("paymentBatch.totalAmount")}</strong>
             <strong>{fmt(totalAmount)}</strong>
           </div>
         </div>
@@ -416,10 +413,10 @@ function CreatePaymentBatchModal({
 
         <div className="supplier-modal-actions">
           <button className="secondary-button" type="button" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button className="primary-button" type="submit">
-            Create Payment Batch
+            {t("paymentBatch.createButton")}
           </button>
         </div>
       </form>
@@ -433,6 +430,7 @@ function PaymentBatchDetailModal({
   onSave,
   onDelete,
 }) {
+  const { t } = useLanguage();
   const [draft, setDraft] = useState(paymentBatch);
   const [docRefModal, setDocRefModal] = useState(null);
 
@@ -516,7 +514,7 @@ function PaymentBatchDetailModal({
   }
 
   function handleCancelBatch() {
-    if (window.confirm("Cancel this payment batch? Purchases inside will be released.")) {
+    if (window.confirm(t("paymentBatch.cancelBatchConfirm"))) {
       onSave({ ...draft, status: "cancelled" });
     }
   }
@@ -534,7 +532,7 @@ function PaymentBatchDetailModal({
       >
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Payment Batch</p>
+            <p className="eyebrow">{t("paymentBatch.eyebrow")}</p>
             <h3 id="pb-detail-title">{draft.reference_no || draft.id}</h3>
           </div>
           <div className="section-heading-actions">
@@ -542,7 +540,7 @@ function PaymentBatchDetailModal({
             <button
               type="button"
               className="icon-button subtle"
-              aria-label="Close"
+              aria-label={t("common.close")}
               onClick={onClose}
             >
               X
@@ -553,7 +551,7 @@ function PaymentBatchDetailModal({
         <form className="form-layout" onSubmit={handleSave}>
         <div className="form-grid">
           <label>
-            Reference No.
+            {t("paymentBatch.referenceNo")}
             <input
               value={draft.reference_no || ""}
               onChange={(event) => updateField("reference_no", event.target.value)}
@@ -561,12 +559,12 @@ function PaymentBatchDetailModal({
           </label>
 
           <label>
-            Supplier
+            {t("paymentBatch.supplierLabel")}
             <input value={draft.supplier_name || ""} disabled />
           </label>
 
           <label>
-            Batch Date
+            {t("paymentBatch.batchDate")}
             <input
               type="date"
               value={draft.batch_date || ""}
@@ -575,7 +573,7 @@ function PaymentBatchDetailModal({
           </label>
 
           <label>
-            Planned Payment Date
+            {t("paymentBatch.plannedPaymentDate")}
             <input
               type="date"
               value={draft.planned_payment_date || ""}
@@ -586,7 +584,7 @@ function PaymentBatchDetailModal({
           </label>
 
           <label>
-            Actual Payment Date
+            {t("paymentBatch.actualPaymentDate")}
             <input
               type="date"
               value={draft.actual_payment_date || ""}
@@ -595,7 +593,7 @@ function PaymentBatchDetailModal({
           </label>
 
           <label>
-            Bank Reference
+            {t("paymentBatch.bankReference")}
             <input
               value={draft.bank_reference || ""}
               onChange={(event) =>
@@ -605,7 +603,7 @@ function PaymentBatchDetailModal({
           </label>
 
           <label className="full-width">
-            Note
+            {t("paymentBatch.noteLabel")}
             <textarea
               rows="2"
               value={draft.note || ""}
@@ -616,12 +614,14 @@ function PaymentBatchDetailModal({
 
         <div className="line-items-header">
           <div>
-            <p className="eyebrow">Purchase Orders</p>
-            <h4>Mark as Paid</h4>
+            <p className="eyebrow">{t("paymentBatch.purchaseOrdersEyebrow")}</p>
+            <h4>{t("paymentBatch.markAsPaid")}</h4>
           </div>
           <span>
-            {(draft.lines || []).filter((line) => line.paid).length} /{" "}
-            {(draft.lines || []).length} paid
+            {t("paymentBatch.paidFraction", {
+              paid: (draft.lines || []).filter((line) => line.paid).length,
+              total: (draft.lines || []).length,
+            })}
           </span>
         </div>
 
@@ -632,14 +632,14 @@ function PaymentBatchDetailModal({
               className="secondary-button"
               onClick={markAllPaid}
             >
-              Mark All Paid
+              {t("paymentBatch.markAllPaid")}
             </button>
             <button
               type="button"
               className="secondary-button"
               onClick={clearAllPaid}
             >
-              Clear All
+              {t("paymentBatch.clearAll")}
             </button>
           </div>
         ) : null}
@@ -649,13 +649,13 @@ function PaymentBatchDetailModal({
             <table className="transaction-history-table partner-line-table">
               <thead>
                 <tr>
-                  <th>Paid?</th>
-                  <th>Reference</th>
-                  <th>PO Date</th>
-                  <th>Payment Term</th>
-                  <th>Payment Due</th>
-                  <th>Paid Date</th>
-                  <th>Amount</th>
+                  <th>{t("paymentBatch.colPaid")}</th>
+                  <th>{t("paymentBatch.colReference")}</th>
+                  <th>{t("paymentBatch.colPODate")}</th>
+                  <th>{t("paymentBatch.colPaymentTerm")}</th>
+                  <th>{t("paymentBatch.colPaymentDue")}</th>
+                  <th>{t("paymentBatch.colPaidDate")}</th>
+                  <th>{t("paymentBatch.colAmount")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -688,9 +688,9 @@ function PaymentBatchDetailModal({
                     <td>{formatDate(line.purchase_transaction_date)}</td>
                     <td>
                       {line.purchase_payment_term_type === "credit"
-                        ? `Credit (${line.purchase_payment_term_days || ""})`
+                        ? t("paymentBatch.paymentCreditTerm", { days: line.purchase_payment_term_days || "" })
                         : line.purchase_payment_term_type === "debit"
-                          ? "Debit"
+                          ? t("paymentBatch.paymentDebitTerm")
                           : "—"}
                     </td>
                     <td>{formatDate(line.purchase_payment_date)}</td>
@@ -715,7 +715,7 @@ function PaymentBatchDetailModal({
               <tfoot>
                 <tr>
                   <td colSpan="6" style={{ textAlign: "right" }}>
-                    <strong>Total</strong>
+                    <strong>{t("paymentBatch.colTotal")}</strong>
                   </td>
                   <td>
                     <strong>{fmt(draft.total_amount)}</strong>
@@ -732,7 +732,7 @@ function PaymentBatchDetailModal({
             className="danger-button"
             onClick={() => onDelete(draft)}
           >
-            Delete
+            {t("common.delete")}
           </button>
           {!isCancelled ? (
             <button
@@ -740,14 +740,14 @@ function PaymentBatchDetailModal({
               className="secondary-button"
               onClick={handleCancelBatch}
             >
-              Cancel Payment Batch
+              {t("paymentBatch.cancelBatch")}
             </button>
           ) : null}
           <button type="button" className="secondary-button" onClick={onClose}>
-            Close
+            {t("common.close")}
           </button>
           <button type="submit" className="primary-button">
-            Save
+            {t("common.save")}
           </button>
         </div>
       </form>
@@ -778,6 +778,7 @@ function PaymentBatchPage({
   onUpdatePaymentBatch,
   onDeletePaymentBatch,
 }) {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -788,6 +789,12 @@ function PaymentBatchPage({
   const [showAllRows, setShowAllRows] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activeBatch, setActiveBatch] = useState(null);
+  const STATUS_OPTIONS = [
+    { value: "scheduled", label: t("paymentBatch.statusScheduled") },
+    { value: "partially_paid", label: t("paymentBatch.statusPartiallyPaid") },
+    { value: "paid", label: t("paymentBatch.statusPaid") },
+    { value: "cancelled", label: t("paymentBatch.statusCancelled") },
+  ];
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const isServerPaginated = Boolean(pagination && onPageRequest);
@@ -797,7 +804,7 @@ function PaymentBatchPage({
     }
 
     return paymentBatches.filter((batch) => {
-      if (normalizedSearch && !batchMatchesQuery(batch, normalizedSearch)) {
+      if (normalizedSearch && !batchMatchesQuery(batch, normalizedSearch, t)) {
         return false;
       }
       if (statusFilter !== "all" && batch.status !== statusFilter) {
@@ -865,7 +872,7 @@ function PaymentBatchPage({
   const last30Active = dateFrom === daysAgoString(30) && !dateTo;
   const quickPresets = [
     {
-      label: "Last 30 days",
+      label: t("paymentBatch.filterLastDays"),
       active: last30Active,
       onClick: () => {
         setDateFrom(last30Active ? "" : daysAgoString(30));
@@ -873,7 +880,7 @@ function PaymentBatchPage({
       },
     },
     {
-      label: "Scheduled",
+      label: t("paymentBatch.filterScheduled"),
       active: statusFilter === "scheduled",
       onClick: () =>
         setStatusFilter((current) =>
@@ -881,7 +888,7 @@ function PaymentBatchPage({
         ),
     },
     {
-      label: "Paid",
+      label: t("paymentBatch.filterPaid"),
       active: statusFilter === "paid",
       onClick: () =>
         setStatusFilter((current) => (current === "paid" ? "all" : "paid")),
@@ -890,27 +897,27 @@ function PaymentBatchPage({
   const activeChips = [
     statusFilter !== "all" && {
       key: "status",
-      label: `Status: ${formatStatus(statusFilter)}`,
+      label: t("filterControls.statusChip", { label: formatStatus(statusFilter, t) }),
       onRemove: () => setStatusFilter("all"),
     },
     dateFrom && {
       key: "dateFrom",
-      label: `From ${dateFrom}`,
+      label: t("filterControls.fromChip", { date: dateFrom }),
       onRemove: () => setDateFrom(""),
     },
     dateTo && {
       key: "dateTo",
-      label: `To ${dateTo}`,
+      label: t("filterControls.toChip", { date: dateTo }),
       onRemove: () => setDateTo(""),
     },
     amountMin && {
       key: "amountMin",
-      label: `Min ฿${amountMin}`,
+      label: t("filterControls.minChip", { value: amountMin }),
       onRemove: () => setAmountMin(""),
     },
     amountMax && {
       key: "amountMax",
-      label: `Max ฿${amountMax}`,
+      label: t("filterControls.maxChip", { value: amountMax }),
       onRemove: () => setAmountMax(""),
     },
   ].filter(Boolean);
@@ -963,7 +970,7 @@ function PaymentBatchPage({
   }
 
   async function handleDelete(batch) {
-    if (!window.confirm(`Delete payment batch ${batch.reference_no || batch.id}?`)) {
+    if (!window.confirm(t("paymentBatch.deleteConfirm", { ref: batch.reference_no || batch.id }))) {
       return;
     }
     const ok = await onDeletePaymentBatch?.(batch);
@@ -992,26 +999,26 @@ function PaymentBatchPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Payables</p>
-            <h3>Payment Batches (Pay Suppliers)</h3>
+            <p className="eyebrow">{t("paymentBatch.payablesEyebrow")}</p>
+            <h3>{t("paymentBatch.payablesTitle")}</h3>
           </div>
         </div>
 
         <div className="dashboard-summary-grid">
           <article className="dashboard-kpi-card neutral">
-            <p>Outstanding</p>
+            <p>{t("paymentBatch.outstanding")}</p>
             <strong>{fmt(summary.outstanding)}</strong>
-            <span>Not yet paid to suppliers</span>
+            <span>{t("paymentBatch.outstandingDesc")}</span>
           </article>
           <article className="dashboard-kpi-card danger">
-            <p>Overdue</p>
+            <p>{t("paymentBatch.overdue")}</p>
             <strong>{fmt(summary.overdue)}</strong>
-            <span>Past planned payment date</span>
+            <span>{t("paymentBatch.overdueDesc")}</span>
           </article>
           <article className="dashboard-kpi-card positive">
-            <p>Paid</p>
+            <p>{t("paymentBatch.paid")}</p>
             <strong>{fmt(summary.paid)}</strong>
-            <span>Fully paid batches</span>
+            <span>{t("paymentBatch.paidDesc")}</span>
           </article>
         </div>
       </section>
@@ -1019,8 +1026,8 @@ function PaymentBatchPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Search</p>
-            <h3>Find Payment Batches</h3>
+            <p className="eyebrow">{t("paymentBatch.searchEyebrow")}</p>
+            <h3>{t("paymentBatch.searchTitle")}</h3>
           </div>
         </div>
 
@@ -1031,14 +1038,14 @@ function PaymentBatchPage({
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search reference, supplier, status, PO ref"
+              placeholder={t("paymentBatch.searchPlaceholder")}
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
             <span>
               {isServerPaginated
-                ? `${filtered.length} on this page of ${totalPaymentBatchCount} shown`
-                : `${filtered.length} of ${paymentBatches.length} shown`}
+                ? t("paymentBatch.pageCountServer", { count: filtered.length, total: totalPaymentBatchCount })
+                : t("paymentBatch.pageCountLocal", { count: filtered.length, total: paymentBatches.length })}
             </span>
           </div>
         </div>
@@ -1050,11 +1057,11 @@ function PaymentBatchPage({
             aria-expanded={filterOpen}
             onClick={() => setFilterOpen((value) => !value)}
           >
-            Filter
+            {t("filterControls.filter")}
             {activeFilterCount ? <span>{activeFilterCount}</span> : null}
           </button>
           <button className="secondary-button" type="button" onClick={resetFilters}>
-            Reset Filter
+            {t("filterControls.resetFilter")}
           </button>
         </div>
 
@@ -1065,12 +1072,12 @@ function PaymentBatchPage({
           <div className="history-filter-panel">
             <div className="history-filter-grid">
               <label className="history-filter-field">
-                <span className="history-filter-title">Status</span>
+                <span className="history-filter-title">{t("common.status")}</span>
                 <select
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value)}
                 >
-                  <option value="all">All statuses</option>
+                  <option value="all">{t("filterControls.allStatuses")}</option>
                   {STATUS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -1079,7 +1086,7 @@ function PaymentBatchPage({
                 </select>
               </label>
               <label className="history-filter-field">
-                <span className="history-filter-title">From</span>
+                <span className="history-filter-title">{t("filterControls.from")}</span>
                 <input
                   type="date"
                   value={dateFrom}
@@ -1087,7 +1094,7 @@ function PaymentBatchPage({
                 />
               </label>
               <label className="history-filter-field">
-                <span className="history-filter-title">To</span>
+                <span className="history-filter-title">{t("filterControls.to")}</span>
                 <input
                   type="date"
                   value={dateTo}
@@ -1095,7 +1102,7 @@ function PaymentBatchPage({
                 />
               </label>
               <RangeField
-                title="Amount (฿)"
+                title={t("filterControls.amountBaht")}
                 prefix="฿"
                 minValue={amountMin}
                 maxValue={amountMax}
@@ -1110,8 +1117,8 @@ function PaymentBatchPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">History</p>
-            <h3>Payment Batches</h3>
+            <p className="eyebrow">{t("paymentBatch.historyEyebrow")}</p>
+            <h3>{t("paymentBatch.historyTitle")}</h3>
           </div>
           <div className="transaction-table-actions">
             <button
@@ -1119,7 +1126,7 @@ function PaymentBatchPage({
               type="button"
               onClick={() => setCreating(true)}
             >
-              Create Payment Batch
+              {t("paymentBatch.createButton")}
             </button>
             {shouldShowViewAll ? (
               <button
@@ -1127,14 +1134,14 @@ function PaymentBatchPage({
                 type="button"
                 onClick={() => setShowAllRows((value) => !value)}
               >
-                {showAllRows ? "Show Recent" : "View More"}
+                {showAllRows ? t("common.showRecent") : t("common.viewMore")}
               </button>
             ) : null}
           </div>
         </div>
 
         {filtered.length === 0 ? (
-          <p className="empty-copy">No payment batches match the current search.</p>
+          <p className="empty-copy">{t("paymentBatch.noMatch")}</p>
         ) : (
           <div
             className={
@@ -1148,13 +1155,13 @@ function PaymentBatchPage({
                 <thead>
                   <tr>
                     <th className="table-index-cell">#</th>
-                    <th>Reference</th>
-                    <th>Supplier</th>
-                    <th>Created</th>
-                    <th>Planned</th>
-                    <th>Actual</th>
-                    <th>Status</th>
-                    <th>Total</th>
+                    <th>{t("paymentBatch.colReference")}</th>
+                    <th>{t("paymentBatch.colSupplier")}</th>
+                    <th>{t("paymentBatch.colCreated")}</th>
+                    <th>{t("paymentBatch.colPlanned")}</th>
+                    <th>{t("paymentBatch.colActual")}</th>
+                    <th>{t("paymentBatch.colStatus")}</th>
+                    <th>{t("paymentBatch.colTotal")}</th>
                     <th />
                   </tr>
                 </thead>
@@ -1184,7 +1191,7 @@ function PaymentBatchPage({
                           type="button"
                           onClick={() => setActiveBatch(batch)}
                         >
-                          View
+                          {t("common.view")}
                         </button>
                       </td>
                     </tr>
@@ -1211,19 +1218,19 @@ function PaymentBatchPage({
                   </div>
                   <div className="mobile-record-grid">
                     <div>
-                      <span>Created</span>
+                      <span>{t("paymentBatch.colCreated")}</span>
                       <strong>{formatDate(batch.batch_date)}</strong>
                     </div>
                     <div>
-                      <span>Planned</span>
+                      <span>{t("paymentBatch.colPlanned")}</span>
                       <strong>{formatDate(batch.planned_payment_date)}</strong>
                     </div>
                     <div>
-                      <span>Actual</span>
+                      <span>{t("paymentBatch.colActual")}</span>
                       <strong>{formatDate(batch.actual_payment_date)}</strong>
                     </div>
                     <div>
-                      <span>Total</span>
+                      <span>{t("paymentBatch.colTotal")}</span>
                       <strong>{fmt(batch.total_amount)}</strong>
                     </div>
                   </div>
@@ -1241,7 +1248,7 @@ function PaymentBatchPage({
         )}
         <PaginationControls
           pagination={pagination}
-          itemLabel="payment batches"
+          itemLabel={t("paymentBatch.historyTitle")}
           onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
         />
       </section>

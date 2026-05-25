@@ -1,8 +1,12 @@
+import { useLanguage } from "../i18n/LanguageContext";
+
 function formatNumber(value) {
   return Number(value || 0).toLocaleString("en-US");
 }
 
 function PaginationControls({ pagination, onPageChange, itemLabel = "records" }) {
+  const { t } = useLanguage();
+
   if (!pagination || !pagination.count) {
     return null;
   }
@@ -17,7 +21,12 @@ function PaginationControls({ pagination, onPageChange, itemLabel = "records" })
   return (
     <div className="list-pagination">
       <span>
-        Showing {formatNumber(start)}-{formatNumber(end)} of {formatNumber(count)} {itemLabel}
+        {t("pagination.showing", {
+          start: formatNumber(start),
+          end: formatNumber(end),
+          count: formatNumber(count),
+          label: itemLabel,
+        })}
       </span>
       <div className="list-pagination-actions">
         <button
@@ -26,10 +35,10 @@ function PaginationControls({ pagination, onPageChange, itemLabel = "records" })
           onClick={() => onPageChange?.(Math.max(1, page - 1))}
           disabled={page <= 1}
         >
-          Previous
+          {t("common.previous")}
         </button>
         <span className="pagination-pill">
-          Page {formatNumber(page)} of {formatNumber(totalPages)}
+          {t("pagination.page", { page: formatNumber(page), total: formatNumber(totalPages) })}
         </span>
         <button
           className="secondary-button"
@@ -37,7 +46,7 @@ function PaginationControls({ pagination, onPageChange, itemLabel = "records" })
           onClick={() => onPageChange?.(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
         >
-          Next
+          {t("common.next")}
         </button>
       </div>
     </div>

@@ -2,14 +2,17 @@
 // quick presets, active-filter chips, and range inputs look and behave
 // identically everywhere.
 
+import { useLanguage } from "../i18n/LanguageContext";
+
 export function FilterPresets({ presets }) {
+  const { t } = useLanguage();
   const items = (presets || []).filter(Boolean);
   if (!items.length) {
     return null;
   }
   return (
     <div className="history-filter-presets">
-      <span className="history-filter-presets-label">Quick filters</span>
+      <span className="history-filter-presets-label">{t("filterControls.quickFilters")}</span>
       {items.map((preset) => (
         <button
           key={preset.label}
@@ -26,6 +29,7 @@ export function FilterPresets({ presets }) {
 }
 
 export function ActiveFilterChips({ chips, onClearAll }) {
+  const { t } = useLanguage();
   const items = (chips || []).filter(Boolean);
   if (!items.length) {
     return null;
@@ -38,7 +42,7 @@ export function ActiveFilterChips({ chips, onClearAll }) {
           type="button"
           className="history-filter-chip"
           onClick={chip.onRemove}
-          title="Remove this filter"
+          title={t("filterControls.removeFilter")}
         >
           <span className="history-filter-chip-label">{chip.label}</span>
           <span className="history-filter-chip-remove" aria-hidden="true">
@@ -52,7 +56,7 @@ export function ActiveFilterChips({ chips, onClearAll }) {
           className="history-filter-clear-all"
           onClick={onClearAll}
         >
-          Clear all
+          {t("filterControls.clearAll")}
         </button>
       ) : null}
     </div>

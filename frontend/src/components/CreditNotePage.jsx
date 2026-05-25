@@ -10,16 +10,12 @@ import {
   RangeField,
   withinRange,
 } from "./FilterControls";
+import { useLanguage } from "../i18n/LanguageContext";
 
-const STATUS_LABELS = {
-  issued: "Issued",
-  cancelled: "Cancelled",
+const STATUS_LABEL_KEYS = {
+  issued: "creditNote.statusIssued",
+  cancelled: "creditNote.statusCancelled",
 };
-
-const STATUS_OPTIONS = [
-  { value: "issued", label: "Issued" },
-  { value: "cancelled", label: "Cancelled" },
-];
 
 function getToday() {
   return new Date().toISOString().split("T")[0];
@@ -34,8 +30,9 @@ function daysAgoString(days) {
   return `${year}-${month}-${day}`;
 }
 
-function formatStatus(status) {
-  return STATUS_LABELS[status] || status || "—";
+function formatStatus(status, t) {
+  const key = STATUS_LABEL_KEYS[status];
+  return key ? t(key) : (status || "—");
 }
 
 function getNextReferenceNo(creditNotes) {
@@ -52,13 +49,13 @@ function getNextReferenceNo(creditNotes) {
   return `${prefix}${String(maxSerial + 1).padStart(3, "0")}`;
 }
 
-function creditNoteMatchesQuery(note, query) {
+function creditNoteMatchesQuery(note, query, t) {
   const text = [
     note.reference_no,
     note.customer_name,
     note.sale_reference_no,
     note.billing_note_reference_no,
-    formatStatus(note.status),
+    formatStatus(note.status, t),
     note.credit_note_date,
     note.note,
     ...(note.lines || []).map((line) => line.product_name),
@@ -77,9 +74,10 @@ function creditNoteInDateRange(note, dateFrom, dateTo) {
 }
 
 function StatusPill({ status }) {
+  const { t } = useLanguage();
   return (
     <span className={`status-badge status-${status || "issued"}`}>
-      {formatStatus(status)}
+      {formatStatus(status, t)}
     </span>
   );
 }
@@ -100,6 +98,7 @@ function CreateCreditNoteModal({
   onClose,
   onCreate,
 }) {
+  const { t } = useLanguage();
   const [customerName, setCustomerName] = useState("");
   const [creditNoteDate, setCreditNoteDate] = useState(getToday());
   const [saleId, setSaleId] = useState("");
@@ -162,11 +161,11 @@ function CreateCreditNoteModal({
     event.preventDefault();
 
     if (!customerName) {
-      setError("Choose a customer first.");
+      setError(t("creditNote.selectCustomerFirst"));
       return;
     }
     if (!selectedSale) {
-      setError("Choose the sale that has cancelled or returned items.");
+      setError(t("creditNote.selectSaleFirst"));
       return;
     }
 
@@ -174,7 +173,7 @@ function CreateCreditNoteModal({
       selectedLineIds.has(line.sale_item)
     );
     if (!chosenLines.length) {
-      setError("Select at least one cancelled or returned item to credit.");
+      setError(t("creditNote.noItemsToCredit"));
       return;
     }
 
@@ -204,15 +203,15 @@ function CreateCreditNoteModal({
     >
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Credit Note</p>
-          <h3 id="cn-create-title">Create Credit Note</h3>
+          <p className="eyebrow">{t("creditNote.eyebrow")}</p>
+          <h3 id="cn-create-title">{t("creditNote.createTitle")}</h3>
         </div>
         <button
           className="secondary-button table-action-button"
           type="button"
           onClick={onClose}
         >
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
 
@@ -220,11 +219,11 @@ function CreateCreditNoteModal({
         <div className="form-grid">
           <EligiblePartyCombobox
             id="credit-note-customer"
-            label="Customer"
+            label={t("creditNote.customerLabel")}
             value={customerName}
             options={customerOptions}
-            placeholder="Search customer with cancelled or returned items"
-            emptyMessage="No customers have cancelled or returned sale items."
+            placeholder={t("creditNote.searchCustomerPlaceholder")}
+            emptyMessage={t("creditNote.noCustomersWithItems")}
             onChange={(nextCustomerName) => {
               setCustomerName(nextCustomerName);
               setSaleId("");
@@ -235,7 +234,7 @@ function CreateCreditNoteModal({
           />
 
           <label>
-            Credit Note Date
+            {t("creditNote.creditNoteDateLabel")}
             <input
               type="date"
               value={creditNoteDate}
@@ -244,7 +243,7 @@ function CreateCreditNoteModal({
           </label>
 
           <label>
-            Sales Order
+            {t("creditNote.salesOrderLabel")}
             <select
               value={saleId}
               onChange={(event) => {
@@ -253,7 +252,7 @@ function CreateCreditNoteModal({
               }}
               disabled={!customerName}
             >
-              <option value="">Select a sale with cancelled or returned items</option>
+              <option value="">{t("creditNote.selectSaleWithItems")}</option>
               {customerSales.map((sale) => (
                 <option key={sale.id} value={sale.id}>
                   {(sale.reference_no || sale.id) +
@@ -264,13 +263,13 @@ function CreateCreditNoteModal({
           </label>
 
           <label>
-            Apply to Billing Note (optional)
+            {t("creditNote.applyToBillingNote")}
             <select
               value={billingNoteId}
               onChange={(event) => setBillingNoteId(event.target.value)}
               disabled={!customerName}
             >
-              <option value="">Not applied to a billing note</option>
+              <option value="">{t("creditNote.notApplied")}</option>
               {billingNoteOptions.map((billingNote) => (
                 <option key={billingNote.id} value={billingNote.id}>
                   {(billingNote.reference_no || billingNote.id) +
@@ -281,34 +280,30 @@ function CreateCreditNoteModal({
           </label>
 
           <label className="full-width">
-            Note
+            {t("creditNote.noteLabel")}
             <textarea
               rows="2"
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              placeholder="Optional note"
+              placeholder={t("common.optional")}
             />
           </label>
         </div>
 
         <div className="line-items-header">
           <div>
-            <p className="eyebrow">Step 2</p>
-            <h4>Cancelled or Returned Items to Credit</h4>
+            <p className="eyebrow">{t("creditNote.step2")}</p>
+            <h4>{t("creditNote.cancelledItems")}</h4>
           </div>
-          <span>{selectedLineIds.size} selected</span>
+          <span>{t("creditNote.selectedCount", { count: selectedLineIds.size })}</span>
         </div>
 
         {!customerName ? (
-          <p className="empty-copy">Select a customer to see eligible sales.</p>
+          <p className="empty-copy">{t("creditNote.selectCustomerFirst")}</p>
         ) : !selectedSale ? (
-          <p className="empty-copy">
-            Select a sales order to load its cancelled or returned items.
-          </p>
+          <p className="empty-copy">{t("creditNote.selectSaleFirst")}</p>
         ) : cancelledLines.length === 0 ? (
-          <p className="empty-copy">
-            This sale has no cancelled or returned items left to credit.
-          </p>
+          <p className="empty-copy">{t("creditNote.noItemsToCredit")}</p>
         ) : (
           <div className="transaction-table-window credit-note-create-table-window">
             <div className="table-scroll credit-note-create-scroll">
@@ -324,11 +319,11 @@ function CreateCreditNoteModal({
                 <thead>
                   <tr>
                     <th />
-                    <th>Product</th>
-                    <th>SKU</th>
-                    <th>Quantity</th>
-                    <th>Unit Price</th>
-                    <th>Amount</th>
+                    <th>{t("creditNote.colProduct")}</th>
+                    <th>{t("creditNote.colSKU")}</th>
+                    <th>{t("creditNote.colQuantity")}</th>
+                    <th>{t("creditNote.colUnitPrice")}</th>
+                    <th>{t("creditNote.colAmount")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -364,7 +359,7 @@ function CreateCreditNoteModal({
 
         <div className="sales-summary-card">
           <div className="sales-summary-row sales-summary-grand">
-            <strong>Total Credit</strong>
+            <strong>{t("creditNote.totalCredit")}</strong>
             <strong>{fmt(totalAmount)}</strong>
           </div>
         </div>
@@ -373,10 +368,10 @@ function CreateCreditNoteModal({
 
         <div className="supplier-modal-actions">
           <button className="secondary-button" type="button" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button className="primary-button" type="submit">
-            Create Credit Note
+            {t("creditNote.createButton")}
           </button>
         </div>
       </form>
@@ -385,6 +380,7 @@ function CreateCreditNoteModal({
 }
 
 function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDelete }) {
+  const { t } = useLanguage();
   const [draft, setDraft] = useState(creditNote);
   const [docRefModal, setDocRefModal] = useState(null);
 
@@ -422,7 +418,7 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
       >
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Credit Note</p>
+            <p className="eyebrow">{t("creditNote.eyebrow")}</p>
             <h3 id="cn-detail-title">{draft.reference_no || draft.id}</h3>
           </div>
           <div className="section-heading-actions">
@@ -430,7 +426,7 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
             <button
               type="button"
               className="icon-button subtle"
-              aria-label="Close"
+              aria-label={t("common.close")}
               onClick={onClose}
             >
               X
@@ -441,7 +437,7 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
         <form className="form-layout" onSubmit={handleSave}>
           <div className="form-grid">
             <label>
-              Reference No.
+              {t("creditNote.referenceNo")}
               <input
                 value={draft.reference_no || ""}
                 onChange={(event) => updateField("reference_no", event.target.value)}
@@ -449,12 +445,12 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
             </label>
 
             <label>
-              Customer
+              {t("creditNote.customerLabel")}
               <input value={draft.customer_name || ""} disabled />
             </label>
 
             <label>
-              Source Sale
+              {t("creditNote.sourceSale")}
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input value={draft.sale_reference_no || draft.sale || ""} disabled style={{ flex: 1 }} />
                 {draft.sale && (
@@ -474,7 +470,7 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
             </label>
 
             <label>
-              Credit Note Date
+              {t("creditNote.creditNoteDateLabel")}
               <input
                 type="date"
                 value={draft.credit_note_date || ""}
@@ -485,7 +481,7 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
             </label>
 
             <label>
-              Applied to Billing Note
+              {t("creditNote.appliedBillingNote")}
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <select
                   value={draft.billing_note || ""}
@@ -494,7 +490,7 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
                   }
                   style={{ flex: 1 }}
                 >
-                  <option value="">Not applied to a billing note</option>
+                  <option value="">{t("creditNote.notApplied")}</option>
                   {billingNoteOptions.map((billingNote) => (
                     <option key={billingNote.id} value={billingNote.id}>
                       {(billingNote.reference_no || billingNote.id) +
@@ -519,21 +515,21 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
             </label>
 
             <label>
-              Status
+              {t("common.status")}
               <select
                 value={draft.status || "issued"}
                 onChange={(event) => updateField("status", event.target.value)}
               >
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                {Object.entries(STATUS_LABEL_KEYS).map(([value, key]) => (
+                  <option key={value} value={value}>
+                    {t(key)}
                   </option>
                 ))}
               </select>
             </label>
 
             <label className="full-width">
-              Note
+              {t("creditNote.noteLabel")}
               <textarea
                 rows="2"
                 value={draft.note || ""}
@@ -544,10 +540,10 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
 
           <div className="line-items-header">
             <div>
-              <p className="eyebrow">Cancelled or Returned Items</p>
-              <h4>Credited Lines</h4>
+              <p className="eyebrow">{t("creditNote.linesDetailEyebrow")}</p>
+              <h4>{t("creditNote.linesDetailTitle")}</h4>
             </div>
-            <span>{(draft.lines || []).length} items</span>
+            <span>{t("creditNote.linesItemCount", { count: (draft.lines || []).length })}</span>
           </div>
 
           <div className="transaction-table-window">
@@ -555,11 +551,11 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
               <table className="transaction-history-table partner-line-table">
                 <thead>
                   <tr>
-                    <th>Product</th>
-                    <th>SKU</th>
-                    <th>Quantity</th>
-                    <th>Unit Price</th>
-                    <th>Amount</th>
+                    <th>{t("creditNote.colProduct")}</th>
+                    <th>{t("creditNote.colSKU")}</th>
+                    <th>{t("creditNote.colQuantity")}</th>
+                    <th>{t("creditNote.colUnitPrice")}</th>
+                    <th>{t("creditNote.colAmount")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -576,7 +572,7 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
                 <tfoot>
                   <tr>
                     <td colSpan="4" style={{ textAlign: "right" }}>
-                      <strong>Total Credit</strong>
+                      <strong>{t("creditNote.totalCredit")}</strong>
                     </td>
                     <td>
                       <strong>{fmt(draft.total_amount)}</strong>
@@ -593,13 +589,13 @@ function CreditNoteDetailModal({ creditNote, billingNotes, onClose, onSave, onDe
               className="danger-button"
               onClick={() => onDelete(draft)}
             >
-              Delete
+              {t("common.delete")}
             </button>
             <button type="button" className="secondary-button" onClick={onClose}>
-              Close
+              {t("common.close")}
             </button>
             <button type="submit" className="primary-button">
-              Save
+              {t("common.save")}
             </button>
           </div>
         </form>
@@ -629,6 +625,7 @@ function CreditNotePage({
   onUpdateCreditNote,
   onDeleteCreditNote,
 }) {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -640,6 +637,10 @@ function CreditNotePage({
   const [creating, setCreating] = useState(false);
   const [activeCreditNote, setActiveCreditNote] = useState(null);
   const [docRefModal, setDocRefModal] = useState(null);
+  const STATUS_OPTIONS = [
+    { value: "issued", label: t("creditNote.statusIssued") },
+    { value: "cancelled", label: t("creditNote.statusCancelled") },
+  ];
 
   function renderListRef(docType, docId, referenceNo) {
     if (!docId) return "—";
@@ -662,7 +663,7 @@ function CreditNotePage({
       return creditNotes;
     }
     return creditNotes.filter((note) => {
-      if (normalizedSearch && !creditNoteMatchesQuery(note, normalizedSearch)) {
+      if (normalizedSearch && !creditNoteMatchesQuery(note, normalizedSearch, t)) {
         return false;
       }
       if (statusFilter !== "all" && note.status !== statusFilter) {
@@ -724,7 +725,7 @@ function CreditNotePage({
   const last30Active = dateFrom === daysAgoString(30) && !dateTo;
   const quickPresets = [
     {
-      label: "Last 30 days",
+      label: t("creditNote.filterLastDays"),
       active: last30Active,
       onClick: () => {
         setDateFrom(last30Active ? "" : daysAgoString(30));
@@ -732,7 +733,7 @@ function CreditNotePage({
       },
     },
     {
-      label: "Issued",
+      label: t("creditNote.filterIssued"),
       active: statusFilter === "issued",
       onClick: () =>
         setStatusFilter((current) =>
@@ -740,7 +741,7 @@ function CreditNotePage({
         ),
     },
     {
-      label: "Cancelled",
+      label: t("creditNote.filterCancelled"),
       active: statusFilter === "cancelled",
       onClick: () =>
         setStatusFilter((current) =>
@@ -751,27 +752,27 @@ function CreditNotePage({
   const activeChips = [
     statusFilter !== "all" && {
       key: "status",
-      label: `Status: ${formatStatus(statusFilter)}`,
+      label: t("filterControls.statusChip", { label: formatStatus(statusFilter, t) }),
       onRemove: () => setStatusFilter("all"),
     },
     dateFrom && {
       key: "dateFrom",
-      label: `From ${dateFrom}`,
+      label: t("filterControls.fromChip", { date: dateFrom }),
       onRemove: () => setDateFrom(""),
     },
     dateTo && {
       key: "dateTo",
-      label: `To ${dateTo}`,
+      label: t("filterControls.toChip", { date: dateTo }),
       onRemove: () => setDateTo(""),
     },
     amountMin && {
       key: "amountMin",
-      label: `Min ฿${amountMin}`,
+      label: t("filterControls.minChip", { value: amountMin }),
       onRemove: () => setAmountMin(""),
     },
     amountMax && {
       key: "amountMax",
-      label: `Max ฿${amountMax}`,
+      label: t("filterControls.maxChip", { value: amountMax }),
       onRemove: () => setAmountMax(""),
     },
   ].filter(Boolean);
@@ -822,7 +823,7 @@ function CreditNotePage({
   }
 
   async function handleDelete(note) {
-    if (!window.confirm(`Delete credit note ${note.reference_no || note.id}?`)) {
+    if (!window.confirm(t("creditNote.deleteConfirm", { ref: note.reference_no || note.id }))) {
       return;
     }
     const ok = await onDeleteCreditNote?.(note);
@@ -851,26 +852,26 @@ function CreditNotePage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Receivables</p>
-            <h3>Credit Notes (Customer Reductions)</h3>
+            <p className="eyebrow">{t("creditNote.receivablesEyebrow")}</p>
+            <h3>{t("creditNote.pageTitle")}</h3>
           </div>
         </div>
 
         <div className="dashboard-summary-grid">
           <article className="dashboard-kpi-card neutral">
-            <p>Issued Credits</p>
+            <p>{t("creditNote.issuedCredits")}</p>
             <strong>{fmt(summary.issued)}</strong>
-            <span>Reducing customer balances</span>
+            <span>{t("creditNote.issuedCreditsDesc")}</span>
           </article>
           <article className="dashboard-kpi-card danger">
-            <p>Cancelled Credits</p>
+            <p>{t("creditNote.cancelledCredits")}</p>
             <strong>{fmt(summary.cancelled)}</strong>
-            <span>No longer applied</span>
+            <span>{t("creditNote.cancelledCreditsDesc")}</span>
           </article>
           <article className="dashboard-kpi-card positive">
-            <p>Credit Notes</p>
+            <p>{t("creditNote.creditNotesCount")}</p>
             <strong>{summary.count}</strong>
-            <span>Total credit notes recorded</span>
+            <span>{t("creditNote.creditNotesCountDesc")}</span>
           </article>
         </div>
       </section>
@@ -878,8 +879,8 @@ function CreditNotePage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Search</p>
-            <h3>Find Credit Notes</h3>
+            <p className="eyebrow">{t("creditNote.searchEyebrow")}</p>
+            <h3>{t("creditNote.searchTitle")}</h3>
           </div>
         </div>
 
@@ -890,14 +891,14 @@ function CreditNotePage({
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search reference, customer, sale ref, status"
+              placeholder={t("creditNote.searchPlaceholder")}
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
             <span>
               {isServerPaginated
-                ? `${filtered.length} on this page of ${totalCreditNoteCount} shown`
-                : `${filtered.length} of ${creditNotes.length} shown`}
+                ? t("creditNote.pageCountServer", { count: filtered.length, total: totalCreditNoteCount })
+                : t("creditNote.pageCountLocal", { count: filtered.length, total: creditNotes.length })}
             </span>
           </div>
         </div>
@@ -909,11 +910,11 @@ function CreditNotePage({
             aria-expanded={filterOpen}
             onClick={() => setFilterOpen((value) => !value)}
           >
-            Filter
+            {t("filterControls.filter")}
             {activeFilterCount ? <span>{activeFilterCount}</span> : null}
           </button>
           <button className="secondary-button" type="button" onClick={resetFilters}>
-            Reset Filter
+            {t("filterControls.resetFilter")}
           </button>
         </div>
 
@@ -924,12 +925,12 @@ function CreditNotePage({
           <div className="history-filter-panel">
             <div className="history-filter-grid">
               <label className="history-filter-field">
-                <span className="history-filter-title">Status</span>
+                <span className="history-filter-title">{t("common.status")}</span>
                 <select
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value)}
                 >
-                  <option value="all">All statuses</option>
+                  <option value="all">{t("filterControls.allStatuses")}</option>
                   {STATUS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -938,7 +939,7 @@ function CreditNotePage({
                 </select>
               </label>
               <label className="history-filter-field">
-                <span className="history-filter-title">From</span>
+                <span className="history-filter-title">{t("filterControls.from")}</span>
                 <input
                   type="date"
                   value={dateFrom}
@@ -946,7 +947,7 @@ function CreditNotePage({
                 />
               </label>
               <label className="history-filter-field">
-                <span className="history-filter-title">To</span>
+                <span className="history-filter-title">{t("filterControls.to")}</span>
                 <input
                   type="date"
                   value={dateTo}
@@ -954,7 +955,7 @@ function CreditNotePage({
                 />
               </label>
               <RangeField
-                title="Credit Amount (฿)"
+                title={t("creditNote.creditAmountBaht")}
                 prefix="฿"
                 minValue={amountMin}
                 maxValue={amountMax}
@@ -969,8 +970,8 @@ function CreditNotePage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">History</p>
-            <h3>Credit Notes</h3>
+            <p className="eyebrow">{t("creditNote.historyEyebrow")}</p>
+            <h3>{t("creditNote.historyTitle")}</h3>
           </div>
           <div className="transaction-table-actions">
             <button
@@ -978,7 +979,7 @@ function CreditNotePage({
               type="button"
               onClick={() => setCreating(true)}
             >
-              Create Credit Note
+              {t("creditNote.createButton")}
             </button>
             {shouldShowViewAll ? (
               <button
@@ -986,14 +987,14 @@ function CreditNotePage({
                 type="button"
                 onClick={() => setShowAllRows((value) => !value)}
               >
-                {showAllRows ? "Show Recent" : "View More"}
+                {showAllRows ? t("common.showRecent") : t("common.viewMore")}
               </button>
             ) : null}
           </div>
         </div>
 
         {filtered.length === 0 ? (
-          <p className="empty-copy">No credit notes match the current search.</p>
+          <p className="empty-copy">{t("creditNote.noMatch")}</p>
         ) : (
           <div
             className={
@@ -1007,13 +1008,13 @@ function CreditNotePage({
                 <thead>
                   <tr>
                     <th className="table-index-cell">#</th>
-                    <th>Reference</th>
-                    <th>Customer</th>
-                    <th>Sale Ref</th>
-                    <th>Billing Note</th>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Total Credit</th>
+                    <th>{t("creditNote.colReference")}</th>
+                    <th>{t("creditNote.colCustomer")}</th>
+                    <th>{t("creditNote.colSaleRef")}</th>
+                    <th>{t("creditNote.colBillingNote")}</th>
+                    <th>{t("creditNote.colDate")}</th>
+                    <th>{t("creditNote.colStatus")}</th>
+                    <th>{t("creditNote.colTotal")}</th>
                     <th />
                   </tr>
                 </thead>
@@ -1049,7 +1050,7 @@ function CreditNotePage({
                           type="button"
                           onClick={() => setActiveCreditNote(note)}
                         >
-                          View
+                          {t("common.view")}
                         </button>
                       </td>
                     </tr>
@@ -1073,13 +1074,13 @@ function CreditNotePage({
                   </div>
                   <div className="mobile-record-grid">
                     <div>
-                      <span>Sale Ref</span>
+                      <span>{t("creditNote.colSaleRef")}</span>
                       <strong>
                         {renderListRef("sale", note.sale, note.sale_reference_no)}
                       </strong>
                     </div>
                     <div>
-                      <span>Billing Note</span>
+                      <span>{t("creditNote.colBillingNote")}</span>
                       <strong>
                         {renderListRef(
                           "billing-note",
@@ -1089,11 +1090,11 @@ function CreditNotePage({
                       </strong>
                     </div>
                     <div>
-                      <span>Date</span>
+                      <span>{t("creditNote.colDate")}</span>
                       <strong>{formatDate(note.credit_note_date)}</strong>
                     </div>
                     <div>
-                      <span>Total Credit</span>
+                      <span>{t("creditNote.colTotal")}</span>
                       <strong>{fmt(note.total_amount)}</strong>
                     </div>
                   </div>
@@ -1102,7 +1103,7 @@ function CreditNotePage({
                     type="button"
                     onClick={() => setActiveCreditNote(note)}
                   >
-                    View
+                    {t("common.view")}
                   </button>
                 </article>
               ))}
@@ -1111,7 +1112,7 @@ function CreditNotePage({
         )}
         <PaginationControls
           pagination={pagination}
-          itemLabel="credit notes"
+          itemLabel={t("creditNote.historyTitle")}
           onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
         />
       </section>

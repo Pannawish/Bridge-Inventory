@@ -22,13 +22,14 @@ import {
   RangeField,
   withinRange,
 } from "./FilterControls";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const VAT_RATE = 0.07;
 const statusOptions = saleStatuses;
 const saleStatusPresets = [
-  { label: "All", statuses: statusOptions },
+  { labelKey: "salesHistory.presetAll", statuses: statusOptions },
   {
-    label: "Open",
+    labelKey: "salesHistory.presetOpen",
     statuses: [
       "draft",
       "partially_packed",
@@ -38,13 +39,10 @@ const saleStatusPresets = [
       "partially_delivered",
     ],
   },
-  { label: "Delivered", statuses: ["delivered"] },
-  { label: "Cancelled / Returned", statuses: ["cancelled", "returned"] },
+  { labelKey: "salesHistory.filterDelivered", statuses: ["delivered"] },
+  { labelKey: "salesHistory.presetCancelledReturned", statuses: ["cancelled", "returned"] },
 ];
-const vatOptions = [
-  { value: "included", label: "Include VAT" },
-  { value: "not_included", label: "Exclude VAT" },
-];
+const vatOptionValues = ["included", "not_included"];
 const defaultCustomerOptions = [];
 
 function getToday() {
@@ -60,13 +58,14 @@ function daysAgoString(days) {
   return `${year}-${month}-${day}`;
 }
 
-function getDocumentName(documentUrl = "") {
+function getDocumentName(documentUrl = "", t = null) {
   const [path = ""] = `${documentUrl}`.split("?");
   const name = path.split("/").filter(Boolean).pop();
-  return name ? decodeURIComponent(name) : "Attached document";
+  const fallback = t ? t("transactionTable.attachedDocument") : "Attached document";
+  return name ? decodeURIComponent(name) : fallback;
 }
 
-function getTransactionDocuments(sale) {
+function getTransactionDocuments(sale, t = null) {
   if (Array.isArray(sale.documents) && sale.documents.length) {
     return sale.documents;
   }
@@ -75,7 +74,7 @@ function getTransactionDocuments(sale) {
     ? [
         {
           id: "__legacy_document__",
-          name: getDocumentName(sale.document_url),
+          name: getDocumentName(sale.document_url, t),
           url: sale.document_url,
         },
       ]
@@ -219,30 +218,30 @@ function formatSalesStatusLabel(status = "") {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function getSalesItemRemovalMessage(sale, item, itemIndex) {
+function getSalesItemRemovalMessage(sale, item, itemIndex, t) {
   const itemStatus = getStoredSaleItemStatus(item, sale.status);
   const quantity = `${item.quantity || 0} ${item.unit || ""}`.trim();
   const baseQuantity = item.base_quantity
-    ? ` (${item.base_quantity} ${item.base_unit || item.unit || "base units"})`
+    ? ` (${item.base_quantity} ${item.base_unit || item.unit || t("salesForm.baseUnits")})`
     : "";
   const committedStatuses = new Set(["packed", "shipped", "delivered"]);
   const impact = committedStatuses.has(itemStatus)
-    ? "This item is already committed to the sales flow. Removing it will release/remove its committed stock usage, delete shipped/delivered date history for this item, and recalculate this sale total and status."
-    : "This item is not committed to stock yet. Removing it will delete the customer demand line and recalculate this sale total and status.";
+    ? t("salesForm.removeImpactCommitted")
+    : t("salesForm.removeImpactPending");
 
   return [
-    `Remove sales item ${itemIndex + 1} from ${sale.reference_no || "this sale"}?`,
+    t("salesForm.removeConfirmTitle", { index: itemIndex + 1, ref: sale.reference_no || t("salesForm.thisSale") }),
     "",
-    `Product: ${item.product_name || "Unnamed item"}`,
-    `SKU: ${item.sku || "—"}`,
-    `Quantity: ${quantity || "—"}${baseQuantity}`,
-    `Status: ${formatSalesStatusLabel(itemStatus)}`,
-    `Shipped date: ${item.shipped_date || "—"}`,
-    `Delivered date: ${item.delivered_date || "—"}`,
-    `Line amount: ${fmt(computeAmount(item, sale))}`,
+    `${t("salesForm.removeProduct")} ${item.product_name || t("salesForm.unnamedItem")}`,
+    `${t("salesForm.removeSKU")} ${item.sku || "—"}`,
+    `${t("salesForm.removeQuantity")} ${quantity || "—"}${baseQuantity}`,
+    `${t("salesForm.removeStatus")} ${formatSalesStatusLabel(itemStatus)}`,
+    `${t("salesForm.removeShippedDate")} ${item.shipped_date || "—"}`,
+    `${t("salesForm.removeDeliveredDate")} ${item.delivered_date || "—"}`,
+    `${t("salesForm.removeLineAmount")} ${fmt(computeAmount(item, sale))}`,
     "",
     impact,
-    "This cannot be undone after you save the transaction.",
+    t("salesForm.removeCannotUndo"),
   ].join("\n");
 }
 
@@ -438,6 +437,7 @@ function SalesEditForm({
   onCancel,
   onSave,
 }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState(() => createEditForm(sale));
   const [items, setItems] = useState(() => createEditItems(sale, products));
   const [vatMode, setVatMode] = useState(sale.vat_mode || "not_included");
@@ -516,7 +516,7 @@ function SalesEditForm({
     !["draft", "cancelled", "returned"].includes(form.status) && saleStockIssues.length
       ? formatSaleStockIssueMessage(saleStockIssues)
       : "";
-  const visibleDocuments = getTransactionDocuments(sale).filter(
+  const visibleDocuments = getTransactionDocuments(sale, t).filter(
     (document) => !form.remove_document_ids.includes(document.id)
   );
 
@@ -679,7 +679,7 @@ function SalesEditForm({
   function removeItem(itemIndex) {
     const item = items[itemIndex];
     const confirmed = window.confirm(
-      getSalesItemRemovalMessage(sale, item || {}, itemIndex)
+      getSalesItemRemovalMessage(sale, item || {}, itemIndex, t)
     );
 
     if (!confirmed) {
@@ -696,7 +696,7 @@ function SalesEditForm({
     const customerName = resolveCustomerName();
 
     if (!customerName) {
-      setCustomerError("Select an existing customer from the list.");
+      setCustomerError(t("salesForm.errorSelectCustomer"));
       setCustomerOpen(true);
       return;
     }
@@ -736,7 +736,7 @@ function SalesEditForm({
       });
 
     if (!normalizedItems.length) {
-      setFormError("Add at least one complete sales item.");
+      setFormError(t("salesForm.errorAddItem"));
       return;
     }
 
@@ -798,15 +798,20 @@ function SalesEditForm({
     });
   }
 
+  const vatOptions = vatOptionValues.map((v) => ({
+    value: v,
+    label: v === "included" ? t("salesForm.vatIncluded") : t("salesForm.vatExcluded"),
+  }));
+
   return (
     <section className="section-card">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Sales Edit</p>
-          <h3>Edit Sales Transaction</h3>
+          <p className="eyebrow">{t("salesForm.editEyebrow")}</p>
+          <h3>{t("salesForm.editTitle")}</h3>
         </div>
         <button className="secondary-button table-action-button" type="button" onClick={onCancel}>
-          Cancel
+          {t("salesForm.cancelButton")}
         </button>
       </div>
 
@@ -815,16 +820,16 @@ function SalesEditForm({
       <form className="form-layout" onSubmit={handleSubmit}>
         <div className="form-grid">
           <label>
-            Reference No.
+            {t("salesForm.referenceLabel")}
             <input
               value={form.reference_no}
               onChange={(event) => updateForm("reference_no", event.target.value)}
-              placeholder="SO-001"
+              placeholder={t("salesForm.referencePlaceholder")}
             />
           </label>
 
           <label className="supplier-combobox-field">
-            Customer Name
+            {t("salesForm.customerNameLabel")}
             <div className="supplier-combobox">
               <input
                 value={customerQuery}
@@ -838,7 +843,7 @@ function SalesEditForm({
                 onBlur={() => {
                   window.setTimeout(() => setCustomerOpen(false), 120);
                 }}
-                placeholder="Search existing customer"
+                placeholder={t("salesForm.searchCustomerPlaceholder")}
                 autoComplete="off"
                 aria-expanded={customerOpen}
                 aria-controls="edit-sales-customer-list"
@@ -869,7 +874,7 @@ function SalesEditForm({
                     ))
                   ) : (
                     <div className="supplier-combobox-empty">
-                      No customer found. Add it in Customer page first.
+                      {t("salesForm.noCustomerFound")}
                     </div>
                   )}
                 </div>
@@ -879,7 +884,7 @@ function SalesEditForm({
           </label>
 
           <label>
-            Status
+            {t("salesForm.statusLabel")}
             <select
               value={form.status}
               onChange={(event) => handleStatusChange(event.target.value)}
@@ -900,7 +905,7 @@ function SalesEditForm({
           </label>
 
           <label>
-            Transaction Date
+            {t("salesForm.dateLabel")}
             <input
               type="date"
               value={form.transaction_date}
@@ -909,7 +914,7 @@ function SalesEditForm({
           </label>
 
           <label>
-            Payment Term
+            {t("salesForm.paymentTermLabel")}
             <select
               value={form.payment_term_type}
               onChange={(event) => {
@@ -921,48 +926,48 @@ function SalesEditForm({
                 }));
               }}
             >
-              <option value="">— Select payment term —</option>
-              <option value="debit">Debit</option>
-              <option value="credit">Credit</option>
+              <option value="">{t("purchaseForm.paymentTermPlaceholder")}</option>
+              <option value="debit">{t("salesForm.paymentTermDebit")}</option>
+              <option value="credit">{t("salesForm.paymentTermCredit")}</option>
             </select>
           </label>
 
           {form.payment_term_type === "credit" && (
             <label>
-              Credit Term
+              {t("salesForm.creditTermLabel")}
               <select
                 value={form.payment_term_days}
                 onChange={(event) => updateForm("payment_term_days", event.target.value)}
               >
-                <option value="">— Select credit term —</option>
-                <option value="30 days">30 days</option>
-                <option value="60 days">60 days</option>
-                <option value="90 days">90 days</option>
+                <option value="">{t("salesForm.creditTermPlaceholder")}</option>
+                <option value="30 days">{t("salesForm.creditTerm30")}</option>
+                <option value="60 days">{t("salesForm.creditTerm60")}</option>
+                <option value="90 days">{t("salesForm.creditTerm90")}</option>
               </select>
             </label>
           )}
 
           <label>
-            Payment Date
+            {t("salesForm.paymentDateLabel")}
             <input
               type="date"
               value={computePaymentDate(form.transaction_date, form.payment_term_type, form.payment_term_days)}
               readOnly
-              placeholder="Set payment term above"
+              placeholder={t("purchaseForm.paymentDatePlaceholder")}
             />
           </label>
 
           <label>
-            Customer's PO Reference
+            {t("salesForm.poReferenceLabel")}
             <input
               value={form.customer_po_reference}
               onChange={(event) => updateForm("customer_po_reference", event.target.value)}
-              placeholder="Optional customer PO reference"
+              placeholder={t("salesForm.poReferencePlaceholder")}
             />
           </label>
 
           <label className="full-width">
-            Notes
+            {t("salesForm.noteLabel")}
             <textarea
               rows="3"
               value={form.note}
@@ -973,15 +978,15 @@ function SalesEditForm({
           <div className="transaction-document-panel full-width">
             <div className="transaction-document-panel-header">
               <div>
-                <strong>Documents</strong>
+                <strong>{t("salesForm.documentsLabel")}</strong>
                 <span>
                   {visibleDocuments.length + form.new_documents.length
-                    ? `${visibleDocuments.length + form.new_documents.length} attached`
-                    : "No documents attached"}
+                    ? t("transactionTable.attachedCount", { count: visibleDocuments.length + form.new_documents.length })
+                    : t("salesForm.noDocumentsAttached")}
                 </span>
               </div>
               <label className="document-upload-button">
-                Add Files
+                {t("salesForm.documentsAddFiles")}
                 <input
                   type="file"
                   multiple
@@ -1002,7 +1007,7 @@ function SalesEditForm({
                   {visibleDocuments.map((document) => (
                     <span className="transaction-document-row" key={document.id}>
                       <a href={document.url} target="_blank" rel="noreferrer">
-                        {document.name || getDocumentName(document.url)}
+                        {document.name || getDocumentName(document.url, t)}
                       </a>
                       <button
                         className="text-danger-button"
@@ -1014,7 +1019,7 @@ function SalesEditForm({
                           ])
                         }
                       >
-                        Delete
+                        {t("salesForm.documentDelete")}
                       </button>
                     </span>
                   ))}
@@ -1031,7 +1036,7 @@ function SalesEditForm({
                           )
                         }
                       >
-                        Remove
+                        {t("salesForm.documentRemove")}
                       </button>
                     </span>
                   ))}
@@ -1043,40 +1048,40 @@ function SalesEditForm({
                     onClick={() => {
                       updateForm(
                         "remove_document_ids",
-                        getTransactionDocuments(sale).map((document) => document.id)
+                        getTransactionDocuments(sale, t).map((document) => document.id)
                       );
                       updateForm("new_documents", []);
                     }}
                   >
-                    Remove All
+                    {t("salesForm.documentRemoveAll")}
                   </button>
                 </div>
               </>
             ) : form.remove_document_ids.length ? (
               <div className="transaction-document-state">
                 <div>
-                  <strong>Documents marked for deletion</strong>
-                  <span>Save this transaction to remove the selected documents.</span>
+                  <strong>{t("purchaseForm.documentMarkedDeletion")}</strong>
+                  <span>{t("purchaseForm.documentMarkedDeletionHelp")}</span>
                 </div>
                 <button
                   className="secondary-button"
                   type="button"
                   onClick={() => updateForm("remove_document_ids", [])}
                 >
-                  Undo
+                  {t("purchaseForm.documentUndo")}
                 </button>
               </div>
             ) : (
-              <p className="transaction-document-empty">Attach invoices, receipts, or related files.</p>
+              <p className="transaction-document-empty">{t("salesForm.documentsEmpty")}</p>
             )}
           </div>
         </div>
 
         <div className="line-items-card">
           <div className="line-items-header">
-            <h4>Sales Items</h4>
+            <h4>{t("salesForm.itemsTitle")}</h4>
             <button className="secondary-button" type="button" onClick={addItem}>
-              Add Item
+              {t("salesForm.addItem")}
             </button>
           </div>
 
@@ -1094,18 +1099,18 @@ function SalesEditForm({
 
             return (
               <div className="line-item-row sales-line-item-row" key={item.id}>
-                <div className="line-item-index" aria-label={`Item ${index + 1}`}>
+                <div className="line-item-index" aria-label={t("purchaseForm.itemAriaLabel", { index: index + 1 })}>
                   {index + 1}
                 </div>
 
                 <label className="purchase-item-field sales-item-product">
-                  <span>Product</span>
+                  <span>{t("salesForm.colProduct")}</span>
                   <select
                     value={item.product_value}
                     onChange={(event) => updateItemProduct(index, event.target.value)}
                     required
                   >
-                    <option value="">Select product</option>
+                    <option value="">{t("salesForm.selectProduct")}</option>
                     {productOptions.map((product) => (
                       <option key={product.value} value={product.value}>
                         {product.sku ? `${product.name} (${product.sku})` : product.name}
@@ -1115,7 +1120,7 @@ function SalesEditForm({
                 </label>
 
                 <label className="purchase-item-field sales-item-unit">
-                  <span>Unit</span>
+                  <span>{t("salesForm.colUnit")}</span>
                   {selectedProduct ? (
                     <select
                       value={item.unit}
@@ -1131,7 +1136,7 @@ function SalesEditForm({
                     <input
                       value={item.unit}
                       onChange={(event) => updateItem(index, "unit", event.target.value)}
-                      placeholder="Unit"
+                      placeholder={t("salesForm.unitPlaceholder")}
                     />
                   )}
                   {conversionPreview ? (
@@ -1142,19 +1147,19 @@ function SalesEditForm({
                 </label>
 
                 <label className="purchase-item-field sales-item-qty">
-                  <span>Qty</span>
+                  <span>{t("salesForm.colQty")}</span>
                   <input
                     type="number"
                     min="1"
                     value={item.quantity}
                     onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                    placeholder="Qty"
+                    placeholder={t("salesForm.qtyPlaceholder")}
                     required
                   />
                 </label>
 
                 <label className="purchase-item-field sales-item-price">
-                  <span>Unit Price</span>
+                  <span>{t("salesForm.colUnitPrice")}</span>
                   <input
                     type="number"
                     min="0"
@@ -1167,12 +1172,12 @@ function SalesEditForm({
                 </label>
 
                 <div className="purchase-item-field sales-item-discounts">
-                  <span>Discounts</span>
+                  <span>{t("salesForm.colDiscounts")}</span>
                   <div className="sales-discount-cell">
                     {(item.discounts || [0]).map((discount, discountIndex) => (
                       <div key={discountIndex} className="sales-discount-entry">
                         {discountIndex > 0 ? (
-                          <span className="sales-discount-chain-label">then</span>
+                          <span className="sales-discount-chain-label">{t("salesForm.discountThen")}</span>
                         ) : null}
                         <input
                           className="sales-discount-input"
@@ -1191,7 +1196,7 @@ function SalesEditForm({
                           <button
                             className="sales-discount-remove"
                             type="button"
-                            aria-label="Remove discount"
+                            aria-label={t("salesForm.removeDiscount")}
                             onClick={() => removeDiscount(index, discountIndex)}
                           >
                             X
@@ -1204,13 +1209,13 @@ function SalesEditForm({
                       type="button"
                       onClick={() => addDiscount(index)}
                     >
-                      + Add
+                      {t("salesForm.addDiscount")}
                     </button>
                   </div>
                 </div>
 
                 <div className="purchase-item-field sales-item-amount">
-                  <span>Amount</span>
+                  <span>{t("salesForm.colAmount")}</span>
                   <div className="sales-line-amount">
                     {fmt(amount)}
                   </div>
@@ -1222,7 +1227,7 @@ function SalesEditForm({
                   onClick={() => removeItem(index)}
                   disabled={items.length === 1}
                 >
-                  Remove
+                  {t("salesForm.removeItem")}
                 </button>
               </div>
             );
@@ -1231,7 +1236,7 @@ function SalesEditForm({
 
         <section className="purchase-vat-card">
           <div className="purchase-vat-card-header">
-            <p className="purchase-vat-label">VAT Setting</p>
+            <p className="purchase-vat-label">{t("salesForm.vatSetting")}</p>
             <label className="vat-toggle">
               <input
                 type="checkbox"
@@ -1242,12 +1247,12 @@ function SalesEditForm({
               />
               <span className="vat-toggle-track" />
               <span className="vat-toggle-text">
-                {isVatEnabled(vatMode) ? "On" : "Off"}
+                {isVatEnabled(vatMode) ? t("salesForm.vatOn") : t("salesForm.vatOff")}
               </span>
             </label>
           </div>
           {isVatEnabled(vatMode) ? (
-            <div className="purchase-vat-options" role="radiogroup" aria-label="Edit sales VAT setting">
+            <div className="purchase-vat-options" role="radiogroup" aria-label={t("salesForm.vatAriaLabel")}>
               {vatOptions.map((option) => (
                 <label
                   key={option.value}
@@ -1270,34 +1275,34 @@ function SalesEditForm({
         <div className="sales-summary-card">
           {renderBillDiscount(sale) !== "—" ? (
             <div className="sales-summary-row">
-              <span>Bill Discount</span>
+              <span>{t("transactionTable.billDiscount")}</span>
               <span>{renderBillDiscount(sale)}</span>
             </div>
           ) : null}
           {isVatEnabled(vatMode) ? (
             <>
               <div className="sales-summary-row">
-                <span>Total</span>
+                <span>{t("salesForm.subtotal")}</span>
                 <span>{fmt(vatSummary.total)}</span>
               </div>
               <div className="sales-summary-row">
-                <span>VAT (7%)</span>
+                <span>{t("salesForm.vat")}</span>
                 <span>{fmt(vatSummary.vat)}</span>
               </div>
             </>
           ) : null}
           <div className="sales-summary-row sales-summary-grand">
-            <strong>Grand Total</strong>
+            <strong>{t("salesForm.grandTotal")}</strong>
             <strong>{fmt(vatSummary.grandTotal)}</strong>
           </div>
         </div>
 
         <div className="supplier-modal-actions">
           <button className="secondary-button" type="button" onClick={onCancel}>
-            Cancel
+            {t("salesForm.cancelButton")}
           </button>
           <button className="primary-button" type="submit">
-            Save Sale
+            {t("salesForm.saveButton")}
           </button>
         </div>
       </form>
@@ -1321,6 +1326,7 @@ function SalesHistoryPage({
   onSaleDelete,
   onWarning,
 }) {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState(statusOptions);
@@ -1467,11 +1473,18 @@ function SalesHistoryPage({
     setCustomerFilterOpen(false);
   }
 
-  const vatLabels = { included: "Include VAT", not_included: "Exclude VAT" };
+  const vatLabels = {
+    included: t("salesHistory.vatIncluded"),
+    not_included: t("salesHistory.vatExcluded"),
+  };
+  const vatOptions = vatOptionValues.map((v) => ({
+    value: v,
+    label: v === "included" ? t("salesHistory.vatIncluded") : t("salesHistory.vatExcluded"),
+  }));
   const last30Active = dateFrom === daysAgoString(30) && !dateTo;
   const quickPresets = [
     {
-      label: "Last 30 days",
+      label: t("salesHistory.filterLastDays"),
       active: last30Active,
       onClick: () => {
         setDateFrom(last30Active ? "" : daysAgoString(30));
@@ -1482,7 +1495,7 @@ function SalesHistoryPage({
   const activeChips = [
     selectedCustomer && {
       key: "customer",
-      label: `Customer: ${selectedCustomer}`,
+      label: t("salesHistory.customerChip", { name: selectedCustomer }),
       onRemove: () => {
         setSelectedCustomer("");
         setCustomerFilterQuery("");
@@ -1490,36 +1503,36 @@ function SalesHistoryPage({
     },
     selectedStatuses.length !== statusOptions.length && {
       key: "status",
-      label: `Status: ${
-        selectedStatuses.length
+      label: t("filterControls.statusChip", {
+        label: selectedStatuses.length
           ? selectedStatuses.map(formatSalesStatusLabel).join(", ")
-          : "None"
-      }`,
+          : t("common.allStatuses"),
+      }),
       onRemove: () => setSelectedStatuses(statusOptions),
     },
     vatFilter !== "all" && {
       key: "vat",
-      label: `VAT: ${vatLabels[vatFilter] || vatFilter}`,
+      label: t("salesHistory.vatChip", { label: vatLabels[vatFilter] || vatFilter }),
       onRemove: () => setVatFilter("all"),
     },
     dateFrom && {
       key: "dateFrom",
-      label: `From ${dateFrom}`,
+      label: t("filterControls.fromChip", { date: dateFrom }),
       onRemove: () => setDateFrom(""),
     },
     dateTo && {
       key: "dateTo",
-      label: `To ${dateTo}`,
+      label: t("filterControls.toChip", { date: dateTo }),
       onRemove: () => setDateTo(""),
     },
     amountMin && {
       key: "amountMin",
-      label: `Min ฿${amountMin}`,
+      label: t("filterControls.minChip", { value: amountMin }),
       onRemove: () => setAmountMin(""),
     },
     amountMax && {
       key: "amountMax",
-      label: `Max ฿${amountMax}`,
+      label: t("filterControls.maxChip", { value: amountMax }),
       onRemove: () => setAmountMax(""),
     },
   ].filter(Boolean);
@@ -1597,8 +1610,8 @@ function SalesHistoryPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">History Search</p>
-            <h3>Find Sales Records</h3>
+            <p className="eyebrow">{t("salesHistory.searchEyebrow")}</p>
+            <h3>{t("salesHistory.searchTitle")}</h3>
           </div>
         </div>
 
@@ -1609,14 +1622,14 @@ function SalesHistoryPage({
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search reference, customer, status, date, note, or item"
+              placeholder={t("salesHistory.searchPlaceholder")}
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
             <span>
               {isServerPaginated
-                ? `${filteredSales.length} on this page of ${totalSalesCount} sales`
-                : `${filteredSales.length} of ${sales.length} sales shown`}
+                ? t("salesHistory.pageCountServer", { count: filteredSales.length, total: totalSalesCount })
+                : t("salesHistory.pageCountLocal", { count: filteredSales.length, total: sales.length })}
             </span>
           </div>
         </div>
@@ -1628,11 +1641,11 @@ function SalesHistoryPage({
             aria-expanded={filterOpen}
             onClick={() => setFilterOpen((currentValue) => !currentValue)}
           >
-            Filter
+            {t("filterControls.filter")}
             {activeFilterCount ? <span>{activeFilterCount}</span> : null}
           </button>
           <button className="secondary-button" type="button" onClick={resetFilters}>
-            Reset Filter
+            {t("filterControls.resetFilter")}
           </button>
         </div>
 
@@ -1643,7 +1656,7 @@ function SalesHistoryPage({
           <div className="history-filter-panel">
             <div className="history-filter-grid">
               <label className="history-filter-field supplier-combobox-field">
-                <span className="history-filter-title">Customer</span>
+                <span className="history-filter-title">{t("salesHistory.customerFilter")}</span>
                 <div className="supplier-combobox">
                   <input
                     type="search"
@@ -1657,7 +1670,7 @@ function SalesHistoryPage({
                     onBlur={() => {
                       window.setTimeout(() => setCustomerFilterOpen(false), 120);
                     }}
-                    placeholder="Search customer"
+                    placeholder={t("salesHistory.searchCustomerPlaceholder")}
                     autoComplete="off"
                     aria-expanded={customerFilterOpen}
                     aria-controls="sales-history-customer-filter"
@@ -1690,7 +1703,7 @@ function SalesHistoryPage({
                           </button>
                         ))
                       ) : (
-                        <div className="supplier-combobox-empty">No customer found.</div>
+                        <div className="supplier-combobox-empty">{t("salesHistory.noCustomerFound")}</div>
                       )}
                     </div>
                   ) : null}
@@ -1698,7 +1711,7 @@ function SalesHistoryPage({
               </label>
 
               <label className="history-filter-field">
-                <span className="history-filter-title">Date From</span>
+                <span className="history-filter-title">{t("salesHistory.dateFromLabel")}</span>
                 <input
                   type="date"
                   value={dateFrom}
@@ -1707,7 +1720,7 @@ function SalesHistoryPage({
               </label>
 
               <label className="history-filter-field">
-                <span className="history-filter-title">Date To</span>
+                <span className="history-filter-title">{t("salesHistory.dateToLabel")}</span>
                 <input
                   type="date"
                   value={dateTo}
@@ -1716,7 +1729,7 @@ function SalesHistoryPage({
               </label>
 
               <RangeField
-                title="Amount (฿)"
+                title={t("salesHistory.amountLabel")}
                 prefix="฿"
                 minValue={amountMin}
                 maxValue={amountMax}
@@ -1725,12 +1738,12 @@ function SalesHistoryPage({
               />
 
               <label className="history-filter-field">
-                <span className="history-filter-title">VAT</span>
+                <span className="history-filter-title">{t("salesHistory.vatLabel")}</span>
                 <select
                   value={vatFilter}
                   onChange={(event) => setVatFilter(event.target.value)}
                 >
-                  <option value="all">All VAT settings</option>
+                  <option value="all">{t("salesHistory.allVat")}</option>
                   {vatOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -1741,10 +1754,13 @@ function SalesHistoryPage({
             </div>
 
             <StatusFilterGroup
-              title="Sales Status"
+              title={t("salesHistory.statusSectionTitle")}
               statuses={statusOptions}
               selectedStatuses={selectedStatuses}
-              presets={saleStatusPresets}
+              presets={saleStatusPresets.map((preset) => ({
+                ...preset,
+                label: t(preset.labelKey),
+              }))}
               formatStatusLabel={formatSalesStatusLabel}
               onChange={setSelectedStatuses}
             />
@@ -1775,13 +1791,13 @@ function SalesHistoryPage({
               setShowNewSaleForm(true);
             }}
           >
-            New Sale
+            {t("salesHistory.newSale")}
           </button>
         }
       />
       <PaginationControls
         pagination={pagination}
-        itemLabel="sales"
+        itemLabel={t("salesHistory.paginationLabel")}
         onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
       />
     </div>

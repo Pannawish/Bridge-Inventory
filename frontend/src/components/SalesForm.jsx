@@ -17,10 +17,7 @@ import {
 import { useLanguage } from "../i18n/LanguageContext";
 
 const VAT_RATE = 0.07;
-const vatOptions = [
-  { value: "included", label: "Include VAT" },
-  { value: "not_included", label: "Exclude VAT" },
-];
+const vatOptionValues = ["included", "not_included"];
 const defaultCustomerOptions = [];
 
 function getToday() {
@@ -680,7 +677,7 @@ function SalesForm({
         : form.status;
 
     if (!customerName) {
-      setCustomerError("Select an existing customer from the list.");
+      setCustomerError(t("salesForm.errorSelectCustomer"));
       setCustomerOpen(true);
       return;
     }
@@ -688,7 +685,7 @@ function SalesForm({
     const nextItemErrors = {};
     items.forEach((item, index) => {
       if (!item.product_id) {
-        nextItemErrors[index] = "Select an existing product from the list.";
+        nextItemErrors[index] = t("salesForm.errorSelectProduct");
       }
     });
 
@@ -709,13 +706,13 @@ function SalesForm({
       const lines = belowCostItems
         .map(
           (item) =>
-            `• ${item.product_name || "Item"} — below cost by ${fmt(
+            `• ${item.product_name || t("salesForm.unnamedItem")} — ${t("salesForm.belowCostBy")} ${fmt(
               getLineLoss(item, activeAllItemsDiscount)
             )}`
         )
         .join("\n");
       const confirmed = window.confirm(
-        `${belowCostItems.length} item(s) are priced below cost:\n\n${lines}\n\nSave this sale anyway?`
+        `${belowCostItems.length} ${t("salesForm.belowCostConfirm")}\n\n${lines}\n\n${t("salesForm.belowCostSaveAnyway")}`
       );
       if (!confirmed) {
         return;
@@ -801,17 +798,21 @@ function SalesForm({
   );
   const vatSummary = computeVatSummary(itemTotal, vatMode);
   const paymentDate = computePaymentDate(form.transaction_date, form.payment_term_type, form.payment_term_days);
+  const vatOptions = vatOptionValues.map((v) => ({
+    value: v,
+    label: v === "included" ? t("salesForm.vatIncluded") : t("salesForm.vatExcluded"),
+  }));
 
   return (
     <section className="section-card">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Sales Entry</p>
-          <h3>Add Sales Transaction</h3>
+          <p className="eyebrow">{t("salesForm.eyebrow")}</p>
+          <h3>{t("salesForm.newTitle")}</h3>
         </div>
         {onCancel ? (
           <button className="secondary-button" type="button" onClick={onCancel}>
-            Close
+            {t("salesForm.closeButton")}
           </button>
         ) : null}
       </div>
@@ -819,7 +820,7 @@ function SalesForm({
       <form className="form-layout" onSubmit={handleSubmit}>
         <div className="form-grid">
           <label>
-            Reference No.
+            {t("salesForm.referenceLabel")}
             <input
               value={form.reference_no}
               readOnly
@@ -828,7 +829,7 @@ function SalesForm({
           </label>
 
           <label className="supplier-combobox-field">
-            <span className="required-label">Customer Name</span>
+            <span className="required-label">{t("salesForm.customerNameLabel")}</span>
             <div className="supplier-combobox">
               <input
                 value={customerQuery}
@@ -842,7 +843,7 @@ function SalesForm({
                 onBlur={() => {
                   window.setTimeout(() => setCustomerOpen(false), 120);
                 }}
-                placeholder="Search existing customer"
+                placeholder={t("salesForm.searchCustomerPlaceholder")}
                 autoComplete="off"
                 aria-expanded={customerOpen}
                 aria-controls="sales-customer-list"
@@ -873,7 +874,7 @@ function SalesForm({
                     ))
                   ) : (
                     <div className="supplier-combobox-empty">
-                      No customer found. Add it in Customer page first.
+                      {t("salesForm.noCustomerFound")}
                     </div>
                   )}
                 </div>
@@ -883,7 +884,7 @@ function SalesForm({
           </label>
 
           <label>
-            Payment Term
+            {t("salesForm.paymentTermLabel")}
             <select
               value={form.payment_term_type}
               onChange={(event) => {
@@ -895,31 +896,31 @@ function SalesForm({
                 }));
               }}
             >
-              <option value="">— Select payment term —</option>
-              <option value="debit">Debit</option>
-              <option value="credit">Credit</option>
+              <option value="">{t("purchaseForm.paymentTermPlaceholder")}</option>
+              <option value="debit">{t("salesForm.paymentTermDebit")}</option>
+              <option value="credit">{t("salesForm.paymentTermCredit")}</option>
             </select>
           </label>
 
           {form.payment_term_type === "credit" && (
             <label>
-              Credit Term
+              {t("salesForm.creditTermLabel")}
               <select
                 value={form.payment_term_days}
                 onChange={(event) =>
                   setForm((f) => ({ ...f, payment_term_days: event.target.value }))
                 }
               >
-                <option value="">— Select credit term —</option>
-                <option value="30 days">30 days</option>
-                <option value="60 days">60 days</option>
-                <option value="90 days">90 days</option>
+                <option value="">{t("salesForm.creditTermPlaceholder")}</option>
+                <option value="30 days">{t("salesForm.creditTerm30")}</option>
+                <option value="60 days">{t("salesForm.creditTerm60")}</option>
+                <option value="90 days">{t("salesForm.creditTerm90")}</option>
               </select>
             </label>
           )}
 
           <label>
-            <span className="required-label">Status</span>
+            <span className="required-label">{t("salesForm.statusLabel")}</span>
             <select
               value={form.status}
               onChange={(event) => handleStatusChange(event.target.value)}
@@ -937,7 +938,7 @@ function SalesForm({
           </label>
 
           <label>
-            <span className="required-label">Transaction Date</span>
+            <span className="required-label">{t("salesForm.dateLabel")}</span>
             <input
               type="date"
               value={form.transaction_date}
@@ -946,26 +947,26 @@ function SalesForm({
           </label>
 
           <label>
-            Payment Date
+            {t("salesForm.paymentDateLabel")}
             <input
               type="date"
               value={paymentDate}
               readOnly
-              placeholder="Set payment term above"
+              placeholder={t("purchaseForm.paymentDatePlaceholder")}
             />
           </label>
 
           <label>
-            Customer's PO Reference
+            {t("salesForm.poReferenceLabel")}
             <input
               value={form.customer_po_reference}
               onChange={(event) => updateForm("customer_po_reference", event.target.value)}
-              placeholder="Optional customer PO reference"
+              placeholder={t("salesForm.poReferencePlaceholder")}
             />
           </label>
 
           <label className="full-width">
-            Notes
+            {t("salesForm.noteLabel")}
             <textarea
               rows="3"
               value={form.note}
@@ -976,15 +977,15 @@ function SalesForm({
           <div className="transaction-document-panel full-width">
             <div className="transaction-document-panel-header">
               <div>
-                <strong>Documents</strong>
+                <strong>{t("salesForm.documentsLabel")}</strong>
                 <span>
                   {form.documents.length
-                    ? `${form.documents.length} selected`
-                    : "No documents selected"}
+                    ? t("salesForm.documentsSelected", { count: form.documents.length })
+                    : t("salesForm.noDocumentsSelected")}
                 </span>
               </div>
               <label className="document-upload-button">
-                Add Files
+                {t("salesForm.documentsAddFiles")}
                 <input
                   type="file"
                   multiple
@@ -1013,22 +1014,22 @@ function SalesForm({
                         )
                       }
                     >
-                      Remove
+                      {t("salesForm.documentRemove")}
                     </button>
                   </span>
                 ))}
               </div>
             ) : (
-              <p className="transaction-document-empty">Attach invoices, receipts, or related files.</p>
+              <p className="transaction-document-empty">{t("salesForm.documentsEmpty")}</p>
             )}
           </div>
         </div>
 
         <div className="line-items-card">
           <div className="line-items-header">
-            <h4>Sales Items</h4>
+            <h4>{t("salesForm.itemsTitle")}</h4>
             <button className="secondary-button" type="button" onClick={addItem}>
-              Add Item
+              {t("salesForm.addItem")}
             </button>
           </div>
 
@@ -1068,8 +1069,8 @@ function SalesForm({
                       : "line-item-index"
                   }
                   draggable={items.length > 1}
-                  title={items.length > 1 ? "Drag to reorder" : "Item order"}
-                  aria-label={`Item ${index + 1}. Drag to reorder`}
+                  title={items.length > 1 ? t("salesForm.dragToReorder") : t("salesForm.itemOrder")}
+                  aria-label={t("salesForm.itemAriaLabel", { index: index + 1 })}
                   onDragStart={(event) => handleItemDragStart(event, index)}
                   onDragEnd={handleItemDragEnd}
                 >
@@ -1077,7 +1078,7 @@ function SalesForm({
                 </div>
 
                 <label className="purchase-item-field sales-item-product">
-                  <span className="required-label">Product</span>
+                  <span className="required-label">{t("salesForm.colProduct")}</span>
                   <div className="supplier-combobox">
                     <input
                       value={item.product_query}
@@ -1086,7 +1087,7 @@ function SalesForm({
                       onBlur={() => {
                         window.setTimeout(() => setOpenProductIndex(null), 120);
                       }}
-                      placeholder="Search existing product"
+                      placeholder={t("salesForm.searchProductPlaceholder")}
                       autoComplete="off"
                       aria-expanded={openProductIndex === index}
                       aria-controls={`sales-product-list-${item.line_id}`}
@@ -1127,7 +1128,7 @@ function SalesForm({
                           })
                         ) : (
                           <div className="supplier-combobox-empty">
-                            No product found. Add it in Product page first.
+                            {t("salesForm.noProductFound")}
                           </div>
                         )}
                       </div>
@@ -1139,7 +1140,7 @@ function SalesForm({
                 </label>
 
                 <label className="purchase-item-field sales-item-unit">
-                  <span className="required-label">Unit</span>
+                  <span className="required-label">{t("salesForm.colUnit")}</span>
                   <select
                     value={item.unit}
                     onChange={(event) => updateItem(index, "unit", event.target.value)}
@@ -1163,19 +1164,19 @@ function SalesForm({
                 </label>
 
                 <label className="purchase-item-field sales-item-qty">
-                  <span className="required-label">Qty</span>
+                  <span className="required-label">{t("salesForm.colQty")}</span>
                   <input
                     type="number"
                     min="1"
                     value={item.quantity}
                     onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                    placeholder="Qty"
+                    placeholder={t("salesForm.qtyPlaceholder")}
                     required
                   />
                 </label>
 
                 <label className="purchase-item-field sales-item-price">
-                  <span className="required-label">Unit Price</span>
+                  <span className="required-label">{t("salesForm.colUnitPrice")}</span>
                   <input
                     type="number"
                     min="0"
@@ -1196,12 +1197,12 @@ function SalesForm({
                 </label>
 
                 <div className="purchase-item-field sales-item-discounts">
-                  <span>Discounts</span>
+                  <span>{t("salesForm.colDiscounts")}</span>
                   <div className="sales-discount-cell">
                     {item.discounts.map((d, di) => (
                       <div key={di} className="sales-discount-entry">
                         {di > 0 && (
-                          <span className="sales-discount-chain-label">then</span>
+                          <span className="sales-discount-chain-label">{t("salesForm.discountThen")}</span>
                         )}
                         <input
                           className="sales-discount-input"
@@ -1218,7 +1219,7 @@ function SalesForm({
                           <button
                             className="sales-discount-remove"
                             type="button"
-                            aria-label="Remove discount"
+                            aria-label={t("salesForm.removeDiscount")}
                             onClick={() => removeDiscount(index, di)}
                           >
                             X
@@ -1231,32 +1232,32 @@ function SalesForm({
                       type="button"
                       onClick={() => addDiscount(index)}
                     >
-                      + Add
+                      {t("salesForm.addDiscount")}
                     </button>
                   </div>
                 </div>
 
                 <div className="purchase-item-field sales-item-amount">
-                  <span>Amount</span>
+                  <span>{t("salesForm.colAmount")}</span>
                   <div className="sales-line-amount">
                     {fmt(amount)}
                   </div>
                 </div>
 
                 <label className="purchase-item-field sales-item-supplier">
-                  <span>Supplier (Source)</span>
+                  <span>{t("salesForm.supplierSourceLabel")}</span>
                   <input
                     list="sales-supplier-options"
                     value={item.supplier_name}
                     onChange={(event) =>
                       updateSupplier(index, event.target.value)
                     }
-                    placeholder="Optional"
+                    placeholder={t("common.optional")}
                   />
                 </label>
 
                 <label className="purchase-item-field sales-item-cost">
-                  <span>Unit Cost</span>
+                  <span>{t("salesForm.colUnitCost")}</span>
                   <input
                     type="number"
                     min="0"
@@ -1270,7 +1271,7 @@ function SalesForm({
                   />
                   {lineLoss > 0 ? (
                     <span className="sales-below-cost-warning">
-                      ⚠ Below cost by {fmt(lineLoss)}
+                      ⚠ {t("salesForm.belowCostBy")} {fmt(lineLoss)}
                     </span>
                   ) : null}
                 </label>
@@ -1281,7 +1282,7 @@ function SalesForm({
                   onClick={() => removeItem(index)}
                   disabled={items.length === 1}
                 >
-                  Remove
+                  {t("salesForm.removeItem")}
                 </button>
               </div>
             );
@@ -1302,7 +1303,7 @@ function SalesForm({
 
         <section className="purchase-vat-card">
           <div className="purchase-vat-card-header">
-            <p className="purchase-vat-label">VAT Setting</p>
+            <p className="purchase-vat-label">{t("salesForm.vatSetting")}</p>
             <label className="vat-toggle">
               <input
                 type="checkbox"
@@ -1313,12 +1314,12 @@ function SalesForm({
               />
               <span className="vat-toggle-track" />
               <span className="vat-toggle-text">
-                {isVatEnabled(vatMode) ? "On" : "Off"}
+                {isVatEnabled(vatMode) ? t("salesForm.vatOn") : t("salesForm.vatOff")}
               </span>
             </label>
           </div>
           {isVatEnabled(vatMode) ? (
-            <div className="purchase-vat-options" role="radiogroup" aria-label="Sales VAT setting">
+            <div className="purchase-vat-options" role="radiogroup" aria-label={t("salesForm.vatAriaLabel")}>
               {vatOptions.map((option) => (
                 <label
                   key={option.value}
@@ -1342,23 +1343,23 @@ function SalesForm({
           {isVatEnabled(vatMode) ? (
             <>
               <div className="sales-summary-row">
-                <span>Total</span>
+                <span>{t("salesForm.subtotal")}</span>
                 <span>{fmt(vatSummary.total)}</span>
               </div>
               <div className="sales-summary-row">
-                <span>VAT (7%)</span>
+                <span>{t("salesForm.vat")}</span>
                 <span>{fmt(vatSummary.vat)}</span>
               </div>
             </>
           ) : null}
           <div className="sales-summary-row sales-summary-grand">
-            <strong>Grand Total</strong>
+            <strong>{t("salesForm.grandTotal")}</strong>
             <strong>{fmt(vatSummary.grandTotal)}</strong>
           </div>
         </div>
 
         <button className="primary-button" type="submit">
-          Save Sale
+          {t("salesForm.saveButton")}
         </button>
       </form>
     </section>

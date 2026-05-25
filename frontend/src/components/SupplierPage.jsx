@@ -7,12 +7,13 @@ import {
   getRequiredListError,
   isValidTel,
 } from "./contactValidation";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const SUPPLIER_PROFILE_OPTIONS = [
-  { value: "missing-tax-id", label: "Missing tax ID" },
-  { value: "has-email", label: "Has email" },
-  { value: "has-phone", label: "Has phone" },
-  { value: "has-note", label: "Has internal note" },
+  { value: "missing-tax-id", labelKey: "supplier.missingTaxId" },
+  { value: "has-email", labelKey: "supplier.hasEmail" },
+  { value: "has-phone", labelKey: "supplier.hasPhone" },
+  { value: "has-note", labelKey: "supplier.hasNote" },
 ];
 
 function createSupplier(overrides = {}) {
@@ -232,21 +233,21 @@ function getContactListKeyForIndex(indexKey) {
   return "";
 }
 
-const SUPPLIER_REQUIRED_FIELDS = {
-  companyName: "Supplier company name",
-  procurementName: "Procurement name",
-  procurementTel: "Procurement tel",
-  taxpayerId: "Supplier taxpayer identification number",
-  termType: "Payment term",
-  billingNoteDate: "Credit term",
+const SUPPLIER_REQUIRED_FIELD_KEYS = {
+  companyName: "supplier.companyNameLabel",
+  procurementName: "supplier.procurementNameLabel",
+  procurementTel: "supplier.procurementTelLabel",
+  taxpayerId: "supplier.taxpayerLabel",
+  termType: "supplier.paymentTermLabel",
+  billingNoteDate: "supplier.creditTermLabel",
 };
 
-const SUPPLIER_REQUIRED_OPTIONS = {
-  branches: "Supplier branch",
-  locations: "Supplier company location",
-  emails: "Supplier email",
-  tels: "Supplier tel",
-  shippingAddresses: "Shipping address",
+const SUPPLIER_REQUIRED_OPTION_KEYS = {
+  branches: "supplier.branchLabel",
+  locations: "supplier.locationLabel",
+  emails: "supplier.emailLabel",
+  tels: "supplier.telLabel",
+  shippingAddresses: "supplier.shippingLabel",
 };
 
 const SUPPLIER_OPTION_INDEX_KEYS = {
@@ -257,19 +258,19 @@ const SUPPLIER_OPTION_INDEX_KEYS = {
   shippingAddresses: "selectedShippingAddressIndex",
 };
 
-function getSupplierOptionError(listKey, value) {
+function getSupplierOptionError(listKey, value, t) {
   return (
-    getRequiredFieldError(SUPPLIER_REQUIRED_OPTIONS[listKey], value) ||
+    getRequiredFieldError(t(SUPPLIER_REQUIRED_OPTION_KEYS[listKey]), value) ||
     getContactFieldError(listKey, value)
   );
 }
 
-function getSupplierTextFieldError(key, value) {
+function getSupplierTextFieldError(key, value, t) {
   if (key === "remark") {
     return "";
   }
 
-  const requiredError = getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS[key], value);
+  const requiredError = getRequiredFieldError(t(SUPPLIER_REQUIRED_FIELD_KEYS[key]), value);
 
   if (requiredError) {
     return requiredError;
@@ -282,45 +283,45 @@ function getSupplierTextFieldError(key, value) {
   return "";
 }
 
-function getFirstInvalidSupplierOptionIndex(supplier, listKey) {
-  return (supplier[listKey] || []).findIndex((value) => getSupplierOptionError(listKey, value));
+function getFirstInvalidSupplierOptionIndex(supplier, listKey, t) {
+  return (supplier[listKey] || []).findIndex((value) => getSupplierOptionError(listKey, value, t));
 }
 
-function getSupplierFormErrors(supplier) {
+function getSupplierFormErrors(supplier, t) {
   return {
-    companyName: getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS.companyName, supplier.companyName),
+    companyName: getRequiredFieldError(t(SUPPLIER_REQUIRED_FIELD_KEYS.companyName), supplier.companyName),
     procurementName: getRequiredFieldError(
-      SUPPLIER_REQUIRED_FIELDS.procurementName,
+      t(SUPPLIER_REQUIRED_FIELD_KEYS.procurementName),
       supplier.procurementName
     ),
-    procurementTel: getSupplierTextFieldError("procurementTel", supplier.procurementTel),
-    taxpayerId: getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS.taxpayerId, supplier.taxpayerId),
+    procurementTel: getSupplierTextFieldError("procurementTel", supplier.procurementTel, t),
+    taxpayerId: getRequiredFieldError(t(SUPPLIER_REQUIRED_FIELD_KEYS.taxpayerId), supplier.taxpayerId),
     branches:
-      getRequiredListError(SUPPLIER_REQUIRED_OPTIONS.branches, supplier.branches) ||
-      (supplier.branches || []).map((value) => getSupplierOptionError("branches", value)).find(Boolean) ||
+      getRequiredListError(t(SUPPLIER_REQUIRED_OPTION_KEYS.branches), supplier.branches) ||
+      (supplier.branches || []).map((value) => getSupplierOptionError("branches", value, t)).find(Boolean) ||
       "",
     locations:
-      getRequiredListError(SUPPLIER_REQUIRED_OPTIONS.locations, supplier.locations) ||
-      (supplier.locations || []).map((value) => getSupplierOptionError("locations", value)).find(Boolean) ||
+      getRequiredListError(t(SUPPLIER_REQUIRED_OPTION_KEYS.locations), supplier.locations) ||
+      (supplier.locations || []).map((value) => getSupplierOptionError("locations", value, t)).find(Boolean) ||
       "",
     emails:
-      getRequiredListError(SUPPLIER_REQUIRED_OPTIONS.emails, supplier.emails) ||
-      (supplier.emails || []).map((value) => getSupplierOptionError("emails", value)).find(Boolean) ||
+      getRequiredListError(t(SUPPLIER_REQUIRED_OPTION_KEYS.emails), supplier.emails) ||
+      (supplier.emails || []).map((value) => getSupplierOptionError("emails", value, t)).find(Boolean) ||
       "",
     tels:
-      getRequiredListError(SUPPLIER_REQUIRED_OPTIONS.tels, supplier.tels) ||
-      (supplier.tels || []).map((value) => getSupplierOptionError("tels", value)).find(Boolean) ||
+      getRequiredListError(t(SUPPLIER_REQUIRED_OPTION_KEYS.tels), supplier.tels) ||
+      (supplier.tels || []).map((value) => getSupplierOptionError("tels", value, t)).find(Boolean) ||
       "",
     shippingAddresses:
-      getRequiredListError(SUPPLIER_REQUIRED_OPTIONS.shippingAddresses, supplier.shippingAddresses) ||
+      getRequiredListError(t(SUPPLIER_REQUIRED_OPTION_KEYS.shippingAddresses), supplier.shippingAddresses) ||
       (supplier.shippingAddresses || [])
-        .map((value) => getSupplierOptionError("shippingAddresses", value))
+        .map((value) => getSupplierOptionError("shippingAddresses", value, t))
         .find(Boolean) ||
       "",
-    termType: getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS.termType, supplier.termType),
+    termType: getRequiredFieldError(t(SUPPLIER_REQUIRED_FIELD_KEYS.termType), supplier.termType),
     billingNoteDate:
       supplier.termType === "credit"
-        ? getRequiredFieldError(SUPPLIER_REQUIRED_FIELDS.billingNoteDate, supplier.billingNoteDate)
+        ? getRequiredFieldError(t(SUPPLIER_REQUIRED_FIELD_KEYS.billingNoteDate), supplier.billingNoteDate)
         : "",
   };
 }
@@ -342,6 +343,7 @@ function SupplierOptionField({
   onAdd,
   onDelete,
 }) {
+  const { t } = useLanguage();
   return (
     <div className="supplier-option-field">
       <label>
@@ -370,10 +372,10 @@ function SupplierOptionField({
         />
         <div className="supplier-option-edit-actions">
           <button className="secondary-button" type="button" onClick={onAdd}>
-            Add
+            {t("common.add")}
           </button>
           <button className="danger-button" type="button" onClick={onDelete}>
-            Delete
+            {t("common.delete")}
           </button>
         </div>
       </div>
@@ -390,6 +392,7 @@ function SupplierPage({
   onSaveSupplier,
   onDeleteSupplier,
 }) {
+  const { t } = useLanguage();
   const [selectedSupplierId, setSelectedSupplierId] = useState(null);
   const [draftSupplier, setDraftSupplier] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -492,7 +495,7 @@ function SupplierPage({
   }
 
   const quickPresets = SUPPLIER_PROFILE_OPTIONS.map((option) => ({
-    label: option.label,
+    label: t(option.labelKey),
     active: profileFilter === option.value,
     onClick: () =>
       setProfileFilter((current) =>
@@ -502,10 +505,11 @@ function SupplierPage({
   const activeChips = [
     profileFilter !== "all" && {
       key: "profile",
-      label: `Profile: ${
-        SUPPLIER_PROFILE_OPTIONS.find((option) => option.value === profileFilter)
-          ?.label || profileFilter
-      }`,
+      label: t("supplier.profileChip", {
+        label:
+          t(SUPPLIER_PROFILE_OPTIONS.find((option) => option.value === profileFilter)?.labelKey || "") ||
+          profileFilter,
+      }),
       onRemove: () => setProfileFilter("all"),
     },
   ].filter(Boolean);
@@ -531,7 +535,7 @@ function SupplierPage({
     updateDraftSupplier((supplier) => ({ ...supplier, [key]: value }));
     setFormErrors((currentErrors) => ({
       ...currentErrors,
-      [key]: getSupplierTextFieldError(key, value),
+      [key]: getSupplierTextFieldError(key, value, t),
     }));
   }
 
@@ -542,7 +546,7 @@ function SupplierPage({
     if (listKey && draftSupplier) {
       setFormErrors((currentErrors) => ({
         ...currentErrors,
-        [listKey]: getSupplierOptionError(listKey, draftSupplier[listKey]?.[nextIndex] || ""),
+        [listKey]: getSupplierOptionError(listKey, draftSupplier[listKey]?.[nextIndex] || "", t),
       }));
     }
   }
@@ -554,18 +558,18 @@ function SupplierPage({
       return { ...supplier, [listKey]: nextOptions };
     });
 
-    if (SUPPLIER_REQUIRED_OPTIONS[listKey]) {
+    if (SUPPLIER_REQUIRED_OPTION_KEYS[listKey]) {
       setFormErrors((currentErrors) => ({
         ...currentErrors,
-        [listKey]: getSupplierOptionError(listKey, nextValue),
+        [listKey]: getSupplierOptionError(listKey, nextValue, t),
       }));
     }
   }
 
   function addOption(listKey, indexKey) {
-    if (SUPPLIER_REQUIRED_OPTIONS[listKey] && draftSupplier) {
+    if (SUPPLIER_REQUIRED_OPTION_KEYS[listKey] && draftSupplier) {
       const currentValue = draftSupplier[listKey]?.[draftSupplier[indexKey]] || "";
-      const error = getSupplierOptionError(listKey, currentValue);
+      const error = getSupplierOptionError(listKey, currentValue, t);
 
       if (error) {
         setFormErrors((currentErrors) => ({
@@ -607,7 +611,7 @@ function SupplierPage({
       };
     });
 
-    if (SUPPLIER_REQUIRED_OPTIONS[listKey]) {
+    if (SUPPLIER_REQUIRED_OPTION_KEYS[listKey]) {
       setFormErrors((currentErrors) => ({
         ...currentErrors,
         [listKey]: "",
@@ -626,12 +630,12 @@ function SupplierPage({
     }
 
     const nextSupplier = normalizeSupplier(draftSupplier);
-    const nextFormErrors = getSupplierFormErrors(nextSupplier);
+    const nextFormErrors = getSupplierFormErrors(nextSupplier, t);
 
     if (hasFormErrors(nextFormErrors)) {
       const nextIndexes = Object.entries(SUPPLIER_OPTION_INDEX_KEYS).reduce(
         (indexes, [listKey, indexKey]) => {
-          const invalidIndex = getFirstInvalidSupplierOptionIndex(nextSupplier, listKey);
+          const invalidIndex = getFirstInvalidSupplierOptionIndex(nextSupplier, listKey, t);
           return invalidIndex >= 0 ? { ...indexes, [indexKey]: invalidIndex } : indexes;
         },
         {}
@@ -665,7 +669,7 @@ function SupplierPage({
     }
 
     const confirmed = window.confirm(
-      `Delete supplier ${draftSupplier.companyName || "this supplier"}?`
+      t("supplier.deleteConfirm", { name: draftSupplier.companyName || t("supplier.unnamedSupplier") })
     );
 
     if (!confirmed) {
@@ -689,8 +693,8 @@ function SupplierPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Suppliers</p>
-            <h3>Find Suppliers</h3>
+            <p className="eyebrow">{t("supplier.eyebrow")}</p>
+            <h3>{t("supplier.findTitle")}</h3>
           </div>
         </div>
 
@@ -701,14 +705,14 @@ function SupplierPage({
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search supplier, taxpayer ID, location, email, or tel"
+              placeholder={t("supplier.searchPlaceholder")}
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
             <span>
               {isServerPaginated
-                ? `${filteredSuppliers.length} on this page of ${totalSupplierCount} suppliers`
-                : `${filteredSuppliers.length} of ${suppliers.length} suppliers shown`}
+                ? t("supplier.pageCountServer", { count: filteredSuppliers.length, total: totalSupplierCount })
+                : t("supplier.pageCountLocal", { count: filteredSuppliers.length, total: suppliers.length })}
             </span>
           </div>
         </div>
@@ -720,11 +724,11 @@ function SupplierPage({
             aria-expanded={filterOpen}
             onClick={() => setFilterOpen((currentValue) => !currentValue)}
           >
-            Filter
+            {t("common.filter")}
             {activeFilterCount ? <span>{activeFilterCount}</span> : null}
           </button>
           <button className="secondary-button" type="button" onClick={resetFilters}>
-            Reset Filter
+            {t("common.resetFilter")}
           </button>
         </div>
 
@@ -735,15 +739,15 @@ function SupplierPage({
           <div className="history-filter-panel">
             <div className="history-filter-grid">
               <label className="history-filter-field">
-                <span className="history-filter-title">Supplier Profile</span>
+                <span className="history-filter-title">{t("supplier.profileFilter")}</span>
                 <select
                   value={profileFilter}
                   onChange={(event) => setProfileFilter(event.target.value)}
                 >
-                  <option value="all">All suppliers</option>
+                  <option value="all">{t("supplier.allSuppliers")}</option>
                   {SUPPLIER_PROFILE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {option.label}
+                      {t(option.labelKey)}
                     </option>
                   ))}
                 </select>
@@ -756,12 +760,12 @@ function SupplierPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">History</p>
-            <h3>Suppliers</h3>
+            <p className="eyebrow">{t("supplier.historyEyebrow")}</p>
+            <h3>{t("supplier.historyTitle")}</h3>
           </div>
           <div className="transaction-table-actions">
             <button className="primary-button" type="button" onClick={handleCreateSupplier}>
-              New Supplier
+              {t("supplier.newSupplier")}
             </button>
             {shouldShowViewAll ? (
               <button
@@ -769,14 +773,14 @@ function SupplierPage({
                 type="button"
                 onClick={() => setShowAllRows((currentValue) => !currentValue)}
               >
-                {showAllRows ? "Show Recent" : "View More"}
+                {showAllRows ? t("common.showRecent") : t("common.viewMore")}
               </button>
             ) : null}
           </div>
         </div>
 
         {filteredSuppliers.length === 0 ? (
-          <p className="empty-copy">No suppliers match the current search.</p>
+          <p className="empty-copy">{t("supplier.noMatch")}</p>
         ) : (
           <div
             className={
@@ -798,10 +802,10 @@ function SupplierPage({
                 <thead>
                   <tr>
                     <th className="table-index-cell">#</th>
-                    <th>Supplier</th>
-                    <th>Contact</th>
-                    <th>Location</th>
-                    <th>Profile</th>
+                    <th>{t("supplier.colSupplier")}</th>
+                    <th>{t("supplier.colContact")}</th>
+                    <th>{t("supplier.colLocation")}</th>
+                    <th>{t("supplier.colProfile")}</th>
                     <th />
                   </tr>
                 </thead>
@@ -817,9 +821,9 @@ function SupplierPage({
                         <td className="table-index-cell">{index + 1}</td>
                         <td>
                           <div className="transaction-reference-cell">
-                            <strong>{supplier.companyName || "Unnamed Supplier"}</strong>
+                            <strong>{supplier.companyName || t("supplier.unnamedSupplier")}</strong>
                             <span>
-                              {supplier.taxpayerId ? `Tax ID ${supplier.taxpayerId}` : "Tax ID not set"}
+                              {supplier.taxpayerId ? t("supplier.taxIdLabel", { id: supplier.taxpayerId }) : t("supplier.taxIdNotSet")}
                             </span>
                           </div>
                         </td>
@@ -847,7 +851,7 @@ function SupplierPage({
                             <strong>
                               {getSelectedValue(supplier.branches, supplier.selectedBranchIndex)}
                             </strong>
-                            <span>{supplier.remark || supplier.billingNoteDate || "No internal note"}</span>
+                            <span>{supplier.remark || supplier.billingNoteDate || t("supplier.noInternalNote")}</span>
                           </div>
                         </td>
                         <td>
@@ -856,7 +860,7 @@ function SupplierPage({
                             type="button"
                             onClick={() => openSupplierEditor(supplier)}
                           >
-                            View
+                            {t("common.view")}
                           </button>
                         </td>
                       </tr>
@@ -873,9 +877,9 @@ function SupplierPage({
                     <div className="mobile-record-title">
                       <span className="mobile-record-index">{index + 1}</span>
                       <div className="cell-stack">
-                        <strong>{supplier.companyName || "Unnamed Supplier"}</strong>
+                        <strong>{supplier.companyName || t("supplier.unnamedSupplier")}</strong>
                         <span>
-                          {supplier.taxpayerId ? `Tax ID ${supplier.taxpayerId}` : "Tax ID not set"}
+                          {supplier.taxpayerId ? t("supplier.taxIdLabel", { id: supplier.taxpayerId }) : t("supplier.taxIdNotSet")}
                         </span>
                       </div>
                     </div>
@@ -883,19 +887,19 @@ function SupplierPage({
 
                   <div className="mobile-record-grid">
                     <div>
-                      <span>Procurement Name</span>
+                      <span>{t("supplier.colProcurementName")}</span>
                       <strong>{supplier.procurementName || "-"}</strong>
                     </div>
                     <div>
-                      <span>Procurement Tel</span>
+                      <span>{t("supplier.colProcurementTel")}</span>
                       <strong>{supplier.procurementTel || "-"}</strong>
                     </div>
                     <div>
-                      <span>Location</span>
+                      <span>{t("supplier.colLocation")}</span>
                       <strong>{getSelectedValue(supplier.locations, supplier.selectedLocationIndex)}</strong>
                     </div>
                     <div>
-                      <span>Branch</span>
+                      <span>{t("supplier.colBranch")}</span>
                       <strong>{getSelectedValue(supplier.branches, supplier.selectedBranchIndex)}</strong>
                     </div>
                   </div>
@@ -905,7 +909,7 @@ function SupplierPage({
                     type="button"
                     onClick={() => openSupplierEditor(supplier)}
                   >
-                    View
+                    {t("common.view")}
                   </button>
                 </article>
               ))}
@@ -914,7 +918,7 @@ function SupplierPage({
         )}
         <PaginationControls
           pagination={pagination}
-          itemLabel="suppliers"
+          itemLabel={t("supplier.historyTitle")}
           onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
         />
       </section>
@@ -929,15 +933,15 @@ function SupplierPage({
           >
             <div className="section-heading supplier-modal-header">
               <div>
-                <p className="eyebrow">Supplier Details</p>
+                <p className="eyebrow">{t("supplier.detailsEyebrow")}</p>
                 <h3 id="supplier-modal-title">
-                  {draftSupplier.companyName || "New Supplier"}
+                  {draftSupplier.companyName || t("supplier.newSupplier")}
                 </h3>
               </div>
               <button
                 className="icon-button subtle"
                 type="button"
-                aria-label="Close supplier details"
+                aria-label={t("supplier.closeLabel")}
                 onClick={closeSupplierEditor}
               >
                 X
@@ -956,21 +960,21 @@ function SupplierPage({
                 <section className="contact-editor-section">
                   <div className="contact-editor-section-heading">
                     <div>
-                      <p className="eyebrow">Company</p>
-                      <h4>Supplier Identity</h4>
+                      <p className="eyebrow">{t("supplier.identityEyebrow")}</p>
+                      <h4>{t("supplier.identityTitle")}</h4>
                     </div>
-                    <span>Required profile</span>
+                    <span>{t("supplier.identityDescription")}</span>
                   </div>
 
                   <div className="contact-editor-grid">
                     <label>
-                      <span className="required-label">Supplier Company Name</span>
+                      <span className="required-label">{t("supplier.companyNameLabel")}</span>
                       <input
                         autoFocus
                         required
                         value={draftSupplier.companyName}
                         onChange={(event) => updateTextField("companyName", event.target.value)}
-                        placeholder="Supplier company name"
+                        placeholder={t("supplier.companyNamePlaceholder")}
                         aria-invalid={formErrors.companyName ? "true" : undefined}
                       />
                       {formErrors.companyName ? (
@@ -979,12 +983,12 @@ function SupplierPage({
                     </label>
 
                     <label>
-                      <span className="required-label">Supplier Taxpayer Identification Number</span>
+                      <span className="required-label">{t("supplier.taxpayerLabel")}</span>
                       <input
                         required
                         value={draftSupplier.taxpayerId}
                         onChange={(event) => updateTextField("taxpayerId", event.target.value)}
-                        placeholder="Taxpayer identification number"
+                        placeholder={t("supplier.taxpayerPlaceholder")}
                         aria-invalid={formErrors.taxpayerId ? "true" : undefined}
                       />
                       {formErrors.taxpayerId ? (
@@ -994,10 +998,10 @@ function SupplierPage({
 
                     <div className="full-width">
                       <SupplierOptionField
-                        label="Supplier Branch"
+                        label={t("supplier.branchLabel")}
                         options={draftSupplier.branches}
                         selectedIndex={draftSupplier.selectedBranchIndex}
-                        placeholder="Add or edit a branch"
+                        placeholder={t("supplier.branchPlaceholder")}
                         required
                         error={formErrors.branches}
                         onSelect={(nextIndex) => updateOptionIndex("selectedBranchIndex", nextIndex)}
@@ -1014,22 +1018,22 @@ function SupplierPage({
                 <section className="contact-editor-section">
                   <div className="contact-editor-section-heading">
                     <div>
-                      <p className="eyebrow">Procurement</p>
-                      <h4>Procurement Department</h4>
+                      <p className="eyebrow">{t("supplier.procurementEyebrow")}</p>
+                      <h4>{t("supplier.procurementTitle")}</h4>
                     </div>
-                    <span>Purchasing contact</span>
+                    <span>{t("supplier.procurementDescription")}</span>
                   </div>
 
                   <div className="contact-editor-grid">
                     <label>
-                      <span className="required-label">Procurement Name</span>
+                      <span className="required-label">{t("supplier.procurementNameLabel")}</span>
                       <input
                         required
                         value={draftSupplier.procurementName}
                         onChange={(event) =>
                           updateTextField("procurementName", event.target.value)
                         }
-                        placeholder="Procurement contact name"
+                        placeholder={t("supplier.procurementNamePlaceholder")}
                         aria-invalid={formErrors.procurementName ? "true" : undefined}
                       />
                       {formErrors.procurementName ? (
@@ -1038,7 +1042,7 @@ function SupplierPage({
                     </label>
 
                     <label>
-                      <span className="required-label">Procurement Tel</span>
+                      <span className="required-label">{t("supplier.procurementTelLabel")}</span>
                       <input
                         required
                         type="tel"
@@ -1046,7 +1050,7 @@ function SupplierPage({
                         onChange={(event) =>
                           updateTextField("procurementTel", event.target.value)
                         }
-                        placeholder="Procurement telephone number"
+                        placeholder={t("supplier.procurementTelPlaceholder")}
                         aria-invalid={formErrors.procurementTel ? "true" : undefined}
                       />
                       {formErrors.procurementTel ? (
@@ -1059,18 +1063,18 @@ function SupplierPage({
                 <section className="contact-editor-section">
                   <div className="contact-editor-section-heading">
                     <div>
-                      <p className="eyebrow">Contact</p>
-                      <h4>Location, Email, and Telephone</h4>
+                      <p className="eyebrow">{t("supplier.contactEyebrow")}</p>
+                      <h4>{t("supplier.contactTitle")}</h4>
                     </div>
-                    <span>Communication</span>
+                    <span>{t("supplier.contactDescription")}</span>
                   </div>
 
                   <div className="contact-editor-grid">
                     <SupplierOptionField
-                      label="Supplier Company Location"
+                      label={t("supplier.locationLabel")}
                       options={draftSupplier.locations}
                       selectedIndex={draftSupplier.selectedLocationIndex}
-                      placeholder="Add or edit a company location"
+                      placeholder={t("supplier.locationPlaceholder")}
                       required
                       error={formErrors.locations}
                       onSelect={(nextIndex) => updateOptionIndex("selectedLocationIndex", nextIndex)}
@@ -1082,10 +1086,10 @@ function SupplierPage({
                     />
 
                     <SupplierOptionField
-                      label="Supplier Email"
+                      label={t("supplier.emailLabel")}
                       options={draftSupplier.emails}
                       selectedIndex={draftSupplier.selectedEmailIndex}
-                      placeholder="Add or edit an email"
+                      placeholder={t("supplier.emailPlaceholder")}
                       type="email"
                       required
                       error={formErrors.emails}
@@ -1099,10 +1103,10 @@ function SupplierPage({
 
                     <div className="full-width">
                       <SupplierOptionField
-                        label="Supplier Tel"
+                        label={t("supplier.telLabel")}
                         options={draftSupplier.tels}
                         selectedIndex={draftSupplier.selectedTelIndex}
-                        placeholder="Add or edit a telephone number"
+                        placeholder={t("supplier.telPlaceholder")}
                         type="tel"
                         required
                         error={formErrors.tels}
@@ -1120,19 +1124,19 @@ function SupplierPage({
                 <section className="contact-editor-section">
                   <div className="contact-editor-section-heading">
                     <div>
-                      <p className="eyebrow">Delivery & Billing</p>
-                      <h4>Shipping Address and Notes</h4>
+                      <p className="eyebrow">{t("supplier.deliveryEyebrow")}</p>
+                      <h4>{t("supplier.deliveryTitle")}</h4>
                     </div>
-                    <span>Operations</span>
+                    <span>{t("supplier.deliveryDescription")}</span>
                   </div>
 
                   <div className="contact-editor-grid">
                     <div className="full-width">
                       <SupplierOptionField
-                        label="Shipping Address"
+                        label={t("supplier.shippingLabel")}
                         options={draftSupplier.shippingAddresses}
                         selectedIndex={draftSupplier.selectedShippingAddressIndex}
-                        placeholder="Add or edit a shipping address"
+                        placeholder={t("supplier.shippingPlaceholder")}
                         required
                         error={formErrors.shippingAddresses}
                         onSelect={(nextIndex) =>
@@ -1155,17 +1159,17 @@ function SupplierPage({
                     </div>
 
                     <label>
-                      Remark
+                      {t("supplier.remarkLabel")}
                       <textarea
                         rows="4"
                         value={draftSupplier.remark}
                         onChange={(event) => updateTextField("remark", event.target.value)}
-                        placeholder="Internal note about this supplier"
+                        placeholder={t("supplier.remarkPlaceholder")}
                       />
                     </label>
 
                     <label>
-                      <span className="required-label">Payment Term</span>
+                      <span className="required-label">{t("supplier.paymentTermLabel")}</span>
                       <select
                         required
                         value={draftSupplier.termType}
@@ -1179,13 +1183,13 @@ function SupplierPage({
                           setFormErrors((currentErrors) => ({
                             ...currentErrors,
                             termType: getRequiredFieldError(
-                              SUPPLIER_REQUIRED_FIELDS.termType,
+                              t(SUPPLIER_REQUIRED_FIELD_KEYS.termType),
                               next
                             ),
                             billingNoteDate:
                               next === "credit"
                                 ? getRequiredFieldError(
-                                    SUPPLIER_REQUIRED_FIELDS.billingNoteDate,
+                                    t(SUPPLIER_REQUIRED_FIELD_KEYS.billingNoteDate),
                                     draftSupplier.billingNoteDate
                                   )
                                 : "",
@@ -1193,9 +1197,9 @@ function SupplierPage({
                         }}
                         aria-invalid={formErrors.termType ? "true" : undefined}
                       >
-                        <option value="">— Select payment term —</option>
-                        <option value="debit">Debit</option>
-                        <option value="credit">Credit</option>
+                        <option value="">{t("supplier.selectPaymentTerm")}</option>
+                        <option value="debit">{t("supplier.termDebit")}</option>
+                        <option value="credit">{t("supplier.termCredit")}</option>
                       </select>
                       {formErrors.termType ? (
                         <span className="field-error-text">{formErrors.termType}</span>
@@ -1204,17 +1208,17 @@ function SupplierPage({
 
                     {draftSupplier.termType === "credit" && (
                       <label>
-                        <span className="required-label">Credit Term</span>
+                        <span className="required-label">{t("supplier.creditTermLabel")}</span>
                         <select
                           required
                           value={draftSupplier.billingNoteDate}
                           onChange={(event) => updateTextField("billingNoteDate", event.target.value)}
                           aria-invalid={formErrors.billingNoteDate ? "true" : undefined}
                         >
-                          <option value="">— Select credit term —</option>
-                          <option value="30 days">30 days</option>
-                          <option value="60 days">60 days</option>
-                          <option value="90 days">90 days</option>
+                          <option value="">{t("supplier.selectCreditTerm")}</option>
+                          <option value="30 days">{t("supplier.days30")}</option>
+                          <option value="60 days">{t("supplier.days60")}</option>
+                          <option value="90 days">{t("supplier.days90")}</option>
                         </select>
                         {formErrors.billingNoteDate ? (
                           <span className="field-error-text">{formErrors.billingNoteDate}</span>
@@ -1227,13 +1231,13 @@ function SupplierPage({
 
               <div className="supplier-modal-actions">
                 <button className="danger-button" type="button" onClick={handleDeleteSupplier}>
-                  Delete Supplier
+                  {t("supplier.deleteButton")}
                 </button>
                 <button className="secondary-button" type="button" onClick={closeSupplierEditor}>
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button className="primary-button" type="submit">
-                  Save Supplier
+                  {t("supplier.saveButton")}
                 </button>
               </div>
             </form>

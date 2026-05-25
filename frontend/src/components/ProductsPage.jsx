@@ -47,6 +47,7 @@ import {
   resolveProductCategoryId,
 } from "./products/productUtils";
 import { formatDate } from "../format";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const PRODUCT_DELETE_HISTORY_MESSAGE =
   "This product cannot be deleted because it already has purchase, sales, or quotation history.";
@@ -131,14 +132,15 @@ function formatOptionalCurrency(value) {
 }
 
 function DiscountBreakdown({ item, transaction }) {
+  const { t } = useLanguage();
   return (
     <div className="tx-discount-breakdown">
       <span className="tx-discount-breakdown-row">
-        <span className="tx-discount-type">Item</span>
+        <span className="tx-discount-type">{t("transactionTable.discountItem")}</span>
         <span className="tx-discount-label">{renderDiscounts(item)}</span>
       </span>
       <span className="tx-discount-breakdown-row">
-        <span className="tx-discount-type">Bill</span>
+        <span className="tx-discount-type">{t("transactionTable.discountBill")}</span>
         <span className="tx-discount-label">{renderBillDiscount(transaction)}</span>
       </span>
     </div>
@@ -369,6 +371,7 @@ function ProductsPage({
   const [salesHistoryPage, setSalesHistoryPage] = useState(1);
   const [categoryQuery, setCategoryQuery] = useState("");
   const [categoryComboboxOpen, setCategoryComboboxOpen] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const isOpen = !!(viewingProduct || viewingTransaction || draftProduct);
@@ -609,33 +612,33 @@ function ProductsPage({
   }
 
   const stockLabels = {
-    "in-stock": "In stock",
-    "low-stock": "Low stock",
-    "out-of-stock": "Out of stock",
-    selling: "Has sales",
-    "no-sales": "No sales yet",
-    "no-purchases": "No received purchases",
+    "in-stock": t("products.inStock"),
+    "low-stock": t("products.lowStock"),
+    "out-of-stock": t("products.outOfStock"),
+    selling: t("products.hasSales"),
+    "no-sales": t("products.noSalesYet"),
+    "no-purchases": t("products.noReceivedPurchases"),
   };
   const toggleStock = (value) =>
     setStockFilter((current) => (current === value ? "all" : value));
   const quickPresets = [
     {
-      label: "In stock",
+      label: t("products.inStock"),
       active: stockFilter === "in-stock",
       onClick: () => toggleStock("in-stock"),
     },
     {
-      label: "Low stock",
+      label: t("products.lowStock"),
       active: stockFilter === "low-stock",
       onClick: () => toggleStock("low-stock"),
     },
     {
-      label: "Out of stock",
+      label: t("products.outOfStock"),
       active: stockFilter === "out-of-stock",
       onClick: () => toggleStock("out-of-stock"),
     },
     {
-      label: "No sales yet",
+      label: t("products.noSalesYet"),
       active: stockFilter === "no-sales",
       onClick: () => toggleStock("no-sales"),
     },
@@ -643,7 +646,7 @@ function ProductsPage({
   const activeChips = [
     categoryFilter !== "all" && {
       key: "category",
-      label: `Category: ${categoryFilter}`,
+      label: t("products.categoryChip", { label: categoryFilter }),
       onRemove: () => setCategoryFilter("all"),
     },
     stockFilter !== "all" && {
@@ -991,9 +994,7 @@ function ProductsPage({
       return;
     }
 
-    const confirmed = window.confirm(
-      "This product already has purchase or sales history. Changing SKU will only affect the product master; old transaction rows keep their original SKU snapshot. Continue?"
-    );
+    const confirmed = window.confirm(t("products.unlockSkuConfirm"));
 
     if (!confirmed) {
       return;
@@ -1030,12 +1031,12 @@ function ProductsPage({
     const existingProductHasHistory = await productHasTransactionHistory(existingProduct);
 
     if (!normalizedDraft.categoryId) {
-      setProductFormError("Select a category for this product.");
+      setProductFormError(t("products.errorSelectCategory"));
       return;
     }
 
     if (!productCategoryOptions.some((category) => category.id === normalizedDraft.categoryId)) {
-      setProductFormError("Select an existing category for this product.");
+      setProductFormError(t("products.errorInvalidCategory"));
       return;
     }
 
@@ -1051,12 +1052,12 @@ function ProductsPage({
     const hasUnchangedExistingSku = Boolean(existingProduct && !skuChanged);
 
     if (!normalizedDraft.sku) {
-      setProductFormError("SKU is required for every product.");
+      setProductFormError(t("products.errorSkuRequired"));
       return;
     }
 
     if (!isValidSku(normalizedDraft.sku) && !hasUnchangedExistingSku) {
-      setProductFormError("SKU must be numeric. Use Generate to create one from the category path.");
+      setProductFormError(t("products.errorSkuInvalid"));
       return;
     }
 
@@ -1069,18 +1070,18 @@ function ProductsPage({
 
     if (duplicateProduct) {
       setProductFormError(
-        `SKU ${normalizedDraft.sku} is already used by ${getProductDisplayName(duplicateProduct)}.`
+        t("products.errorSkuDuplicate", { sku: normalizedDraft.sku, name: getProductDisplayName(duplicateProduct) })
       );
       return;
     }
 
     if (existingProductHasHistory && skuChanged && !skuChangeUnlocked) {
-      setProductFormError("SKU is locked because this product has purchase or sales history.");
+      setProductFormError(t("products.errorSkuLocked"));
       return;
     }
 
     if (!normalizedDraft.stockBaseUnit) {
-      setProductFormError("Set a base stock unit for this product.");
+      setProductFormError(t("products.errorNoBaseUnit"));
       return;
     }
 
@@ -1094,12 +1095,12 @@ function ProductsPage({
     );
 
     if (!purchaseUnit?.allowPurchase) {
-      setProductFormError("Default purchase unit must be listed and allowed for purchases.");
+      setProductFormError(t("products.errorPurchaseUnit"));
       return;
     }
 
     if (!salesUnit?.allowSale) {
-      setProductFormError("Default sales unit must be listed and allowed for sales.");
+      setProductFormError(t("products.errorSalesUnit"));
       return;
     }
 
@@ -1133,18 +1134,18 @@ function ProductsPage({
 
     const existingProduct = getExistingProduct(draftProduct);
     if (!existingProduct) {
-      setProductFormError("Only saved products can be deleted.");
+      setProductFormError(t("products.errorOnlySavedCanDelete"));
       return;
     }
 
     const hasTransactionHistory = await productHasTransactionHistory(existingProduct);
     if (hasTransactionHistory) {
-      setProductFormError(PRODUCT_DELETE_HISTORY_MESSAGE);
+      setProductFormError(t("products.hasHistoryDeleteDisabled"));
       return;
     }
 
     const confirmed = window.confirm(
-      `Delete product ${getProductDisplayName(draftProduct) || "this product"}?`
+      t("products.deleteConfirm", { name: getProductDisplayName(draftProduct) || t("products.unnamedProduct") })
     );
 
     if (!confirmed) {
@@ -1169,17 +1170,17 @@ function ProductsPage({
 
     const existingProduct = getExistingProduct(draftProduct);
     if (!existingProduct) {
-      setProductFormError("Only saved products can be disabled.");
+      setProductFormError(t("products.errorOnlySavedCanDisable"));
       return;
     }
 
     if (!isProductActive(existingProduct)) {
-      setProductFormError("This product is already disabled.");
+      setProductFormError(t("products.errorAlreadyDisabled"));
       return;
     }
 
     const confirmed = window.confirm(
-      `Disable product ${getProductDisplayName(draftProduct) || "this product"}? It will no longer be available for new sales, purchases, or quotations.`
+      t("products.disableConfirm", { name: getProductDisplayName(draftProduct) || t("products.unnamedProduct") })
     );
 
     if (!confirmed) {
@@ -1207,12 +1208,12 @@ function ProductsPage({
 
     const existingProduct = getExistingProduct(draftProduct);
     if (!existingProduct) {
-      setProductFormError("Only saved products can be enabled.");
+      setProductFormError(t("products.errorOnlySavedCanEnable"));
       return;
     }
 
     if (isProductActive(existingProduct)) {
-      setProductFormError("This product is already enabled.");
+      setProductFormError(t("products.errorAlreadyEnabled"));
       return;
     }
 
@@ -1298,27 +1299,27 @@ function ProductsPage({
   const productDeleteDisabledReason = !draftProduct
     ? ""
     : !draftExistingProduct
-      ? "Only saved products can be deleted."
+      ? t("products.errorOnlySavedCanDelete")
       : isDraftHistoryLoading
-        ? "Checking transaction history before delete is available."
+        ? t("products.checkingHistoryDelete")
         : "";
   const isProductDeleteDisabled = Boolean(productDeleteDisabledReason);
   const productDisableDisabledReason = !draftProduct
     ? ""
     : !draftExistingProduct
-      ? "Only saved products can be disabled."
+      ? t("products.errorOnlySavedCanDisable")
       : isDraftHistoryLoading
-        ? "Checking transaction history before disable is available."
+        ? t("products.checkingHistoryDisable")
         : !isDraftProductActive
-          ? "This product is already disabled."
+          ? t("products.errorAlreadyDisabled")
           : "";
   const isProductDisableDisabled = Boolean(productDisableDisabledReason);
   const productEnableDisabledReason = !draftProduct
     ? ""
     : !draftExistingProduct
-      ? "Only saved products can be enabled."
+      ? t("products.errorOnlySavedCanEnable")
       : isDraftProductActive
-        ? "This product is already enabled."
+        ? t("products.errorAlreadyEnabled")
         : "";
   const isProductEnableDisabled = Boolean(productEnableDisabledReason);
   const viewingProductPictures = viewingProduct ? getProductPictures(viewingProduct) : [];
@@ -1335,8 +1336,8 @@ function ProductsPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Products</p>
-            <h3>Find Products</h3>
+            <p className="eyebrow">{t("products.eyebrow")}</p>
+            <h3>{t("products.findTitle")}</h3>
           </div>
         </div>
 
@@ -1347,14 +1348,14 @@ function ProductsPage({
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search by main name, subname, category, or SKU"
+              placeholder={t("products.searchPlaceholder")}
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
             <span>
               {isServerPaginated
-                ? `${filteredProductsWithMetrics.length} on this page of ${totalProductCount} products`
-                : `${filteredProductsWithMetrics.length} of ${productsWithMetrics.length} products shown`}
+                ? t("products.pageCountServer", { count: filteredProductsWithMetrics.length, total: totalProductCount })
+                : t("products.pageCountLocal", { count: filteredProductsWithMetrics.length, total: productsWithMetrics.length })}
             </span>
           </div>
         </div>
@@ -1366,7 +1367,7 @@ function ProductsPage({
             aria-expanded={showProductFilters}
             onClick={() => setShowProductFilters((isVisible) => !isVisible)}
           >
-            Filter
+            {t("filterControls.filter")}
             {activeFilterCount ? <span>{activeFilterCount}</span> : null}
           </button>
           <button
@@ -1374,7 +1375,7 @@ function ProductsPage({
             type="button"
             onClick={resetProductFilters}
           >
-            Reset Filter
+            {t("filterControls.resetFilter")}
           </button>
         </div>
 
@@ -1385,12 +1386,12 @@ function ProductsPage({
           <div className="history-filter-panel">
             <div className="history-filter-grid">
               <label className="history-filter-field">
-                <span className="history-filter-title">Category</span>
+                <span className="history-filter-title">{t("products.categoryFilter")}</span>
                 <select
                   value={categoryFilter}
                   onChange={(event) => setCategoryFilter(event.target.value)}
                 >
-                  <option value="all">All categories</option>
+                  <option value="all">{t("products.allCategories")}</option>
                   {categoryOptions.map((categoryLabel) => (
                     <option key={categoryLabel} value={categoryLabel}>
                       {categoryLabel}
@@ -1400,18 +1401,18 @@ function ProductsPage({
               </label>
 
               <label className="history-filter-field">
-                <span className="history-filter-title">Inventory</span>
+                <span className="history-filter-title">{t("products.inventoryFilter")}</span>
                 <select
                   value={stockFilter}
                   onChange={(event) => setStockFilter(event.target.value)}
                 >
-                  <option value="all">All products</option>
-                  <option value="in-stock">In stock</option>
-                  <option value="low-stock">Low stock</option>
-                  <option value="out-of-stock">Out of stock</option>
-                  <option value="selling">Has sales</option>
-                  <option value="no-sales">No sales yet</option>
-                  <option value="no-purchases">No received purchases</option>
+                  <option value="all">{t("products.allStock")}</option>
+                  <option value="in-stock">{t("products.inStock")}</option>
+                  <option value="low-stock">{t("products.lowStock")}</option>
+                  <option value="out-of-stock">{t("products.outOfStock")}</option>
+                  <option value="selling">{t("products.hasSales")}</option>
+                  <option value="no-sales">{t("products.noSalesYet")}</option>
+                  <option value="no-purchases">{t("products.noReceivedPurchases")}</option>
                 </select>
               </label>
             </div>
@@ -1422,12 +1423,12 @@ function ProductsPage({
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">History</p>
-            <h3>Products</h3>
+            <p className="eyebrow">{t("products.historyEyebrow")}</p>
+            <h3>{t("products.historyTitle")}</h3>
           </div>
           <div className="transaction-table-actions">
             <button className="primary-button" type="button" onClick={handleCreateProduct}>
-              New Product
+              {t("products.newProduct")}
             </button>
             {shouldShowViewAll ? (
               <button
@@ -1435,14 +1436,14 @@ function ProductsPage({
                 type="button"
                 onClick={() => setShowAllRows((currentValue) => !currentValue)}
               >
-                {showAllRows ? "Show Recent" : "View More"}
+                {showAllRows ? t("common.showRecent") : t("common.viewMore")}
               </button>
             ) : null}
           </div>
         </div>
 
         {filteredProductsWithMetrics.length === 0 ? (
-          <p className="empty-copy">No products match the current search or filters.</p>
+          <p className="empty-copy">{t("products.noMatch")}</p>
         ) : (
           <div
             className={
@@ -1455,12 +1456,12 @@ function ProductsPage({
               <table className="transaction-history-table">
                 <thead>
                   <tr>
-                    <th className="product-col-index">#</th>
-                    <th className="product-col-name">Product</th>
-                    <th className="product-col-category">Category</th>
-                    <th className="product-col-stock">Stock</th>
-                    <th className="product-col-cost">Avg Cost</th>
-                    <th className="product-col-action">Action</th>
+                    <th className="product-col-index">{t("products.colIndex")}</th>
+                    <th className="product-col-name">{t("products.colProduct")}</th>
+                    <th className="product-col-category">{t("products.colCategory")}</th>
+                    <th className="product-col-stock">{t("products.colStock")}</th>
+                    <th className="product-col-cost">{t("products.colAvgCost")}</th>
+                    <th className="product-col-action">{t("products.colAction")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1471,23 +1472,25 @@ function ProductsPage({
                         <div className="transaction-reference-cell">
                           <strong>{getProductDisplayName(product)}</strong>
                           <span>
-                            {product.sku ? `SKU ${product.sku}` : "SKU not set"}
-                            {!isProductActive(product) ? " · Disabled" : ""}
+                            {product.sku ? t("products.skuDisplay", { sku: product.sku }) : t("products.skuNotSet")}
+                            {!isProductActive(product) ? ` · ${t("products.disabledBadge")}` : ""}
                           </span>
                         </div>
                       </td>
                       <td>
                         <div className="cell-stack">
-                          <strong>{getCategoryLeafLabel(categoryLabel) || "Unassigned"}</strong>
-                          <span>{product.detail || "No product detail"}</span>
+                          <strong>{getCategoryLeafLabel(categoryLabel) || t("products.unassigned")}</strong>
+                          <span>{product.detail || t("products.noDetail")}</span>
                         </div>
                       </td>
                       <td>
                         <div className="cell-stack">
                           <strong>{formatStockQuantity(metrics.totalUnits, product)}</strong>
                           <span>
-                            Buy {getProductDefaultPurchaseUnit(product)} · Sell{" "}
-                            {getProductDefaultSalesUnit(product)}
+                            {t("products.buyAndSell", {
+                              purchaseUnit: getProductDefaultPurchaseUnit(product),
+                              salesUnit: getProductDefaultSalesUnit(product),
+                            })}
                           </span>
                         </div>
                       </td>
@@ -1502,7 +1505,7 @@ function ProductsPage({
                           type="button"
                           onClick={() => openProductDetail(product)}
                         >
-                          View
+                          {t("products.viewButton")}
                         </button>
                       </td>
                     </tr>
@@ -1519,22 +1522,22 @@ function ProductsPage({
                       <span className="mobile-record-index">{index + 1}</span>
                       <div className="cell-stack">
                         <strong>{getProductDisplayName(product)}</strong>
-                        <span>{product.sku ? `SKU ${product.sku}` : "SKU not set"}</span>
+                        <span>{product.sku ? t("products.skuDisplay", { sku: product.sku }) : t("products.skuNotSet")}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="mobile-record-grid">
                     <div>
-                      <span>Category</span>
-                      <strong>{getCategoryLeafLabel(categoryLabel) || "Unassigned"}</strong>
+                      <span>{t("products.colCategory")}</span>
+                      <strong>{getCategoryLeafLabel(categoryLabel) || t("products.unassigned")}</strong>
                     </div>
                     <div>
-                      <span>Stock</span>
+                      <span>{t("products.colStock")}</span>
                       <strong>{formatStockQuantity(metrics.totalUnits, product)}</strong>
                     </div>
                     <div>
-                      <span>Avg Cost</span>
+                      <span>{t("products.colAvgCost")}</span>
                       <strong>{formatCurrency(metrics.avgPrice)}</strong>
                     </div>
                   </div>
@@ -1544,7 +1547,7 @@ function ProductsPage({
                     type="button"
                     onClick={() => openProductDetail(product)}
                   >
-                    View
+                    {t("products.viewButton")}
                   </button>
                 </article>
               ))}
@@ -1553,7 +1556,7 @@ function ProductsPage({
         )}
         <PaginationControls
           pagination={pagination}
-          itemLabel="products"
+          itemLabel={t("products.paginationLabel")}
           onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
         />
       </section>
@@ -1570,7 +1573,7 @@ function ProductsPage({
               <div className="section-heading supplier-modal-header">
                 <div>
                   <p className="eyebrow">
-                    {viewingTransaction.type === "purchase" ? "Purchase Transaction" : "Sales Transaction"}
+                    {viewingTransaction.type === "purchase" ? t("products.purchaseTransactionEyebrow") : t("products.saleTransactionEyebrow")}
                   </p>
                   <h3 id="transaction-detail-title">
                     {viewingTransaction.type === "purchase"
@@ -1584,12 +1587,12 @@ function ProductsPage({
                     type="button"
                     onClick={backToProduct}
                   >
-                    ← Back
+                    {t("products.backButton")}
                   </button>
                   <button
                     className="icon-button subtle"
                     type="button"
-                    aria-label="Close"
+                    aria-label={t("common.close")}
                     onClick={closeAll}
                   >
                     X
@@ -1612,7 +1615,7 @@ function ProductsPage({
                     <>
                       <div className="detail-grid">
                         <div>
-                          <p className="detail-label">{isPurchase ? "Supplier" : "Customer"}</p>
+                          <p className="detail-label">{isPurchase ? t("products.transactionSupplierLabel") : t("products.transactionCustomerLabel")}</p>
                           <strong>
                             {isPurchase
                               ? transaction.supplier_name || "—"
@@ -1620,7 +1623,7 @@ function ProductsPage({
                           </strong>
                         </div>
                         <div>
-                          <p className="detail-label">Status</p>
+                          <p className="detail-label">{t("products.transactionStatusLabel")}</p>
                           <strong>
                             <span className={`status-badge status-${transaction.status}`}>
                               {formatStatusLabel(transaction.status)}
@@ -1628,30 +1631,30 @@ function ProductsPage({
                           </strong>
                         </div>
                         <div>
-                          <p className="detail-label">Transaction Date</p>
+                          <p className="detail-label">{t("products.transactionDateLabel")}</p>
                           <strong>{formatDate(transaction.transaction_date)}</strong>
                         </div>
                         <div>
-                          <p className="detail-label">Payment Term</p>
+                          <p className="detail-label">{t("products.transactionPaymentTermLabel")}</p>
                           <strong>
                             {transaction.payment_term_type === "credit"
-                              ? `Credit (${transaction.payment_term_days || "—"})`
+                              ? t("products.creditPaymentTerm", { term: transaction.payment_term_days || "—" })
                               : transaction.payment_term_type === "debit"
-                                ? "Debit"
+                                ? t("products.debitPaymentTerm")
                                 : "—"}
                           </strong>
                         </div>
                         <div>
-                          <p className="detail-label">Payment Date</p>
+                          <p className="detail-label">{t("products.transactionPaymentDateLabel")}</p>
                           <strong>{formatDate(transaction.payment_date)}</strong>
                         </div>
                         <div>
-                          <p className="detail-label">Documents</p>
-                          {getTransactionDocuments(transaction).length ? (
+                          <p className="detail-label">{t("products.transactionDocumentsLabel")}</p>
+                          {getTransactionDocuments(transaction, t).length ? (
                             <div className="transaction-document-list">
-                              {getTransactionDocuments(transaction).map((document) => (
+                              {getTransactionDocuments(transaction, t).map((document) => (
                                 <a key={document.id} href={document.url} target="_blank" rel="noreferrer">
-                                  {document.name || getDocumentName(document.url)}
+                                  {document.name || getDocumentName(document.url, t)}
                                 </a>
                               ))}
                             </div>
@@ -1660,30 +1663,30 @@ function ProductsPage({
                           )}
                         </div>
                         <div className="full-width">
-                          <p className="detail-label">Notes</p>
+                          <p className="detail-label">{t("products.transactionNotesLabel")}</p>
                           <strong>{transaction.note || "—"}</strong>
                         </div>
                       </div>
 
                       <div className="product-detail-section detail-items">
-                        <p className="detail-label">Items</p>
+                        <p className="detail-label">{t("products.transactionItemsLabel")}</p>
                         <div className="table-scroll">
                           {isPurchase ? (
                             <table>
                               <thead>
                                 <tr>
                                   <th className="table-index-cell">#</th>
-                                  <th>Product</th>
-                                  <th>SKU</th>
-                                  <th>Expected Delivery</th>
-                                  <th>Lead Time</th>
-                                  <th>Item Status</th>
-                                  <th>Received Date</th>
-                                  <th>Qty</th>
-                                  <th>Base Qty</th>
-                                  <th>Unit Cost</th>
-                                  <th>Discounts</th>
-                                  <th>Amount</th>
+                                  <th>{t("products.colProduct")}</th>
+                                  <th>{t("products.skuLabel")}</th>
+                                  <th>{t("products.purchaseColExpectedDelivery")}</th>
+                                  <th>{t("products.purchaseColLeadTime")}</th>
+                                  <th>{t("products.purchaseColItemStatus")}</th>
+                                  <th>{t("products.purchaseColReceivedDate")}</th>
+                                  <th>{t("products.purchaseColQty")}</th>
+                                  <th>{t("products.purchaseColBaseQty")}</th>
+                                  <th>{t("products.purchaseColUnitCost")}</th>
+                                  <th>{t("products.purchaseColDiscounts")}</th>
+                                  <th>{t("products.purchaseColAmount")}</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1742,12 +1745,12 @@ function ProductsPage({
                               <thead>
                                 <tr>
                                   <th className="table-index-cell">#</th>
-                                  <th>Product</th>
-                                  <th>Qty</th>
-                                  <th>Base Qty</th>
-                                  <th>Unit Price</th>
-                                  <th>Discounts</th>
-                                  <th>Amount</th>
+                                  <th>{t("products.colProduct")}</th>
+                                  <th>{t("products.saleColQty")}</th>
+                                  <th>{t("products.saleColBaseQty")}</th>
+                                  <th>{t("products.saleColUnitPrice")}</th>
+                                  <th>{t("products.saleColDiscounts")}</th>
+                                  <th>{t("products.saleColAmount")}</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1792,24 +1795,24 @@ function ProductsPage({
                       <div className="tx-sales-summary">
                         {renderBillDiscount(transaction) !== "—" ? (
                           <div className="tx-summary-row">
-                            <span>Bill Discount</span>
+                            <span>{t("products.billDiscountLabel")}</span>
                             <span>{renderBillDiscount(transaction)}</span>
                           </div>
                         ) : null}
                         {showVat ? (
                           <>
                             <div className="tx-summary-row">
-                              <span>{isPurchase ? "Total" : "Subtotal"}</span>
+                              <span>{isPurchase ? t("products.totalLabel") : t("products.subtotalLabel")}</span>
                               <span>{formatCurrency(summary.subtotal)}</span>
                             </div>
                             <div className="tx-summary-row">
-                              <span>VAT (7%)</span>
+                              <span>{t("products.vatLabel")}</span>
                               <span>{formatCurrency(summary.vat)}</span>
                             </div>
                           </>
                         ) : null}
                         <div className="tx-summary-row tx-summary-grand">
-                          <strong>Grand Total</strong>
+                          <strong>{t("products.grandTotalLabel")}</strong>
                           <strong>{formatCurrency(summary.grandTotal)}</strong>
                         </div>
                       </div>
@@ -1827,7 +1830,7 @@ function ProductsPage({
             >
               <div className="section-heading supplier-modal-header">
                 <div>
-                  <p className="eyebrow">Product History</p>
+                  <p className="eyebrow">{t("products.purchaseHistoryEyebrow")}</p>
                   <h3 id="product-history-title">
                     {getProductDisplayName(viewingProduct)}
                   </h3>
@@ -1838,12 +1841,12 @@ function ProductsPage({
                     type="button"
                     onClick={() => openProductEditor(viewingProduct)}
                   >
-                    Edit
+                    {t("common.edit")}
                   </button>
                   <button
                     className="icon-button subtle"
                     type="button"
-                    aria-label="Close"
+                    aria-label={t("common.close")}
                     onClick={closeAll}
                   >
                     X
@@ -1853,21 +1856,21 @@ function ProductsPage({
 
               <div className="product-history-info-strip">
                 <div className="product-history-stat">
-                  <span>SKU</span>
+                  <span>{t("products.statSKU")}</span>
                   <strong>{viewingProduct.sku || "—"}</strong>
                 </div>
                 <div className="product-history-stat">
-                  <span>Category</span>
+                  <span>{t("products.statCategory")}</span>
                   <strong>{getProductCategoryLabel(viewingProduct, categories) || "—"}</strong>
                 </div>
                 <div className="product-history-stat">
-                  <span>Total Units</span>
+                  <span>{t("products.statTotalUnits")}</span>
                   <strong>
                     {formatStockQuantity(viewingProductMetrics?.totalUnits ?? 0, viewingProduct)}
                   </strong>
                 </div>
                 <div className="product-history-stat">
-                  <span>Avg Price</span>
+                  <span>{t("products.statAvgPrice")}</span>
                   <strong>
                     {formatCurrency(viewingProductMetrics?.avgPrice ?? 0)}
                   </strong>
@@ -1887,7 +1890,7 @@ function ProductsPage({
                         }}
                       />
                     ) : (
-                      <div className="product-profile-placeholder">No Image</div>
+                      <div className="product-profile-placeholder">{t("products.noImage")}</div>
                     )}
                     {viewingProductPictures.length > 1 ? (
                       <div className="product-picture-links compact">
@@ -1902,7 +1905,7 @@ function ProductsPage({
                             key={picture.id}
                             onClick={() => setViewingPictureId(picture.id)}
                           >
-                            {picture.name || getDocumentName(picture.url)}
+                            {picture.name || getDocumentName(picture.url, t)}
                           </button>
                         ))}
                       </div>
@@ -1910,11 +1913,11 @@ function ProductsPage({
                   </div>
                   <div className="product-profile-copy">
                     <div>
-                      <p className="detail-label">Main Product Name</p>
+                      <p className="detail-label">{t("products.mainNameLabel")}</p>
                       <strong>{getProductDisplayName(viewingProduct)}</strong>
                     </div>
                     <div>
-                      <p className="detail-label">Sub Names</p>
+                      <p className="detail-label">{t("products.subNamesLabel")}</p>
                       {getProductSubNames(viewingProduct).length ? (
                         <div className="item-pill-list">
                           {getProductSubNames(viewingProduct).map((subName) => (
@@ -1928,15 +1931,15 @@ function ProductsPage({
                       )}
                     </div>
                     <div>
-                      <p className="detail-label">Category</p>
+                      <p className="detail-label">{t("products.categoryLabel")}</p>
                       <strong>{getProductCategoryLabel(viewingProduct, categories) || "—"}</strong>
                     </div>
                     <div>
-                      <p className="detail-label">Base Stock Unit</p>
+                      <p className="detail-label">{t("products.baseStockUnitLabel")}</p>
                       <strong>{getProductBaseUnit(viewingProduct)}</strong>
                     </div>
                     <div>
-                      <p className="detail-label">Product Detail</p>
+                      <p className="detail-label">{t("products.productDetailLabel")}</p>
                       <p className="product-detail-text">
                         {viewingProduct.detail || "—"}
                       </p>
@@ -1945,16 +1948,16 @@ function ProductsPage({
                 </div>
 
                 {productHistoryLoadingId === `${viewingProduct.id}` ? (
-                  <div className="notice-banner">Loading product transaction history...</div>
+                  <div className="notice-banner">{t("products.loadingTransactionHistory")}</div>
                 ) : null}
                 {productHistoryError ? (
                   <div className="error-banner">{productHistoryError}</div>
                 ) : null}
 
                 <div className="product-detail-section">
-                  <p className="detail-label">Purchase History</p>
+                  <p className="detail-label">{t("products.purchaseHistoryEyebrow")}</p>
                   {viewPurchaseHistory.length === 0 ? (
-                    <p className="empty-copy">No purchase history found for this product.</p>
+                    <p className="empty-copy">{t("products.noPurchaseHistory")}</p>
                   ) : (
                     <div>
                       <div className="transaction-table-window product-history-table-window">
@@ -1978,27 +1981,25 @@ function ProductsPage({
                             <thead>
                               <tr>
                                 <th className="table-index-cell">#</th>
-                                <th>Reference</th>
-                                <th>Supplier</th>
-                                <th>Date</th>
-                                <th>Qty</th>
-                                <th>Base Qty</th>
-                                <th>Unit Cost</th>
+                                <th>{t("products.purchaseColRef")}</th>
+                                <th>{t("products.purchaseColSupplier")}</th>
+                                <th>{t("products.purchaseColDate")}</th>
+                                <th>{t("products.purchaseColQty")}</th>
+                                <th>{t("products.purchaseColBaseQty")}</th>
+                                <th>{t("products.purchaseColUnitCost")}</th>
                                 <th>
                                   <span className="compact-column-heading">
-                                    <span>Base Cost</span>
-                                    <span>Before Disc.</span>
+                                    <span>{t("products.purchaseColBaseCostBefore")}</span>
                                   </span>
                                 </th>
                                 <th>
                                   <span className="compact-column-heading">
-                                    <span>Base Cost</span>
-                                    <span>After Disc.</span>
+                                    <span>{t("products.purchaseColBaseCostAfter")}</span>
                                   </span>
                                 </th>
-                                <th>Discounts</th>
-                                <th>Amount</th>
-                                <th>Status</th>
+                                <th>{t("products.purchaseColDiscounts")}</th>
+                                <th>{t("products.purchaseColAmount")}</th>
+                                <th>{t("products.purchaseColStatus")}</th>
                                 <th />
                               </tr>
                             </thead>
@@ -2060,7 +2061,7 @@ function ProductsPage({
                                         type="button"
                                         onClick={() => openTransactionDetail("purchase", purchase)}
                                       >
-                                        Details
+                                        {t("products.detailsButton")}
                                       </button>
                                     </td>
                                   </tr>
@@ -2073,16 +2074,16 @@ function ProductsPage({
                       <PaginationControls
                         pagination={purchaseHistoryPagination}
                         onPageChange={setPurchaseHistoryPage}
-                        itemLabel="purchase rows"
+                        itemLabel={t("products.purchasePaginationLabel")}
                       />
                     </div>
                   )}
                 </div>
 
                 <div className="product-detail-section">
-                  <p className="detail-label">Sales History</p>
+                  <p className="detail-label">{t("products.salesHistoryEyebrow")}</p>
                   {viewSalesHistory.length === 0 ? (
-                    <p className="empty-copy">No sales history found for this product.</p>
+                    <p className="empty-copy">{t("products.noSalesHistory")}</p>
                   ) : (
                     <div>
                       <div className="transaction-table-window product-history-table-window">
@@ -2104,15 +2105,15 @@ function ProductsPage({
                             <thead>
                               <tr>
                                 <th className="table-index-cell">#</th>
-                                <th>Reference</th>
-                                <th>Customer</th>
-                                <th>Date</th>
-                                <th>Qty</th>
-                                <th>Base Qty</th>
-                                <th>Unit Price</th>
-                                <th>Discounts</th>
-                                <th>Amount</th>
-                                <th>Status</th>
+                                <th>{t("products.saleColRef")}</th>
+                                <th>{t("products.saleColCustomer")}</th>
+                                <th>{t("products.saleColDate")}</th>
+                                <th>{t("products.saleColQty")}</th>
+                                <th>{t("products.saleColBaseQty")}</th>
+                                <th>{t("products.saleColUnitPrice")}</th>
+                                <th>{t("products.saleColDiscounts")}</th>
+                                <th>{t("products.saleColAmount")}</th>
+                                <th>{t("products.saleColStatus")}</th>
                                 <th />
                               </tr>
                             </thead>
@@ -2160,7 +2161,7 @@ function ProductsPage({
                                         type="button"
                                         onClick={() => openTransactionDetail("sale", sale)}
                                       >
-                                        Details
+                                        {t("products.detailsButton")}
                                       </button>
                                     </td>
                                   </tr>
@@ -2173,7 +2174,7 @@ function ProductsPage({
                       <PaginationControls
                         pagination={salesHistoryPagination}
                         onPageChange={setSalesHistoryPage}
-                        itemLabel="sales rows"
+                        itemLabel={t("products.salesPaginationLabel")}
                       />
                     </div>
                   )}
@@ -2195,16 +2196,16 @@ function ProductsPage({
             <div className="section-heading supplier-modal-header">
               <div>
                 <p className="eyebrow">
-                  {allProducts.some((p) => p.id === draftProduct.id) ? "Edit Product" : "New Product"}
+                  {allProducts.some((p) => p.id === draftProduct.id) ? t("products.editEyebrow") : t("products.newEyebrow")}
                 </p>
                 <h3 id="product-modal-title">
-                  {getProductDisplayName(draftProduct) || "New Product"}
+                  {getProductDisplayName(draftProduct) || t("products.newEyebrow")}
                 </h3>
               </div>
               <button
                 className="icon-button subtle"
                 type="button"
-                aria-label="Close"
+                aria-label={t("common.close")}
                 onClick={closeProductEditor}
               >
                 X
@@ -2224,25 +2225,25 @@ function ProductsPage({
                 <section className="product-editor-section">
                   <div className="product-editor-section-heading">
                     <div>
-                      <p className="eyebrow">Identity</p>
-                      <h4>Name, Category, and SKU</h4>
+                      <p className="eyebrow">{t("products.identityEyebrow")}</p>
+                      <h4>{t("products.identityTitle")}</h4>
                     </div>
-                    <span>Start here</span>
+                    <span>{t("products.identityHint")}</span>
                   </div>
 
                   <div className="product-editor-grid">
                     <label className="full-width">
-                      <span className="required-label">Main Product Name</span>
+                      <span className="required-label">{t("products.mainNameLabel")}</span>
                       <input
                         autoFocus
                         value={draftProduct.productName}
                         onChange={(event) => updateDraftField("productName", event.target.value)}
-                        placeholder="Name used across the system"
+                        placeholder={t("products.mainNamePlaceholder")}
                       />
                     </label>
 
                     <label className="supplier-combobox-field full-width">
-                      <span className="required-label">Category</span>
+                      <span className="required-label">{t("products.categoryLabel")}</span>
                       <div className="supplier-combobox">
                         <input
                           type="search"
@@ -2252,8 +2253,8 @@ function ProductsPage({
                           onBlur={handleCategoryBlur}
                           placeholder={
                             productCategoryOptions.length
-                              ? "Search category"
-                              : "Create a category first"
+                              ? t("products.searchCategoryPlaceholder")
+                              : t("products.noCategoryPlaceholder")
                           }
                           autoComplete="off"
                           aria-expanded={categoryComboboxOpen}
@@ -2288,7 +2289,7 @@ function ProductsPage({
                               ))
                             ) : (
                               <div className="supplier-combobox-empty">
-                                No category found.
+                                {t("products.noCategoryFound")}
                               </div>
                             )}
                           </div>
@@ -2297,7 +2298,7 @@ function ProductsPage({
                     </label>
 
                     <label className="supplier-option-field product-editor-wide-field">
-                      <span className="required-label">SKU</span>
+                      <span className="required-label">{t("products.skuLabel")}</span>
                       <div className="product-sku-edit-row">
                         <input
                           value={draftProduct.sku}
@@ -2309,7 +2310,7 @@ function ProductsPage({
                           }}
                           inputMode="numeric"
                           pattern="[0-9]*"
-                          placeholder="e.g. 0102030001"
+                          placeholder={t("products.skuPlaceholder")}
                           disabled={isSkuLocked}
                         />
                         <button
@@ -2318,7 +2319,7 @@ function ProductsPage({
                           onClick={handleGenerateSku}
                           disabled={isSkuLocked}
                         >
-                          Generate
+                          {t("products.generateButton")}
                         </button>
                         {isSkuLocked ? (
                           <button
@@ -2326,14 +2327,14 @@ function ProductsPage({
                             type="button"
                             onClick={handleUnlockSkuChange}
                           >
-                            Change SKU
+                            {t("products.changeSkuButton")}
                           </button>
                         ) : null}
                       </div>
                       <span className="field-helper-text">
                         {isSkuLocked
-                          ? "Locked because this product has purchase or sales history."
-                          : "Required and unique. Generate uses category path codes plus a 4-digit serial."}
+                          ? t("products.skuHelperLocked")
+                          : t("products.skuHelperUnlocked")}
                       </span>
                     </label>
 
@@ -2342,9 +2343,9 @@ function ProductsPage({
                   <div className="supplier-option-field product-editor-subsection">
                     <div className="product-name-editor-header">
                       <div>
-                        <p className="detail-label">Sub Names</p>
+                        <p className="detail-label">{t("products.subNamesLabel")}</p>
                         <p className="inventory-note product-name-editor-note">
-                          Add alternate names and promote any one of them to the main name.
+                          {t("products.subNamesNote")}
                         </p>
                       </div>
                       <button
@@ -2352,19 +2353,19 @@ function ProductsPage({
                         type="button"
                         onClick={addDraftSubName}
                       >
-                        Add Sub Name
+                        {t("products.addSubNameButton")}
                       </button>
                     </div>
 
                     {(draftProduct.subNames || []).length === 0 ? (
-                      <p className="empty-copy">No sub names added yet.</p>
+                      <p className="empty-copy">{t("products.noSubNamesYet")}</p>
                     ) : (
                       (draftProduct.subNames || []).map((subName, index) => (
                         <div className="supplier-option-edit-row" key={`product-sub-name-${index}`}>
                           <input
                             value={subName}
                             onChange={(event) => updateDraftSubName(index, event.target.value)}
-                            placeholder={`Sub name ${index + 1}`}
+                            placeholder={t("products.subNamePlaceholder", { n: index + 1 })}
                           />
                           <div className="supplier-option-edit-actions">
                             <button
@@ -2372,12 +2373,12 @@ function ProductsPage({
                               type="button"
                               onClick={() => setDraftSubNameAsMain(index)}
                             >
-                              Use as Main
+                              {t("products.useAsMainButton")}
                             </button>
                             <button
                               className="icon-button subtle"
                               type="button"
-                              aria-label={`Remove sub name ${index + 1}`}
+                              aria-label={t("products.removeSubNameAriaLabel", { n: index + 1 })}
                               onClick={() => removeDraftSubName(index)}
                             >
                               X
@@ -2392,15 +2393,15 @@ function ProductsPage({
                 <section className="product-editor-section">
                   <div className="product-editor-section-heading">
                     <div>
-                      <p className="eyebrow">Stock Units</p>
-                      <h4>Base Unit and Conversions</h4>
+                      <p className="eyebrow">{t("products.stockUnitsEyebrow")}</p>
+                      <h4>{t("products.stockUnitsTitle")}</h4>
                     </div>
-                    <span>Inventory logic</span>
+                    <span>{t("products.stockUnitsHint")}</span>
                   </div>
 
                   <div className="product-editor-grid product-editor-unit-grid">
                     <label>
-                      <span className="required-label">Base Stock Unit</span>
+                      <span className="required-label">{t("products.baseStockUnitLabel")}</span>
                       <input
                         value={draftProduct.stockBaseUnit}
                         onChange={(event) => updateDraftField("stockBaseUnit", event.target.value)}
@@ -2409,7 +2410,7 @@ function ProductsPage({
                     </label>
 
                     <label>
-                      <span className="required-label">Default Purchase Unit</span>
+                      <span className="required-label">{t("products.defaultPurchaseUnitLabel")}</span>
                       <input
                         value={draftProduct.defaultPurchaseUnit}
                         onChange={(event) =>
@@ -2420,7 +2421,7 @@ function ProductsPage({
                     </label>
 
                     <label>
-                      <span className="required-label">Default Sales Unit</span>
+                      <span className="required-label">{t("products.defaultSalesUnitLabel")}</span>
                       <input
                         value={draftProduct.defaultSalesUnit}
                         onChange={(event) => updateDraftField("defaultSalesUnit", event.target.value)}
@@ -2432,9 +2433,9 @@ function ProductsPage({
                   <div className="supplier-option-field product-editor-subsection">
                     <div className="product-name-editor-header">
                       <div>
-                        <p className="detail-label">Unit Conversions</p>
+                        <p className="detail-label">{t("products.unitConversionsLabel")}</p>
                         <p className="inventory-note product-name-editor-note">
-                          Factor means how many base units are inside one selected unit.
+                          {t("products.unitConversionsNote")}
                         </p>
                       </div>
                       <button
@@ -2442,14 +2443,14 @@ function ProductsPage({
                         type="button"
                         onClick={addDraftUnitConversion}
                       >
-                        Add Unit
+                        {t("products.addUnitButton")}
                       </button>
                     </div>
 
                     {(draftProduct.unitConversions || []).map((conversion, index) => (
                       <div className="unit-conversion-row" key={`unit-conversion-${index}`}>
                         <label>
-                          <span className="required-label">Unit</span>
+                          <span className="required-label">{t("products.unitLabel")}</span>
                           <input
                             value={conversion.unit}
                             onChange={(event) =>
@@ -2459,7 +2460,7 @@ function ProductsPage({
                           />
                         </label>
                         <label>
-                          <span className="required-label">Factor to Base</span>
+                          <span className="required-label">{t("products.factorToBaseLabel")}</span>
                           <input
                             type="number"
                             min="0.000001"
@@ -2477,7 +2478,7 @@ function ProductsPage({
                             checked={!!conversion.allowPurchase}
                             onChange={() => toggleDraftUnitConversion(index, "allowPurchase")}
                           />
-                          Purchase
+                          {t("products.allowPurchaseLabel")}
                         </label>
                         <label className="unit-conversion-check">
                           <input
@@ -2485,12 +2486,12 @@ function ProductsPage({
                             checked={!!conversion.allowSale}
                             onChange={() => toggleDraftUnitConversion(index, "allowSale")}
                           />
-                          Sale
+                          {t("products.allowSaleLabel")}
                         </label>
                         <button
                           className="icon-button subtle"
                           type="button"
-                          aria-label={`Remove unit conversion ${index + 1}`}
+                          aria-label={t("products.removeUnitAriaLabel", { n: index + 1 })}
                           onClick={() => removeDraftUnitConversion(index)}
                         >
                           X
@@ -2503,25 +2504,25 @@ function ProductsPage({
                 <section className="product-editor-section">
                   <div className="product-editor-section-heading">
                     <div>
-                      <p className="eyebrow">Details</p>
-                      <h4>Image and Notes</h4>
+                      <p className="eyebrow">{t("products.detailSectionEyebrow")}</p>
+                      <h4>{t("products.detailSectionTitle")}</h4>
                     </div>
-                    <span>Optional detail</span>
+                    <span>{t("products.detailSectionHint")}</span>
                   </div>
 
                   <div className="product-editor-grid">
                     <div className="transaction-document-panel product-picture-upload-panel full-width">
                       <div className="transaction-document-panel-header">
                         <div>
-                          <strong>Picture of this product</strong>
+                          <strong>{t("products.pictureLabel")}</strong>
                           <span>
                             {draftProductPictures.length
-                              ? `${draftProductPictures.length} picture${draftProductPictures.length === 1 ? "" : "s"} attached`
-                              : "No pictures attached"}
+                              ? t("products.picturesAttached", { count: draftProductPictures.length, plural: draftProductPictures.length === 1 ? "" : "s" })
+                              : t("products.noPicturesAttached")}
                           </span>
                         </div>
                         <label className="document-upload-button">
-                          Add Pictures
+                          {t("products.addPicturesButton")}
                           <input
                             type="file"
                             accept="image/*"
@@ -2537,14 +2538,14 @@ function ProductsPage({
                       {selectedDraftPicture?.url ? (
                         <img
                           src={selectedDraftPicture.url}
-                          alt="Product preview"
+                          alt={t("products.pictureLabel")}
                           className="product-picture-preview"
                           onError={(event) => {
                             event.target.style.display = "none";
                           }}
                         />
                       ) : (
-                        <p className="transaction-document-empty">No picture selected.</p>
+                        <p className="transaction-document-empty">{t("products.noPictureSelected")}</p>
                       )}
 
                       {draftProductPictures.length ? (
@@ -2560,14 +2561,14 @@ function ProductsPage({
                                 type="button"
                                 onClick={() => selectDraftPicture(picture.id)}
                               >
-                                {picture.name || getDocumentName(picture.url)}
+                                {picture.name || getDocumentName(picture.url, t)}
                               </button>
                               <button
                                 className="text-danger-button"
                                 type="button"
                                 onClick={() => removeDraftPicture(picture.id)}
                               >
-                                Remove
+                                {t("products.removeButton")}
                               </button>
                             </span>
                           ))}
@@ -2576,12 +2577,12 @@ function ProductsPage({
                     </div>
 
                     <label className="full-width">
-                      Product Detail
+                      {t("products.productDetailLabel")}
                       <textarea
                         rows="4"
                         value={draftProduct.detail}
                         onChange={(event) => updateDraftField("detail", event.target.value)}
-                        placeholder="Product description, specifications, or notes"
+                        placeholder={t("products.productDetailPlaceholder")}
                       />
                     </label>
                   </div>
@@ -2600,11 +2601,10 @@ function ProductsPage({
                           disabled={isProductEnableDisabled}
                           title={productEnableDisabledReason || undefined}
                         >
-                          Enable Product
+                          {t("products.enableProductButton")}
                         </button>
                         <span className="field-helper-text product-delete-helper">
-                          {productEnableDisabledReason ||
-                            "Enable this product to make it available for new sales, purchases, and quotations again."}
+                          {productEnableDisabledReason || t("products.enableProductHelper")}
                         </span>
                       </>
                     ) : draftProductHasHistory ? (
@@ -2616,11 +2616,10 @@ function ProductsPage({
                           disabled={isProductDisableDisabled}
                           title={productDisableDisabledReason || undefined}
                         >
-                          Disable Product
+                          {t("products.disableProductButton")}
                         </button>
                         <span className="field-helper-text product-delete-helper">
-                          {productDisableDisabledReason ||
-                            "This product has transaction history, so it cannot be deleted. Disable it to remove it from new sales, purchases, and quotations."}
+                          {productDisableDisabledReason || t("products.disableProductHelper")}
                         </span>
                       </>
                     ) : (
@@ -2632,7 +2631,7 @@ function ProductsPage({
                           disabled={isProductDeleteDisabled}
                           title={productDeleteDisabledReason || undefined}
                         >
-                          Delete Product
+                          {t("products.deleteButton")}
                         </button>
                         {productDeleteDisabledReason ? (
                           <span className="field-helper-text product-delete-helper">
@@ -2644,10 +2643,10 @@ function ProductsPage({
                   </div>
                 ) : null}
                 <button className="secondary-button" type="button" onClick={closeProductEditor}>
-                  Cancel
+                  {t("products.cancelButton")}
                 </button>
                 <button className="primary-button" type="submit">
-                  Save Product
+                  {t("products.saveButton")}
                 </button>
               </div>
             </form>

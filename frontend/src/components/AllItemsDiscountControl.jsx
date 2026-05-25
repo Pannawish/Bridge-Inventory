@@ -1,13 +1,17 @@
+import { useLanguage } from "../i18n/LanguageContext";
+
 export default function AllItemsDiscountControl({
   enabled,
   value,
   onEnabledChange,
   onValueChange,
 }) {
+  const { t } = useLanguage();
+
   return (
     <section className="purchase-vat-card transaction-wide-discount-card">
       <div className="purchase-vat-card-header">
-        <p className="purchase-vat-label">All Items Discount</p>
+        <p className="purchase-vat-label">{t("allItemsDiscount.label")}</p>
         <label className="vat-toggle">
           <input
             type="checkbox"
@@ -15,13 +19,13 @@ export default function AllItemsDiscountControl({
             onChange={(event) => onEnabledChange(event.target.checked)}
           />
           <span className="vat-toggle-track" />
-          <span className="vat-toggle-text">{enabled ? "On" : "Off"}</span>
+          <span className="vat-toggle-text">{enabled ? t("common.on") : t("common.off")}</span>
         </label>
       </div>
 
       {enabled ? (
         <label className="transaction-wide-discount-field">
-          <span>Discount</span>
+          <span>{t("allItemsDiscount.discount")}</span>
           <div className="sales-discount-entry">
             <input
               className="sales-discount-input"
