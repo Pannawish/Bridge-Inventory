@@ -1,218 +1,33 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { computePaymentDate } from "../format";
+import { useLanguage } from "../i18n/LanguageContext";
 import {
   getInitialPurchaseItemStatus,
   getTodayString,
-  purchaseStatuses,
 } from "../purchaseStatus";
-import {
-  buildConvertedItemFields,
-  getProductDefaultPurchaseUnit,
-  getProductUnitOptions,
-} from "../unitConversion";
-import { computePaymentDate, formatMoney as fmt } from "../format";
+import { buildConvertedItemFields } from "../unitConversion";
 import AllItemsDiscountControl from "./AllItemsDiscountControl";
-import {
-  computeDiscountedAmount,
-  getActiveTransactionDiscount,
-  getEffectiveDiscounts,
-} from "./transactionDiscounts";
-import { useLanguage } from "../i18n/LanguageContext";
-import { getStatusLabel } from "../i18n/statusLabels";
+import { getActiveTransactionDiscount } from "./transactionDiscounts";
 import { isProductActive } from "./products/productUtils";
-
-const today = getTodayString();
-const VAT_RATE = 0.07;
-const vatOptionValues = ["included", "not_included"];
-const defaultSupplierOptions = [];
-
-function getPurchaseReferencePrefix(date = new Date()) {
-  const buddhistYear = date.getFullYear() + 543;
-  const yearSuffix = `${buddhistYear}`.slice(-2);
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-
-  return `PO-${yearSuffix}${month}`;
-}
-
-function getNextPurchaseReference(purchases = [], date = new Date()) {
-  const prefix = getPurchaseReferencePrefix(date);
-  const referencePattern = new RegExp(`^${prefix}-(\\d+)$`);
-  const maxSerial = purchases.reduce((max, purchase) => {
-    const match = `${purchase.reference_no || ""}`.match(referencePattern);
-
-    if (!match) {
-      return max;
-    }
-
-    return Math.max(max, Number(match[1]));
-  }, 0);
-  const nextSerial = maxSerial + 1;
-
-  return `${prefix}-${`${nextSerial}`.padStart(3, "0")}`;
-}
-
-function getNextPurchaseReferenceAfter(referenceNo, date = new Date()) {
-  const prefix = getPurchaseReferencePrefix(date);
-  const match = `${referenceNo || ""}`.match(new RegExp(`^${prefix}-(\\d+)$`));
-
-  if (!match) {
-    return getNextPurchaseReference([], date);
-  }
-
-  const nextSerial = Number(match[1]) + 1;
-  return `${prefix}-${`${nextSerial}`.padStart(3, "0")}`;
-}
-
-function emptyItem() {
-  return {
-    line_id: `purchase-item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    product_id: "",
-    product_query: "",
-    product_name: "",
-    sku: "",
-    unit: "pcs",
-    expected_delivery_date: "",
-    item_status: "pending",
-    received_date: "",
-    quantity: 1,
-    unit_cost: "",
-    discounts: [""],
-  };
-}
-
-function getProductName(product) {
-  return product.name || product.productName || product.product_name || product.sku || `${product?.id || ""}`.trim();
-}
-
-function getProductSearchNames(product) {
-  const mainName = `${getProductName(product)}`.trim();
-  const subNames = Array.isArray(product.subNames) ? product.subNames : [];
-
-  return [mainName, ...subNames]
-    .map((name) => `${name ?? ""}`.trim())
-    .filter((name, index, names) => name && names.findIndex((item) => item.toLowerCase() === name.toLowerCase()) === index);
-}
-
-function getProductSku(product) {
-  return product.sku || product.SKU || "";
-}
-
-function getProductUnit(product) {
-  return getProductDefaultPurchaseUnit(product);
-}
-
-function computeAmount(item, transactionDiscount = null) {
-  return computeDiscountedAmount(
-    item.quantity,
-    item.unit_cost,
-    getEffectiveDiscounts(item.discounts, transactionDiscount)
-  );
-}
-
-function computeLeadTimeDays(transactionDate, expectedDeliveryDate) {
-  if (!transactionDate || !expectedDeliveryDate) {
-    return "";
-  }
-
-  const start = new Date(`${transactionDate}T00:00:00`);
-  const end = new Date(`${expectedDeliveryDate}T00:00:00`);
-  const diffMs = end.getTime() - start.getTime();
-
-  if (!Number.isFinite(diffMs)) {
-    return "";
-  }
-
-  return Math.max(0, Math.round(diffMs / 86400000));
-}
-
-function computeVatSummary(itemTotal, vatMode) {
-  if (vatMode === "included") {
-    const totalBeforeVat = itemTotal / (1 + VAT_RATE);
-    const vat = itemTotal - totalBeforeVat;
-    return {
-      total: totalBeforeVat,
-      vat,
-      grandTotal: itemTotal,
-    };
-  }
-
-  if (vatMode === "not_included") {
-    const vat = itemTotal * VAT_RATE;
-    return {
-      total: itemTotal,
-      vat,
-      grandTotal: itemTotal + vat,
-    };
-  }
-
-  return {
-    total: itemTotal,
-    vat: 0,
-    grandTotal: itemTotal,
-  };
-}
-
-function isVatEnabled(vatMode) {
-  return vatMode !== "none";
-}
-
-function getSupplierPaymentTerms(supplier) {
-  const paymentTermType = supplier?.termType || "";
-  const paymentTermDays =
-    paymentTermType === "credit" ? supplier?.billingNoteDate || "" : "";
-
-  return {
-    payment_term_type: paymentTermType,
-    payment_term_days: paymentTermDays,
-  };
-}
-
-function createInitialForm(referenceNo, prefill = {}) {
-  return {
-    reference_no: referenceNo,
-    supplier_name: prefill.supplier_name || "",
-    supplier_tax_invoice: prefill.supplier_tax_invoice || "",
-    status: "ordered",
-    transaction_date: prefill.transaction_date || prefill.quotation_date || today,
-    note: prefill.note || "",
-    documents: [],
-    payment_term_type: prefill.payment_term_type || "",
-    payment_term_days: prefill.payment_term_days || "",
-  };
-}
-
-function getProductQuery(productName, sku) {
-  return sku ? `${productName} (${sku})` : productName;
-}
-
-function createInitialItems(prefill = {}) {
-  const sourceItems = Array.isArray(prefill.items) ? prefill.items : [];
-
-  if (!sourceItems.length) {
-    return [emptyItem()];
-  }
-
-  return sourceItems.map((item, index) => {
-    const productName = item.product_name || item.productName || item.name || "";
-    const sku = item.sku || item.SKU || "";
-
-    return {
-      ...emptyItem(),
-      line_id: `purchase-prefill-${Date.now()}-${index}`,
-      product_id: item.product_id || item.productId || "",
-      product_query: getProductQuery(productName, sku),
-      product_name: productName,
-      sku,
-      unit: item.unit || "pcs",
-      quantity: item.quantity ?? 1,
-      unit_cost: item.unit_cost ?? item.cost_price ?? "",
-      discounts: Array.isArray(item.discounts)
-        ? item.discounts
-        : Number(item.discount) > 0
-          ? [item.discount]
-          : [""],
-    };
-  });
-}
+import PurchaseFormDetailsSection from "./purchases/PurchaseFormDetailsSection";
+import PurchaseLineItemsSection from "./purchases/PurchaseLineItemsSection";
+import PurchaseFormTotalsSection from "./purchases/PurchaseFormTotalsSection";
+import {
+  computeAmount,
+  computeLeadTimeDays,
+  computeVatSummary,
+  createInitialForm,
+  createInitialItems,
+  defaultSupplierOptions,
+  emptyItem,
+  getNextPurchaseReference,
+  getNextPurchaseReferenceAfter,
+  getProductName,
+  getProductSku,
+  getProductUnit,
+  getSupplierPaymentTerms,
+  vatOptionValues,
+} from "./purchases/purchaseFormUtils";
 
 function PurchaseForm({
   products = [],
@@ -222,10 +37,7 @@ function PurchaseForm({
   onCancel = null,
   prefill = null,
 }) {
-  const nextReferenceNo = useMemo(
-    () => getNextPurchaseReference(purchases),
-    [purchases]
-  );
+  const nextReferenceNo = useMemo(() => getNextPurchaseReference(purchases), [purchases]);
   const lastGeneratedReference = useRef(nextReferenceNo);
   const [form, setForm] = useState(() => createInitialForm(nextReferenceNo, prefill || {}));
   const [items, setItems] = useState(() => createInitialItems(prefill || {}));
@@ -239,22 +51,10 @@ function PurchaseForm({
   const [itemErrors, setItemErrors] = useState({});
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
   const { t } = useLanguage();
-  const vatOptions = vatOptionValues.map((v) => ({
-    value: v,
-    label: v === "included" ? t("purchaseForm.vatIncluded") : t("purchaseForm.vatExcluded"),
+  const vatOptions = vatOptionValues.map((value) => ({
+    value,
+    label: value === "included" ? t("purchaseForm.vatIncluded") : t("purchaseForm.vatExcluded"),
   }));
-  const productOptions = products;
-  const filteredSuppliers = useMemo(() => {
-    const normalizedQuery = supplierQuery.trim().toLowerCase();
-
-    if (!normalizedQuery) {
-      return suppliers;
-    }
-
-    return suppliers.filter((supplier) =>
-      supplier.companyName.toLowerCase().includes(normalizedQuery)
-    );
-  }, [supplierQuery, suppliers]);
 
   useEffect(() => {
     setForm((currentForm) => {
@@ -310,34 +110,31 @@ function PurchaseForm({
     });
   }, [form.payment_term_days, form.payment_term_type, form.supplier_name, suppliers]);
 
+  const activeAllItemsDiscount = getActiveTransactionDiscount(
+    allItemsDiscountEnabled,
+    allItemsDiscountValue
+  );
+  const itemTotal = items.reduce(
+    (sum, item) => sum + computeAmount(item, activeAllItemsDiscount),
+    0
+  );
+  const vatSummary = computeVatSummary(itemTotal, vatMode);
+  const paymentDate = computePaymentDate(
+    form.transaction_date,
+    form.payment_term_type,
+    form.payment_term_days
+  );
+
+  function updateForm(key, value) {
+    setForm((currentForm) => ({ ...currentForm, [key]: value }));
+  }
+
   function updateItem(index, key, value) {
     setItems((currentItems) =>
       currentItems.map((item, itemIndex) =>
         itemIndex === index ? { ...item, [key]: value } : item
       )
     );
-  }
-
-  function getFilteredProducts(query) {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    if (!normalizedQuery) {
-      return productOptions;
-    }
-
-    return productOptions.filter((product) => {
-      const matchesName = getProductSearchNames(product).some((name) =>
-        name.toLowerCase().includes(normalizedQuery)
-      );
-      const sku = getProductSku(product).toLowerCase();
-      const displayId = `${product.productDisplayId || product.id || ""}`.toLowerCase();
-
-      return (
-        matchesName ||
-        sku.includes(normalizedQuery) ||
-        displayId.includes(normalizedQuery)
-      );
-    });
   }
 
   function updateProductQuery(index, value) {
@@ -363,6 +160,7 @@ function PurchaseForm({
     if (!isProductActive(product)) {
       return;
     }
+
     const productName = getProductName(product);
     const sku = getProductSku(product);
     const unit = getProductUnit(product);
@@ -421,8 +219,9 @@ function PurchaseForm({
           return item;
         }
 
-        const nextDiscounts = (item.discounts || [""]).map((discount, currentDiscountIndex) =>
-          currentDiscountIndex === discountIndex ? value : discount
+        const nextDiscounts = (item.discounts || [""]).map(
+          (discount, currentDiscountIndex) =>
+            currentDiscountIndex === discountIndex ? value : discount
         );
 
         return { ...item, discounts: nextDiscounts };
@@ -477,8 +276,7 @@ function PurchaseForm({
     event.preventDefault();
     event.stopPropagation();
     const transferredIndex = Number(event.dataTransfer.getData("text/plain"));
-    const fromIndex =
-      draggedItemIndex !== null ? draggedItemIndex : transferredIndex;
+    const fromIndex = draggedItemIndex !== null ? draggedItemIndex : transferredIndex;
 
     if (Number.isInteger(fromIndex)) {
       reorderItems(fromIndex, index);
@@ -533,7 +331,7 @@ function PurchaseForm({
 
     const nextItemErrors = {};
     const filteredItems = items.reduce((nextItems, item, index) => {
-      const selectedProduct = productOptions.find(
+      const selectedProduct = products.find(
         (product) => `${product.id}` === `${item.product_id}`
       );
 
@@ -597,7 +395,10 @@ function PurchaseForm({
     formData.append("vat_mode", vatMode);
     formData.append("bill_discount", activeAllItemsDiscount ?? 0);
     formData.append("payment_term_type", form.payment_term_type);
-    formData.append("payment_term_days", form.payment_term_type === "credit" ? form.payment_term_days : "");
+    formData.append(
+      "payment_term_days",
+      form.payment_term_type === "credit" ? form.payment_term_days : ""
+    );
     formData.append("payment_date", paymentDate);
     formData.append("total_before_vat", vatSummary.total);
     formData.append("vat_amount", vatSummary.vat);
@@ -629,17 +430,6 @@ function PurchaseForm({
     setDraggedItemIndex(null);
   }
 
-  const activeAllItemsDiscount = getActiveTransactionDiscount(
-    allItemsDiscountEnabled,
-    allItemsDiscountValue
-  );
-  const itemTotal = items.reduce(
-    (sum, item) => sum + computeAmount(item, activeAllItemsDiscount),
-    0
-  );
-  const vatSummary = computeVatSummary(itemTotal, vatMode);
-  const paymentDate = computePaymentDate(form.transaction_date, form.payment_term_type, form.payment_term_days);
-
   return (
     <section className="section-card">
       <div className="section-heading">
@@ -655,467 +445,72 @@ function PurchaseForm({
       </div>
 
       <form className="form-layout" onSubmit={handleSubmit}>
-        <div className="form-grid">
-          <label>
-            {t("purchaseForm.referenceLabel")}
-            <input
-              value={form.reference_no}
-              readOnly
-              placeholder={nextReferenceNo}
-            />
-          </label>
+        <PurchaseFormDetailsSection
+          form={form}
+          nextReferenceNo={nextReferenceNo}
+          suppliers={suppliers}
+          supplierQuery={supplierQuery}
+          supplierOpen={supplierOpen}
+          supplierError={supplierError}
+          paymentDate={paymentDate}
+          onUpdateForm={updateForm}
+          onSupplierQueryChange={(value) => {
+            setSupplierQuery(value);
+            setForm((currentForm) => ({ ...currentForm, supplier_name: "" }));
+            setSupplierError("");
+            setSupplierOpen(true);
+          }}
+          onSupplierOpen={() => setSupplierOpen(true)}
+          onSupplierClose={() => {
+            window.setTimeout(() => setSupplierOpen(false), 120);
+          }}
+          onSelectSupplier={selectSupplier}
+          onPaymentTermTypeChange={(value) => {
+            setForm((currentForm) => ({
+              ...currentForm,
+              payment_term_type: value,
+              payment_term_days: value === "debit" ? "" : currentForm.payment_term_days,
+            }));
+          }}
+          onPaymentTermDaysChange={(value) =>
+            setForm((currentForm) => ({ ...currentForm, payment_term_days: value }))
+          }
+          onDocumentsAdd={(documents) =>
+            setForm((currentForm) => ({
+              ...currentForm,
+              documents: [...currentForm.documents, ...documents],
+            }))
+          }
+          onDocumentRemove={(documentIndex) =>
+            setForm((currentForm) => ({
+              ...currentForm,
+              documents: currentForm.documents.filter((_, index) => index !== documentIndex),
+            }))
+          }
+        />
 
-          <label className="supplier-combobox-field">
-            <span className="required-label">{t("purchaseForm.supplierNameLabel")}</span>
-            <div className="supplier-combobox">
-              <input
-                value={supplierQuery}
-                onChange={(event) => {
-                  setSupplierQuery(event.target.value);
-                  setForm({ ...form, supplier_name: "" });
-                  setSupplierError("");
-                  setSupplierOpen(true);
-                }}
-                onFocus={() => setSupplierOpen(true)}
-                onBlur={() => {
-                  window.setTimeout(() => setSupplierOpen(false), 120);
-                }}
-                placeholder={t("purchaseForm.searchSupplierPlaceholder")}
-                autoComplete="off"
-                aria-expanded={supplierOpen}
-                aria-controls="purchase-supplier-list"
-                aria-invalid={supplierError ? "true" : "false"}
-              />
-
-              {supplierOpen ? (
-                <div className="supplier-combobox-menu" id="purchase-supplier-list" role="listbox">
-                  {filteredSuppliers.length ? (
-                    filteredSuppliers.map((supplier) => (
-                      <button
-                        key={supplier.id}
-                        type="button"
-                        className={
-                          supplier.companyName === form.supplier_name
-                            ? "supplier-combobox-option active"
-                            : "supplier-combobox-option"
-                        }
-                        onMouseDown={(event) => {
-                          event.preventDefault();
-                          selectSupplier(supplier);
-                        }}
-                        role="option"
-                        aria-selected={supplier.companyName === form.supplier_name}
-                      >
-                        {supplier.companyName}
-                      </button>
-                    ))
-                  ) : (
-                    <div className="supplier-combobox-empty">
-                      {t("purchaseForm.noSupplierFound")}
-                    </div>
-                  )}
-                </div>
-              ) : null}
-            </div>
-            {supplierError ? <span className="field-error-text">{supplierError}</span> : null}
-          </label>
-
-          <label>
-            {t("purchaseForm.paymentTermLabel")}
-            <select
-              value={form.payment_term_type}
-              onChange={(event) => {
-                const next = event.target.value;
-                setForm((f) => ({
-                  ...f,
-                  payment_term_type: next,
-                  payment_term_days: next === "debit" ? "" : f.payment_term_days,
-                }));
-              }}
-            >
-              <option value="">{t("purchaseForm.paymentTermPlaceholder")}</option>
-              <option value="debit">{t("purchaseForm.paymentTermDebit")}</option>
-              <option value="credit">{t("purchaseForm.paymentTermCredit")}</option>
-            </select>
-          </label>
-
-          {form.payment_term_type === "credit" && (
-            <label>
-              {t("purchaseForm.creditTermLabel")}
-              <select
-                value={form.payment_term_days}
-                onChange={(event) =>
-                  setForm((f) => ({ ...f, payment_term_days: event.target.value }))
-                }
-              >
-                <option value="">{t("purchaseForm.creditTermPlaceholder")}</option>
-                <option value="30 days">{t("purchaseForm.creditTerm30")}</option>
-                <option value="60 days">{t("purchaseForm.creditTerm60")}</option>
-                <option value="90 days">{t("purchaseForm.creditTerm90")}</option>
-              </select>
-            </label>
-          )}
-
-          <label>
-            {t("purchaseForm.taxInvoiceLabel")}
-            <input
-              value={form.supplier_tax_invoice}
-              onChange={(event) =>
-                setForm({ ...form, supplier_tax_invoice: event.target.value })
-              }
-              placeholder={t("purchaseForm.taxInvoicePlaceholder")}
-            />
-          </label>
-
-          <label>
-            <span className="required-label">{t("purchaseForm.statusLabel")}</span>
-            <select
-              value={form.status}
-              onChange={(event) => setForm({ ...form, status: event.target.value })}
-            >
-              {purchaseStatuses.map((status) => (
-                <option
-                  key={status}
-                  value={status}
-                  disabled={status === "partially_received"}
-                >
-                  {getStatusLabel(t, status)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            <span className="required-label">{t("purchaseForm.dateLabel")}</span>
-            <input
-              type="date"
-              value={form.transaction_date}
-              onChange={(event) =>
-                setForm({ ...form, transaction_date: event.target.value })
-              }
-            />
-          </label>
-
-          <label>
-            {t("purchaseForm.paymentDateLabel")}
-            <input
-              type="date"
-              value={paymentDate}
-              readOnly
-              placeholder={t("purchaseForm.paymentDatePlaceholder")}
-            />
-          </label>
-
-          <label className="full-width">
-            {t("purchaseForm.noteLabel")}
-            <textarea
-              rows="3"
-              value={form.note}
-              onChange={(event) => setForm({ ...form, note: event.target.value })}
-            />
-          </label>
-
-          <div className="transaction-document-panel full-width">
-            <div className="transaction-document-panel-header">
-              <div>
-                <strong>{t("purchaseForm.documentsLabel")}</strong>
-                <span>
-                  {form.documents.length
-                    ? t("purchaseForm.documentsSelected", { count: form.documents.length })
-                    : t("purchaseForm.noDocumentsSelected")}
-                </span>
-              </div>
-              <label className="document-upload-button">
-                {t("purchaseForm.documentsAddFiles")}
-                <input
-                  type="file"
-                  multiple
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      documents: [...form.documents, ...Array.from(event.target.files || [])],
-                    })
-                  }
-                />
-              </label>
-            </div>
-
-            {form.documents.length ? (
-              <div className="transaction-document-list">
-                {form.documents.map((document, index) => (
-                  <span className="transaction-document-row" key={`${document.name}-${index}`}>
-                    <span>{document.name}</span>
-                    <button
-                      className="text-danger-button"
-                      type="button"
-                      aria-label={t("purchaseForm.documentRemove")}
-                      onClick={() =>
-                        setForm({
-                          ...form,
-                          documents: form.documents.filter((_, documentIndex) => documentIndex !== index),
-                        })
-                      }
-                    >
-                      {t("purchaseForm.documentRemove")}
-                    </button>
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="transaction-document-empty">{t("purchaseForm.documentsEmpty")}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="line-items-card">
-          <div className="line-items-header">
-            <h4>{t("purchaseForm.itemsTitle")}</h4>
-            <button className="secondary-button" type="button" onClick={addItem}>
-              {t("purchaseForm.addItem")}
-            </button>
-          </div>
-
-          {items.map((item, index) => {
-            const amount = computeAmount(item, activeAllItemsDiscount);
-            const filteredProducts = getFilteredProducts(item.product_query);
-            const selectedProduct = productOptions.find(
-              (product) => `${product.id}` === `${item.product_id}`
-            );
-            const unitOptions = selectedProduct
-              ? getProductUnitOptions(selectedProduct, "purchase")
-              : [];
-            const conversionPreview = selectedProduct
-              ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "purchase")
-              : null;
-
-            return (
-              <div
-                className={
-                  draggedItemIndex !== null && draggedItemIndex !== index
-                    ? "line-item-row purchase-line-item-row is-drop-target"
-                    : "line-item-row purchase-line-item-row"
-                }
-                key={item.line_id}
-                onDragOverCapture={handleItemDragOver}
-                onDropCapture={(event) => handleItemDrop(event, index)}
-              >
-                <div
-                  className={
-                    draggedItemIndex === index
-                      ? "line-item-index is-dragging"
-                      : "line-item-index"
-                  }
-                  draggable={items.length > 1}
-                  title={items.length > 1 ? t("purchaseForm.dragToReorder") : t("purchaseForm.itemOrder")}
-                  aria-label={t("purchaseForm.itemAriaLabel", { index: index + 1 })}
-                  onDragStart={(event) => handleItemDragStart(event, index)}
-                  onDragEnd={handleItemDragEnd}
-                >
-                  {index + 1}
-                </div>
-
-                <label className="purchase-item-field purchase-item-product purchase-product-field">
-                  <span className="required-label">{t("purchaseForm.colProduct")}</span>
-                  <div className="supplier-combobox">
-                    <input
-                      value={item.product_query}
-                      onChange={(event) => updateProductQuery(index, event.target.value)}
-                      onFocus={() => setOpenProductIndex(index)}
-                      onBlur={() => {
-                        window.setTimeout(() => setOpenProductIndex(null), 120);
-                      }}
-                      placeholder={t("purchaseForm.searchProductPlaceholder")}
-                      autoComplete="off"
-                      aria-expanded={openProductIndex === index}
-                      aria-controls={`purchase-product-list-${item.line_id}`}
-                      aria-invalid={itemErrors[index] ? "true" : "false"}
-                      required
-                    />
-
-                    {openProductIndex === index ? (
-                      <div
-                        className="supplier-combobox-menu"
-                        id={`purchase-product-list-${item.line_id}`}
-                        role="listbox"
-                      >
-                        {filteredProducts.length ? (
-                          filteredProducts.map((product) => {
-                            const productName = getProductName(product);
-                            const sku = getProductSku(product);
-                            const disabled = !isProductActive(product);
-
-                            return (
-                              <button
-                                key={product.id}
-                                type="button"
-                                className={`supplier-combobox-option${
-                                  `${product.id}` === `${item.product_id}` ? " active" : ""
-                                }${disabled ? " supplier-combobox-option-disabled" : ""}`}
-                                onMouseDown={(event) => {
-                                  event.preventDefault();
-                                  selectProduct(index, product);
-                                }}
-                                role="option"
-                                aria-selected={`${product.id}` === `${item.product_id}`}
-                                aria-disabled={disabled}
-                                title={disabled ? t("products.disabledOptionHint") : undefined}
-                              >
-                                <span>{sku ? `${productName} (${sku})` : productName}</span>
-                                {disabled ? (
-                                  <span className="combobox-option-tag">
-                                    {t("products.disabledBadge")}
-                                  </span>
-                                ) : null}
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <div className="supplier-combobox-empty">
-                            {t("purchaseForm.noProductFound")}
-                          </div>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
-                  {itemErrors[index] ? (
-                    <span className="field-error-text">{itemErrors[index]}</span>
-                  ) : null}
-                </label>
-
-                <label className="purchase-item-field purchase-item-sku">
-                  <span>{t("purchaseForm.colSKU")}</span>
-                  <input
-                    value={item.sku}
-                    readOnly
-                    placeholder={t("purchaseForm.skuPlaceholder")}
-                    required
-                  />
-                </label>
-
-                <label className="purchase-item-field purchase-item-unit">
-                  <span className="required-label">{t("purchaseForm.colUnit")}</span>
-                  <select
-                    value={item.unit}
-                    onChange={(event) => updateItem(index, "unit", event.target.value)}
-                    disabled={!selectedProduct}
-                  >
-                    {unitOptions.length ? (
-                      unitOptions.map((conversion) => (
-                        <option key={conversion.unit} value={conversion.unit}>
-                          {conversion.unit}
-                        </option>
-                      ))
-                    ) : (
-                      <option value={item.unit || "pcs"}>{item.unit || "pcs"}</option>
-                    )}
-                  </select>
-                  {conversionPreview ? (
-                    <span className="unit-conversion-preview">
-                      {conversionPreview.base_quantity} {conversionPreview.base_unit}
-                    </span>
-                  ) : null}
-                </label>
-
-                <label className="purchase-item-field purchase-item-delivery">
-                  <span className="required-label">{t("purchaseForm.colExpectedDelivery")}</span>
-                  <input
-                    type="date"
-                    value={item.expected_delivery_date}
-                    onChange={(event) =>
-                      updateItem(index, "expected_delivery_date", event.target.value)
-                    }
-                    min={form.transaction_date}
-                    required
-                  />
-                </label>
-
-                <label className="purchase-item-field purchase-item-qty">
-                  <span className="required-label">{t("purchaseForm.colQty")}</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                    placeholder={t("purchaseForm.qtyPlaceholder")}
-                    required
-                  />
-                </label>
-
-                <label className="purchase-item-field purchase-item-cost">
-                  <span className="required-label">{t("purchaseForm.colUnitCost")}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.unit_cost}
-                    onChange={(event) => updateItem(index, "unit_cost", event.target.value)}
-                    placeholder="0.00"
-                    required
-                  />
-                </label>
-
-                <div className="purchase-item-field purchase-item-discounts">
-                  <span>{t("purchaseForm.colDiscounts")}</span>
-                  <div className="sales-discount-cell">
-                    {(item.discounts || [""]).map((discount, discountIndex) => (
-                      <div key={discountIndex} className="sales-discount-entry">
-                        {discountIndex > 0 ? (
-                          <span className="sales-discount-chain-label">{t("purchaseForm.discountThen")}</span>
-                        ) : null}
-                        <input
-                          className="sales-discount-input"
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={discount}
-                          onChange={(event) =>
-                            updateDiscount(index, discountIndex, event.target.value)
-                          }
-                          placeholder="0"
-                        />
-                        <span className="sales-discount-pct">%</span>
-                        {(item.discounts || [""]).length > 1 ? (
-                          <button
-                            className="sales-discount-remove"
-                            type="button"
-                            aria-label={t("purchaseForm.removeDiscount")}
-                            onClick={() => removeDiscount(index, discountIndex)}
-                          >
-                            X
-                          </button>
-                        ) : null}
-                      </div>
-                    ))}
-                    <button
-                      className="sales-discount-add"
-                      type="button"
-                      onClick={() => addDiscount(index)}
-                    >
-                      {t("purchaseForm.addDiscount")}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="purchase-item-field purchase-item-amount">
-                  <span>{t("purchaseForm.colAmount")}</span>
-                  <div className="sales-line-amount">
-                    {fmt(amount)}
-                  </div>
-                </div>
-
-                <button
-                  className="danger-button purchase-item-remove"
-                  type="button"
-                  onClick={() => removeItem(index)}
-                  disabled={items.length === 1}
-                >
-                  {t("purchaseForm.removeItem")}
-                </button>
-              </div>
-            );
-          })}
-        </div>
+        <PurchaseLineItemsSection
+          form={form}
+          items={items}
+          products={products}
+          activeAllItemsDiscount={activeAllItemsDiscount}
+          openProductIndex={openProductIndex}
+          itemErrors={itemErrors}
+          draggedItemIndex={draggedItemIndex}
+          onAddItem={addItem}
+          onRemoveItem={removeItem}
+          onUpdateItem={updateItem}
+          onUpdateProductQuery={updateProductQuery}
+          onSetOpenProductIndex={setOpenProductIndex}
+          onSelectProduct={selectProduct}
+          onAddDiscount={addDiscount}
+          onRemoveDiscount={removeDiscount}
+          onUpdateDiscount={updateDiscount}
+          onItemDragStart={handleItemDragStart}
+          onItemDragOver={handleItemDragOver}
+          onItemDrop={handleItemDrop}
+          onItemDragEnd={handleItemDragEnd}
+        />
 
         <AllItemsDiscountControl
           enabled={allItemsDiscountEnabled}
@@ -1124,62 +519,12 @@ function PurchaseForm({
           onValueChange={setAllItemsDiscountValue}
         />
 
-        <section className="purchase-vat-card">
-          <div className="purchase-vat-card-header">
-            <p className="purchase-vat-label">{t("purchaseForm.vatSetting")}</p>
-            <label className="vat-toggle">
-              <input
-                type="checkbox"
-                checked={isVatEnabled(vatMode)}
-                onChange={(event) =>
-                  setVatMode(event.target.checked ? "not_included" : "none")
-                }
-              />
-              <span className="vat-toggle-track" />
-              <span className="vat-toggle-text">
-                {isVatEnabled(vatMode) ? t("purchaseForm.vatOn") : t("purchaseForm.vatOff")}
-              </span>
-            </label>
-          </div>
-          {isVatEnabled(vatMode) ? (
-            <div className="purchase-vat-options" role="radiogroup" aria-label={t("purchaseForm.vatAriaLabel")}>
-              {vatOptions.map((option) => (
-                <label
-                  key={option.value}
-                  className={vatMode === option.value ? "purchase-vat-option active" : "purchase-vat-option"}
-                >
-                  <input
-                    type="radio"
-                    name="purchase-vat-mode"
-                    value={option.value}
-                    checked={vatMode === option.value}
-                    onChange={(event) => setVatMode(event.target.value)}
-                  />
-                  <span>{option.label}</span>
-                </label>
-              ))}
-            </div>
-          ) : null}
-        </section>
-
-        <div className="sales-summary-card">
-          {isVatEnabled(vatMode) ? (
-            <>
-              <div className="sales-summary-row">
-                <span>{t("purchaseForm.subtotal")}</span>
-                <span>{fmt(vatSummary.total)}</span>
-              </div>
-              <div className="sales-summary-row">
-                <span>{t("purchaseForm.vat")}</span>
-                <span>{fmt(vatSummary.vat)}</span>
-              </div>
-            </>
-          ) : null}
-          <div className="sales-summary-row sales-summary-grand">
-            <strong>{t("purchaseForm.grandTotal")}</strong>
-            <strong>{fmt(vatSummary.grandTotal)}</strong>
-          </div>
-        </div>
+        <PurchaseFormTotalsSection
+          vatMode={vatMode}
+          vatOptions={vatOptions}
+          vatSummary={vatSummary}
+          onVatModeChange={setVatMode}
+        />
 
         <button className="primary-button" type="submit">
           {t("purchaseForm.saveButton")}
