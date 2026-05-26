@@ -759,9 +759,9 @@
   font-size: 0.92rem;
 }
 
-.product-detail-modal {
-  width: min(1350px, calc(100vw - 40px));
-  max-width: calc(100vw - 40px);
+.detail-modal.product-detail-modal {
+  width: min(1420px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
   max-height: 94vh;
   box-sizing: border-box;
   border-radius: 4px;
