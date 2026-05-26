@@ -393,3 +393,70 @@
     padding: 10px 12px;
   }
 }
+
+/* Expanded inline FIFO layers */
+.inv-row-expand-bar {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.inv-row-expand-btn {
+  font-size: 0.76rem !important;
+  padding: 4px 10px !important;
+  min-height: auto !important;
+  line-height: 1.2 !important;
+}
+
+.inv-card-expanded-content {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.inv-layers-notice {
+  margin: 8px 0;
+}
+
+.inv-layers-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin: 0;
+}
+
+.inv-layers-table-window {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow-x: auto;
+  background: #ffffff;
+}
+
+.inv-layers-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.inv-layers-table th {
+  background: #f4f7fc;
+  color: #475467;
+  padding: 8px 12px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.8rem;
+}
+
+.inv-layers-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eef2fb;
+  color: #344054;
+}
+
+.inv-layers-table tr:last-child td {
+  border-bottom: none;
+}
+
