@@ -306,7 +306,7 @@ function SalesLineItemsSection({
                 className={lineLoss > 0 ? "sales-cost-input below-cost" : undefined}
                 value={item.unit_cost}
                 onChange={(event) => onUpdateItem(index, "unit_cost", event.target.value)}
-                placeholder="0.00"
+                placeholder={t("common.optional")}
               />
               {lineLoss > 0 ? (
                 <span className="sales-below-cost-warning">

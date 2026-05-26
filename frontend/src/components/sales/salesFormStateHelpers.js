@@ -208,6 +208,7 @@ export function buildSaleSubmissionItems(items, products, activeAllItemsDiscount
 
       return {
         ...itemPayload,
+        unit_cost: (item.unit_cost === "" || item.unit_cost == null) ? "0" : item.unit_cost,
         product_name: selectedProduct ? getProductName(selectedProduct) : item.product_name,
         sku: selectedProduct ? getProductSku(selectedProduct) : item.sku,
         discounts: item.discounts,
