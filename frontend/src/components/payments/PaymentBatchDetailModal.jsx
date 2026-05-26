@@ -1,15 +1,10 @@
-import { useEffect, useState } from "react";
 import { formatDate, formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import DocumentRefChip from "../DocumentRefChip";
 import DocumentRefModal from "../DocumentRefModal";
 import PaymentLineAmount from "../PaymentLineAmount";
 import PaymentBatchStatusPill from "./PaymentBatchStatusPill";
-import {
-  computePaymentBatchActualPaymentDate,
-  computePaymentBatchStatusFromLines,
-  getToday,
-} from "./paymentBatchUtils";
+import usePaymentBatchDetailState from "./usePaymentBatchDetailState";
 
 function PaymentBatchDetailModal({
   paymentBatch,
@@ -18,95 +13,20 @@ function PaymentBatchDetailModal({
   onDelete,
 }) {
   const { t } = useLanguage();
-  const [draft, setDraft] = useState(paymentBatch);
-  const [docRefModal, setDocRefModal] = useState(null);
-
-  useEffect(() => {
-    setDraft(paymentBatch);
-  }, [paymentBatch]);
-
-  function updateField(key, value) {
-    setDraft((current) => ({ ...current, [key]: value }));
-  }
-
-  function toggleLinePaid(lineId) {
-    setDraft((current) => {
-      const lines = (current.lines || []).map((line) => {
-        if (line.id !== lineId) return line;
-        const nextPaid = !line.paid;
-        return {
-          ...line,
-          paid: nextPaid,
-          paid_date: nextPaid ? line.paid_date || getToday() : null,
-        };
-      });
-      return {
-        ...current,
-        lines,
-        status: computePaymentBatchStatusFromLines(lines, current.status),
-        actual_payment_date: computePaymentBatchActualPaymentDate(lines),
-      };
-    });
-  }
-
-  function updateLinePaidDate(lineId, value) {
-    setDraft((current) => {
-      const lines = (current.lines || []).map((line) =>
-        line.id === lineId ? { ...line, paid_date: value } : line
-      );
-      return {
-        ...current,
-        lines,
-        actual_payment_date: computePaymentBatchActualPaymentDate(lines),
-      };
-    });
-  }
-
-  function markAllPaid() {
-    setDraft((current) => {
-      const today = getToday();
-      const lines = (current.lines || []).map((line) => ({
-        ...line,
-        paid: true,
-        paid_date: line.paid_date || today,
-      }));
-      return {
-        ...current,
-        lines,
-        status: computePaymentBatchStatusFromLines(lines, current.status),
-        actual_payment_date: computePaymentBatchActualPaymentDate(lines),
-      };
-    });
-  }
-
-  function clearAllPaid() {
-    setDraft((current) => {
-      const lines = (current.lines || []).map((line) => ({
-        ...line,
-        paid: false,
-        paid_date: null,
-      }));
-      return {
-        ...current,
-        lines,
-        status: computePaymentBatchStatusFromLines(lines, current.status),
-        actual_payment_date: null,
-      };
-    });
-  }
-
-  function handleSave(event) {
-    event.preventDefault();
-    onSave(draft);
-  }
-
-  function handleCancelBatch() {
-    if (window.confirm(t("paymentBatch.cancelBatchConfirm"))) {
-      onSave({ ...draft, status: "cancelled" });
-    }
-  }
-
-  const isCancelled = draft.status === "cancelled";
+  const {
+    draft,
+    docRefModal,
+    setDocRefModal,
+    isCancelled,
+    updateField,
+    toggleLinePaid,
+    updateLinePaidDate,
+    markAllPaid,
+    clearAllPaid,
+    handleSave,
+    handleCancelBatch,
+    handleDelete,
+  } = usePaymentBatchDetailState({ paymentBatch, onSave, onDelete });
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -309,7 +229,7 @@ function PaymentBatchDetailModal({
           </div>
 
           <div className="supplier-modal-actions">
-            <button type="button" className="danger-button" onClick={() => onDelete(draft)}>
+            <button type="button" className="danger-button" onClick={handleDelete}>
               {t("common.delete")}
             </button>
             {!isCancelled ? (

@@ -55,7 +55,9 @@ Optional broader checks from repo standards:
 - `frontend/src/components/PurchaseHistoryPage.jsx`
   - edit form, directory section, helpers extracted
   - edit form state extracted to `frontend/src/components/purchases/usePurchaseEditFormState.js` (353 lines)
+  - page state and orchestration extracted to `frontend/src/components/purchases/usePurchaseHistoryPageState.js` (335 lines)
   - pure helpers extracted to `frontend/src/components/purchases/purchaseHistoryUtils.js` (385 lines)
+  - page reduced to a 117-line thin composition shell
 - `frontend/src/components/SalesHistoryPage.jsx`
   - edit form, directory section, helpers extracted
   - directory state moved into a dedicated hook
@@ -100,22 +102,26 @@ Optional broader checks from repo standards:
   - `DocumentRefModal.jsx` reduced by extracting document body/config helpers
   - `TransactionDetailModal.jsx` reduced by extracting detail subcomponents
   - `ProductDetailModal.jsx` reduced by extracting profile/history/transaction subcomponents
+- `frontend/src/components/billing/BillingNoteDetailModal.jsx`
+  - billing note detail state/handlers extracted to `useBillingNoteDetailState.js` (77 lines)
+  - pure calculation/transformation helpers extracted to `billingNoteDetailHelpers.js` (87 lines)
+  - modal reduced to a 332-line composition shell
+- `frontend/src/components/payments/PaymentBatchDetailModal.jsx`
+  - payment batch detail state/handlers extracted to `usePaymentBatchDetailState.js` (71 lines)
+  - pure transformation helpers extracted to `paymentBatchDetailHelpers.js` (74 lines)
+  - modal reduced to a 267-line composition shell
 
 ## Current Best Next Targets
 Current approximate sizes:
-- `frontend/src/components/billing/BillingNoteDetailModal.jsx`: 413 lines
 - `frontend/src/components/suppliers/SupplierEditorModal.jsx`: 398 lines
 - `frontend/src/App.jsx`: 391 lines
 - `frontend/src/components/Dashboard.jsx`: 367 lines
-- `frontend/src/components/PurchaseHistoryPage.jsx`: 362 lines
 - `frontend/src/components/customers/CustomerEditorModal.jsx`: 357 lines
-- `frontend/src/components/payments/PaymentBatchDetailModal.jsx`: 346 lines
 
 Recommended order:
-1. `frontend/src/components/billing/BillingNoteDetailModal.jsx`
-2. `frontend/src/components/suppliers/SupplierEditorModal.jsx` and `CustomerEditorModal.jsx` (symmetric pair)
-3. `frontend/src/App.jsx`
-4. `frontend/src/components/Dashboard.jsx`
+1. `frontend/src/components/suppliers/SupplierEditorModal.jsx` and `CustomerEditorModal.jsx` (symmetric pair)
+2. `frontend/src/App.jsx`
+3. `frontend/src/components/Dashboard.jsx`
 
 ## Target Notes
 

@@ -163,16 +163,16 @@ The maintainability refactor is progressing through oversized frontend files. Co
 - `frontend/src/components/CategoryPage.jsx` — state hook and tree helpers extracted
 - `frontend/src/components/CustomerPage.jsx` — state hook and filter helpers extracted
 - `frontend/src/components/SupplierPage.jsx` — state hook and filter helpers extracted
-- purchase/sales history edit forms — state hooks and pure helpers extracted
+- purchase/sales history edit forms & history pages (`PurchaseHistoryPage.jsx`) — state hooks and pure helpers extracted
 - `frontend/src/components/quotation/QuotationForm.jsx` — state hook and helpers extracted
+- `frontend/src/components/billing/BillingNoteDetailModal.jsx` — state hook (`useBillingNoteDetailState.js`) and pure calculations (`billingNoteDetailHelpers.js`) extracted
+- `frontend/src/components/payments/PaymentBatchDetailModal.jsx` — state hook (`usePaymentBatchDetailState.js`) and pure calculations (`paymentBatchDetailHelpers.js`) extracted
 
 Remaining split targets by approximate size:
 
 - `frontend/src/App.jsx` (391 lines)
-- `frontend/src/components/billing/BillingNoteDetailModal.jsx` (413 lines)
 - `frontend/src/components/suppliers/SupplierEditorModal.jsx` (398 lines)
 - `frontend/src/components/Dashboard.jsx` (367 lines)
-- `frontend/src/components/PurchaseHistoryPage.jsx` (362 lines)
 - `frontend/src/components/customers/CustomerEditorModal.jsx` (357 lines)
 - `frontend/src/styles.css`
 

@@ -1,14 +1,9 @@
-import { useEffect, useState } from "react";
 import { formatDate, formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import DocumentRefChip from "../DocumentRefChip";
 import DocumentRefModal from "../DocumentRefModal";
 import BillingNoteStatusPill from "./BillingNoteStatusPill";
-import {
-  computeBillingNoteActualPaymentDate,
-  computeBillingNoteStatusFromLines,
-  getToday,
-} from "./billingNoteUtils";
+import useBillingNoteDetailState from "./useBillingNoteDetailState";
 
 function BillingNoteDetailModal({
   billingNote,
@@ -17,99 +12,22 @@ function BillingNoteDetailModal({
   onDelete,
 }) {
   const { t } = useLanguage();
-  const [draft, setDraft] = useState(billingNote);
-  const [docRefModal, setDocRefModal] = useState(null);
-
-  useEffect(() => {
-    setDraft(billingNote);
-  }, [billingNote]);
-
-  function updateField(key, value) {
-    setDraft((current) => ({ ...current, [key]: value }));
-  }
-
-  function toggleLineReceived(lineId) {
-    setDraft((current) => {
-      const lines = (current.lines || []).map((line) => {
-        if (line.id !== lineId) return line;
-        const nextReceived = !line.received;
-        return {
-          ...line,
-          received: nextReceived,
-          received_date: nextReceived ? line.received_date || getToday() : null,
-        };
-      });
-      return {
-        ...current,
-        lines,
-        status: computeBillingNoteStatusFromLines(lines, current.status),
-        actual_payment_date: computeBillingNoteActualPaymentDate(lines),
-      };
-    });
-  }
-
-  function updateLineReceivedDate(lineId, value) {
-    setDraft((current) => {
-      const lines = (current.lines || []).map((line) =>
-        line.id === lineId ? { ...line, received_date: value } : line
-      );
-      return {
-        ...current,
-        lines,
-        actual_payment_date: computeBillingNoteActualPaymentDate(lines),
-      };
-    });
-  }
-
-  function markAllReceived() {
-    setDraft((current) => {
-      const today = getToday();
-      const lines = (current.lines || []).map((line) => ({
-        ...line,
-        received: true,
-        received_date: line.received_date || today,
-      }));
-      return {
-        ...current,
-        lines,
-        status: computeBillingNoteStatusFromLines(lines, current.status),
-        actual_payment_date: computeBillingNoteActualPaymentDate(lines),
-      };
-    });
-  }
-
-  function clearAllReceived() {
-    setDraft((current) => {
-      const lines = (current.lines || []).map((line) => ({
-        ...line,
-        received: false,
-        received_date: null,
-      }));
-      return {
-        ...current,
-        lines,
-        status: computeBillingNoteStatusFromLines(lines, current.status),
-        actual_payment_date: null,
-      };
-    });
-  }
-
-  function handleSave(event) {
-    event.preventDefault();
-    onSave(draft);
-  }
-
-  function handleCancelBillingNote() {
-    if (window.confirm(t("billingNote.cancelBNConfirm"))) {
-      onSave({ ...draft, status: "cancelled" });
-    }
-  }
-
-  const isCancelled = draft.status === "cancelled";
-  const creditTotal = (draft.credit_notes || [])
-    .filter((credit) => credit.status !== "cancelled")
-    .reduce((acc, credit) => acc + (Number(credit.total_amount) || 0), 0);
-  const netPayable = (Number(draft.total_amount) || 0) - creditTotal;
+  const {
+    draft,
+    docRefModal,
+    setDocRefModal,
+    isCancelled,
+    creditTotal,
+    netPayable,
+    updateField,
+    toggleLineReceived,
+    updateLineReceivedDate,
+    markAllReceived,
+    clearAllReceived,
+    handleSave,
+    handleCancelBillingNote,
+    handleDelete,
+  } = useBillingNoteDetailState({ billingNote, onSave, onDelete });
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -376,7 +294,7 @@ function BillingNoteDetailModal({
           ) : null}
 
           <div className="supplier-modal-actions">
-            <button type="button" className="danger-button" onClick={() => onDelete(draft)}>
+            <button type="button" className="danger-button" onClick={handleDelete}>
               {t("common.delete")}
             </button>
             {!isCancelled ? (
