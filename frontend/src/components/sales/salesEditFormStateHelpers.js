@@ -1,4 +1,5 @@
 import { getProductUnit } from "./salesHistoryUtils";
+import { createInitialAllocationState } from "./salesAllocationUtils";
 
 /**
  * Updates a standard field value of a line item.
@@ -14,6 +15,7 @@ export function updateItemHelper(currentItems, itemIndex, key, value) {
  */
 export function updateItemProductHelper(currentItems, itemIndex, productValue, productOptions, products) {
   const selectedProduct = productOptions.find((option) => option.value === productValue);
+  const allocationState = createInitialAllocationState();
 
   return currentItems.map((item, index) =>
     index === itemIndex
@@ -26,6 +28,8 @@ export function updateItemProductHelper(currentItems, itemIndex, productValue, p
           unit: selectedProduct?.id
             ? getProductUnit(products.find((product) => `${product.id}` === `${selectedProduct.id}`))
             : "pcs",
+          allocation_mode: allocationState.allocation_mode,
+          allocations: allocationState.allocations,
         }
       : item
   );
@@ -83,6 +87,7 @@ export function updateDiscountHelper(currentItems, itemIndex, discountIndex, val
  * Appends a new default empty line item to the items list.
  */
 export function addItemHelper(currentItems, saleId) {
+  const allocationState = createInitialAllocationState();
   return [
     ...currentItems,
     {
@@ -100,6 +105,8 @@ export function addItemHelper(currentItems, saleId) {
       delivered_date: "",
       quantity: 1,
       unit_price: "",
+      allocation_mode: allocationState.allocation_mode,
+      allocations: allocationState.allocations,
       discounts: [0],
     },
   ];

@@ -9,7 +9,6 @@ import { useLanguage } from "../i18n/LanguageContext";
 function SalesForm({
   products,
   customers = defaultCustomerOptions,
-  suppliers = [],
   purchases = [],
   sales = [],
   enableStockValidation = true,
@@ -49,8 +48,10 @@ function SalesForm({
     updateItem,
     updateProductQuery,
     selectProduct,
-    updateSupplier,
-    updateStockSource,
+    updateAllocationMode,
+    addAllocation,
+    removeAllocation,
+    updateAllocation,
     stockLayersByProductId,
     addDiscount,
     removeDiscount,
@@ -111,15 +112,12 @@ function SalesForm({
           }}
           onSelectCustomer={selectCustomer}
           onPaymentTermTypeChange={(value) => {
-            setForm((currentForm) => ({
-              ...currentForm,
-              payment_term_type: value,
-              payment_term_days: value === "debit" ? "" : currentForm.payment_term_days,
-            }));
+            updateForm("payment_term_type", value);
+            if (value === "debit") {
+              updateForm("payment_term_days", "");
+            }
           }}
-          onPaymentTermDaysChange={(value) =>
-            setForm((currentForm) => ({ ...currentForm, payment_term_days: value }))
-          }
+          onPaymentTermDaysChange={(value) => updateForm("payment_term_days", value)}
           onStatusChange={handleStatusChange}
           onDocumentsAdd={(documents) =>
             updateForm("documents", [...form.documents, ...documents])
@@ -135,7 +133,6 @@ function SalesForm({
         <SalesLineItemsSection
           items={items}
           products={products}
-          suppliers={suppliers}
           stockLayersByProductId={stockLayersByProductId}
           activeAllItemsDiscount={activeAllItemsDiscount}
           openProductIndex={openProductIndex}
@@ -147,8 +144,10 @@ function SalesForm({
           onUpdateProductQuery={updateProductQuery}
           onSetOpenProductIndex={setOpenProductIndex}
           onSelectProduct={selectProduct}
-          onUpdateSupplier={updateSupplier}
-          onUpdateStockSource={updateStockSource}
+          onUpdateAllocationMode={updateAllocationMode}
+          onAddAllocation={addAllocation}
+          onRemoveAllocation={removeAllocation}
+          onUpdateAllocation={updateAllocation}
           onAddDiscount={addDiscount}
           onRemoveDiscount={removeDiscount}
           onUpdateDiscount={updateDiscount}

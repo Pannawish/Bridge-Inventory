@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "../../api";
 import { useLanguage } from "../../i18n/LanguageContext";
 import {
   applySaleStatusToItems,
@@ -7,6 +8,11 @@ import {
 } from "../../saleStatus";
 import { formatSaleStockIssueMessage, getSaleStockIssues } from "../../saleStock";
 import { buildConvertedItemFields } from "../../unitConversion";
+import {
+  allocationsMatchItemQuantity,
+  buildManualAllocationPayload,
+  createEmptyAllocationRow,
+} from "./salesAllocationUtils";
 import {
   computeAmount,
   computeVatSummary,
@@ -52,6 +58,65 @@ export function useSalesEditFormState({
   const [customerOpen, setCustomerOpen] = useState(false);
   const [customerError, setCustomerError] = useState("");
   const [formError, setFormError] = useState("");
+  const [stockLayersByItemKey, setStockLayersByItemKey] = useState({});
+
+  function getStockLayerKey(productId, saleItemId = "") {
+    return `${productId || ""}:${saleItemId || "new"}`;
+  }
+
+  function getItemConversionFactor(item) {
+    const selectedProduct = products.find(
+      (product) => `${product.id}` === `${item.product_id}`
+    );
+    const convertedFields = selectedProduct
+      ? buildConvertedItemFields(selectedProduct, 1, item.unit, "sale")
+      : null;
+    return Number(convertedFields?.conversion_factor) || 1;
+  }
+
+  function applyAllocationCostSnapshot(item) {
+    if (item.allocation_mode !== "manual") {
+      return item;
+    }
+
+    const layersById = Object.fromEntries(
+      (
+        stockLayersByItemKey[getStockLayerKey(item.product_id, item.id)] || []
+      ).map((layer) => [layer.purchase_item_id, layer])
+    );
+    const conversionFactor = getItemConversionFactor(item);
+    const validAllocations = (item.allocations || []).filter(
+      (allocation) =>
+        allocation.purchase_item_id && (Number(allocation.quantity) || 0) > 0
+    );
+
+    if (!validAllocations.length) {
+      return item;
+    }
+
+    let totalQuantity = 0;
+    let totalCost = 0;
+
+    validAllocations.forEach((allocation) => {
+      const layer = layersById[allocation.purchase_item_id];
+      const quantity = Number(allocation.quantity) || 0;
+      if (!layer || quantity <= 0) {
+        return;
+      }
+
+      totalQuantity += quantity;
+      totalCost += quantity * (Number(layer.base_unit_cost) || 0) * conversionFactor;
+    });
+
+    if (totalQuantity <= 0) {
+      return item;
+    }
+
+    return {
+      ...item,
+      unit_cost: `${(totalCost / totalQuantity).toFixed(2)}`,
+    };
+  }
 
   const filteredCustomers = useMemo(() => {
     const normalizedQuery = customerQuery.trim().toLowerCase();
@@ -65,6 +130,21 @@ export function useSalesEditFormState({
       customer.companyName.toLowerCase().includes(normalizedQuery)
     );
   }, [customerQuery, customers, sale.customer_name]);
+
+  useEffect(() => {
+    items.forEach((item) => {
+      if (!item.product_id) {
+        return;
+      }
+
+      const cacheKey = getStockLayerKey(item.product_id, item.id);
+      if (stockLayersByItemKey[cacheKey]) {
+        return;
+      }
+
+      loadStockLayers(item.product_id, item.id);
+    });
+  }, [items, stockLayersByItemKey]);
 
   const productOptions = useMemo(
     () => buildProductOptions(products, items),
@@ -169,6 +249,28 @@ export function useSalesEditFormState({
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
   }
 
+  async function loadStockLayers(productId, saleItemId = "") {
+    const cacheKey = getStockLayerKey(productId, saleItemId);
+    if (!productId || stockLayersByItemKey[cacheKey]) {
+      return;
+    }
+
+    try {
+      const response = await api.getProductStockLayers(productId, {
+        exclude_sale_item_id: saleItemId || undefined,
+      });
+      setStockLayersByItemKey((currentLayers) => ({
+        ...currentLayers,
+        [cacheKey]: Array.isArray(response?.layers) ? response.layers : [],
+      }));
+    } catch {
+      setStockLayersByItemKey((currentLayers) => ({
+        ...currentLayers,
+        [cacheKey]: [],
+      }));
+    }
+  }
+
   function handleStatusChange(nextStatus) {
     const nextIssues = enableStockValidation
       ? getSaleStockIssues(
@@ -227,12 +329,107 @@ export function useSalesEditFormState({
   }
 
   function updateItem(itemIndex, key, value) {
-    setItems((currentItems) => updateItemHelper(currentItems, itemIndex, key, value));
+    setItems((currentItems) =>
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        return applyAllocationCostSnapshot({ ...item, [key]: value });
+      })
+    );
   }
 
   function updateItemProduct(itemIndex, productValue) {
+    setItems((currentItems) => {
+      const nextItems = updateItemProductHelper(
+        currentItems,
+        itemIndex,
+        productValue,
+        productOptions,
+        products
+      );
+      const nextItem = nextItems[itemIndex];
+      if (nextItem?.product_id) {
+        loadStockLayers(nextItem.product_id, nextItem.id);
+      }
+      return nextItems;
+    });
+  }
+
+  function updateAllocationMode(itemIndex, mode) {
     setItems((currentItems) =>
-      updateItemProductHelper(currentItems, itemIndex, productValue, productOptions, products)
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        if (mode === "auto") {
+          return {
+            ...item,
+            allocation_mode: "auto",
+            allocations: [],
+          };
+        }
+
+        return {
+          ...item,
+          allocation_mode: "manual",
+          allocations:
+            item.allocations && item.allocations.length
+              ? item.allocations
+              : [createEmptyAllocationRow()],
+        };
+      })
+    );
+  }
+
+  function addAllocation(itemIndex) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex
+          ? {
+              ...item,
+              allocations: [...(item.allocations || []), createEmptyAllocationRow()],
+            }
+          : item
+      )
+    );
+  }
+
+  function removeAllocation(itemIndex, rowId) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        const nextAllocations = (item.allocations || []).filter(
+          (allocation) => allocation.row_id !== rowId
+        );
+        return applyAllocationCostSnapshot({
+          ...item,
+          allocations: nextAllocations.length ? nextAllocations : [createEmptyAllocationRow()],
+        });
+      })
+    );
+  }
+
+  function updateAllocation(itemIndex, rowId, key, value) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        const nextAllocations = (item.allocations || []).map((allocation) =>
+          allocation.row_id === rowId ? { ...allocation, [key]: value } : allocation
+        );
+        return applyAllocationCostSnapshot({
+          ...item,
+          allocations: nextAllocations,
+        });
+      })
     );
   }
 
@@ -277,6 +474,14 @@ export function useSalesEditFormState({
       return;
     }
 
+    const hasAllocationMismatch = items.some(
+      (item) => item.allocation_mode === "manual" && !allocationsMatchItemQuantity(item)
+    );
+    if (hasAllocationMismatch) {
+      setFormError(t("salesForm.errorAllocationMismatch"));
+      return;
+    }
+
     const normalizedItems = items
       .filter((item) => item.product_name && item.quantity && item.unit_price)
       .map((item) => {
@@ -293,6 +498,10 @@ export function useSalesEditFormState({
               base_quantity:
                 (Number(item.quantity) || 0) * (Number(item.conversion_factor) || 1),
             };
+        const allocationPayload = buildManualAllocationPayload(
+          item,
+          Number(convertedFields.conversion_factor) || 1
+        );
 
         return {
           id: item.id,
@@ -306,6 +515,7 @@ export function useSalesEditFormState({
           quantity: Number(item.quantity) || 0,
           unit_price: Number(item.unit_price) || 0,
           discounts: item.discounts || [0],
+          ...(allocationPayload ? { allocations: allocationPayload } : {}),
           amount,
           line_total: amount,
         };
@@ -393,6 +603,7 @@ export function useSalesEditFormState({
     formError,
     filteredCustomers,
     productOptions,
+    stockLayersByItemKey,
     itemTotal,
     vatSummary,
     stockPreviewItems,
@@ -410,6 +621,10 @@ export function useSalesEditFormState({
     resolveCustomerName,
     updateItem,
     updateItemProduct,
+    updateAllocationMode,
+    addAllocation,
+    removeAllocation,
+    updateAllocation,
     addDiscount,
     removeDiscount,
     updateDiscount,

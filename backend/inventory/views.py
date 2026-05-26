@@ -346,9 +346,18 @@ def product_stock_layers(request, product_id):
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    exclude_sale_item_id = (
+        request.query_params.get("exclude_sale_item_id")
+        or request.query_params.get("exclude_sale_item")
+        or ""
+    ).strip()
+
     layers = [
         serialize_stock_layer(layer)
-        for layer in get_available_stock_layers(product_id)
+        for layer in get_available_stock_layers(
+            product_id,
+            exclude_sale_item_id=exclude_sale_item_id or None,
+        )
     ]
     return Response(
         {

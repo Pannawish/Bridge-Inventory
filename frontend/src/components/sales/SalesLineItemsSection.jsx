@@ -17,6 +17,7 @@ import {
   getProductSku,
   getProductUnit,
 } from "./salesFormUtils";
+import SalesItemAllocationSection from "./SalesItemAllocationSection";
 
 function SalesLineItemsSection({
   items,
@@ -32,8 +33,10 @@ function SalesLineItemsSection({
   onUpdateProductQuery,
   onSetOpenProductIndex,
   onSelectProduct,
-  onUpdateSupplier,
-  onUpdateStockSource,
+  onUpdateAllocationMode,
+  onAddAllocation,
+  onRemoveAllocation,
+  onUpdateAllocation,
   onAddDiscount,
   onRemoveDiscount,
   onUpdateDiscount,
@@ -72,7 +75,7 @@ function SalesLineItemsSection({
           ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
           : null;
         const stockLayers = item.product_id
-          ? stockLayersByProductId[item.product_id] || []
+          ? stockLayersByProductId[`${item.product_id}:new`] || []
           : [];
 
         return (
@@ -284,37 +287,20 @@ function SalesLineItemsSection({
               <div className="sales-line-amount">{fmt(amount)}</div>
             </div>
 
-            <label className="purchase-item-field sales-item-supplier">
-              <span>{t("salesForm.stockSourceLabel")}</span>
-              <select
-                value={item.allocation_purchase_item_id || ""}
-                onChange={(event) => {
-                  onUpdateStockSource(index, event.target.value);
-                  if (!event.target.value && item.supplier_name) {
-                    onUpdateSupplier(index, "");
-                  }
-                }}
-                disabled={!selectedProduct}
-              >
-                <option value="">{t("salesForm.stockSourceAuto")}</option>
-                {stockLayers.map((layer) => (
-                  <option key={layer.purchase_item_id} value={layer.purchase_item_id}>
-                    {t("salesForm.stockSourceOption", {
-                      supplier: layer.supplier_name || t("common.unknown"),
-                      reference: layer.purchase_reference_no || layer.purchase_item_id,
-                      quantity: layer.available_quantity,
-                      unit: layer.base_unit || item.unit,
-                      cost: fmt(layer.base_unit_cost),
-                    })}
-                  </option>
-                ))}
-              </select>
-              {item.supplier_name ? (
-                <span className="field-helper-text">
-                  {t("salesForm.supplierSourceValue", { supplier: item.supplier_name })}
-                </span>
-              ) : null}
-            </label>
+            <div className="purchase-item-field sales-item-supplier">
+              <SalesItemAllocationSection
+                item={item}
+                stockLayers={stockLayers}
+                conversionFactor={Number(conversionPreview?.conversion_factor) || 1}
+                unit={item.unit || getProductUnit(selectedProduct)}
+                onChangeMode={(mode) => onUpdateAllocationMode(index, mode)}
+                onAddAllocation={() => onAddAllocation(index)}
+                onRemoveAllocation={(rowId) => onRemoveAllocation(index, rowId)}
+                onUpdateAllocation={(rowId, key, value) =>
+                  onUpdateAllocation(index, rowId, key, value)
+                }
+              />
+            </div>
 
             <label className="purchase-item-field sales-item-cost">
               <span>{t("salesForm.colUnitCost")}</span>
@@ -326,6 +312,7 @@ function SalesLineItemsSection({
                 value={item.unit_cost}
                 onChange={(event) => onUpdateItem(index, "unit_cost", event.target.value)}
                 placeholder={t("common.optional")}
+                readOnly={item.allocation_mode === "manual"}
               />
               {lineLoss > 0 ? (
                 <span className="sales-below-cost-warning">

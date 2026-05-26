@@ -5,6 +5,7 @@ import {
   saleStatuses,
 } from "../../saleStatus";
 import { getProductDefaultSalesUnit } from "../../unitConversion";
+import { createInitialAllocationState } from "./salesAllocationUtils";
 
 const VAT_RATE = 0.07;
 
@@ -334,6 +335,7 @@ export function createEditItems(sale, products) {
   const sourceItems = sale.items?.length ? sale.items : [];
 
   if (!sourceItems.length) {
+    const allocationState = createInitialAllocationState();
     return [
       {
         id: `sale-${sale.id}-item-new`,
@@ -350,6 +352,8 @@ export function createEditItems(sale, products) {
         delivered_date: "",
         quantity: 1,
         unit_price: "",
+        allocation_mode: allocationState.allocation_mode,
+        allocations: allocationState.allocations,
         discounts: [0],
       },
     ];
@@ -360,6 +364,7 @@ export function createEditItems(sale, products) {
 
     return {
       id: item.id || `sale-${sale.id}-item-${index}`,
+      ...createInitialAllocationState(item),
       product_value: createProductValueFromItem(item, products),
       product_id: selectedProduct?.id || item.product_id || "",
       product_name: selectedProduct ? getProductName(selectedProduct) : item.product_name || "",

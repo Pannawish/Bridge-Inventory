@@ -1,6 +1,10 @@
 import { formatMoney as fmt } from "../../format";
 import { buildConvertedItemFields } from "../../unitConversion";
 import {
+  buildManualAllocationPayload,
+  createInitialAllocationState,
+} from "./salesAllocationUtils";
+import {
   computeAmount,
   emptyItem,
   getLatestSupplierCost,
@@ -42,6 +46,7 @@ export function updateItemValue(currentItems, itemIndex, key, value) {
 }
 
 export function updateProductQueryItems(currentItems, itemIndex, value) {
+  const allocationState = createInitialAllocationState();
   return currentItems.map((item, index) =>
     index === itemIndex
       ? {
@@ -51,7 +56,8 @@ export function updateProductQueryItems(currentItems, itemIndex, value) {
           product_name: "",
           sku: "",
           unit: "pcs",
-          allocation_purchase_item_id: "",
+          allocation_mode: allocationState.allocation_mode,
+          allocations: allocationState.allocations,
         }
       : item
   );
@@ -60,6 +66,7 @@ export function updateProductQueryItems(currentItems, itemIndex, value) {
 export function selectProductItems(currentItems, itemIndex, product, purchases) {
   const productName = getProductName(product);
   const sku = getProductSku(product);
+  const allocationState = createInitialAllocationState();
 
   return currentItems.map((item, index) => {
     if (index !== itemIndex) {
@@ -73,7 +80,8 @@ export function selectProductItems(currentItems, itemIndex, product, purchases) 
       product_name: productName,
       sku,
       unit: getProductUnit(product),
-      allocation_purchase_item_id: "",
+      allocation_mode: allocationState.allocation_mode,
+      allocations: allocationState.allocations,
     };
     const suggestedCost = getLatestSupplierCost(purchases, product.id, item.supplier_name);
 
@@ -203,21 +211,17 @@ export function buildSaleSubmissionItems(items, products, activeAllItemsDiscount
   return items
     .filter((item) => item.product_id && item.quantity && item.unit_price)
     .map((item) => {
-      const { line_id, allocation_purchase_item_id, ...itemPayload } = item;
+      const { line_id, allocations, allocation_mode, ...itemPayload } = item;
       const selectedProduct = products.find(
         (product) => `${product.id}` === `${item.product_id}`
       );
       const convertedFields = selectedProduct
         ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
         : {};
-      const allocations = allocation_purchase_item_id
-        ? [
-            {
-              purchase_item_id: allocation_purchase_item_id,
-              base_quantity: convertedFields.base_quantity ?? item.base_quantity ?? item.quantity,
-            },
-          ]
-        : undefined;
+      const allocationPayload = buildManualAllocationPayload(
+        { ...item, allocations, allocation_mode },
+        Number(convertedFields.conversion_factor) || 1
+      );
 
       return {
         ...itemPayload,
@@ -226,7 +230,7 @@ export function buildSaleSubmissionItems(items, products, activeAllItemsDiscount
         sku: selectedProduct ? getProductSku(selectedProduct) : item.sku,
         discounts: item.discounts,
         ...convertedFields,
-        ...(allocations ? { allocations } : {}),
+        ...(allocationPayload ? { allocations: allocationPayload } : {}),
         amount: computeAmount(item, activeAllItemsDiscount),
       };
     });

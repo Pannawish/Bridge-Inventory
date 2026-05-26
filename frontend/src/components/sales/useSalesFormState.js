@@ -8,6 +8,10 @@ import { buildConvertedItemFields } from "../../unitConversion";
 import { getActiveTransactionDiscount } from "../transactionDiscounts";
 import { isProductActive } from "../products/productUtils";
 import {
+  allocationsMatchItemQuantity,
+  createEmptyAllocationRow,
+} from "./salesAllocationUtils";
+import {
   computeAmount,
   computeVatSummary,
   createInitialForm,
@@ -62,6 +66,71 @@ function useSalesFormState({
   const [itemErrors, setItemErrors] = useState({});
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
   const [stockLayersByProductId, setStockLayersByProductId] = useState({});
+
+  function getStockLayerKey(productId) {
+    return `${productId || ""}:new`;
+  }
+
+  function getItemConversionFactor(item) {
+    const selectedProduct = products.find(
+      (product) => `${product.id}` === `${item.product_id}`
+    );
+    const convertedFields = selectedProduct
+      ? buildConvertedItemFields(selectedProduct, 1, item.unit, "sale")
+      : null;
+    return Number(convertedFields?.conversion_factor) || 1;
+  }
+
+  function getStockLayersForItem(item) {
+    return stockLayersByProductId[getStockLayerKey(item.product_id)] || [];
+  }
+
+  function applyAllocationCostSnapshot(item) {
+    if (item.allocation_mode !== "manual") {
+      return item;
+    }
+
+    const conversionFactor = getItemConversionFactor(item);
+    const layersById = Object.fromEntries(
+      getStockLayersForItem(item).map((layer) => [layer.purchase_item_id, layer])
+    );
+    const validAllocations = (item.allocations || []).filter(
+      (allocation) =>
+        allocation.purchase_item_id && (Number(allocation.quantity) || 0) > 0
+    );
+
+    if (!validAllocations.length) {
+      return { ...item, supplier_name: "", unit_cost: "" };
+    }
+
+    let totalQuantity = 0;
+    let totalCost = 0;
+    const supplierNames = new Set();
+
+    validAllocations.forEach((allocation) => {
+      const layer = layersById[allocation.purchase_item_id];
+      const quantity = Number(allocation.quantity) || 0;
+      if (!layer || quantity <= 0) {
+        return;
+      }
+
+      totalQuantity += quantity;
+      totalCost += quantity * (Number(layer.base_unit_cost) || 0) * conversionFactor;
+      if (layer.supplier_name) {
+        supplierNames.add(layer.supplier_name);
+      }
+    });
+
+    if (totalQuantity <= 0) {
+      return { ...item, supplier_name: "", unit_cost: "" };
+    }
+
+    return {
+      ...item,
+      supplier_name: supplierNames.size === 1 ? [...supplierNames][0] : "",
+      unit_cost: `${(totalCost / totalQuantity).toFixed(2)}`,
+    };
+  }
 
   useEffect(() => {
     setForm((currentForm) => {
@@ -176,7 +245,7 @@ function useSalesFormState({
       ...new Set(items.map((item) => item.product_id).filter(Boolean)),
     ];
     productIds.forEach((productId) => {
-      if (!stockLayersByProductId[productId]) {
+      if (!stockLayersByProductId[getStockLayerKey(productId)]) {
         loadStockLayers(productId);
       }
     });
@@ -215,11 +284,20 @@ function useSalesFormState({
   }
 
   function updateItem(itemIndex, key, value) {
-    setItems((currentItems) => updateItemValue(currentItems, itemIndex, key, value));
+    setItems((currentItems) =>
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        return applyAllocationCostSnapshot({ ...item, [key]: value });
+      })
+    );
   }
 
   async function loadStockLayers(productId) {
-    if (!productId || stockLayersByProductId[productId]) {
+    const cacheKey = getStockLayerKey(productId);
+    if (!productId || stockLayersByProductId[cacheKey]) {
       return;
     }
 
@@ -227,12 +305,12 @@ function useSalesFormState({
       const response = await api.getProductStockLayers(productId);
       setStockLayersByProductId((currentLayers) => ({
         ...currentLayers,
-        [productId]: Array.isArray(response?.layers) ? response.layers : [],
+        [cacheKey]: Array.isArray(response?.layers) ? response.layers : [],
       }));
     } catch {
       setStockLayersByProductId((currentLayers) => ({
         ...currentLayers,
-        [productId]: [],
+        [cacheKey]: [],
       }));
     }
   }
@@ -262,44 +340,78 @@ function useSalesFormState({
     );
   }
 
-  function updateStockSource(itemIndex, purchaseItemId) {
+  function updateAllocationMode(itemIndex, mode) {
     setItems((currentItems) =>
       currentItems.map((item, index) => {
         if (index !== itemIndex) {
           return item;
         }
 
-        if (!purchaseItemId) {
+        if (mode === "auto") {
           return {
             ...item,
-            allocation_purchase_item_id: "",
+            allocation_mode: "auto",
+            allocations: [],
           };
         }
 
-        const selectedLayer = (stockLayersByProductId[item.product_id] || []).find(
-          (layer) => `${layer.purchase_item_id}` === `${purchaseItemId}`
-        );
-        if (!selectedLayer) {
-          return {
-            ...item,
-            allocation_purchase_item_id: purchaseItemId,
-          };
-        }
-
-        const selectedProduct = products.find(
-          (product) => `${product.id}` === `${item.product_id}`
-        );
-        const convertedFields = selectedProduct
-          ? buildConvertedItemFields(selectedProduct, 1, item.unit, "sale")
-          : null;
-        const conversionFactor = Number(convertedFields?.conversion_factor) || 1;
-        const baseUnitCost = Number(selectedLayer.base_unit_cost) || 0;
         return {
           ...item,
-          allocation_purchase_item_id: purchaseItemId,
-          supplier_name: selectedLayer.supplier_name || item.supplier_name,
-          unit_cost: baseUnitCost > 0 ? `${baseUnitCost * conversionFactor}` : item.unit_cost,
+          allocation_mode: "manual",
+          allocations:
+            item.allocations && item.allocations.length
+              ? item.allocations
+              : [createEmptyAllocationRow()],
         };
+      })
+    );
+  }
+
+  function addAllocation(itemIndex) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) =>
+        index === itemIndex
+          ? {
+              ...item,
+              allocations: [...(item.allocations || []), createEmptyAllocationRow()],
+            }
+          : item
+      )
+    );
+  }
+
+  function removeAllocation(itemIndex, rowId) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        const nextAllocations = (item.allocations || []).filter(
+          (allocation) => allocation.row_id !== rowId
+        );
+        return applyAllocationCostSnapshot({
+          ...item,
+          allocations: nextAllocations.length ? nextAllocations : [createEmptyAllocationRow()],
+        });
+      })
+    );
+  }
+
+  function updateAllocation(itemIndex, rowId, key, value) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        const nextAllocations = (item.allocations || []).map((allocation) =>
+          allocation.row_id === rowId ? { ...allocation, [key]: value } : allocation
+        );
+        return applyAllocationCostSnapshot({
+          ...item,
+          allocations: nextAllocations,
+        });
       })
     );
   }
@@ -396,6 +508,11 @@ function useSalesFormState({
     items.forEach((item, index) => {
       if (!item.product_id) {
         nextItemErrors[index] = t("salesForm.errorSelectProduct");
+        return;
+      }
+
+      if (item.allocation_mode === "manual" && !allocationsMatchItemQuantity(item)) {
+        nextItemErrors[index] = t("salesForm.errorAllocationMismatch");
       }
     });
 
@@ -509,7 +626,10 @@ function useSalesFormState({
     updateProductQuery,
     selectProduct,
     updateSupplier,
-    updateStockSource,
+    updateAllocationMode,
+    addAllocation,
+    removeAllocation,
+    updateAllocation,
     stockLayersByProductId,
     addDiscount,
     removeDiscount,

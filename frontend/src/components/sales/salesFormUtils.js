@@ -3,6 +3,7 @@ import {
   getEffectiveDiscounts,
 } from "../transactionDiscounts";
 import { getProductDefaultSalesUnit } from "../../unitConversion";
+import { createInitialAllocationState } from "./salesAllocationUtils";
 
 const VAT_RATE = 0.07;
 
@@ -65,6 +66,7 @@ export function createInitialForm(referenceNo, prefill = {}) {
 }
 
 export function emptyItem() {
+  const allocationState = createInitialAllocationState();
   return {
     line_id: `sales-item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     product_id: "",
@@ -79,7 +81,8 @@ export function emptyItem() {
     unit_price: "",
     supplier_name: "",
     unit_cost: "",
-    allocation_purchase_item_id: "",
+    allocation_mode: allocationState.allocation_mode,
+    allocations: allocationState.allocations,
     discounts: [""],
   };
 }
@@ -93,6 +96,7 @@ export function createInitialItems(prefill = {}) {
 
   return sourceItems.map((item, index) => ({
     ...emptyItem(),
+    ...createInitialAllocationState(item),
     line_id: `sales-prefill-${Date.now()}-${index}`,
     product_id: item.product_id || item.productId || "",
     product_query: item.sku
@@ -105,12 +109,6 @@ export function createInitialItems(prefill = {}) {
     unit_price: item.unit_price ?? item.sale_price ?? "",
     supplier_name: item.supplier_name || "",
     unit_cost: item.unit_cost ?? item.cost_price ?? "",
-    allocation_purchase_item_id:
-      item.allocation_purchase_item_id ||
-      item.allocationPurchaseItemId ||
-      (Array.isArray(item.allocations) && item.allocations.length === 1
-        ? item.allocations[0].purchase_item_id
-        : ""),
     discounts: Array.isArray(item.discounts)
       ? item.discounts
       : Number(item.discount) > 0

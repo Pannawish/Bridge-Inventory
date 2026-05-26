@@ -5,16 +5,22 @@ import {
   getProductUnitOptions,
 } from "../../unitConversion";
 import { computeAmount } from "./salesHistoryUtils";
+import SalesItemAllocationSection from "./SalesItemAllocationSection";
 
 function SalesEditLineItemsSection({
   sale,
   items,
   products,
   productOptions,
+  stockLayersByItemKey,
   onAddItem,
   onRemoveItem,
   onUpdateItem,
   onUpdateItemProduct,
+  onUpdateAllocationMode,
+  onAddAllocation,
+  onRemoveAllocation,
+  onUpdateAllocation,
   onAddDiscount,
   onRemoveDiscount,
   onUpdateDiscount,
@@ -41,6 +47,9 @@ function SalesEditLineItemsSection({
         const conversionPreview = selectedProduct
           ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
           : null;
+        const stockLayers = item.product_id
+          ? stockLayersByItemKey[`${item.product_id}:${item.id}`] || []
+          : [];
 
         return (
           <div className="line-item-row sales-line-item-row" key={item.id}>
@@ -164,6 +173,21 @@ function SalesEditLineItemsSection({
             <div className="purchase-item-field sales-item-amount">
               <span>{t("salesForm.colAmount")}</span>
               <div className="sales-line-amount">{fmt(amount)}</div>
+            </div>
+
+            <div className="purchase-item-field sales-item-supplier">
+              <SalesItemAllocationSection
+                item={item}
+                stockLayers={stockLayers}
+                conversionFactor={Number(conversionPreview?.conversion_factor) || 1}
+                unit={item.unit || "pcs"}
+                onChangeMode={(mode) => onUpdateAllocationMode(index, mode)}
+                onAddAllocation={() => onAddAllocation(index)}
+                onRemoveAllocation={(rowId) => onRemoveAllocation(index, rowId)}
+                onUpdateAllocation={(rowId, key, value) =>
+                  onUpdateAllocation(index, rowId, key, value)
+                }
+              />
             </div>
 
             <button

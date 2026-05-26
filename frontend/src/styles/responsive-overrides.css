@@ -369,12 +369,19 @@
     grid-template-areas:
       "index"
       "product"
+      "unit"
       "qty"
       "price"
       "discounts"
       "amount"
+      "supplier"
+      "cost"
       "action";
     min-width: 0;
+  }
+
+  .sales-allocation-row {
+    grid-template-columns: 1fr;
   }
 
   .sales-item-remove {

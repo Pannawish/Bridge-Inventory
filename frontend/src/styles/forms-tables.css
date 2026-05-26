@@ -632,6 +632,59 @@ label textarea:focus,
   grid-area: cost;
 }
 
+.sales-allocation-section {
+  display: grid;
+  gap: 8px;
+}
+
+.sales-allocation-mode {
+  max-width: 220px;
+}
+
+.sales-allocation-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.sales-allocation-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(110px, 0.7fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.sales-allocation-qty {
+  display: grid;
+  gap: 6px;
+}
+
+.sales-allocation-qty > span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sales-allocation-remove {
+  min-width: 112px;
+}
+
+.sales-allocation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.sales-allocation-summary {
+  margin: 0;
+}
+
+.sales-allocation-summary.is-warning {
+  color: #b42318;
+}
+
 .sales-cost-input.below-cost {
   border-color: #ed4014;
   background: #fff8f9;

@@ -24,6 +24,7 @@ function SalesEditForm({
     formError,
     filteredCustomers,
     productOptions,
+    stockLayersByItemKey,
     vatSummary,
     saleStockMessage,
     visibleDocuments,
@@ -36,6 +37,10 @@ function SalesEditForm({
     selectCustomer,
     updateItem,
     updateItemProduct,
+    updateAllocationMode,
+    addAllocation,
+    removeAllocation,
+    updateAllocation,
     addDiscount,
     removeDiscount,
     updateDiscount,
@@ -128,10 +133,15 @@ function SalesEditForm({
           items={items}
           products={products}
           productOptions={productOptions}
+          stockLayersByItemKey={stockLayersByItemKey}
           onAddItem={addItem}
           onRemoveItem={removeItem}
           onUpdateItem={updateItem}
           onUpdateItemProduct={updateItemProduct}
+          onUpdateAllocationMode={updateAllocationMode}
+          onAddAllocation={addAllocation}
+          onRemoveAllocation={removeAllocation}
+          onUpdateAllocation={updateAllocation}
           onAddDiscount={addDiscount}
           onRemoveDiscount={removeDiscount}
           onUpdateDiscount={updateDiscount}

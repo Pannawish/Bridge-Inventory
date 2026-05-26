@@ -878,6 +878,39 @@ class SaleItemAllocationTests(APITestCase):
         with self.assertRaisesMessage(Exception, "Insufficient stock"):
             serializer.save()
 
+    def test_stock_layers_endpoint_can_exclude_current_sale_item_allocation(self):
+        serializer = SaleSerializer(
+            data=self._sale_payload(
+                "4",
+                allocations=[
+                    {
+                        "purchase_item_id": self.layer_a.id,
+                        "base_quantity": "4",
+                    }
+                ],
+            )
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        sale = serializer.save()
+        sale_item = sale.items.get()
+
+        response = self.client.get(f"/api/products/{self.product.id}/stock-layers/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            Decimal(str(response.data["layers"][0]["available_quantity"])),
+            Decimal("1"),
+        )
+
+        exclude_response = self.client.get(
+            f"/api/products/{self.product.id}/stock-layers/",
+            {"exclude_sale_item_id": sale_item.id},
+        )
+        self.assertEqual(exclude_response.status_code, 200)
+        self.assertEqual(
+            Decimal(str(exclude_response.data["layers"][0]["available_quantity"])),
+            Decimal("5"),
+        )
+
     def test_purchase_create_syncs_product_supplier_catalog_link(self):
         product = Product.objects.create(
             sku="ALLOC-CATALOG",
