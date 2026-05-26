@@ -110,40 +110,33 @@ Optional broader checks from repo standards:
   - payment batch detail state/handlers extracted to `usePaymentBatchDetailState.js` (71 lines)
   - pure transformation helpers extracted to `paymentBatchDetailHelpers.js` (74 lines)
   - modal reduced to a 267-line composition shell
+- `frontend/src/components/suppliers/SupplierEditorModal.jsx`
+  - dynamially rendered dynamic dropdown text inputs extracted into shared component `ContactOptionField.jsx` (42 lines)
+  - identity, procurement, contact, and delivery form sections extracted into separate components
+  - modal reduced to a 108-line composition shell
+- `frontend/src/components/customers/CustomerEditorModal.jsx`
+  - dynamially rendered dynamic dropdown text inputs extracted into shared component `ContactOptionField.jsx` (42 lines)
+  - identity, contact, and delivery form sections extracted into separate components
+  - modal reduced to a 99-line composition shell
 
 ## Current Best Next Targets
 Current approximate sizes:
-- `frontend/src/components/suppliers/SupplierEditorModal.jsx`: 398 lines
 - `frontend/src/App.jsx`: 391 lines
 - `frontend/src/components/Dashboard.jsx`: 367 lines
-- `frontend/src/components/customers/CustomerEditorModal.jsx`: 357 lines
 
 Recommended order:
-1. `frontend/src/components/suppliers/SupplierEditorModal.jsx` and `CustomerEditorModal.jsx` (symmetric pair)
-2. `frontend/src/App.jsx`
-3. `frontend/src/components/Dashboard.jsx`
+1. `frontend/src/App.jsx`
+2. `frontend/src/components/Dashboard.jsx`
 
 ## Target Notes
 
-### 1. `frontend/src/components/billing/BillingNoteDetailModal.jsx`
-Recommended outcome:
-- extract billing note detail state into a dedicated hook
-- extract pure calculation/formatting helpers if present
-- keep the modal as a composition shell
-
-### 2. `frontend/src/components/suppliers/SupplierEditorModal.jsx` / `CustomerEditorModal.jsx`
-Recommended outcome:
-- extract editor form state into hooks (symmetric pattern)
-- extract contact validation helpers if not already shared through `contactValidation.js`
-- keep modals as composition shells
-
-### 3. `frontend/src/App.jsx`
+### 1. `frontend/src/App.jsx`
 Recommended outcome:
 - identify remaining logic clusters beyond existing hook delegations
 - extract any residual state management or side-effect logic
 - keep App.jsx as a routing/layout orchestrator
 
-### 4. `frontend/src/components/Dashboard.jsx`
+### 2. `frontend/src/components/Dashboard.jsx`
 Recommended outcome:
 - extract dashboard data fetching/processing into a hook
 - extract chart configuration or metric calculations into helpers
