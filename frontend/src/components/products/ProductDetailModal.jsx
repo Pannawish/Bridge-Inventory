@@ -1,5 +1,6 @@
 import { useLanguage } from "../../i18n/LanguageContext";
 import ProductHistoryProfilePanel from "./ProductHistoryProfilePanel";
+import ProductStockSourcesSection from "./ProductStockSourcesSection";
 import ProductHistoryTableSection from "./ProductHistoryTableSection";
 import ProductTransactionDetailModal from "./ProductTransactionDetailModal";
 import { getTranslatedProductDisplayName } from "./productEditorHelpers";
@@ -21,6 +22,9 @@ function ProductHistoryModal({
   onOpenTransactionDetail,
   onOpenProductEditor,
   onClose,
+  stockLayers,
+  stockLayersLoading,
+  stockLayersError,
 }) {
   const { t } = useLanguage();
 
@@ -64,6 +68,13 @@ function ProductHistoryModal({
           onViewingPictureChange={onViewingPictureChange}
           categories={categories}
           viewingProductMetrics={viewingProductMetrics}
+        />
+
+        <ProductStockSourcesSection
+          viewingProduct={viewingProduct}
+          stockLayers={stockLayers}
+          loading={stockLayersLoading}
+          error={stockLayersError}
         />
 
         {productHistoryLoadingId === `${viewingProduct.id}` ? (

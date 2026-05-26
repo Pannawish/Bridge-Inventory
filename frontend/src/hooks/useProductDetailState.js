@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { api } from "../api";
 import {
   createLocalPagination,
   getPaginatedRows,
@@ -24,6 +25,45 @@ function useProductDetailState({
   useEffect(() => {
     setPurchaseHistoryPage(1);
     setSalesHistoryPage(1);
+  }, [viewingProduct?.id]);
+
+  const [stockLayers, setStockLayers] = useState([]);
+  const [stockLayersLoading, setStockLayersLoading] = useState(false);
+  const [stockLayersError, setStockLayersError] = useState("");
+
+  useEffect(() => {
+    if (!viewingProduct?.id) {
+      setStockLayers([]);
+      setStockLayersLoading(false);
+      setStockLayersError("");
+      return;
+    }
+
+    let isMounted = true;
+    async function fetchLayers() {
+      setStockLayersLoading(true);
+      setStockLayersError("");
+      try {
+        const data = await api.getProductStockLayers(viewingProduct.id);
+        if (isMounted) {
+          setStockLayers(data?.layers || []);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setStockLayersError(err.message || "Failed to load stock sources.");
+        }
+      } finally {
+        if (isMounted) {
+          setStockLayersLoading(false);
+        }
+      }
+    }
+
+    fetchLayers();
+
+    return () => {
+      isMounted = false;
+    };
   }, [viewingProduct?.id]);
 
   async function loadProductHistory(product) {
@@ -154,6 +194,9 @@ function useProductDetailState({
     setViewingProduct,
     setViewingTransaction,
     setProductHistoryById,
+    stockLayers,
+    stockLayersLoading,
+    stockLayersError,
   };
 }
 

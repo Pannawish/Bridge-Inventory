@@ -50,6 +50,9 @@ function useProductsPageState({
     setViewingPictureId,
     setPurchaseHistoryPage,
     setSalesHistoryPage,
+    stockLayers,
+    stockLayersLoading,
+    stockLayersError,
   } = useProductDetailState({
     purchases,
     sales,
@@ -357,6 +360,9 @@ function useProductsPageState({
     handleOpenProductEditor,
     backToProduct,
     closeAll,
+    stockLayers,
+    stockLayersLoading,
+    stockLayersError,
 
     // Editor modal props
     draftProduct,

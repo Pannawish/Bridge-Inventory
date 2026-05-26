@@ -70,6 +70,9 @@ function ProductsPage({
         viewingProductMetrics={state.viewingProductMetrics}
         productHistoryLoadingId={state.productHistoryLoadingId}
         productHistoryError={state.productHistoryError}
+        stockLayers={state.stockLayers}
+        stockLayersLoading={state.stockLayersLoading}
+        stockLayersError={state.stockLayersError}
         viewPurchaseHistory={state.paginatedPurchaseHistory}
         purchaseHistoryPagination={state.purchaseHistoryPagination}
         onPurchaseHistoryPageChange={state.setPurchaseHistoryPage}
