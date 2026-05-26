@@ -157,7 +157,7 @@ npm run dev -- --host 127.0.0.1
 
 ## Current Improvement Direction
 
-The maintainability refactor is progressing through oversized frontend files. Completed splits:
+The maintainability refactor has moved most oversized page components toward smaller composition shells, state hooks, helpers, and section components. Completed or stabilized splits:
 
 - `frontend/src/components/ProductsPage.jsx` — orchestration hook and validation helpers extracted
 - `frontend/src/components/CategoryPage.jsx` — state hook and tree helpers extracted
@@ -171,10 +171,12 @@ The maintainability refactor is progressing through oversized frontend files. Co
 - `frontend/src/components/suppliers/SupplierEditorModal.jsx` — section components extracted, reduced to composition shell
 - `frontend/src/components/customers/CustomerEditorModal.jsx` — section components extracted, reduced to composition shell
 - `frontend/src/App.jsx` — orchestration state hook (`useAppState.js`) extracted, reduced to layout composition shell
+- `frontend/src/styles.css` — reduced to stylesheet imports; domain styles now live under `frontend/src/styles/`
 
-Remaining split targets by approximate size:
+Current priority targets:
 
-- `frontend/src/components/Dashboard.jsx` (367 lines)
-- `frontend/src/styles.css`
+- `frontend/src/components/Dashboard.jsx` — next page-level split target; it still combines formatting helpers, segment loading state, and dashboard subcomponents
+- high-complexity orchestration hooks such as `frontend/src/app/useAppState.js`, `frontend/src/components/sales/useSalesFormState.js`, `frontend/src/components/sales/useSalesEditFormState.js`, `frontend/src/components/products/useProductsPageState.js`, `frontend/src/components/categories/useCategoryPageState.js`, `frontend/src/components/quotation/useQuotationFormState.js`, and purchase form/history hooks
+- large section or directory components where future feature work adds real complexity, especially transaction detail items, quotation directory, sales line items, credit note directory, and payment batch create/directory flows
 
-Keep behavior unchanged while splitting. Extract small, named pieces with clear ownership instead of doing broad rewrites.
+Current refactor emphasis: finish remaining mixed components, then prevent large hooks from becoming the new monoliths. Keep behavior unchanged while splitting. Extract small, named pieces with clear ownership instead of doing broad rewrites.
