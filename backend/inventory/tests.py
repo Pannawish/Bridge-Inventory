@@ -910,6 +910,9 @@ class ReferenceNumberTests(APITestCase):
     def reference(self, prefix, serial):
         return f"{prefix}-{self.year_month}-{serial:03d}"
 
+    def sequential_reference(self, prefix, serial):
+        return f"{prefix}-{serial:06d}"
+
     def test_purchase_sale_and_quotation_duplicate_references_are_advanced(self):
         Purchase.objects.create(
             reference_no=self.reference("PO", 3),
@@ -923,7 +926,7 @@ class ReferenceNumberTests(APITestCase):
             transaction_date=self.today,
         )
         Quotation.objects.create(
-            reference_no=self.reference("QT", 3),
+            reference_no=self.sequential_reference("QT", 3),
             quotation_date=self.today,
             valid_until_date=self.today,
             customer_name=self.customer.company_name,
@@ -951,7 +954,7 @@ class ReferenceNumberTests(APITestCase):
         quotation_response = self.client.post(
             "/api/quotations/",
             {
-                "reference_no": self.reference("QT", 3),
+                "reference_no": self.sequential_reference("QT", 3),
                 "quotation_date": self.today.isoformat(),
                 "valid_until_date": self.today.isoformat(),
                 "customer_name": self.customer.company_name,
@@ -976,7 +979,10 @@ class ReferenceNumberTests(APITestCase):
         self.assertEqual(quotation_response.status_code, 201)
         self.assertEqual(purchase_response.data["reference_no"], self.reference("PO", 4))
         self.assertEqual(sale_response.data["reference_no"], self.reference("TI", 4))
-        self.assertEqual(quotation_response.data["reference_no"], self.reference("QT", 4))
+        self.assertEqual(
+            quotation_response.data["reference_no"],
+            self.sequential_reference("QT", 4),
+        )
 
 
 class LookupEligibilityTests(APITestCase):
