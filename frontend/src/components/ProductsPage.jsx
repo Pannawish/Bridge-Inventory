@@ -1,39 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
 import ProductDetailModal from "./products/ProductDetailModal";
 import ProductDirectorySection from "./products/ProductDirectorySection";
 import ProductEditorModal from "./products/ProductEditorModal";
-import { getCategoryOptions, getCategoryPathById } from "./CategoryPage";
-import { getProductBaseUnit } from "../unitConversion";
 import {
-  getCategoryPathSkuCode,
-  getNextSkuSerial,
-  getProductMetrics,
-  getProductPictures,
   getProductPreviousSkus,
-  getSelectedProductPicture,
   isValidSku,
   isProductActive,
   normalizeProduct,
   normalizeSku,
   normalizeUniqueNames,
-  resolveProductCategoryId,
 } from "./products/productUtils";
+import { getCategoryPathById } from "./CategoryPage";
 import { useLanguage } from "../i18n/LanguageContext";
-import {
-  createDraftPicture,
-  createProduct,
-  getTranslatedProductDisplayName,
-} from "./products/productEditorHelpers";
+import { getTranslatedProductDisplayName } from "./products/productEditorHelpers";
 import { defaultProducts, getDefaultProducts } from "./products/defaultProducts";
-import {
-  collectionsHaveProductTransactionHistory,
-  createLocalPagination,
-  getPaginatedRows,
-  getProductPurchaseHistoryEntries,
-  getProductSalesHistoryEntries,
-  loadedProductHistoryHasTransactions,
-} from "./products/productHistoryHelpers";
 import { useProductDirectoryFilters } from "../hooks/useProductDirectoryFilters";
+import useProductEditorState from "../hooks/useProductEditorState";
+import useProductDetailState from "../hooks/useProductDetailState";
 
 export { getDefaultProducts } from "./products/defaultProducts";
 
@@ -49,20 +32,81 @@ function ProductsPage({
   onSaveProduct,
   onDeleteProduct,
 }) {
-  const [viewingProduct, setViewingProduct] = useState(null);
-  const [viewingTransaction, setViewingTransaction] = useState(null);
-  const [viewingPictureId, setViewingPictureId] = useState("");
-  const [productHistoryById, setProductHistoryById] = useState({});
-  const [productHistoryLoadingId, setProductHistoryLoadingId] = useState("");
-  const [productHistoryError, setProductHistoryError] = useState("");
-  const [draftProduct, setDraftProduct] = useState(null);
-  const [productFormError, setProductFormError] = useState("");
-  const [skuChangeUnlocked, setSkuChangeUnlocked] = useState(false);
-  const [purchaseHistoryPage, setPurchaseHistoryPage] = useState(1);
-  const [salesHistoryPage, setSalesHistoryPage] = useState(1);
-  const [categoryQuery, setCategoryQuery] = useState("");
-  const [categoryComboboxOpen, setCategoryComboboxOpen] = useState(false);
   const { t } = useLanguage();
+  const {
+    viewingProduct,
+    viewingTransaction,
+    viewingPictureId,
+    productHistoryById,
+    productHistoryLoadingId,
+    productHistoryError,
+    purchaseHistoryPagination,
+    salesHistoryPagination,
+    paginatedPurchaseHistory,
+    paginatedSalesHistory,
+    viewingProductMetrics,
+    loadProductHistory,
+    openProductDetail,
+    closeProductDetail,
+    openTransactionDetail,
+    backToProduct,
+    setViewingPictureId,
+    setPurchaseHistoryPage,
+    setSalesHistoryPage,
+  } = useProductDetailState({
+    purchases,
+    sales,
+    onLoadProductHistory,
+  });
+  const {
+    draftProduct,
+    productFormError,
+    skuChangeUnlocked,
+    categoryQuery,
+    categoryComboboxOpen,
+    productCategoryOptions,
+    filteredProductCategoryOptions,
+    draftExistingProduct,
+    draftProductHasHistory,
+    draftProductPictures,
+    selectedDraftPicture,
+    setDraftProduct,
+    setProductFormError,
+    setSkuChangeUnlocked,
+    setCategoryComboboxOpen,
+    getExistingProduct,
+    getCachedProductHasTransactionHistory,
+    productHasTransactionHistory,
+    generateStructuredSku,
+    openProductEditor,
+    closeProductEditor,
+    updateDraftField,
+    addDraftPictures,
+    selectDraftPicture,
+    removeDraftPicture,
+    updateDraftSubName,
+    addDraftSubName,
+    removeDraftSubName,
+    setDraftSubNameAsMain,
+    updateDraftUnitConversion,
+    toggleDraftUnitConversion,
+    addDraftUnitConversion,
+    removeDraftUnitConversion,
+    handleGenerateSku,
+    selectDraftCategory,
+    handleCategoryQueryChange,
+    handleCategoryBlur,
+    handleUnlockSkuChange,
+    handleCreateProduct,
+  } = useProductEditorState({
+    allProducts,
+    categories,
+    purchases,
+    sales,
+    productHistoryById,
+    loadProductHistory,
+    t,
+  });
 
   useEffect(() => {
     const isOpen = !!(viewingProduct || viewingTransaction || draftProduct);
@@ -79,26 +123,6 @@ function ProductsPage({
     };
   }, [viewingProduct, viewingTransaction, draftProduct]);
 
-  useEffect(() => {
-    setPurchaseHistoryPage(1);
-    setSalesHistoryPage(1);
-  }, [viewingProduct?.id]);
-
-  const productCategoryOptions = useMemo(
-    () => getCategoryOptions(categories),
-    [categories]
-  );
-  const filteredProductCategoryOptions = useMemo(() => {
-    const normalizedQuery = categoryQuery.trim().toLowerCase();
-
-    if (!normalizedQuery) {
-      return productCategoryOptions;
-    }
-
-    return productCategoryOptions.filter((category) =>
-      category.label.toLowerCase().includes(normalizedQuery)
-    );
-  }, [categoryQuery, productCategoryOptions]);
   const {
     searchTerm,
     setSearchTerm,
@@ -133,440 +157,21 @@ function ProductsPage({
     t,
   });
 
-  async function loadProductHistory(product) {
-    const productId = `${product?.id ?? ""}`;
-
-    if (!productId || productHistoryById[productId]) {
-      return productHistoryById[productId] || null;
-    }
-
-    if (!onLoadProductHistory) {
-      return null;
-    }
-
-    setProductHistoryLoadingId(productId);
-    setProductHistoryError("");
-
-    try {
-      const history = await onLoadProductHistory(productId);
-      const normalizedHistory = {
-        purchases: Array.isArray(history?.purchases) ? history.purchases : [],
-        sales: Array.isArray(history?.sales) ? history.sales : [],
-        hasTransactionHistory: Boolean(history?.has_transaction_history),
-      };
-
-      setProductHistoryById((current) => ({
-        ...current,
-        [productId]: normalizedHistory,
-      }));
-      return normalizedHistory;
-    } catch (requestError) {
-      setProductHistoryError(requestError.message);
-      return null;
-    } finally {
-      setProductHistoryLoadingId("");
-    }
-  }
-
-  function openProductDetail(product) {
-    const selectedPicture = getSelectedProductPicture(product);
-
-    setViewingProduct(product);
-    setViewingPictureId(selectedPicture?.id || "");
-    setViewingTransaction(null);
-    setDraftProduct(null);
-    loadProductHistory(product);
-  }
-
   function closeAll() {
-    setViewingProduct(null);
-    setViewingTransaction(null);
-    setViewingPictureId("");
-  }
-
-  function openTransactionDetail(type, data) {
-    setViewingTransaction({ type, data });
-  }
-
-  function backToProduct() {
-    setViewingTransaction(null);
-  }
-
-  function openProductEditor(product) {
-    const normalizedProduct = normalizeProduct(product);
-    const categoryId = resolveProductCategoryId(product, categories);
-
-    loadProductHistory(product);
-    setViewingProduct(null);
-    setViewingTransaction(null);
-    setViewingPictureId("");
-    setProductFormError("");
-    setSkuChangeUnlocked(false);
-    setCategoryComboboxOpen(false);
-    setCategoryQuery(getCategoryPathById(categories, categoryId));
-    setDraftProduct({
-      ...normalizedProduct,
-      categoryId,
-    });
-  }
-
-  function closeProductEditor() {
+    closeProductDetail();
     setDraftProduct(null);
     setProductFormError("");
-    setSkuChangeUnlocked(false);
-    setCategoryQuery("");
     setCategoryComboboxOpen(false);
   }
 
-  function updateDraftField(key, value) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const nextProduct = { ...prev, [key]: value };
-
-      if (key === "categoryId" && !value) {
-        const isExistingProduct = allProducts.some((product) => `${product.id}` === `${prev.id}`);
-
-        return {
-          ...nextProduct,
-          sku: isExistingProduct ? nextProduct.sku : "",
-        };
-      }
-
-      if (key === "categoryId" && getCategoryPathSkuCode(categories, value)) {
-        const isExistingProduct = allProducts.some((product) => `${product.id}` === `${prev.id}`);
-        const shouldRegenerateSku = !isExistingProduct || !normalizeSku(nextProduct.sku);
-
-        if (!shouldRegenerateSku) {
-          return nextProduct;
-        }
-
-        return {
-          ...nextProduct,
-          sku: generateStructuredSku(nextProduct),
-        };
-      }
-
-      return nextProduct;
-    });
-    setProductFormError("");
+  function handleOpenProductEditor(product) {
+    closeProductDetail();
+    openProductEditor(product);
   }
 
-  function addDraftPictures(files) {
-    const nextPictures = Array.from(files || [])
-      .filter((file) => file?.type?.startsWith("image/"))
-      .map(createDraftPicture);
-
-    if (!nextPictures.length) {
-      return;
-    }
-
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const currentPictures = getProductPictures(prev);
-      const selectedPictureId = prev.selectedPictureId || nextPictures[0].id;
-
-      return {
-        ...prev,
-        productPictures: [...currentPictures, ...nextPictures].map((picture) => ({
-          ...picture,
-          isSelected: picture.id === selectedPictureId,
-        })),
-        selectedPictureId,
-      };
-    });
-    setProductFormError("");
-  }
-
-  function selectDraftPicture(pictureId) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        selectedPictureId: pictureId,
-        productPictures: getProductPictures(prev).map((picture) => ({
-          ...picture,
-          isSelected: picture.id === pictureId,
-        })),
-      };
-    });
-    setProductFormError("");
-  }
-
-  function removeDraftPicture(pictureId) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const currentPictures = getProductPictures(prev);
-      const removedPicture = currentPictures.find((picture) => picture.id === pictureId);
-      const nextPictures = currentPictures.filter((picture) => picture.id !== pictureId);
-      const currentSelectedRemoved = prev.selectedPictureId === pictureId;
-      const selectedPictureId = currentSelectedRemoved
-        ? nextPictures[0]?.id || ""
-        : prev.selectedPictureId;
-      const removePictureIds =
-        removedPicture && !removedPicture.isNew
-          ? [...(prev.removePictureIds || []), removedPicture.id]
-          : prev.removePictureIds || [];
-
-      return {
-        ...prev,
-        productPictures: nextPictures.map((picture) => ({
-          ...picture,
-          isSelected: picture.id === selectedPictureId,
-        })),
-        selectedPictureId,
-        removePictureIds,
-      };
-    });
-    setProductFormError("");
-  }
-
-  function updateDraftSubName(index, value) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const nextSubNames = [...(prev.subNames || [])];
-      nextSubNames[index] = value;
-      return { ...prev, subNames: nextSubNames };
-    });
-    setProductFormError("");
-  }
-
-  function addDraftSubName() {
-    setDraftProduct((prev) =>
-      prev ? { ...prev, subNames: [...(prev.subNames || []), ""] } : prev
-    );
-    setProductFormError("");
-  }
-
-  function removeDraftSubName(index) {
-    setDraftProduct((prev) =>
-      prev
-        ? { ...prev, subNames: (prev.subNames || []).filter((_, itemIndex) => itemIndex !== index) }
-        : prev
-    );
-    setProductFormError("");
-  }
-
-  function setDraftSubNameAsMain(index) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const currentSubNames = [...(prev.subNames || [])];
-      const selectedSubName = `${currentSubNames[index] ?? ""}`.trim();
-
-      if (!selectedSubName) {
-        return prev;
-      }
-
-      const currentMainName = `${prev.productName ?? ""}`.trim();
-      const nextSubNames = currentSubNames.filter((_, itemIndex) => itemIndex !== index);
-
-      if (currentMainName) {
-        nextSubNames.unshift(currentMainName);
-      }
-
-      return {
-        ...prev,
-        productName: selectedSubName,
-        subNames: normalizeUniqueNames(nextSubNames),
-      };
-    });
-    setProductFormError("");
-  }
-
-  function updateDraftUnitConversion(index, key, value) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const nextConversions = [...(prev.unitConversions || [])];
-      nextConversions[index] = {
-        ...nextConversions[index],
-        [key]: value,
-      };
-
-      return { ...prev, unitConversions: nextConversions };
-    });
-    setProductFormError("");
-  }
-
-  function toggleDraftUnitConversion(index, key) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const nextConversions = [...(prev.unitConversions || [])];
-      nextConversions[index] = {
-        ...nextConversions[index],
-        [key]: !nextConversions[index]?.[key],
-      };
-
-      return { ...prev, unitConversions: nextConversions };
-    });
-    setProductFormError("");
-  }
-
-  function addDraftUnitConversion() {
-    setDraftProduct((prev) =>
-      prev
-        ? {
-            ...prev,
-            unitConversions: [
-              ...(prev.unitConversions || []),
-              { unit: "", factorToBase: 1, allowPurchase: true, allowSale: true },
-            ],
-          }
-        : prev
-    );
-    setProductFormError("");
-  }
-
-  function removeDraftUnitConversion(index) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const stockBaseUnit = getProductBaseUnit(prev);
-      const nextConversions = (prev.unitConversions || []).filter((conversion, itemIndex) =>
-        itemIndex !== index ||
-        `${conversion.unit}`.toLowerCase() === stockBaseUnit.toLowerCase()
-      );
-
-      return { ...prev, unitConversions: nextConversions };
-    });
-    setProductFormError("");
-  }
-
-  function getExistingProduct(product) {
-    return allProducts.find((item) => `${item.id}` === `${product?.id}`);
-  }
-
-  function getCachedProductHasTransactionHistory(product) {
-    if (!product) {
-      return false;
-    }
-
-    const cachedHistory = productHistoryById[`${product.id}`];
-    if (cachedHistory) {
-      return loadedProductHistoryHasTransactions(cachedHistory);
-    }
-
-    return collectionsHaveProductTransactionHistory(product, purchases, sales);
-  }
-
-  async function productHasTransactionHistory(product) {
-    if (!product) {
-      return false;
-    }
-
-    const cachedHistory = productHistoryById[`${product.id}`];
-    if (cachedHistory) {
-      return loadedProductHistoryHasTransactions(cachedHistory);
-    }
-
-    const loadedHistory = await loadProductHistory(product);
-    if (loadedHistory) {
-      return loadedProductHistoryHasTransactions(loadedHistory);
-    }
-
-    return getCachedProductHasTransactionHistory(product);
-  }
-
-  function generateStructuredSku(product) {
-    const baseSku = getCategoryPathSkuCode(categories, product.categoryId);
-
-    if (!baseSku) {
-      return "";
-    }
-
-    const serial = getNextSkuSerial(baseSku, allProducts, product.id);
-
-    return `${baseSku}${serial}`;
-  }
-
-  function handleGenerateSku() {
-    if (!draftProduct) {
-      return;
-    }
-
-    setDraftProduct((prev) => (prev ? { ...prev, sku: generateStructuredSku(prev) } : prev));
-    setProductFormError("");
-  }
-
-  function selectDraftCategory(category) {
-    setCategoryQuery(category.label);
-    setCategoryComboboxOpen(false);
-    updateDraftField("categoryId", category.id);
-  }
-
-  function handleCategoryQueryChange(value) {
-    const exactCategory = productCategoryOptions.find(
-      (category) => category.label.toLowerCase() === value.trim().toLowerCase()
-    );
-
-    setCategoryQuery(value);
-    setCategoryComboboxOpen(true);
-    updateDraftField("categoryId", exactCategory?.id || "");
-  }
-
-  function handleCategoryBlur() {
-    window.setTimeout(() => {
-      setCategoryComboboxOpen(false);
-      setCategoryQuery(
-        productCategoryOptions.find((category) => category.id === draftProduct?.categoryId)
-          ?.label || ""
-      );
-    }, 120);
-  }
-
-  function handleUnlockSkuChange() {
-    if (!draftProduct) {
-      return;
-    }
-
-    const confirmed = window.confirm(t("products.unlockSkuConfirm"));
-
-    if (!confirmed) {
-      return;
-    }
-
-    setSkuChangeUnlocked(true);
-    setProductFormError("");
-  }
-
-  function handleCreateProduct() {
-    const nextDisplayId =
-      allProducts.length === 0
-        ? 1001
-        : Math.max(...allProducts.map((p) => p.productDisplayId)) + 1;
-
-    setViewingProduct(null);
-    setViewingTransaction(null);
-    setViewingPictureId("");
-    setProductFormError("");
-    setSkuChangeUnlocked(false);
-    setCategoryQuery("");
-    setCategoryComboboxOpen(false);
-    setDraftProduct(createProduct({ productDisplayId: nextDisplayId }));
+  function handleStartCreateProduct() {
+    closeProductDetail();
+    handleCreateProduct();
   }
 
   async function handleSaveProduct() {
@@ -674,9 +279,7 @@ function ProductsPage({
       return;
     }
 
-    setDraftProduct(null);
-    setSkuChangeUnlocked(false);
-    setProductFormError("");
+    closeProductEditor();
   }
 
   async function handleDeleteProduct() {
@@ -712,9 +315,7 @@ function ProductsPage({
       return;
     }
 
-    setDraftProduct(null);
-    setCategoryQuery("");
-    setCategoryComboboxOpen(false);
+    closeProductEditor();
   }
 
   async function handleDisableProduct() {
@@ -752,9 +353,7 @@ function ProductsPage({
       return;
     }
 
-    setDraftProduct(null);
-    setCategoryQuery("");
-    setCategoryComboboxOpen(false);
+    closeProductEditor();
   }
 
   async function handleEnableProduct() {
@@ -782,47 +381,9 @@ function ProductsPage({
       return;
     }
 
-    setDraftProduct(null);
-    setCategoryQuery("");
-    setCategoryComboboxOpen(false);
+    closeProductEditor();
   }
 
-  const viewingHistory = viewingProduct ? productHistoryById[`${viewingProduct.id}`] : null;
-  const viewPurchaseHistory = viewingProduct
-    ? viewingHistory
-      ? getProductPurchaseHistoryEntries(viewingProduct, viewingHistory.purchases)
-      : getProductPurchaseHistoryEntries(viewingProduct, purchases)
-    : [];
-  const viewSalesHistory = viewingProduct
-    ? viewingHistory
-      ? getProductSalesHistoryEntries(viewingProduct, viewingHistory.sales)
-      : getProductSalesHistoryEntries(viewingProduct, sales)
-    : [];
-  const purchaseHistoryPagination = createLocalPagination(
-    viewPurchaseHistory.length,
-    purchaseHistoryPage
-  );
-  const salesHistoryPagination = createLocalPagination(
-    viewSalesHistory.length,
-    salesHistoryPage
-  );
-  const paginatedPurchaseHistory = getPaginatedRows(
-    viewPurchaseHistory,
-    purchaseHistoryPagination
-  );
-  const paginatedSalesHistory = getPaginatedRows(
-    viewSalesHistory,
-    salesHistoryPagination
-  );
-  const viewingProductMetrics = viewingProduct
-    ? getProductMetrics(
-        viewingProduct,
-        viewingHistory?.purchases || purchases,
-        viewingHistory?.sales || sales
-      )
-    : null;
-  const draftExistingProduct = draftProduct ? getExistingProduct(draftProduct) : null;
-  const draftProductHasHistory = getCachedProductHasTransactionHistory(draftExistingProduct);
   const isDraftProductActive = isProductActive(draftExistingProduct || draftProduct);
   const isDraftHistoryLoading =
     Boolean(draftExistingProduct) &&
@@ -854,11 +415,6 @@ function ProductsPage({
         ? t("products.errorAlreadyEnabled")
         : "";
   const isProductEnableDisabled = Boolean(productEnableDisabledReason);
-  const draftProductPictures = draftProduct ? getProductPictures(draftProduct) : [];
-  const selectedDraftPicture =
-    draftProductPictures.find((picture) => picture.id === draftProduct.selectedPictureId) ||
-    getSelectedProductPicture(draftProduct);
-
   return (
     <div className="stack-layout">
       <ProductDirectorySection
@@ -880,7 +436,7 @@ function ProductsPage({
         stockFilter={stockFilter}
         onStockFilterChange={setStockFilter}
         filteredProductsWithMetrics={filteredProductsWithMetrics}
-        onCreateProduct={handleCreateProduct}
+        onCreateProduct={handleStartCreateProduct}
         shouldShowViewAll={shouldShowViewAll}
         showAllRows={showAllRows}
         onToggleShowAllRows={() => setShowAllRows((currentValue) => !currentValue)}
@@ -906,7 +462,7 @@ function ProductsPage({
         salesHistoryPagination={salesHistoryPagination}
         onSalesHistoryPageChange={setSalesHistoryPage}
         onOpenTransactionDetail={openTransactionDetail}
-        onOpenProductEditor={openProductEditor}
+        onOpenProductEditor={handleOpenProductEditor}
         onBackToProduct={backToProduct}
         onClose={closeAll}
       />
