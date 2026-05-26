@@ -28,6 +28,10 @@ def product_picture_id():
     return make_prefixed_id("product-picture")
 
 
+def product_supplier_id():
+    return make_prefixed_id("product-supplier")
+
+
 def purchase_id():
     return make_prefixed_id("purchase")
 
@@ -46,6 +50,10 @@ def sale_id():
 
 def sale_item_id():
     return make_prefixed_id("sale-item")
+
+
+def sale_item_allocation_id():
+    return make_prefixed_id("sale-item-allocation")
 
 
 def sale_document_id():
@@ -239,6 +247,38 @@ class ProductUnitConversion(models.Model):
 
     def __str__(self):
         return f"{self.product} - {self.unit}"
+
+
+class ProductSupplier(TimeStampedModel):
+    id = models.CharField(max_length=80, primary_key=True, default=product_supplier_id)
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="supplier_links",
+    )
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.CASCADE,
+        related_name="product_links",
+    )
+    supplier_sku = models.CharField(max_length=80, blank=True)
+    default_purchase_unit = models.CharField(max_length=40, blank=True)
+    default_unit_cost = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    lead_time_days = models.PositiveIntegerField(blank=True, null=True)
+    min_order_qty = models.DecimalField(max_digits=14, decimal_places=3, default=0)
+    is_preferred = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["product", "supplier__company_name"]
+        unique_together = [("product", "supplier")]
+        indexes = [
+            models.Index(fields=["product", "is_active"], name="inv_psup_product_active"),
+            models.Index(fields=["supplier", "is_active"], name="inv_psup_supplier_active"),
+        ]
+
+    def __str__(self):
+        return f"{self.product} - {self.supplier}"
 
 
 class Purchase(TimeStampedModel):
@@ -511,6 +551,54 @@ class SaleItem(models.Model):
 
     def __str__(self):
         return self.product_name
+
+
+class SaleItemAllocation(TimeStampedModel):
+    id = models.CharField(max_length=80, primary_key=True, default=sale_item_allocation_id)
+    sale_item = models.ForeignKey(
+        SaleItem,
+        on_delete=models.CASCADE,
+        related_name="allocations",
+    )
+    purchase_item = models.ForeignKey(
+        PurchaseItem,
+        on_delete=models.PROTECT,
+        related_name="sale_allocations",
+        blank=True,
+        null=True,
+    )
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.SET_NULL,
+        related_name="sale_allocations",
+        blank=True,
+        null=True,
+    )
+    supplier_name = models.CharField(max_length=255, blank=True)
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        related_name="sale_allocations",
+        blank=True,
+        null=True,
+    )
+    product_name = models.CharField(max_length=255)
+    sku = models.CharField(max_length=80, blank=True)
+    quantity = models.DecimalField(max_digits=14, decimal_places=3, default=0)
+    base_quantity = models.DecimalField(max_digits=14, decimal_places=3, default=0)
+    base_unit_cost = models.DecimalField(max_digits=14, decimal_places=6, default=0)
+    total_cost = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        indexes = [
+            models.Index(fields=["sale_item"], name="inv_alloc_sale_item"),
+            models.Index(fields=["purchase_item"], name="inv_alloc_purchase_item"),
+            models.Index(fields=["product", "supplier"], name="inv_alloc_product_sup"),
+        ]
+
+    def __str__(self):
+        return f"{self.product_name} - {self.base_quantity}"
 
 
 class SaleDocument(TimeStampedModel):

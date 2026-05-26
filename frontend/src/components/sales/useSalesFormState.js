@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { api } from "../../api";
 import { computePaymentDate } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { applySaleStatusToItems, getSaleStatusFromItems } from "../../saleStatus";
 import { formatSaleStockIssueMessage, getSaleStockIssues } from "../../saleStock";
+import { buildConvertedItemFields } from "../../unitConversion";
 import { getActiveTransactionDiscount } from "../transactionDiscounts";
 import { isProductActive } from "../products/productUtils";
 import {
@@ -59,6 +61,7 @@ function useSalesFormState({
   const [openProductIndex, setOpenProductIndex] = useState(null);
   const [itemErrors, setItemErrors] = useState({});
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+  const [stockLayersByProductId, setStockLayersByProductId] = useState({});
 
   useEffect(() => {
     setForm((currentForm) => {
@@ -168,6 +171,17 @@ function useSalesFormState({
     label: value === "included" ? t("salesForm.vatIncluded") : t("salesForm.vatExcluded"),
   }));
 
+  useEffect(() => {
+    const productIds = [
+      ...new Set(items.map((item) => item.product_id).filter(Boolean)),
+    ];
+    productIds.forEach((productId) => {
+      if (!stockLayersByProductId[productId]) {
+        loadStockLayers(productId);
+      }
+    });
+  }, [items, stockLayersByProductId]);
+
   function updateForm(key, value) {
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
   }
@@ -204,6 +218,25 @@ function useSalesFormState({
     setItems((currentItems) => updateItemValue(currentItems, itemIndex, key, value));
   }
 
+  async function loadStockLayers(productId) {
+    if (!productId || stockLayersByProductId[productId]) {
+      return;
+    }
+
+    try {
+      const response = await api.getProductStockLayers(productId);
+      setStockLayersByProductId((currentLayers) => ({
+        ...currentLayers,
+        [productId]: Array.isArray(response?.layers) ? response.layers : [],
+      }));
+    } catch {
+      setStockLayersByProductId((currentLayers) => ({
+        ...currentLayers,
+        [productId]: [],
+      }));
+    }
+  }
+
   function updateProductQuery(itemIndex, value) {
     setItems((currentItems) => updateProductQueryItems(currentItems, itemIndex, value));
     setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
@@ -218,6 +251,7 @@ function useSalesFormState({
     setItems((currentItems) =>
       selectProductItems(currentItems, itemIndex, product, purchases)
     );
+    loadStockLayers(product.id);
     setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
     setOpenProductIndex(null);
   }
@@ -225,6 +259,48 @@ function useSalesFormState({
   function updateSupplier(itemIndex, supplierName) {
     setItems((currentItems) =>
       updateSupplierItems(currentItems, itemIndex, supplierName, purchases)
+    );
+  }
+
+  function updateStockSource(itemIndex, purchaseItemId) {
+    setItems((currentItems) =>
+      currentItems.map((item, index) => {
+        if (index !== itemIndex) {
+          return item;
+        }
+
+        if (!purchaseItemId) {
+          return {
+            ...item,
+            allocation_purchase_item_id: "",
+          };
+        }
+
+        const selectedLayer = (stockLayersByProductId[item.product_id] || []).find(
+          (layer) => `${layer.purchase_item_id}` === `${purchaseItemId}`
+        );
+        if (!selectedLayer) {
+          return {
+            ...item,
+            allocation_purchase_item_id: purchaseItemId,
+          };
+        }
+
+        const selectedProduct = products.find(
+          (product) => `${product.id}` === `${item.product_id}`
+        );
+        const convertedFields = selectedProduct
+          ? buildConvertedItemFields(selectedProduct, 1, item.unit, "sale")
+          : null;
+        const conversionFactor = Number(convertedFields?.conversion_factor) || 1;
+        const baseUnitCost = Number(selectedLayer.base_unit_cost) || 0;
+        return {
+          ...item,
+          allocation_purchase_item_id: purchaseItemId,
+          supplier_name: selectedLayer.supplier_name || item.supplier_name,
+          unit_cost: baseUnitCost > 0 ? `${baseUnitCost * conversionFactor}` : item.unit_cost,
+        };
+      })
     );
   }
 
@@ -433,6 +509,8 @@ function useSalesFormState({
     updateProductQuery,
     selectProduct,
     updateSupplier,
+    updateStockSource,
+    stockLayersByProductId,
     addDiscount,
     removeDiscount,
     updateDiscount,

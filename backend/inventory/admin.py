@@ -5,12 +5,14 @@ from .models import (
     Customer,
     Product,
     ProductPicture,
+    ProductSupplier,
     ProductUnitConversion,
     Purchase,
     PurchaseItem,
     Quotation,
     QuotationItem,
     Sale,
+    SaleItemAllocation,
     SaleItem,
     Supplier,
 )
@@ -26,8 +28,18 @@ class ProductPictureInline(admin.TabularInline):
     extra = 0
 
 
+class ProductSupplierInline(admin.TabularInline):
+    model = ProductSupplier
+    extra = 0
+
+
 class PurchaseItemInline(admin.TabularInline):
     model = PurchaseItem
+    extra = 0
+
+
+class SaleItemAllocationInline(admin.TabularInline):
+    model = SaleItemAllocation
     extra = 0
 
 
@@ -63,7 +75,7 @@ class CustomerAdmin(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     list_display = ["product_display_id", "product_name", "sku", "category_name"]
     search_fields = ["product_name", "sku", "category_name"]
-    inlines = [ProductUnitConversionInline, ProductPictureInline]
+    inlines = [ProductUnitConversionInline, ProductSupplierInline, ProductPictureInline]
 
 
 @admin.register(Purchase)
@@ -78,6 +90,13 @@ class SaleAdmin(admin.ModelAdmin):
     list_display = ["reference_no", "customer_name", "status", "transaction_date", "grand_total"]
     search_fields = ["reference_no", "customer_name"]
     inlines = [SaleItemInline]
+
+
+@admin.register(SaleItem)
+class SaleItemAdmin(admin.ModelAdmin):
+    list_display = ["sale", "product_name", "supplier_name", "item_status", "quantity", "unit_price"]
+    search_fields = ["sale__reference_no", "product_name", "sku", "supplier_name"]
+    inlines = [SaleItemAllocationInline]
 
 
 @admin.register(Quotation)

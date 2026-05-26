@@ -15,6 +15,7 @@ from .models import (
     PaymentBatchLine,
     Product,
     ProductPicture,
+    ProductSupplier,
     ProductUnitConversion,
     Purchase,
     PurchaseDocument,
@@ -24,6 +25,7 @@ from .models import (
     QuotationItemSupplier,
     Sale,
     SaleDocument,
+    SaleItemAllocation,
     SaleItem,
     Supplier,
 )
@@ -320,6 +322,61 @@ class ProductUnitConversionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductUnitConversion
         fields = ["unit", "factorToBase", "allowPurchase", "allowSale"]
+
+
+class ProductSupplierSerializer(serializers.ModelSerializer):
+    product_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    supplier_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    product_name = serializers.SerializerMethodField()
+    supplier_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductSupplier
+        fields = [
+            "id",
+            "product_id",
+            "product_name",
+            "supplier_id",
+            "supplier_name",
+            "supplier_sku",
+            "default_purchase_unit",
+            "default_unit_cost",
+            "lead_time_days",
+            "min_order_qty",
+            "is_preferred",
+            "is_active",
+        ]
+        extra_kwargs = {
+            "id": {"read_only": True},
+            "supplier_sku": {"required": False, "allow_blank": True},
+            "default_purchase_unit": {"required": False, "allow_blank": True},
+            "default_unit_cost": {"required": False},
+            "lead_time_days": {"required": False, "allow_null": True},
+            "min_order_qty": {"required": False},
+            "is_preferred": {"required": False},
+            "is_active": {"required": False},
+        }
+
+    def get_product_name(self, link):
+        return link.product.product_name if link.product else ""
+
+    def get_supplier_name(self, link):
+        return link.supplier.company_name if link.supplier else ""
+
+    def validate(self, attrs):
+        product_id_value = attrs.pop("product_id", None)
+        supplier_id_value = attrs.pop("supplier_id", None)
+        if product_id_value is not None:
+            attrs["product"] = resolve_product(product_id=product_id_value)
+        if supplier_id_value is not None:
+            attrs["supplier"] = resolve_supplier(supplier_id=supplier_id_value)
+
+        if self.instance is None and not attrs.get("product"):
+            raise serializers.ValidationError({"product_id": "Product is required."})
+        if self.instance is None and not attrs.get("supplier"):
+            raise serializers.ValidationError({"supplier_id": "Supplier is required."})
+
+        return attrs
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -806,6 +863,33 @@ class PurchaseSerializer(serializers.ModelSerializer):
         if self.instance is None:
             validate_active_products_for_create(attrs.get("items") or [], "purchase")
 
+        if self.instance is not None:
+            has_allocated_items = SaleItemAllocation.objects.filter(
+                purchase_item__purchase=self.instance,
+            ).exists()
+            if has_allocated_items and items_submitted:
+                raise serializers.ValidationError(
+                    {
+                        "items": (
+                            "This purchase has stock already allocated to sales. "
+                            "Edit the linked sales before changing purchase items."
+                        )
+                    }
+                )
+            if has_allocated_items and purchase_status in {
+                Purchase.STATUS_DRAFT,
+                Purchase.STATUS_ORDERED,
+                Purchase.STATUS_CANCELLED,
+            }:
+                raise serializers.ValidationError(
+                    {
+                        "status": (
+                            "This purchase has stock already allocated to sales and "
+                            "must remain received."
+                        )
+                    }
+                )
+
         if items_submitted:
             purchase_status = normalize_purchase_items_for_status(
                 attrs.get("items") or [],
@@ -848,7 +932,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
         apply_purchase_status_to_items(purchase)
 
     def create(self, validated_data):
-        from .services import recalculate_purchase_payable
+        from .services import recalculate_purchase_payable, sync_product_supplier_links_for_purchase
 
         items = validated_data.pop("items", [])
         legacy_document = validated_data.pop("document", None)
@@ -863,11 +947,13 @@ class PurchaseSerializer(serializers.ModelSerializer):
             )
             self._replace_items(purchase, items)
             recalculate_purchase_payable(purchase)
+            sync_product_supplier_links_for_purchase(purchase)
         return purchase
 
     def update(self, instance, validated_data):
         from .services import (
             recalculate_purchase_payable,
+            sync_product_supplier_links_for_purchase,
             sync_supplier_payment_lines_for_purchase,
         )
 
@@ -910,6 +996,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
             # Item totals or statuses may have changed; keep the payable amount
             # and any linked supplier payment batches in sync.
             recalculate_purchase_payable(instance)
+            sync_product_supplier_links_for_purchase(instance)
             sync_supplier_payment_lines_for_purchase(instance)
 
         return instance
@@ -919,6 +1006,7 @@ class SaleItemSerializer(serializers.ModelSerializer):
     product_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     supplier_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     line_total = serializers.SerializerMethodField()
+    allocations = serializers.SerializerMethodField()
 
     class Meta:
         model = SaleItem
@@ -942,6 +1030,7 @@ class SaleItemSerializer(serializers.ModelSerializer):
             "discounts",
             "amount",
             "line_total",
+            "allocations",
         ]
         extra_kwargs = {
             "id": {"read_only": True},
@@ -962,6 +1051,51 @@ class SaleItemSerializer(serializers.ModelSerializer):
 
     def get_line_total(self, item):
         return item.amount
+
+    def get_allocations(self, item):
+        allocations = getattr(item, "prefetched_allocations", None)
+        if allocations is None:
+            allocations = item.allocations.select_related(
+                "purchase_item",
+                "purchase_item__purchase",
+                "supplier",
+            ).all()
+
+        return [
+            {
+                "id": allocation.id,
+                "purchase_item_id": allocation.purchase_item_id,
+                "purchase_reference_no": (
+                    allocation.purchase_item.purchase.reference_no
+                    if allocation.purchase_item_id
+                    else ""
+                ),
+                "supplier_id": allocation.supplier_id,
+                "supplier_name": allocation.supplier_name,
+                "product_id": allocation.product_id,
+                "product_name": allocation.product_name,
+                "sku": allocation.sku,
+                "quantity": allocation.quantity,
+                "base_quantity": allocation.base_quantity,
+                "base_unit_cost": allocation.base_unit_cost,
+                "total_cost": allocation.total_cost,
+            }
+            for allocation in allocations
+        ]
+
+    def to_internal_value(self, data):
+        allocation_requests = serializers.empty
+        if isinstance(data, dict) and "allocations" in data:
+            allocation_requests = data.get("allocations")
+            data = {key: value for key, value in data.items() if key != "allocations"}
+
+        attrs = super().to_internal_value(data)
+        if allocation_requests is not serializers.empty:
+            if not isinstance(allocation_requests, list):
+                raise serializers.ValidationError({"allocations": "Allocations must be a list."})
+            attrs["_allocation_requests"] = allocation_requests
+
+        return attrs
 
     def validate_product_id(self, value):
         return value or None
@@ -1122,14 +1256,20 @@ class SaleSerializer(serializers.ModelSerializer):
 
     def _replace_items(self, sale, items):
         if items is None:
-            return
+            return None
 
         sale.items.all().delete()
+        created_items = []
         for item in items:
             item = strip_existing_item_id(item)
-            SaleItem.objects.create(sale=sale, **item)
+            allocation_requests = item.pop("_allocation_requests", None)
+            sale_item = SaleItem.objects.create(sale=sale, **item)
+            if allocation_requests is not None:
+                sale_item._allocation_requests = allocation_requests
+            created_items.append(sale_item)
         if hasattr(sale, "_prefetched_objects_cache"):
             sale._prefetched_objects_cache = {}
+        return created_items
 
     def _apply_status_to_items(self, sale):
         from .services import apply_sale_status_to_items
@@ -1225,7 +1365,10 @@ class SaleSerializer(serializers.ModelSerializer):
                 sale,
                 [document for document in [legacy_document, *uploaded_documents] if document],
             )
-            self._replace_items(sale, items)
+            created_items = self._replace_items(sale, items)
+            from .services import sync_sale_allocations
+
+            sync_sale_allocations(sale, created_items)
         return sale
 
     def update(self, instance, validated_data):
@@ -1258,12 +1401,16 @@ class SaleSerializer(serializers.ModelSerializer):
             for field, value in validated_data.items():
                 setattr(instance, field, value)
             instance.save()
-            self._replace_items(instance, items)
+            created_items = self._replace_items(instance, items)
 
             if status_changed and items is None:
                 self._apply_status_to_items(instance)
                 if hasattr(instance, "_prefetched_objects_cache"):
                     instance._prefetched_objects_cache = {}
+
+            from .services import sync_sale_allocations
+
+            sync_sale_allocations(instance, created_items)
 
         return instance
 

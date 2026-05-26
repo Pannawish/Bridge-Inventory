@@ -7,6 +7,7 @@ from . import views
 router = DefaultRouter()
 router.register("categories", views.CategoryViewSet, basename="category")
 router.register("suppliers", views.SupplierViewSet, basename="supplier")
+router.register("product-suppliers", views.ProductSupplierViewSet, basename="product-supplier")
 router.register("customers", views.CustomerViewSet, basename="customer")
 router.register("products", views.ProductViewSet, basename="product")
 router.register("purchases", views.PurchaseViewSet, basename="purchase")
@@ -27,6 +28,11 @@ urlpatterns = [
         "products/<str:product_id>/history/",
         views.product_transaction_history,
         name="product_transaction_history",
+    ),
+    path(
+        "products/<str:product_id>/stock-layers/",
+        views.product_stock_layers,
+        name="product_stock_layers",
     ),
     path(
         "eligibility/billing-note-sales/",

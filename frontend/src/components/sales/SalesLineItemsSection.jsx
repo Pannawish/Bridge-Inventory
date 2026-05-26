@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import {
@@ -17,13 +16,12 @@ import {
   getProductName,
   getProductSku,
   getProductUnit,
-  getSupplierNameOptions,
 } from "./salesFormUtils";
 
 function SalesLineItemsSection({
   items,
   products,
-  suppliers,
+  stockLayersByProductId = {},
   activeAllItemsDiscount,
   openProductIndex,
   itemErrors,
@@ -35,6 +33,7 @@ function SalesLineItemsSection({
   onSetOpenProductIndex,
   onSelectProduct,
   onUpdateSupplier,
+  onUpdateStockSource,
   onAddDiscount,
   onRemoveDiscount,
   onUpdateDiscount,
@@ -44,11 +43,6 @@ function SalesLineItemsSection({
   onItemDragEnd,
 }) {
   const { t } = useLanguage();
-  const supplierNameOptions = useMemo(
-    () => getSupplierNameOptions(suppliers),
-    [suppliers]
-  );
-
   return (
     <div className="line-items-card">
       <div className="line-items-header">
@@ -77,6 +71,9 @@ function SalesLineItemsSection({
         const conversionPreview = selectedProduct
           ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
           : null;
+        const stockLayers = item.product_id
+          ? stockLayersByProductId[item.product_id] || []
+          : [];
 
         return (
           <div
@@ -288,13 +285,35 @@ function SalesLineItemsSection({
             </div>
 
             <label className="purchase-item-field sales-item-supplier">
-              <span>{t("salesForm.supplierSourceLabel")}</span>
-              <input
-                list="sales-supplier-options"
-                value={item.supplier_name}
-                onChange={(event) => onUpdateSupplier(index, event.target.value)}
-                placeholder={t("common.optional")}
-              />
+              <span>{t("salesForm.stockSourceLabel")}</span>
+              <select
+                value={item.allocation_purchase_item_id || ""}
+                onChange={(event) => {
+                  onUpdateStockSource(index, event.target.value);
+                  if (!event.target.value && item.supplier_name) {
+                    onUpdateSupplier(index, "");
+                  }
+                }}
+                disabled={!selectedProduct}
+              >
+                <option value="">{t("salesForm.stockSourceAuto")}</option>
+                {stockLayers.map((layer) => (
+                  <option key={layer.purchase_item_id} value={layer.purchase_item_id}>
+                    {t("salesForm.stockSourceOption", {
+                      supplier: layer.supplier_name || t("common.unknown"),
+                      reference: layer.purchase_reference_no || layer.purchase_item_id,
+                      quantity: layer.available_quantity,
+                      unit: layer.base_unit || item.unit,
+                      cost: fmt(layer.base_unit_cost),
+                    })}
+                  </option>
+                ))}
+              </select>
+              {item.supplier_name ? (
+                <span className="field-helper-text">
+                  {t("salesForm.supplierSourceValue", { supplier: item.supplier_name })}
+                </span>
+              ) : null}
             </label>
 
             <label className="purchase-item-field sales-item-cost">
@@ -326,11 +345,6 @@ function SalesLineItemsSection({
           </div>
         );
       })}
-      <datalist id="sales-supplier-options">
-        {supplierNameOptions.map((name) => (
-          <option key={name} value={name} />
-        ))}
-      </datalist>
     </div>
   );
 }

@@ -20,6 +20,7 @@ from .models import (
     PaymentBatch,
     PaymentBatchLine,
     Product,
+    ProductSupplier,
     Purchase,
     PurchaseItem,
     Quotation,
@@ -34,6 +35,7 @@ from .serializers import (
     CustomerSerializer,
     PaymentBatchSerializer,
     ProductSerializer,
+    ProductSupplierSerializer,
     PurchaseSerializer,
     QuotationSerializer,
     SaleSerializer,
@@ -47,7 +49,9 @@ from .services import (
     build_dashboard_segment,
     build_dashboard_summary,
     get_available_stock_by_product_id,
+    get_available_stock_layers,
     get_product_metric_snapshots,
+    serialize_stock_layer,
 )
 
 
@@ -82,6 +86,7 @@ DECIMAL_FIELD_PLACES = {
     "quantity": 3,
     "base_quantity": 3,
     "conversion_factor": 6,
+    "base_unit_cost": 6,
 }
 
 JSON_LIST_FIELDS = {
@@ -332,6 +337,30 @@ def product_has_transaction_history(product):
     )
 
 
+@api_view(["GET"])
+def product_stock_layers(request, product_id):
+    product = Product.objects.filter(pk=product_id).first()
+    if product is None:
+        return Response(
+            {"error": "Product not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    layers = [
+        serialize_stock_layer(layer)
+        for layer in get_available_stock_layers(product_id)
+    ]
+    return Response(
+        {
+            "product_id": product.id,
+            "product_name": product.product_name,
+            "sku": product.sku,
+            "stock_base_unit": product.stock_base_unit,
+            "layers": layers,
+        }
+    )
+
+
 def build_billing_note_summary():
     today = timezone.localdate()
 
@@ -555,6 +584,32 @@ class SupplierViewSet(InventoryModelViewSet):
         return queryset
 
 
+class ProductSupplierViewSet(InventoryModelViewSet):
+    queryset = ProductSupplier.objects.select_related("product", "supplier").all()
+    serializer_class = ProductSupplierSerializer
+    search_fields = (
+        "product__product_name",
+        "product__sku",
+        "supplier__company_name",
+        "supplier_sku",
+    )
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        product_id = (self.request.query_params.get("product") or "").strip()
+        supplier_id = (self.request.query_params.get("supplier") or "").strip()
+        active = (self.request.query_params.get("active") or "").strip().lower()
+
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+        if supplier_id:
+            queryset = queryset.filter(supplier_id=supplier_id)
+        if active in {"1", "true", "yes"}:
+            queryset = queryset.filter(is_active=True)
+
+        return queryset
+
+
 class CustomerViewSet(InventoryModelViewSet):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
@@ -718,6 +773,8 @@ class SaleViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     reference_prefix = "TI"
     queryset = Sale.objects.select_related("customer").prefetch_related(
         "items__product",
+        "items__allocations__purchase_item__purchase",
+        "items__allocations__supplier",
         "documents",
         "billing_note_lines__billing_note",
         "credit_notes",

@@ -2,12 +2,14 @@ import json
 import math
 import re
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Prefetch, Q, Sum
 from django.utils.dateparse import parse_date
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from .models import (
     BillingNote,
@@ -15,10 +17,12 @@ from .models import (
     PaymentBatch,
     PaymentBatchLine,
     Product,
+    ProductSupplier,
     Purchase,
     PurchaseItem,
     Quotation,
     Sale,
+    SaleItemAllocation,
     SaleItem,
     Supplier,
 )
@@ -138,6 +142,323 @@ def get_purchase_item_base_unit_cost(item):
         return (item.unit_cost or Decimal("0")) / conversion_factor
 
     return Decimal("0")
+
+
+def sync_product_supplier_links_for_purchase(purchase):
+    if not purchase.supplier_id:
+        return
+
+    items = purchase.items.select_related("product").filter(product_id__isnull=False)
+    for item in items:
+        if item.item_status == PurchaseItem.ITEM_CANCELLED:
+            continue
+
+        defaults = {
+            "supplier_sku": item.sku or "",
+            "default_purchase_unit": item.unit or item.product.default_purchase_unit,
+            "default_unit_cost": item.unit_cost or Decimal("0"),
+            "lead_time_days": item.lead_time_days,
+            "min_order_qty": item.quantity or Decimal("0"),
+            "is_active": True,
+        }
+        ProductSupplier.objects.update_or_create(
+            product=item.product,
+            supplier=purchase.supplier,
+            defaults=defaults,
+        )
+
+
+def get_sale_item_allocated_cost(item):
+    allocations = getattr(item, "prefetched_allocations", None)
+    if allocations is None:
+        allocations = item.allocations.all()
+
+    total = sum(
+        (allocation.total_cost or Decimal("0"))
+        for allocation in allocations
+    )
+    if total > 0:
+        return total
+
+    quantity = item.quantity or Decimal("0")
+    return (item.unit_cost or Decimal("0")) * quantity
+
+
+def get_active_allocation_status_filter():
+    return {
+        "sale_item__item_status__in": SALE_STOCK_DEDUCTED_STATUSES,
+        "sale_item__sale__status__in": [
+            Sale.STATUS_PACKED,
+            Sale.STATUS_PARTIALLY_PACKED,
+            Sale.STATUS_SHIPPED,
+            Sale.STATUS_PARTIALLY_SHIPPED,
+            Sale.STATUS_DELIVERED,
+            Sale.STATUS_PARTIALLY_DELIVERED,
+        ],
+    }
+
+
+def get_purchase_item_allocated_quantity(purchase_item_id, exclude_sale_item_id=None):
+    allocations = SaleItemAllocation.objects.filter(
+        purchase_item_id=purchase_item_id,
+        **get_active_allocation_status_filter(),
+    )
+    if exclude_sale_item_id:
+        allocations = allocations.exclude(sale_item_id=exclude_sale_item_id)
+
+    return allocations.aggregate(total=Sum("base_quantity"))["total"] or Decimal("0")
+
+
+def get_purchase_item_remaining_quantity(purchase_item, exclude_sale_item_id=None):
+    if purchase_item.item_status != PurchaseItem.ITEM_RECEIVED:
+        return Decimal("0")
+
+    received_quantity = purchase_item.base_quantity or Decimal("0")
+    allocated_quantity = get_purchase_item_allocated_quantity(
+        purchase_item.id,
+        exclude_sale_item_id=exclude_sale_item_id,
+    )
+    return max(Decimal("0"), received_quantity - allocated_quantity)
+
+
+def get_available_stock_layers(product_id, exclude_sale_item_id=None):
+    layers = []
+    if not product_id:
+        return layers
+
+    purchase_items = (
+        PurchaseItem.objects.select_related("purchase", "purchase__supplier", "product")
+        .filter(
+            product_id=product_id,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            base_quantity__gt=0,
+        )
+        .order_by("received_date", "purchase__transaction_date", "purchase__created_at", "id")
+    )
+
+    for item in purchase_items:
+        available_quantity = get_purchase_item_remaining_quantity(
+            item,
+            exclude_sale_item_id=exclude_sale_item_id,
+        )
+        if available_quantity <= 0:
+            continue
+
+        layers.append(
+            {
+                "purchase_item": item,
+                "purchase_item_id": item.id,
+                "purchase_id": item.purchase_id,
+                "purchase_reference_no": item.purchase.reference_no or "",
+                "supplier_id": item.purchase.supplier_id,
+                "supplier_name": item.purchase.supplier_name or "",
+                "product_id": item.product_id,
+                "product_name": item.product_name,
+                "sku": item.sku,
+                "received_date": item.received_date,
+                "transaction_date": item.purchase.transaction_date,
+                "available_quantity": available_quantity,
+                "base_unit": item.base_unit,
+                "unit": item.unit,
+                "base_unit_cost": get_purchase_item_base_unit_cost(item),
+            }
+        )
+
+    return layers
+
+
+def serialize_stock_layer(layer):
+    return {
+        "purchase_item_id": layer["purchase_item_id"],
+        "purchase_id": layer["purchase_id"],
+        "purchase_reference_no": layer["purchase_reference_no"],
+        "supplier_id": layer["supplier_id"],
+        "supplier_name": layer["supplier_name"],
+        "product_id": layer["product_id"],
+        "product_name": layer["product_name"],
+        "sku": layer["sku"],
+        "received_date": layer["received_date"].isoformat() if layer["received_date"] else None,
+        "transaction_date": (
+            layer["transaction_date"].isoformat() if layer["transaction_date"] else None
+        ),
+        "available_quantity": as_number(layer["available_quantity"]),
+        "base_unit": layer["base_unit"],
+        "unit": layer["unit"],
+        "base_unit_cost": as_number(layer["base_unit_cost"]),
+    }
+
+
+def get_sale_item_requested_allocations(sale_item):
+    return getattr(sale_item, "_allocation_requests", None)
+
+
+def set_sale_item_cost_snapshot_from_allocations(sale_item):
+    allocations = list(sale_item.allocations.select_related("supplier"))
+    if not allocations:
+        return
+
+    total_base_quantity = sum(
+        (allocation.base_quantity or Decimal("0"))
+        for allocation in allocations
+    )
+    total_cost = sum(
+        (allocation.total_cost or Decimal("0"))
+        for allocation in allocations
+    )
+    if total_base_quantity <= 0:
+        return
+
+    quantity = sale_item.quantity or Decimal("0")
+    unit_cost = (
+        total_cost / quantity
+        if quantity > 0
+        else total_cost / total_base_quantity
+    )
+    unit_cost = unit_cost.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    update_fields = ["unit_cost"]
+    sale_item.unit_cost = unit_cost
+
+    supplier_names = {
+        allocation.supplier_name
+        for allocation in allocations
+        if allocation.supplier_name
+    }
+    if len(supplier_names) == 1:
+        allocation = allocations[0]
+        sale_item.supplier = allocation.supplier
+        sale_item.supplier_name = allocation.supplier_name
+        update_fields.extend(["supplier", "supplier_name"])
+
+    sale_item.save(update_fields=update_fields)
+
+
+def create_sale_item_allocation(sale_item, purchase_item, base_quantity):
+    base_quantity = Decimal(str(base_quantity or 0))
+    if base_quantity <= 0:
+        return None
+
+    base_unit_cost = get_purchase_item_base_unit_cost(purchase_item)
+    total_cost = (base_quantity * base_unit_cost).quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP,
+    )
+    quantity = base_quantity / (sale_item.conversion_factor or Decimal("1"))
+
+    return SaleItemAllocation.objects.create(
+        sale_item=sale_item,
+        purchase_item=purchase_item,
+        supplier=purchase_item.purchase.supplier,
+        supplier_name=purchase_item.purchase.supplier_name or "",
+        product=sale_item.product,
+        product_name=sale_item.product_name,
+        sku=sale_item.sku,
+        quantity=quantity,
+        base_quantity=base_quantity,
+        base_unit_cost=base_unit_cost,
+        total_cost=total_cost,
+    )
+
+
+def allocate_sale_item_from_requests(sale_item, allocation_requests):
+    requested_total = Decimal("0")
+
+    for allocation in allocation_requests or []:
+        purchase_item_id = str(
+            allocation.get("purchase_item_id") or allocation.get("purchaseItemId") or ""
+        ).strip()
+        if not purchase_item_id:
+            raise ValidationError("Allocation requires a purchase item.")
+
+        base_quantity = Decimal(str(allocation.get("base_quantity") or allocation.get("quantity") or 0))
+        if base_quantity <= 0:
+            raise ValidationError("Allocation quantity must be greater than zero.")
+
+        try:
+            purchase_item = (
+                PurchaseItem.objects.select_for_update()
+                .select_related("purchase", "purchase__supplier", "product")
+                .get(pk=purchase_item_id)
+            )
+        except PurchaseItem.DoesNotExist:
+            raise ValidationError("Selected stock source no longer exists.")
+
+        if purchase_item.product_id != sale_item.product_id:
+            raise ValidationError("Selected stock source does not match the sale product.")
+        if purchase_item.item_status != PurchaseItem.ITEM_RECEIVED:
+            raise ValidationError("Selected stock source has not been received.")
+
+        available_quantity = get_purchase_item_remaining_quantity(
+            purchase_item,
+            exclude_sale_item_id=sale_item.id,
+        )
+        if base_quantity > available_quantity:
+            raise ValidationError(
+                f"Insufficient stock in {purchase_item.purchase.reference_no or purchase_item.id}."
+            )
+
+        create_sale_item_allocation(sale_item, purchase_item, base_quantity)
+        requested_total += base_quantity
+
+    required_quantity = sale_item.base_quantity or Decimal("0")
+    if requested_total != required_quantity:
+        raise ValidationError("Sale item allocations must match the sale item quantity.")
+
+
+def allocate_sale_item_fifo(sale_item):
+    remaining_quantity = sale_item.base_quantity or Decimal("0")
+    if remaining_quantity <= 0:
+        return
+
+    layers = get_available_stock_layers(
+        sale_item.product_id,
+        exclude_sale_item_id=sale_item.id,
+    )
+    for layer in layers:
+        if remaining_quantity <= 0:
+            break
+
+        purchase_item = (
+            PurchaseItem.objects.select_for_update()
+            .select_related("purchase", "purchase__supplier", "product")
+            .get(pk=layer["purchase_item_id"])
+        )
+        available_quantity = get_purchase_item_remaining_quantity(
+            purchase_item,
+            exclude_sale_item_id=sale_item.id,
+        )
+        quantity = min(remaining_quantity, available_quantity)
+        create_sale_item_allocation(sale_item, purchase_item, quantity)
+        remaining_quantity -= quantity
+
+    if remaining_quantity > 0:
+        raise ValidationError(f"Insufficient stock for {sale_item.product_name}.")
+
+
+def sync_sale_item_allocations(sale_item):
+    if sale_item.item_status not in SALE_STOCK_DEDUCTED_STATUSES:
+        sale_item.allocations.all().delete()
+        return
+
+    allocation_requests = get_sale_item_requested_allocations(sale_item)
+    has_existing_allocations = sale_item.allocations.exists()
+    if allocation_requests is None and has_existing_allocations:
+        return
+
+    sale_item.allocations.all().delete()
+    if allocation_requests:
+        allocate_sale_item_from_requests(sale_item, allocation_requests)
+    else:
+        allocate_sale_item_fifo(sale_item)
+
+    set_sale_item_cost_snapshot_from_allocations(sale_item)
+
+
+def sync_sale_allocations(sale, sale_items=None):
+    sale_items = sale_items or list(sale.items.select_related("product").all())
+    with transaction.atomic():
+        Sale.objects.select_for_update().filter(pk=sale.pk).exists()
+        for sale_item in sale_items:
+            sync_sale_item_allocations(sale_item)
 
 
 def get_sale_item_base_unit_price(item):
@@ -1349,15 +1670,18 @@ def build_finance_segment(period, today=None):
         period_purchases.aggregate(total=Sum("grand_total"))["total"] or Decimal("0")
     )
 
-    sale_items = SaleItem.objects.filter(sale__in=period_sales).exclude(
-        item_status__in=SALE_INACTIVE_ITEM_STATUSES
+    sale_items = (
+        SaleItem.objects.filter(sale__in=period_sales)
+        .exclude(item_status__in=SALE_INACTIVE_ITEM_STATUSES)
+        .prefetch_related(
+            Prefetch("allocations", queryset=SaleItemAllocation.objects.all(), to_attr="prefetched_allocations")
+        )
     )
     revenue = Decimal("0")
     cost = Decimal("0")
-    for item in sale_items.iterator():
-        qty = Decimal(str(item.quantity or 0))
+    for item in sale_items.iterator(chunk_size=500):
         revenue += Decimal(str(item.amount or 0))
-        cost += Decimal(str(item.unit_cost or 0)) * qty
+        cost += get_sale_item_allocated_cost(item)
     gross_margin = revenue - cost
     margin_pct = (gross_margin / revenue * 100) if revenue > 0 else Decimal("0")
 
@@ -1480,14 +1804,17 @@ def build_products_segment(period, today=None):
     period_sales = Sale.objects.exclude(status__in=SALE_INACTIVE_TRANSACTION_STATUSES).filter(
         transaction_date__gte=start, transaction_date__lte=end
     )
-    sale_items = SaleItem.objects.filter(sale__in=period_sales).exclude(
-        item_status__in=SALE_INACTIVE_ITEM_STATUSES
+    sale_items = (
+        SaleItem.objects.filter(sale__in=period_sales)
+        .exclude(item_status__in=SALE_INACTIVE_ITEM_STATUSES)
+        .prefetch_related(
+            Prefetch("allocations", queryset=SaleItemAllocation.objects.all(), to_attr="prefetched_allocations")
+        )
     )
     product_margin = {}
-    for item in sale_items.iterator():
+    for item in sale_items.iterator(chunk_size=500):
         qty = Decimal(str(item.quantity or 0))
         amount = Decimal(str(item.amount or 0))
-        unit_cost = Decimal(str(item.unit_cost or 0))
         key = item.product_id or item.product_name
         bucket = product_margin.setdefault(
             key,
@@ -1501,7 +1828,7 @@ def build_products_segment(period, today=None):
             },
         )
         bucket["revenue"] += amount
-        bucket["cost"] += unit_cost * qty
+        bucket["cost"] += get_sale_item_allocated_cost(item)
         bucket["units"] += qty
 
     def _row(row):

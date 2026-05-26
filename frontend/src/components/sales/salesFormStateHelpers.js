@@ -51,6 +51,7 @@ export function updateProductQueryItems(currentItems, itemIndex, value) {
           product_name: "",
           sku: "",
           unit: "pcs",
+          allocation_purchase_item_id: "",
         }
       : item
   );
@@ -72,6 +73,7 @@ export function selectProductItems(currentItems, itemIndex, product, purchases) 
       product_name: productName,
       sku,
       unit: getProductUnit(product),
+      allocation_purchase_item_id: "",
     };
     const suggestedCost = getLatestSupplierCost(purchases, product.id, item.supplier_name);
 
@@ -201,10 +203,21 @@ export function buildSaleSubmissionItems(items, products, activeAllItemsDiscount
   return items
     .filter((item) => item.product_id && item.quantity && item.unit_price)
     .map((item) => {
-      const { line_id, ...itemPayload } = item;
+      const { line_id, allocation_purchase_item_id, ...itemPayload } = item;
       const selectedProduct = products.find(
         (product) => `${product.id}` === `${item.product_id}`
       );
+      const convertedFields = selectedProduct
+        ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
+        : {};
+      const allocations = allocation_purchase_item_id
+        ? [
+            {
+              purchase_item_id: allocation_purchase_item_id,
+              base_quantity: convertedFields.base_quantity ?? item.base_quantity ?? item.quantity,
+            },
+          ]
+        : undefined;
 
       return {
         ...itemPayload,
@@ -212,9 +225,8 @@ export function buildSaleSubmissionItems(items, products, activeAllItemsDiscount
         product_name: selectedProduct ? getProductName(selectedProduct) : item.product_name,
         sku: selectedProduct ? getProductSku(selectedProduct) : item.sku,
         discounts: item.discounts,
-        ...(selectedProduct
-          ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
-          : {}),
+        ...convertedFields,
+        ...(allocations ? { allocations } : {}),
         amount: computeAmount(item, activeAllItemsDiscount),
       };
     });

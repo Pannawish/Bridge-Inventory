@@ -64,6 +64,9 @@ export const api = {
   getProductHistory(productId) {
     return request(`/products/${productId}/history/`);
   },
+  getProductStockLayers(productId) {
+    return request(`/products/${productId}/stock-layers/`);
+  },
   getSupplierLookups(params) {
     return request("/lookups/suppliers/", { params });
   },

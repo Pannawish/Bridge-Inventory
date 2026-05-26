@@ -21,16 +21,22 @@ from .models import (
     PaymentBatchLine,
     Product,
     ProductPicture,
+    ProductSupplier,
     Purchase,
     PurchaseItem,
     Quotation,
     QuotationItem,
     Sale,
+    SaleItemAllocation,
     SaleItem,
     Supplier,
 )
 from .serializers import SaleSerializer
-from .services import SALE_STOCK_DEDUCTED_STATUSES
+from .services import (
+    SALE_STOCK_DEDUCTED_STATUSES,
+    build_finance_segment,
+    get_available_stock_layers,
+)
 
 
 TEST_MEDIA_ROOT = tempfile.mkdtemp()
@@ -731,6 +737,183 @@ class SaleStockValidationTests(APITestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["customer_po_reference"], "CPO-12345")
+
+
+class SaleItemAllocationTests(APITestCase):
+    def setUp(self):
+        self.today = timezone.localdate()
+        self.product = Product.objects.create(
+            sku="ALLOC-1",
+            product_name="Allocated Product",
+            stock_base_unit="pcs",
+            default_purchase_unit="pcs",
+            default_sales_unit="pcs",
+        )
+        self.supplier_a = Supplier.objects.create(company_name="Allocation Supplier A")
+        self.supplier_b = Supplier.objects.create(company_name="Allocation Supplier B")
+        self.layer_a = self._purchase_item(
+            supplier=self.supplier_a,
+            reference_no="PO-ALLOC-A",
+            quantity="5",
+            unit_cost="2",
+        )
+        self.layer_b = self._purchase_item(
+            supplier=self.supplier_b,
+            reference_no="PO-ALLOC-B",
+            quantity="5",
+            unit_cost="3",
+        )
+
+    def _purchase_item(self, supplier, reference_no, quantity, unit_cost):
+        purchase = Purchase.objects.create(
+            reference_no=reference_no,
+            supplier=supplier,
+            supplier_name=supplier.company_name,
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today,
+        )
+        return PurchaseItem.objects.create(
+            purchase=purchase,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            received_date=self.today,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal(quantity),
+            base_quantity=Decimal(quantity),
+            unit_cost=Decimal(unit_cost),
+            amount=Decimal(quantity) * Decimal(unit_cost),
+        )
+
+    def _sale_payload(self, quantity, allocations=None, unit_price="10"):
+        amount = Decimal(str(quantity)) * Decimal(unit_price)
+        item = {
+            "product_id": self.product.id,
+            "product_name": self.product.product_name,
+            "sku": self.product.sku,
+            "item_status": SaleItem.ITEM_PACKED,
+            "unit": "pcs",
+            "base_unit": "pcs",
+            "conversion_factor": "1",
+            "quantity": str(quantity),
+            "base_quantity": str(quantity),
+            "unit_price": unit_price,
+            "amount": str(amount),
+        }
+        if allocations is not None:
+            item["allocations"] = allocations
+
+        return {
+            "customer_name": "Allocation Customer",
+            "status": Sale.STATUS_PACKED,
+            "transaction_date": self.today.isoformat(),
+            "grand_total": str(amount),
+            "items": [item],
+        }
+
+    def test_packed_sale_allocates_fifo_layers_and_updates_remaining_stock_layers(self):
+        serializer = SaleSerializer(data=self._sale_payload("7"))
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        sale = serializer.save()
+
+        sale_item = sale.items.first()
+        self.assertEqual(sale_item.allocations.count(), 2)
+        self.assertEqual(
+            SaleItemAllocation.objects.filter(purchase_item=self.layer_a).get().base_quantity,
+            Decimal("5.000"),
+        )
+        self.assertEqual(
+            SaleItemAllocation.objects.filter(purchase_item=self.layer_b).get().base_quantity,
+            Decimal("2.000"),
+        )
+
+        layers = get_available_stock_layers(self.product.id)
+        remaining_by_layer = {
+            layer["purchase_item_id"]: layer["available_quantity"]
+            for layer in layers
+        }
+        self.assertNotIn(self.layer_a.id, remaining_by_layer)
+        self.assertEqual(remaining_by_layer[self.layer_b.id], Decimal("3.000"))
+
+    def test_manual_allocation_uses_selected_supplier_layer_for_margin(self):
+        serializer = SaleSerializer(
+            data=self._sale_payload(
+                "4",
+                allocations=[
+                    {
+                        "purchase_item_id": self.layer_b.id,
+                        "base_quantity": "4",
+                    }
+                ],
+            )
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+
+        allocation = SaleItemAllocation.objects.get()
+        self.assertEqual(allocation.purchase_item_id, self.layer_b.id)
+        self.assertEqual(allocation.supplier_name, self.supplier_b.company_name)
+        self.assertEqual(allocation.total_cost, Decimal("12.00"))
+
+        finance = build_finance_segment("1w", today=self.today)
+        self.assertEqual(Decimal(str(finance["gross_margin"])), Decimal("28"))
+
+    def test_manual_allocation_rejects_quantity_above_selected_layer(self):
+        serializer = SaleSerializer(
+            data=self._sale_payload(
+                "6",
+                allocations=[
+                    {
+                        "purchase_item_id": self.layer_a.id,
+                        "base_quantity": "6",
+                    }
+                ],
+            )
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+        with self.assertRaisesMessage(Exception, "Insufficient stock"):
+            serializer.save()
+
+    def test_purchase_create_syncs_product_supplier_catalog_link(self):
+        product = Product.objects.create(
+            sku="ALLOC-CATALOG",
+            product_name="Catalog Product",
+            stock_base_unit="pcs",
+            default_purchase_unit="box",
+            default_sales_unit="pcs",
+        )
+        payload = {
+            "supplier_id": self.supplier_a.id,
+            "supplier_name": self.supplier_a.company_name,
+            "status": Purchase.STATUS_RECEIVED,
+            "transaction_date": self.today.isoformat(),
+            "items": [
+                {
+                    "product_id": product.id,
+                    "product_name": product.product_name,
+                    "sku": product.sku,
+                    "item_status": PurchaseItem.ITEM_RECEIVED,
+                    "unit": "box",
+                    "base_unit": "pcs",
+                    "conversion_factor": "10",
+                    "quantity": "2",
+                    "base_quantity": "20",
+                    "unit_cost": "50",
+                    "amount": "100",
+                }
+            ],
+        }
+
+        response = self.client.post("/api/purchases/", payload, format="json")
+
+        self.assertEqual(response.status_code, 201)
+        link = ProductSupplier.objects.get(product=product, supplier=self.supplier_a)
+        self.assertEqual(link.default_purchase_unit, "box")
+        self.assertEqual(link.default_unit_cost, Decimal("50.00"))
 
 
 class PurchaseItemStatusTests(APITestCase):

@@ -79,6 +79,7 @@ export function emptyItem() {
     unit_price: "",
     supplier_name: "",
     unit_cost: "",
+    allocation_purchase_item_id: "",
     discounts: [""],
   };
 }
@@ -104,6 +105,12 @@ export function createInitialItems(prefill = {}) {
     unit_price: item.unit_price ?? item.sale_price ?? "",
     supplier_name: item.supplier_name || "",
     unit_cost: item.unit_cost ?? item.cost_price ?? "",
+    allocation_purchase_item_id:
+      item.allocation_purchase_item_id ||
+      item.allocationPurchaseItemId ||
+      (Array.isArray(item.allocations) && item.allocations.length === 1
+        ? item.allocations[0].purchase_item_id
+        : ""),
     discounts: Array.isArray(item.discounts)
       ? item.discounts
       : Number(item.discount) > 0

@@ -50,6 +50,8 @@ function SalesForm({
     updateProductQuery,
     selectProduct,
     updateSupplier,
+    updateStockSource,
+    stockLayersByProductId,
     addDiscount,
     removeDiscount,
     updateDiscount,
@@ -134,6 +136,7 @@ function SalesForm({
           items={items}
           products={products}
           suppliers={suppliers}
+          stockLayersByProductId={stockLayersByProductId}
           activeAllItemsDiscount={activeAllItemsDiscount}
           openProductIndex={openProductIndex}
           itemErrors={itemErrors}
@@ -145,6 +148,7 @@ function SalesForm({
           onSetOpenProductIndex={setOpenProductIndex}
           onSelectProduct={selectProduct}
           onUpdateSupplier={updateSupplier}
+          onUpdateStockSource={updateStockSource}
           onAddDiscount={addDiscount}
           onRemoveDiscount={removeDiscount}
           onUpdateDiscount={updateDiscount}
