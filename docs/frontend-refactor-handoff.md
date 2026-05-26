@@ -1,144 +1,127 @@
-# Frontend Refactor Handoff
+# Frontend Maintainability Refactoring Playbook
 
-## Goal
-Reduce oversized frontend files for maintainability without changing behavior.
+This document serves as the official architectural standard and operational playbook for refactoring oversized React files in this repository. All subsequent engineering agents and developers must strictly adhere to these patterns and guardrails to ensure consistent quality, high code readability, and zero regression of system behaviors.
 
-## Scope And Guardrails
-- Keep existing create/edit/delete workflows unchanged.
-- Keep backend-driven validation and eligibility behavior intact.
-- Preserve mock-data fallback behavior.
-- Keep all user-facing strings on `t()` and add new strings to both language dictionaries if needed.
-- Prefer extracting focused hooks, helpers, and child components over adding more logic into large containers.
-- Do not mix style rewrites into maintainability refactors.
-- Preserve the current compact square UI system.
+---
 
-## Preferred Refactor Pattern
-1. Inspect the target file and identify clear responsibility clusters.
-2. Extract pure helpers first when possible.
-3. Extract state/workflow logic into a focused hook if the container still owns too much.
-4. Keep the main page or form as a composition/orchestration layer.
-5. Preserve existing imports and public behavior where practical.
-6. Run verification after each step.
+## 1. Architectural Vision: The Three-Tier Separation Pattern
 
-## Verification
-- `cd frontend && npm run build`
+To ensure high readability and maintainability, our system utilizes a **Three-Tier Separation Pattern** for all components, pages, forms, and modals. This separates layout structure, state workflow, and business validation/calculation:
 
-Optional broader checks from repo standards:
-- `backend/.venv/bin/python backend/manage.py check`
-- `backend/.venv/bin/python backend/manage.py makemigrations --check --dry-run`
-- `backend/.venv/bin/python backend/manage.py test inventory`
-- `cd frontend && npm audit --audit-level=moderate`
+```mermaid
+graph TD
+    A["Composition Shell (Page / Form / Modal)"] -->|Consumes| B["Stateful Orchestration Hook (useXXXState.js)"]
+    B -->|Delegates to| C["Pure Stateless Helpers (xxxHelpers.js / xxxUtils.js)"]
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style C fill:#bfb,stroke:#333,stroke-width:2px
+```
 
-## Completed Refactor Areas
-- `frontend/src/components/ProductsPage.jsx`
-  - split into product-specific components, hooks, and helpers
-  - default product seed data moved out
-  - second-pass: orchestration extracted to `frontend/src/components/products/useProductsPageState.js` (402 lines)
-  - save/delete/enable/disable validation extracted to `frontend/src/components/products/productsPageHelpers.js` (231 lines)
-  - page reduced to 133-line composition shell
-- `frontend/src/App.jsx`
-  - action clusters moved into focused hooks
-  - shell/layout and active-tab rendering extracted
-  - chat and app message helpers extracted
-  - second-pass: complete state orchestration, effects, actions and warning system extracted to `frontend/src/app/useAppState.js` (304 lines)
-  - App.jsx reduced to 124-line layout composition shell
-- `frontend/src/components/QuotationPage.jsx`
-  - form, detail modal, directory section, conversion flow, purchase wizard wrapper extracted
-  - directory state moved into a dedicated hook
-- `frontend/src/components/quotation/QuotationForm.jsx`
-  - state/workflow extracted to `frontend/src/components/quotation/useQuotationFormState.js` (385 lines)
-  - form reduced to 136-line composition shell
-- `frontend/src/hooks/useAppTransactionActions.js`
-  - split into domain-specific sub-hooks
-  - now a 12-line barrel re-export orchestrator
-- `frontend/src/hooks/useProductEditorState.js`
-  - pure draft mutation helpers extracted to `frontend/src/hooks/productEditorStateHelpers.js` (265 lines)
-  - hook stabilized at 310 lines
-- `frontend/src/components/PurchaseHistoryPage.jsx`
-  - edit form, directory section, helpers extracted
-  - edit form state extracted to `frontend/src/components/purchases/usePurchaseEditFormState.js` (353 lines)
-  - page state and orchestration extracted to `frontend/src/components/purchases/usePurchaseHistoryPageState.js` (335 lines)
-  - pure helpers extracted to `frontend/src/components/purchases/purchaseHistoryUtils.js` (385 lines)
-  - page reduced to a 117-line thin composition shell
-- `frontend/src/components/SalesHistoryPage.jsx`
-  - edit form, directory section, helpers extracted
-  - directory state moved into a dedicated hook
-  - edit form state extracted to `frontend/src/components/sales/useSalesEditFormState.js` (422 lines)
-  - pure helpers extracted to `frontend/src/components/sales/salesHistoryUtils.js` (407 lines)
-- `frontend/src/components/BillingNotePage.jsx`
-  - create/detail flows, directory section, helpers, and directory state extracted
-- `frontend/src/components/PaymentBatchPage.jsx`
-  - create/detail flows, directory section, helpers, and directory state extracted
-- `frontend/src/components/CreditNotePage.jsx`
-  - create/detail flows, directory section, helpers, and directory state extracted
-- `frontend/src/components/InventoryPage.jsx`
-  - overview/reference UI extracted
-  - directory state and directory section extracted
-- `frontend/src/components/SalesForm.jsx`
-  - split into section components
-  - remaining state/workflow extracted to `frontend/src/components/sales/useSalesFormState.js`
-  - second-pass pure helper extraction into `frontend/src/components/sales/salesFormStateHelpers.js`
-- `frontend/src/components/PurchaseForm.jsx`
-  - split into section components
-  - remaining state/workflow extracted to `frontend/src/components/purchases/usePurchaseFormState.js`
-  - second-pass pure helper extraction into `frontend/src/components/purchases/purchaseFormStateHelpers.js`
-- `frontend/src/components/CategoryPage.jsx`
-  - state/workflow extracted to `frontend/src/components/categories/useCategoryPageState.js` (388 lines)
-  - tree/filter helpers extracted to `frontend/src/components/categories/categoryPageHelpers.js` (210 lines)
-- `frontend/src/components/CustomerPage.jsx`
-  - state/workflow extracted to `frontend/src/components/customers/useCustomerPageState.js` (347 lines)
-  - filter helpers extracted to `frontend/src/components/customers/customerPageHelpers.js` (44 lines)
-  - page reduced to 151-line composition shell
-- `frontend/src/components/SupplierPage.jsx`
-  - state/workflow extracted to `frontend/src/components/suppliers/useSupplierPageState.js` (343 lines)
-  - filter helpers extracted to `frontend/src/components/suppliers/supplierPageHelpers.js` (46 lines)
-  - page reduced to 146-line composition shell
-- `frontend/src/components/quotation/quotationUtils.js`
-  - decomposed into:
-    - `frontend/src/components/quotation/quotationDateUtils.js`
-    - `frontend/src/components/quotation/quotationValueUtils.js`
-    - `frontend/src/components/quotation/quotationDirectoryUtils.js`
-    - `frontend/src/components/quotation/quotationConversionUtils.js`
-  - `quotationUtils.js` now acts as a thin barrel export
-- Shared transaction/document components
-  - `DocumentRefModal.jsx` reduced by extracting document body/config helpers
-  - `TransactionDetailModal.jsx` reduced by extracting detail subcomponents
-  - `ProductDetailModal.jsx` reduced by extracting profile/history/transaction subcomponents
-- `frontend/src/components/billing/BillingNoteDetailModal.jsx`
-  - billing note detail state/handlers extracted to `useBillingNoteDetailState.js` (77 lines)
-  - pure calculation/transformation helpers extracted to `billingNoteDetailHelpers.js` (87 lines)
-  - modal reduced to a 332-line composition shell
-- `frontend/src/components/payments/PaymentBatchDetailModal.jsx`
-  - payment batch detail state/handlers extracted to `usePaymentBatchDetailState.js` (71 lines)
-  - pure transformation helpers extracted to `paymentBatchDetailHelpers.js` (74 lines)
-  - modal reduced to a 267-line composition shell
-- `frontend/src/components/suppliers/SupplierEditorModal.jsx`
-  - dynamially rendered dynamic dropdown text inputs extracted into shared component `ContactOptionField.jsx` (42 lines)
-  - identity, procurement, contact, and delivery form sections extracted into separate components
-  - modal reduced to a 108-line composition shell
-- `frontend/src/components/customers/CustomerEditorModal.jsx`
-  - dynamially rendered dynamic dropdown text inputs extracted into shared component `ContactOptionField.jsx` (42 lines)
-  - identity, contact, and delivery form sections extracted into separate components
-  - modal reduced to a 99-line composition shell
+### 📋 Tier Definition & Responsibilities
 
-## Current Best Next Targets
-Current approximate sizes:
-- `frontend/src/components/Dashboard.jsx`: 367 lines
+| Tier | File Naming | Core Responsibility | Permitted Elements |
+|---|---|---|---|
+| **1. Composition Shell** | `MyComponent.jsx` | Renders layouts, structural templates, styling wrappers, and routes. | JSX, UI subcomponents, destructured properties from its custom hook. **Zero custom state declarations, raw handlers, or effects.** |
+| **2. Stateful Hook** | `useMyComponentState.js` | Coordinates data fetching, manages React state flags, triggers side-effects, and orchestrates callbacks. | `useState`, `useEffect`, `useMemo`, `useLanguage`, API triggers, validation runners. |
+| **3. Stateless Helper** | `myComponentHelpers.js` | Executes complex calculations, string formatting, list filters, form validations, and draft payload builds. | Pure JS functions. **Zero React imports, zero states, zero hooks, and zero side effects.** |
 
-Recommended order:
-1. `frontend/src/components/Dashboard.jsx`
+> [!IMPORTANT]
+> **Primary Rule of Refactoring**: Low-risk extraction is always preferred over broad rewrites. Do not change visual layout borders, spacing styles, or network integration behaviors during a maintainability refactor.
 
-## Target Notes
+---
 
-### 1. `frontend/src/components/Dashboard.jsx`
-Recommended outcome:
-- extract dashboard data fetching/processing into a hook
-- extract chart configuration or metric calculations into helpers
-- keep the component as a layout shell
+## 2. Refactoring Workflow: Step-by-Step
 
-## Working Rules For Future Agents
-- Favor low-risk extraction over broad rewrites.
-- Keep file ownership clear: page/form as composition, hook as workflow, helper as pure logic.
-- When splitting a utility file, prefer a barrel export if many existing imports already point to the original module.
-- Do not remove compatibility exports in the same change unless all local consumers are updated and verified.
-- Report resulting file sizes after each refactor step.
+Follow this systematic step-by-step approach when addressing any remaining oversized target in the codebase:
+
+### Phase 1: Analysis & Scoping
+1. Open the monolithic file and map out the state variables (`useState`), side-effects (`useEffect`), and internal handlers.
+2. Locate contiguous blocks of business calculations, form validators, or list transformers that do not rely directly on React state setter functions.
+
+### Phase 2: Extracting Pure Logic
+1. Create a `xxxHelpers.js` or `xxxUtils.js` module in the same component folder.
+2. Move pure logic functions (e.g. calculation of totals, date format helpers, validation payload checks) into the new file.
+3. Write clean, descriptive JSDoc block comments explaining non-obvious rules.
+4. Export these functions explicitly.
+
+### Phase 3: Building the Orchestration Hook
+1. Create `useXXXState.js` in the component directory.
+2. Move all React state variables, `useLanguage()`, custom API hooks, and `useEffect` actions into the hook.
+3. Replace inline state mutation blocks inside event handlers with delegation calls to the helper functions (passing the draft state as an argument and returning the next state).
+4. Return a structured flat object containing states, formatted view metrics, and action callbacks.
+
+### Phase 4: Compacting the Composition Shell
+1. Import the custom state hook inside the main file `MyComponent.jsx`.
+2. Invoke the hook at the top level and destructure the required properties.
+3. Bind form triggers and input values directly to the destructured state properties and callbacks.
+4. Clean up unused imports at the top of the file.
+
+---
+
+## 3. Strict Scope & Guardrails
+
+> [!WARNING]
+> Refactoring must be highly surgical. Do not mix stylistic modifications, layout rewrites, or framework upgrades into maintainability refactoring tasks.
+
+- **Workflows Preservation**: Keep existing creation, editing, deletion, state status toggling, and page navigation flows completely intact.
+- **Bilingual Context Requirements**: Every user-facing UI text string must be retrieved via the internationalization hook `t()` and present in both language dictionary arrays (`en` and `th`) inside `frontend/src/i18n/translations.js`.
+- **Validation Authority**: Ensure that client-side validations (e.g. SKU locks, required flags, email checks) accurately mirror the constraints documented in `contactValidation.js` or the backend API.
+- **Relational Fallbacks**: Never break fallback systems designed for mock data or missing relational connections.
+- **Compact UI Spacing**: Keep styling aligned with the square compact layout design system (borders, 4px card borders, dense spacing grids).
+
+---
+
+## 4. Quality Verification Standards
+
+Proactively execute the verification suite after completing a refactor of any component:
+
+```bash
+# 1. Compile the production bundle using Vite (MUST return zero warnings or compilation errors)
+cd frontend
+npm run build
+
+# 2. Audit dependencies for security issues
+npm audit --audit-level=moderate
+```
+
+---
+
+## 5. Architectural Map: Completed Refactors
+
+Below is a master reference log of all refactored pages, forms, and modals completed inside the repository:
+
+### 🌟 Core Pages & Orchestration
+- **[App.jsx](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/App.jsx)** (392 → 124 lines)
+  - Completely reduced to a layout composition shell.
+  - State orchestration, sync effects, warning mechanisms, and custom hooks consolidated in **[useAppState.js](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/app/useAppState.js)**.
+- **[ProductsPage.jsx](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/components/ProductsPage.jsx)** (518 → 133 lines)
+  - Decomposed into a layout orchestrator.
+  - State workflow and validations extracted to **[useProductsPageState.js](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/components/products/useProductsPageState.js)** and **[productsPageHelpers.js](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/components/products/productsPageHelpers.js)**.
+- **[PurchaseHistoryPage.jsx](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/components/PurchaseHistoryPage.jsx)** (362 → 117 lines)
+  - Filter matrices, presets, active chips, and pagination extracted to **[usePurchaseHistoryPageState.js](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/components/purchases/usePurchaseHistoryPageState.js)**.
+
+### 💼 Master Directories (Pages, Forms, and Modals)
+- **Category, Customer, & Supplier Pages**
+  - Page states and filtering helpers decomposed into custom page state hooks and separate filter helpers.
+- **Supplier & Customer Editor Modals**
+  - Consolidated duplicate custom dropdown lists into **[ContactOptionField.jsx](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/components/ContactOptionField.jsx)**.
+  - Extracted nested form layouts into highly focused section subcomponents. Modals reduced to thin composition wrappers (< 110 lines).
+
+### 🧾 Transactional Modals & Utilities
+- **[BillingNoteDetailModal.jsx](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/components/billing/BillingNoteDetailModal.jsx)** (413 → 332 lines)
+  - Details state and modal triggers moved to **[useBillingNoteDetailState.js](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/components/billing/useBillingNoteDetailState.js)**.
+  - Line mutation state transformations moved to pure transformations in **[billingNoteDetailHelpers.js](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/components/billing/billingNoteDetailHelpers.js)**.
+- **[PaymentBatchDetailModal.jsx](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/components/payments/PaymentBatchDetailModal.jsx)** (346 → 267 lines)
+  - Details and lines marking workflow moved to **[usePaymentBatchDetailState.js](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/components/payments/usePaymentBatchDetailState.js)**.
+  - State transformation helpers extracted to **[paymentBatchDetailHelpers.js](file:///Users/peto/Documents/Inventory-Management-frontend/frontend/src/components/payments/paymentBatchDetailHelpers.js)**.
+
+---
+
+## 6. Current Refactor Targets & Focus Areas
+
+### 🎯 Next Target: `frontend/src/components/Dashboard.jsx` (367 lines)
+
+#### Recommended Refactor Approach:
+- **State & Data Extraction**: Move dashboard API fetches, loading flags, filter dates, and summary computations into a custom state hook `useDashboardState.js`.
+- **Chart Configuration**: Move chart configurations, metric aggregations, and formatting transforms into a pure helper `dashboardHelpers.js`.
+- **Composition Layout**: Keep `Dashboard.jsx` as a structural grid of dashboard cards and visual charts.
