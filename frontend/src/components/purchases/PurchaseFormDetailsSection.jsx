@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getStatusLabel } from "../../i18n/statusLabels";
 import { purchaseStatuses } from "../../purchaseStatus";
+import TransactionDocumentsPanel from "../transactions/TransactionDocumentsPanel";
 import { getFilteredSuppliers } from "./purchaseFormUtils";
 
 function PurchaseFormDetailsSection({
@@ -169,46 +170,17 @@ function PurchaseFormDetailsSection({
         />
       </label>
 
-      <div className="transaction-document-panel full-width">
-        <div className="transaction-document-panel-header">
-          <div>
-            <strong>{t("purchaseForm.documentsLabel")}</strong>
-            <span>
-              {form.documents.length
-                ? t("purchaseForm.documentsSelected", { count: form.documents.length })
-                : t("purchaseForm.noDocumentsSelected")}
-            </span>
-          </div>
-          <label className="document-upload-button">
-            {t("purchaseForm.documentsAddFiles")}
-            <input
-              type="file"
-              multiple
-              onChange={(event) => onDocumentsAdd(Array.from(event.target.files || []))}
-            />
-          </label>
-        </div>
-
-        {form.documents.length ? (
-          <div className="transaction-document-list">
-            {form.documents.map((document, index) => (
-              <span className="transaction-document-row" key={`${document.name}-${index}`}>
-                <span>{document.name}</span>
-                <button
-                  className="text-danger-button"
-                  type="button"
-                  aria-label={t("purchaseForm.documentRemove")}
-                  onClick={() => onDocumentRemove(index)}
-                >
-                  {t("purchaseForm.documentRemove")}
-                </button>
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="transaction-document-empty">{t("purchaseForm.documentsEmpty")}</p>
-        )}
-      </div>
+      <TransactionDocumentsPanel
+        documentLabelKey="purchaseForm.documentsLabel"
+        summaryCountKey="purchaseForm.documentsSelected"
+        summaryEmptyKey="purchaseForm.noDocumentsSelected"
+        addFilesLabelKey="purchaseForm.documentsAddFiles"
+        emptyMessageKey="purchaseForm.documentsEmpty"
+        pendingDocuments={form.documents}
+        removePendingLabelKey="purchaseForm.documentRemove"
+        onAddDocuments={onDocumentsAdd}
+        onRemovePendingDocument={onDocumentRemove}
+      />
     </div>
   );
 }

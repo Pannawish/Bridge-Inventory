@@ -1,5 +1,6 @@
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getStatusLabel } from "../../i18n/statusLabels";
+import TransactionDocumentsPanel from "../transactions/TransactionDocumentsPanel";
 import { statusOptions } from "./salesHistoryUtils";
 
 function SalesEditDetailsSection({
@@ -157,78 +158,27 @@ function SalesEditDetailsSection({
         <textarea rows="3" value={form.note} onChange={(event) => onUpdateForm("note", event.target.value)} />
       </label>
 
-      <div className="transaction-document-panel full-width">
-        <div className="transaction-document-panel-header">
-          <div>
-            <strong>{t("salesForm.documentsLabel")}</strong>
-            <span>
-              {visibleDocuments.length + form.new_documents.length
-                ? t("transactionTable.attachedCount", {
-                    count: visibleDocuments.length + form.new_documents.length,
-                  })
-                : t("salesForm.noDocumentsAttached")}
-            </span>
-          </div>
-          <label className="document-upload-button">
-            {t("salesForm.documentsAddFiles")}
-            <input
-              type="file"
-              multiple
-              onChange={(event) => onAddDocuments(Array.from(event.target.files || []))}
-            />
-          </label>
-        </div>
-
-        {visibleDocuments.length || form.new_documents.length ? (
-          <>
-            <div className="transaction-document-list">
-              {visibleDocuments.map((document) => (
-                <span className="transaction-document-row" key={document.id}>
-                  <a href={document.url} target="_blank" rel="noreferrer">
-                    {document.name}
-                  </a>
-                  <button
-                    className="text-danger-button"
-                    type="button"
-                    onClick={() => onDeleteVisibleDocument(document.id)}
-                  >
-                    {t("salesForm.documentDelete")}
-                  </button>
-                </span>
-              ))}
-              {form.new_documents.map((document, index) => (
-                <span className="transaction-document-row" key={`${document.name}-${index}`}>
-                  <span>{document.name}</span>
-                  <button
-                    className="text-danger-button"
-                    type="button"
-                    onClick={() => onRemoveNewDocument(index)}
-                  >
-                    {t("salesForm.documentRemove")}
-                  </button>
-                </span>
-              ))}
-            </div>
-            <div className="transaction-document-actions">
-              <button className="secondary-button" type="button" onClick={onRemoveAllDocuments}>
-                {t("salesForm.documentRemoveAll")}
-              </button>
-            </div>
-          </>
-        ) : form.remove_document_ids.length ? (
-          <div className="transaction-document-state">
-            <div>
-              <strong>{t("purchaseForm.documentMarkedDeletion")}</strong>
-              <span>{t("purchaseForm.documentMarkedDeletionHelp")}</span>
-            </div>
-            <button className="secondary-button" type="button" onClick={onUndoRemoveDocuments}>
-              {t("purchaseForm.documentUndo")}
-            </button>
-          </div>
-        ) : (
-          <p className="transaction-document-empty">{t("salesForm.documentsEmpty")}</p>
-        )}
-      </div>
+      <TransactionDocumentsPanel
+        documentLabelKey="salesForm.documentsLabel"
+        summaryCountKey="transactionTable.attachedCount"
+        summaryEmptyKey="salesForm.noDocumentsAttached"
+        addFilesLabelKey="salesForm.documentsAddFiles"
+        emptyMessageKey="salesForm.documentsEmpty"
+        pendingDocuments={form.new_documents}
+        visibleDocuments={visibleDocuments}
+        removedDocumentIds={form.remove_document_ids}
+        removePendingLabelKey="salesForm.documentRemove"
+        deleteVisibleLabelKey="salesForm.documentDelete"
+        removeAllLabelKey="salesForm.documentRemoveAll"
+        markedDeletionTitleKey="purchaseForm.documentMarkedDeletion"
+        markedDeletionHelpKey="purchaseForm.documentMarkedDeletionHelp"
+        undoLabelKey="purchaseForm.documentUndo"
+        onAddDocuments={onAddDocuments}
+        onRemovePendingDocument={onRemoveNewDocument}
+        onDeleteVisibleDocument={onDeleteVisibleDocument}
+        onRemoveAllDocuments={onRemoveAllDocuments}
+        onUndoRemoveDocuments={onUndoRemoveDocuments}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
+import TransactionDocumentsPanel from "../transactions/TransactionDocumentsPanel";
 import { getFilteredCustomers } from "./salesFormUtils";
 
 function SalesFormDetailsSection({
@@ -170,45 +171,17 @@ function SalesFormDetailsSection({
         />
       </label>
 
-      <div className="transaction-document-panel full-width">
-        <div className="transaction-document-panel-header">
-          <div>
-            <strong>{t("salesForm.documentsLabel")}</strong>
-            <span>
-              {form.documents.length
-                ? t("salesForm.documentsSelected", { count: form.documents.length })
-                : t("salesForm.noDocumentsSelected")}
-            </span>
-          </div>
-          <label className="document-upload-button">
-            {t("salesForm.documentsAddFiles")}
-            <input
-              type="file"
-              multiple
-              onChange={(event) => onDocumentsAdd(Array.from(event.target.files || []))}
-            />
-          </label>
-        </div>
-
-        {form.documents.length ? (
-          <div className="transaction-document-list">
-            {form.documents.map((document, index) => (
-              <span className="transaction-document-row" key={`${document.name}-${index}`}>
-                <span>{document.name}</span>
-                <button
-                  className="text-danger-button"
-                  type="button"
-                  onClick={() => onDocumentRemove(index)}
-                >
-                  {t("salesForm.documentRemove")}
-                </button>
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="transaction-document-empty">{t("salesForm.documentsEmpty")}</p>
-        )}
-      </div>
+      <TransactionDocumentsPanel
+        documentLabelKey="salesForm.documentsLabel"
+        summaryCountKey="salesForm.documentsSelected"
+        summaryEmptyKey="salesForm.noDocumentsSelected"
+        addFilesLabelKey="salesForm.documentsAddFiles"
+        emptyMessageKey="salesForm.documentsEmpty"
+        pendingDocuments={form.documents}
+        removePendingLabelKey="salesForm.documentRemove"
+        onAddDocuments={onDocumentsAdd}
+        onRemovePendingDocument={onDocumentRemove}
+      />
     </div>
   );
 }
