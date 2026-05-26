@@ -245,23 +245,36 @@ List endpoints stay unpaginated unless pagination is requested. Supported respon
 
 ## Contributing
 
-Issues, fixes, and workflow improvements are welcome. High-value contributions usually fall into one of these areas:
+This repository should be understandable and maintainable for future developers, including contributors who may work without an active pull request review cycle.
 
-- workflow polish for quotations, purchases, and sales
-- maintainability improvements in large frontend modules
-- backend tests around stock, finance, and eligibility rules
-- UX improvements for dense operational tables and forms
+Future developers should read [AGENTS.md](AGENTS.md) before making major changes. It captures the project standards, architecture constraints, validation rules, UI expectations, pagination conventions, and current refactor direction.
 
-Before opening major changes, read [AGENTS.md](AGENTS.md). It captures the current architecture constraints and project standards.
+High-value contribution areas usually include:
+
+- workflow polish for quotations, purchases, sales, billing notes, payment batches, and credit notes
+- maintainability improvements in large frontend modules and orchestration hooks
+- backend tests for stock rules, finance logic, reference handling, and eligibility validation
+- UX improvements for compact operational tables, forms, and transaction detail views
+
+When contributing, assume the next developer may need to understand your change without extra context. Keep changes scoped, preserve existing workflows, avoid unrelated formatting churn, and update documentation when behavior, architecture expectations, or developer workflow changes.
+
+Before considering a contribution complete, future developers should:
+
+- run the backend checks and tests listed in this README
+- run the frontend build and audit commands listed in this README
+- keep frontend strings bilingual through `t()` and `frontend/src/i18n/translations.js`
+- preserve mock-data fallbacks unless the change explicitly replaces them
+- leave clear file boundaries and names when refactoring large modules
 
 ## Roadmap Direction
 
 Current improvement direction in this repository includes:
 
-- splitting oversized frontend files into more focused modules
-- strengthening reusable transaction detail UI
+- finishing the remaining mixed frontend components, especially `Dashboard.jsx`
+- preventing large orchestration hooks from becoming the next monoliths
+- strengthening reusable transaction detail and directory UI
 - preserving behavior while improving maintainability
-- continuing to tighten stock, pricing, and finance accuracy
+- continuing to tighten stock, pricing, reference handling, and finance accuracy
 
 ## Audience
 
