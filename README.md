@@ -245,24 +245,32 @@ List endpoints stay unpaginated unless pagination is requested. Supported respon
 
 ## Contributing
 
-This repository should be understandable and maintainable for future developers, including contributors who may work without an active pull request review cycle.
+This repository is intended to be usable by future developers who download, clone, or fork it and continue development for their own business, internal tooling, learning, or personal use.
 
-Future developers should read [AGENTS.md](AGENTS.md) before making major changes. It captures the project standards, architecture constraints, validation rules, UI expectations, pagination conventions, and current refactor direction.
+If you adopt this codebase as the starting point for your own program, read [AGENTS.md](AGENTS.md) before making major changes. It captures the project standards, architecture constraints, validation rules, UI expectations, pagination conventions, and current refactor direction.
 
-High-value contribution areas usually include:
+Future developers should understand these project assumptions before extending it:
+
+- the system is built for an SME trading workflow that buys from suppliers and resells to customers
+- stock validation and transaction eligibility rules are enforced primarily in the backend
+- the frontend is bilingual and new UI strings must be added through `t()` and `frontend/src/i18n/translations.js`
+- mock-data fallbacks still exist in parts of the frontend and should not be removed casually
+- historical transaction snapshot fields are intentional and should be preserved unless you are doing a deliberate data-model change
+
+Common extension areas usually include:
 
 - workflow polish for quotations, purchases, sales, billing notes, payment batches, and credit notes
 - maintainability improvements in large frontend modules and orchestration hooks
 - backend tests for stock rules, finance logic, reference handling, and eligibility validation
 - UX improvements for compact operational tables, forms, and transaction detail views
 
-When contributing, assume the next developer may need to understand your change without extra context. Keep changes scoped, preserve existing workflows, avoid unrelated formatting churn, and update documentation when behavior, architecture expectations, or developer workflow changes.
+When continuing development, assume the next developer may inherit your version of the project without any extra context. Keep changes scoped, preserve existing workflows unless you are intentionally redesigning them, avoid unrelated formatting churn, and update documentation when behavior, architecture expectations, or setup steps change.
 
-Before considering a contribution complete, future developers should:
+Before considering a change complete, future developers should:
 
 - run the backend checks and tests listed in this README
 - run the frontend build and audit commands listed in this README
-- keep frontend strings bilingual through `t()` and `frontend/src/i18n/translations.js`
+- keep frontend strings bilingual through `t()` and `frontend/src/i18n/translations.js` unless you are intentionally converting the project to a single-language app
 - preserve mock-data fallbacks unless the change explicitly replaces them
 - leave clear file boundaries and names when refactoring large modules
 
