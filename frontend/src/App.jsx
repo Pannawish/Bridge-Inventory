@@ -20,6 +20,7 @@ function App() {
         onOpenSidebar={() => state.setSidebarOpen(true)}
         onSelectTab={state.handleTabSelect}
         onCloseNotice={() => state.setNotice("")}
+        onCloseError={() => state.setError("")}
         t={state.t}
       >
         <ActiveTabContent

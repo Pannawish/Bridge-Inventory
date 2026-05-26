@@ -13,6 +13,7 @@ function AppShell({
   onOpenSidebar,
   onSelectTab,
   onCloseNotice,
+  onCloseError,
   t,
   children,
 }) {
@@ -165,7 +166,19 @@ function AppShell({
             </button>
           </div>
         ) : null}
-        {error ? <div className="error-banner">{error}</div> : null}
+        {error ? (
+          <div className="error-banner">
+            <span>{error}</span>
+            <button
+              className="banner-close-button"
+              type="button"
+              aria-label={t("common.close")}
+              onClick={onCloseError}
+            >
+              X
+            </button>
+          </div>
+        ) : null}
 
         {loading ? (
           <section className="section-card loading-card">

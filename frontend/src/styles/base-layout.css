@@ -582,9 +582,18 @@ textarea {
 }
 
 .error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   color: var(--danger);
   background: #fff2f4;
   border: 1px solid #ffd5dc;
+}
+
+.error-banner .banner-close-button {
+  border-color: #ffd0d8;
+  color: var(--danger);
 }
 
 .stack-layout {
