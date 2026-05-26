@@ -4,8 +4,20 @@ import { getStatusLabel } from "../../i18n/statusLabels";
 import DocumentRefChip from "../DocumentRefChip";
 import { getDocumentName, getTransactionDocuments } from "./transactionTableUtils";
 
+function normalizeRefLinks(links) {
+  if (Array.isArray(links)) {
+    return links.filter((link) => link && link.id);
+  }
+
+  if (links && typeof links === "object" && links.id) {
+    return [links];
+  }
+
+  return [];
+}
+
 function renderRefCell({ label, docType, links, onOpenDocRef }) {
-  const validLinks = (links || []).filter((link) => link && link.id);
+  const validLinks = normalizeRefLinks(links);
 
   return (
     <div>
