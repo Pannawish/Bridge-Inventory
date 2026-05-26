@@ -17,6 +17,7 @@ import {
   getProductSku,
   getProductUnit,
 } from "./salesFormUtils";
+import { getComputedAllocationSnapshot } from "./salesAllocationUtils";
 import SalesItemAllocationSection from "./SalesItemAllocationSection";
 
 function SalesLineItemsSection({
@@ -57,7 +58,6 @@ function SalesLineItemsSection({
 
       {items.map((item, index) => {
         const amount = computeAmount(item, activeAllItemsDiscount);
-        const lineLoss = getLineLoss(item, activeAllItemsDiscount);
         const filteredProducts = getFilteredProducts(products, item.product_query);
         const selectedProduct = products.find(
           (product) => `${product.id}` === `${item.product_id}`
@@ -77,6 +77,16 @@ function SalesLineItemsSection({
         const stockLayers = item.product_id
           ? stockLayersByProductId[`${item.product_id}:new`] || []
           : [];
+        const computedSnapshot = getComputedAllocationSnapshot(
+          item,
+          stockLayers,
+          Number(conversionPreview?.conversion_factor) || 1
+        );
+        const effectiveUnitCost = computedSnapshot.unit_cost || item.unit_cost;
+        const lineLoss = getLineLoss(
+          { ...item, unit_cost: effectiveUnitCost },
+          activeAllItemsDiscount
+        );
 
         return (
           <div
@@ -309,10 +319,10 @@ function SalesLineItemsSection({
                 min="0"
                 step="0.01"
                 className={lineLoss > 0 ? "sales-cost-input below-cost" : undefined}
-                value={item.unit_cost}
+                value={effectiveUnitCost}
                 onChange={(event) => onUpdateItem(index, "unit_cost", event.target.value)}
                 placeholder={t("common.optional")}
-                readOnly={item.allocation_mode === "manual"}
+                readOnly={item.allocation_mode === "manual" || item.allocation_mode === "auto"}
               />
               {lineLoss > 0 ? (
                 <span className="sales-below-cost-warning">

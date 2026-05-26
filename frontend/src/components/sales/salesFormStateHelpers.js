@@ -3,6 +3,7 @@ import { buildConvertedItemFields } from "../../unitConversion";
 import {
   buildManualAllocationPayload,
   createInitialAllocationState,
+  getComputedAllocationSnapshot,
 } from "./salesAllocationUtils";
 import {
   computeAmount,
@@ -207,7 +208,12 @@ export function buildBelowCostConfirmationMessage(belowCostItems, activeAllItems
   return `${belowCostItems.length} ${t("salesForm.belowCostConfirm")}\n\n${lines}\n\n${t("salesForm.belowCostSaveAnyway")}`;
 }
 
-export function buildSaleSubmissionItems(items, products, activeAllItemsDiscount) {
+export function buildSaleSubmissionItems(
+  items,
+  products,
+  activeAllItemsDiscount,
+  stockLayersByProductId = {}
+) {
   return items
     .filter((item) => item.product_id && item.quantity && item.unit_price)
     .map((item) => {
@@ -222,10 +228,18 @@ export function buildSaleSubmissionItems(items, products, activeAllItemsDiscount
         { ...item, allocations, allocation_mode },
         Number(convertedFields.conversion_factor) || 1
       );
+      const computedSnapshot = getComputedAllocationSnapshot(
+        { ...item, allocations, allocation_mode },
+        stockLayersByProductId[`${item.product_id}:new`] || [],
+        Number(convertedFields.conversion_factor) || 1
+      );
 
       return {
         ...itemPayload,
-        unit_cost: (item.unit_cost === "" || item.unit_cost == null) ? "0" : item.unit_cost,
+        unit_cost:
+          computedSnapshot.unit_cost ||
+          ((item.unit_cost === "" || item.unit_cost == null) ? "0" : item.unit_cost),
+        supplier_name: computedSnapshot.supplier_name || item.supplier_name,
         product_name: selectedProduct ? getProductName(selectedProduct) : item.product_name,
         sku: selectedProduct ? getProductSku(selectedProduct) : item.sku,
         discounts: item.discounts,

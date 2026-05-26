@@ -10,6 +10,7 @@ import { isProductActive } from "../products/productUtils";
 import {
   allocationsMatchItemQuantity,
   createEmptyAllocationRow,
+  getComputedAllocationSnapshot,
 } from "./salesAllocationUtils";
 import {
   computeAmount,
@@ -86,49 +87,16 @@ function useSalesFormState({
   }
 
   function applyAllocationCostSnapshot(item) {
-    if (item.allocation_mode !== "manual") {
-      return item;
-    }
-
-    const conversionFactor = getItemConversionFactor(item);
-    const layersById = Object.fromEntries(
-      getStockLayersForItem(item).map((layer) => [layer.purchase_item_id, layer])
+    const nextSnapshot = getComputedAllocationSnapshot(
+      item,
+      getStockLayersForItem(item),
+      getItemConversionFactor(item)
     );
-    const validAllocations = (item.allocations || []).filter(
-      (allocation) =>
-        allocation.purchase_item_id && (Number(allocation.quantity) || 0) > 0
-    );
-
-    if (!validAllocations.length) {
-      return { ...item, supplier_name: "", unit_cost: "" };
-    }
-
-    let totalQuantity = 0;
-    let totalCost = 0;
-    const supplierNames = new Set();
-
-    validAllocations.forEach((allocation) => {
-      const layer = layersById[allocation.purchase_item_id];
-      const quantity = Number(allocation.quantity) || 0;
-      if (!layer || quantity <= 0) {
-        return;
-      }
-
-      totalQuantity += quantity;
-      totalCost += quantity * (Number(layer.base_unit_cost) || 0) * conversionFactor;
-      if (layer.supplier_name) {
-        supplierNames.add(layer.supplier_name);
-      }
-    });
-
-    if (totalQuantity <= 0) {
-      return { ...item, supplier_name: "", unit_cost: "" };
-    }
 
     return {
       ...item,
-      supplier_name: supplierNames.size === 1 ? [...supplierNames][0] : "",
-      unit_cost: `${(totalCost / totalQuantity).toFixed(2)}`,
+      supplier_name: nextSnapshot.supplier_name,
+      unit_cost: nextSnapshot.unit_cost,
     };
   }
 
@@ -250,6 +218,24 @@ function useSalesFormState({
       }
     });
   }, [items, stockLayersByProductId]);
+
+  useEffect(() => {
+    setItems((currentItems) => {
+      let changed = false;
+      const nextItems = currentItems.map((item) => {
+        const nextItem = applyAllocationCostSnapshot(item);
+        if (
+          nextItem.unit_cost !== item.unit_cost ||
+          nextItem.supplier_name !== item.supplier_name
+        ) {
+          changed = true;
+        }
+        return nextItem;
+      });
+
+      return changed ? nextItems : currentItems;
+    });
+  }, [stockLayersByProductId, products]);
 
   function updateForm(key, value) {
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
@@ -560,7 +546,8 @@ function useSalesFormState({
     const filteredItems = buildSaleSubmissionItems(
       items,
       products,
-      activeAllItemsDiscount
+      activeAllItemsDiscount,
+      stockLayersByProductId
     );
 
     const saleWithItems = applySaleStatusToItems(

@@ -646,6 +646,29 @@ label textarea:focus,
   gap: 8px;
 }
 
+.sales-allocation-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.sales-allocation-preview-list {
+  display: grid;
+  gap: 6px;
+}
+
+.sales-allocation-preview-row {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.sales-allocation-preview-main {
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
 .sales-allocation-row {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(110px, 0.7fr) auto;

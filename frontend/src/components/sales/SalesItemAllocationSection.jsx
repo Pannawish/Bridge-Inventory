@@ -2,6 +2,7 @@ import { formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import {
   allocationsMatchItemQuantity,
+  buildAutoFifoPreview,
   getAllocationQuantityTotal,
 } from "./salesAllocationUtils";
 
@@ -27,6 +28,11 @@ function SalesItemAllocationSection({
   const { t } = useLanguage();
   const allocatedQuantity = getAllocationQuantityTotal(item.allocations);
   const quantityMatches = allocationsMatchItemQuantity(item);
+  const autoPreview = buildAutoFifoPreview(
+    stockLayers,
+    item.quantity,
+    conversionFactor
+  );
 
   return (
     <div className="sales-allocation-section">
@@ -122,7 +128,55 @@ function SalesItemAllocationSection({
             </span>
           ) : null}
         </div>
-      ) : null}
+      ) : (
+        <div className="sales-allocation-preview">
+          {autoPreview.rows.length ? (
+            <>
+              <span className="field-helper-text">
+                {t("salesForm.stockSourceAutoPreviewLabel")}
+              </span>
+              <div className="sales-allocation-preview-list">
+                {autoPreview.rows.map((row) => (
+                  <div key={row.purchase_item_id} className="sales-allocation-preview-row">
+                    <span className="sales-allocation-preview-main">
+                      {t("salesForm.stockSourceOption", {
+                        supplier: row.supplier_name || t("common.unknown"),
+                        reference: row.purchase_reference_no,
+                        quantity: formatQuantity(row.quantity),
+                        unit,
+                        cost: fmt(row.unit_cost),
+                      })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <span
+                className={
+                  autoPreview.remainingQuantity > 0
+                    ? "field-helper-text sales-allocation-summary is-warning"
+                    : "field-helper-text sales-allocation-summary"
+                }
+              >
+                {autoPreview.remainingQuantity > 0
+                  ? t("salesForm.stockSourceAutoPreviewPartial", {
+                      allocated: formatQuantity(autoPreview.allocatedQuantity),
+                      required: formatQuantity(item.quantity),
+                      unit,
+                    })
+                  : t("salesForm.stockSourceAllocatedSummary", {
+                      allocated: formatQuantity(autoPreview.allocatedQuantity),
+                      required: formatQuantity(item.quantity),
+                      unit,
+                    })}
+              </span>
+            </>
+          ) : (
+            <span className="field-helper-text">
+              {t("salesForm.stockSourceAutoPreviewEmpty")}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
   allocationsMatchItemQuantity,
   buildManualAllocationPayload,
   createEmptyAllocationRow,
+  getComputedAllocationSnapshot,
 } from "./salesAllocationUtils";
 import {
   computeAmount,
@@ -75,46 +76,15 @@ export function useSalesEditFormState({
   }
 
   function applyAllocationCostSnapshot(item) {
-    if (item.allocation_mode !== "manual") {
-      return item;
-    }
-
-    const layersById = Object.fromEntries(
-      (
-        stockLayersByItemKey[getStockLayerKey(item.product_id, item.id)] || []
-      ).map((layer) => [layer.purchase_item_id, layer])
+    const nextSnapshot = getComputedAllocationSnapshot(
+      item,
+      stockLayersByItemKey[getStockLayerKey(item.product_id, item.id)] || [],
+      getItemConversionFactor(item)
     );
-    const conversionFactor = getItemConversionFactor(item);
-    const validAllocations = (item.allocations || []).filter(
-      (allocation) =>
-        allocation.purchase_item_id && (Number(allocation.quantity) || 0) > 0
-    );
-
-    if (!validAllocations.length) {
-      return item;
-    }
-
-    let totalQuantity = 0;
-    let totalCost = 0;
-
-    validAllocations.forEach((allocation) => {
-      const layer = layersById[allocation.purchase_item_id];
-      const quantity = Number(allocation.quantity) || 0;
-      if (!layer || quantity <= 0) {
-        return;
-      }
-
-      totalQuantity += quantity;
-      totalCost += quantity * (Number(layer.base_unit_cost) || 0) * conversionFactor;
-    });
-
-    if (totalQuantity <= 0) {
-      return item;
-    }
-
     return {
       ...item,
-      unit_cost: `${(totalCost / totalQuantity).toFixed(2)}`,
+      supplier_name: nextSnapshot.supplier_name || item.supplier_name || "",
+      unit_cost: nextSnapshot.unit_cost || item.unit_cost,
     };
   }
 
@@ -145,6 +115,24 @@ export function useSalesEditFormState({
       loadStockLayers(item.product_id, item.id);
     });
   }, [items, stockLayersByItemKey]);
+
+  useEffect(() => {
+    setItems((currentItems) => {
+      let changed = false;
+      const nextItems = currentItems.map((item) => {
+        const nextItem = applyAllocationCostSnapshot(item);
+        if (
+          nextItem.unit_cost !== item.unit_cost ||
+          nextItem.supplier_name !== item.supplier_name
+        ) {
+          changed = true;
+        }
+        return nextItem;
+      });
+
+      return changed ? nextItems : currentItems;
+    });
+  }, [stockLayersByItemKey, products]);
 
   const productOptions = useMemo(
     () => buildProductOptions(products, items),
