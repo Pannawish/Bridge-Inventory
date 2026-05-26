@@ -6,6 +6,8 @@ Use it as a step-by-step training guide, not as a developer document.
 
 For setup and local environment instructions, use [README.md](/Users/peto/Documents/Inventory-Management-frontend/README.md) and [backend/README.md](/Users/peto/Documents/Inventory-Management-frontend/backend/README.md).
 
+For exact business-rule details such as status logic, FIFO allocation, and eligibility rules, use [docs/business-rules-reference.md](/Users/peto/Documents/Inventory-Management-frontend/docs/business-rules-reference.md).
+
 ## 1. What This System Does
 
 This system is for a business that:
@@ -396,7 +398,7 @@ Steps:
 What `eligible sales` means:
 
 - the sale is in a billing-note-eligible status
-- in this app, that means the sale must already be `shipped` or `delivered`
+- in this app, that means the sale must already be `shipped`, `partially_delivered`, or `delivered`
 - the sale must not already be linked to another active billing note
 - if a billing note was cancelled, its sales become available again
 
@@ -443,7 +445,7 @@ Steps:
 What `eligible purchases` means:
 
 - the purchase is in a payment-batch-eligible status
-- in this app, that means the purchase order must already be `received`
+- in this app, that means the purchase order must already be `partially_received` or `received`
 - the purchase must not already be linked to another active payment batch
 - if a payment batch was cancelled, its purchases become available again
 

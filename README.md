@@ -80,8 +80,15 @@ This project is designed around a middle-man business model:
 ```text
 frontend/   React + Vite application
 backend/    Django + DRF API
+docs/       Extended reference docs for maintainers, trainers, and process owners
 AGENTS.md   Project engineering standards for contributors and coding agents
 ```
+
+## Documentation
+
+- [HANDOUT.md](/Users/peto/Documents/Inventory-Management-frontend/HANDOUT.md) - end-user training manual
+- [docs/business-rules-reference.md](/Users/peto/Documents/Inventory-Management-frontend/docs/business-rules-reference.md) - detailed business-logic reference for exact status, FIFO, and eligibility behavior
+- [docs/frontend-refactor-handoff.md](/Users/peto/Documents/Inventory-Management-frontend/docs/frontend-refactor-handoff.md) - frontend maintainability handoff notes
 
 ## Main Workflows
 
