@@ -1,285 +1,40 @@
 import { useEffect, useMemo, useState } from "react";
 import { FilterPresets, ActiveFilterChips } from "./FilterControls";
 import { useLanguage } from "../i18n/LanguageContext";
+import CategoryDirectorySection from "./categories/CategoryDirectorySection";
+import CategoryEditorModal from "./categories/CategoryEditorModal";
+import {
+  CATEGORY_STORAGE_KEY,
+  createCategory,
+  getAssignedCategoryId,
+  getCategoryLeafLabel,
+  getCategoryChildrenMap,
+  getCategoryDepth,
+  getCategoryNameKey,
+  getCategoryOptions,
+  getCategoryPathById,
+  getDefaultCategories,
+  hasCategoryChildren,
+  isDescendantCategory,
+  loadCategories,
+  normalizeCategory,
+  normalizeCategoryName,
+  resolveLegacyCategoryId,
+} from "./categories/categoryUtils";
 
-export const CATEGORY_STORAGE_KEY = "inventory-management-categories";
-
-const defaultCategories = [
-  {
-    id: "category-stationery",
-    name: "Stationery",
-    description: "Paper, notebooks, and general office supplies.",
-    parentId: null,
-  },
-  {
-    id: "category-notebooks",
-    name: "Notebooks",
-    description: "Exercise books, notebooks, and writing pads.",
-    parentId: "category-stationery",
-  },
-  {
-    id: "category-writing-tools",
-    name: "Writing Tools",
-    description: "Pens, markers, pencils, and related writing items.",
-    parentId: null,
-  },
-  {
-    id: "category-pens",
-    name: "Pens",
-    description: "Ballpoint pens, gel pens, and office writing pens.",
-    parentId: "category-writing-tools",
-  },
-  {
-    id: "category-gel-pens",
-    name: "Gel Pens",
-    description: "Smooth ink gel pens grouped under pens.",
-    parentId: "category-pens",
-  },
-  {
-    id: "category-blue-gel-pens",
-    name: "Blue Gel Pens",
-    description: "Blue gel pens nested inside gel pens.",
-    parentId: "category-gel-pens",
-  },
-  {
-    id: "category-premium-blue-gel-pens",
-    name: "Premium Blue Gel Pens",
-    description: "Premium blue gel pens nested multiple levels deep.",
-    parentId: "category-blue-gel-pens",
-  },
-  {
-    id: "category-desk-accessories",
-    name: "Desk Accessories",
-    description: "Staplers, clips, folders, and desktop tools.",
-    parentId: null,
-  },
-  {
-    id: "category-staplers",
-    name: "Staplers",
-    description: "Desktop staplers and fastening tools.",
-    parentId: "category-desk-accessories",
-  },
-  {
-    id: "category-paper-goods",
-    name: "Paper Goods",
-    description: "Sticky notes, file paper, and paper-based products.",
-    parentId: null,
-  },
-  {
-    id: "category-sticky-notes",
-    name: "Sticky Notes",
-    description: "Sticky note pads and adhesive memo paper.",
-    parentId: "category-paper-goods",
-  },
-  {
-    id: "category-presentation",
-    name: "Presentation Supplies",
-    description: "Whiteboard, highlighting, and classroom presentation tools.",
-    parentId: null,
-  },
-  {
-    id: "category-markers",
-    name: "Markers",
-    description: "Whiteboard markers, permanent markers, and highlighters.",
-    parentId: "category-presentation",
-  },
-  {
-    id: "category-filing",
-    name: "Filing",
-    description: "Binders, folders, and storage accessories for documents.",
-    parentId: "category-desk-accessories",
-  },
-  {
-    id: "category-archive-folders",
-    name: "Archive Folders",
-    description: "Long-term document storage folders nested under filing.",
-    parentId: "category-filing",
-  },
-  {
-    id: "category-yearly-archive-folders",
-    name: "Yearly Archive Folders",
-    description: "Year-based archive folders nested inside archive folders.",
-    parentId: "category-archive-folders",
-  },
-  {
-    id: "category-correction",
-    name: "Correction",
-    description: "Correction tape and correction stationery.",
-    parentId: "category-writing-tools",
-  },
-];
-
-function createCategory(overrides = {}) {
-  return {
-    id: `category-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    name: "",
-    description: "",
-    parentId: null,
-    ...overrides,
-  };
-}
-
-function getCategoryKey(name) {
-  return `${name ?? ""}`.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-function normalizeCategory(category) {
-  return {
-    id: category.id || createCategory().id,
-    name: `${category.name ?? ""}`.trim(),
-    description: `${category.description ?? ""}`,
-    parentId: category.parentId || null,
-  };
-}
-
-export function normalizeCategoryName(name) {
-  return getCategoryKey(name);
-}
-
-export function getDefaultCategories() {
-  return defaultCategories;
-}
-
-export function buildCategoryLookup(categories) {
-  return new Map(categories.map((category) => [category.id, category]));
-}
-
-function getCategoryChildrenMap(categories) {
-  const childMap = new Map();
-
-  categories.forEach((category) => {
-    const parentKey = category.parentId || null;
-
-    if (!childMap.has(parentKey)) {
-      childMap.set(parentKey, []);
-    }
-
-    childMap.get(parentKey).push(category);
-  });
-
-  return childMap;
-}
-
-export function getCategoryPathById(categories, categoryId) {
-  if (!categoryId) {
-    return "";
-  }
-
-  const categoryLookup = buildCategoryLookup(categories);
-  const pathParts = [];
-  let currentCategory = categoryLookup.get(categoryId);
-  const visited = new Set();
-
-  while (currentCategory && !visited.has(currentCategory.id)) {
-    visited.add(currentCategory.id);
-    pathParts.unshift(currentCategory.name);
-    currentCategory = currentCategory.parentId
-      ? categoryLookup.get(currentCategory.parentId)
-      : null;
-  }
-
-  return pathParts.join(" / ");
-}
-
-export function getCategoryLeafLabel(label) {
-  if (!label) {
-    return "";
-  }
-  const parts = `${label}`.split("/").map((part) => part.trim()).filter(Boolean);
-  return parts.length ? parts[parts.length - 1] : "";
-}
-
-export function getLeafCategoryOptions(categories) {
-  const childMap = getCategoryChildrenMap(categories);
-
-  return categories
-    .filter((category) => !(childMap.get(category.id) || []).length)
-    .map((category) => ({
-      id: category.id,
-      name: category.name,
-      label: getCategoryPathById(categories, category.id) || category.name,
-    }));
-}
-
-export function getCategoryOptions(categories) {
-  return categories.map((category) => ({
-    id: category.id,
-    name: category.name,
-    label: getCategoryPathById(categories, category.id) || category.name,
-  }));
-}
-
-export function resolveLegacyCategoryId(categories, categoryName = "") {
-  const normalizedName = getCategoryKey(categoryName);
-
-  if (!normalizedName) {
-    return "";
-  }
-
-  const exactLeafMatch = getLeafCategoryOptions(categories).find(
-    (category) => getCategoryKey(category.name) === normalizedName
-  );
-
-  if (exactLeafMatch) {
-    return exactLeafMatch.id;
-  }
-
-  const exactMatch = categories.find(
-    (category) => getCategoryKey(category.name) === normalizedName
-  );
-
-  return exactMatch?.id || "";
-}
-
-export function loadCategories() {
-  return defaultCategories;
-}
-
-function getAssignedCategoryId(product, categories) {
-  if (product.categoryId && categories.some((category) => category.id === product.categoryId)) {
-    return product.categoryId;
-  }
-
-  return resolveLegacyCategoryId(categories, product.category);
-}
-
-function hasCategoryChildren(categories, categoryId) {
-  return categories.some((category) => category.parentId === categoryId);
-}
-
-function getCategoryDepth(categories, categoryId) {
-  let depth = 0;
-  let currentParentId =
-    categories.find((category) => category.id === categoryId)?.parentId || null;
-  const visited = new Set();
-
-  while (currentParentId && !visited.has(currentParentId)) {
-    visited.add(currentParentId);
-    depth += 1;
-    currentParentId =
-      categories.find((category) => category.id === currentParentId)?.parentId || null;
-  }
-
-  return depth;
-}
-
-function isDescendantCategory(categories, categoryId, potentialParentId) {
-  let currentParentId = potentialParentId;
-
-  while (currentParentId) {
-    if (currentParentId === categoryId) {
-      return true;
-    }
-
-    currentParentId =
-      categories.find((category) => category.id === currentParentId)?.parentId || null;
-  }
-
-  return false;
-}
+export {
+  CATEGORY_STORAGE_KEY,
+  getCategoryLeafLabel,
+  getCategoryOptions,
+  getCategoryPathById,
+  getDefaultCategories,
+  loadCategories,
+  normalizeCategoryName,
+  resolveLegacyCategoryId,
+} from "./categories/categoryUtils";
 
 function CategoryPage({
-  categories = defaultCategories,
+  categories = getDefaultCategories(),
   products = [],
   onSaveCategory,
   onDeleteCategory,
@@ -344,8 +99,7 @@ function CategoryPage({
   const isTreeCollapsed =
     collapsibleCategoryIds.length > 0 &&
     collapsibleCategoryIds.every((categoryId) => collapsedCategoryIds.has(categoryId));
-  const activeFilterCount =
-    (levelFilter === "all" ? 0 : 1) + (usageFilter === "all" ? 0 : 1);
+  const activeFilterCount = (levelFilter === "all" ? 0 : 1) + (usageFilter === "all" ? 0 : 1);
   const filteredCategories = useMemo(() => {
     const matchingIds = new Set(
       categories
@@ -363,31 +117,24 @@ function CategoryPage({
           if (!matchesSearch) {
             return false;
           }
-
           if (levelFilter === "root" && category.parentId) {
             return false;
           }
-
           if (levelFilter === "subcategory" && !category.parentId) {
             return false;
           }
-
           if (levelFilter === "deep" && depth < 2) {
             return false;
           }
-
           if (usageFilter === "assigned" && assignedProductCount === 0) {
             return false;
           }
-
           if (usageFilter === "unassigned" && assignedProductCount > 0) {
             return false;
           }
-
           if (usageFilter === "has-children" && directChildCount === 0) {
             return false;
           }
-
           if (usageFilter === "leaf" && directChildCount > 0) {
             return false;
           }
@@ -525,9 +272,7 @@ function CategoryPage({
   }
 
   function toggleFullCategoryTree() {
-    setCollapsedCategoryIds(
-      isTreeCollapsed ? new Set() : new Set(collapsibleCategoryIds)
-    );
+    setCollapsedCategoryIds(isTreeCollapsed ? new Set() : new Set(collapsibleCategoryIds));
   }
 
   function selectParentCategory(category) {
@@ -538,13 +283,12 @@ function CategoryPage({
   }
 
   function handleParentCategoryInputChange(value) {
-    const nextValue = value;
-    const normalizedValue = nextValue.trim().toLowerCase();
+    const normalizedValue = value.trim().toLowerCase();
     const exactMatch = parentCategoryOptions.find(
       (category) => category.label.toLowerCase() === normalizedValue
     );
 
-    setParentCategoryInput(nextValue);
+    setParentCategoryInput(value);
     updateDraftField("parentId", exactMatch?.id || null);
     setIsParentCategoryMenuOpen(true);
     setFormError("");
@@ -588,22 +332,18 @@ function CategoryPage({
     {
       label: t("category.quickRoot"),
       active: levelFilter === "root",
-      onClick: () =>
-        setLevelFilter((current) => (current === "root" ? "all" : "root")),
+      onClick: () => setLevelFilter((current) => (current === "root" ? "all" : "root")),
     },
     {
       label: t("category.quickUnassigned"),
       active: usageFilter === "unassigned",
       onClick: () =>
-        setUsageFilter((current) =>
-          current === "unassigned" ? "all" : "unassigned"
-        ),
+        setUsageFilter((current) => (current === "unassigned" ? "all" : "unassigned")),
     },
     {
       label: t("category.quickLeaf"),
       active: usageFilter === "leaf",
-      onClick: () =>
-        setUsageFilter((current) => (current === "leaf" ? "all" : "leaf")),
+      onClick: () => setUsageFilter((current) => (current === "leaf" ? "all" : "leaf")),
     },
   ];
   const activeChips = [
@@ -627,7 +367,7 @@ function CategoryPage({
     }
 
     const nextCategory = normalizeCategory(draftCategory);
-    const nextKey = getCategoryKey(nextCategory.name);
+    const nextKey = getCategoryNameKey(nextCategory.name);
 
     if (!nextKey) {
       setFormError(t("category.errorNameRequired"));
@@ -655,7 +395,7 @@ function CategoryPage({
       (category) =>
         category.id !== nextCategory.id &&
         category.parentId === nextCategory.parentId &&
-        getCategoryKey(category.name) === nextKey
+        getCategoryNameKey(category.name) === nextKey
     );
 
     if (duplicate) {
@@ -688,7 +428,9 @@ function CategoryPage({
     }
 
     const confirmed = window.confirm(
-      t("category.deleteConfirm", { name: draftCategory.name || t("category.unnamedCategory") })
+      t("category.deleteConfirm", {
+        name: draftCategory.name || t("category.unnamedCategory"),
+      })
     );
 
     if (!confirmed) {
@@ -725,7 +467,12 @@ function CategoryPage({
             />
           </label>
           <div className="stock-report-summary supplier-search-meta">
-            <span>{t("category.pageCount", { count: filteredCategories.length, total: categories.length })}</span>
+            <span>
+              {t("category.pageCount", {
+                count: filteredCategories.length,
+                total: categories.length,
+              })}
+            </span>
           </div>
         </div>
 
@@ -781,281 +528,41 @@ function CategoryPage({
         ) : null}
       </section>
 
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("category.directoryEyebrow")}</p>
-            <h3>{t("category.directoryTitle")}</h3>
-          </div>
-          <div className="transaction-table-actions">
-            {collapsibleCategoryIds.length ? (
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={toggleFullCategoryTree}
-              >
-                {isTreeCollapsed ? t("category.expandTree") : t("category.collapseTree")}
-              </button>
-            ) : null}
-            <button className="primary-button" type="button" onClick={() => openCategoryEditor()}>
-              {t("category.newCategory")}
-            </button>
-          </div>
-        </div>
-
-        <div className="transaction-table-window partner-table-window category-tree-window">
-          <div className="table-scroll category-tree-table">
-          {categoryRows.length === 0 ? (
-            <p className="empty-copy">{t("category.noMatch")}</p>
-          ) : (
-            <table>
-              <colgroup>
-                <col className="category-col-name" />
-                <col className="category-col-products" />
-                <col className="category-col-children" />
-                <col className="category-col-action" />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>{t("category.colCategory")}</th>
-                  <th>{t("category.colProducts")}</th>
-                  <th>{t("category.colSubcategories")}</th>
-                  <th>{t("category.colAction")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categoryRows.map(({
-                  category,
-                  depth,
-                  hasChildren,
-                  isLastSibling,
-                  ancestorContinuations,
-                }) => {
-                  const directChildCount = childCategoryCounts.get(category.id) || 0;
-                  const assignedProductCount = productAssignments.get(category.id) || 0;
-                  const isExpanded = hasChildren && !collapsedCategoryIds.has(category.id);
-
-                  return (
-                    <tr key={category.id}>
-                      <td>
-                        <div className="category-tree-cell">
-                          <span className="category-tree-guides" aria-hidden="true">
-                            {Array.from({ length: depth }).map((_, level) => {
-                              const isCurrentLevel = level === depth - 1;
-                              const className = isCurrentLevel
-                                ? isLastSibling
-                                  ? "category-tree-guide connector last"
-                                  : "category-tree-guide connector"
-                                : ancestorContinuations[level + 1]
-                                  ? "category-tree-guide continues"
-                                  : "category-tree-guide";
-
-                              return <span className={className} key={level} />;
-                            })}
-                          </span>
-                          {hasChildren ? (
-                            <button
-                              className={
-                                isExpanded
-                                  ? "category-tree-toggle has-visible-children"
-                                  : "category-tree-toggle"
-                              }
-                              type="button"
-                              aria-label={
-                                collapsedCategoryIds.has(category.id)
-                                  ? t("category.expandCategory", { name: category.name })
-                                  : t("category.collapseCategory", { name: category.name })
-                              }
-                              onClick={() => toggleCategoryFolder(category.id)}
-                            >
-                              {collapsedCategoryIds.has(category.id) ? ">" : "v"}
-                            </button>
-                          ) : (
-                            <span className="category-tree-toggle placeholder" aria-hidden="true">
-                              .
-                            </span>
-                          )}
-                          <span className="category-tree-main">
-                            <strong>{category.name || t("category.unnamedCategory")}</strong>
-                          </span>
-                        </div>
-                      </td>
-                      <td>{assignedProductCount}</td>
-                      <td>{directChildCount}</td>
-                      <td>
-                        <div className="category-row-actions">
-                          <button
-                            className="table-action-button"
-                            type="button"
-                            onClick={() => openCategoryEditor(category)}
-                          >
-                            {t("common.edit")}
-                          </button>
-                          <button
-                            className="table-action-button secondary-table-action"
-                            type="button"
-                            onClick={() => openSubcategoryEditor(category)}
-                          >
-                            {t("category.addSubcategory")}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-          </div>
-        </div>
-      </section>
+      <CategoryDirectorySection
+        collapsibleCategoryIds={collapsibleCategoryIds}
+        isTreeCollapsed={isTreeCollapsed}
+        categoryRows={categoryRows}
+        childCategoryCounts={childCategoryCounts}
+        productAssignments={productAssignments}
+        collapsedCategoryIds={collapsedCategoryIds}
+        onToggleFullCategoryTree={toggleFullCategoryTree}
+        onOpenCategoryEditor={(category) =>
+          category ? openCategoryEditor(category) : openCategoryEditor()
+        }
+        onOpenSubcategoryEditor={openSubcategoryEditor}
+        onToggleCategoryFolder={toggleCategoryFolder}
+      />
 
       {draftCategory ? (
-        <div className="modal-backdrop">
-          <div
-            className="detail-modal supplier-modal section-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="category-modal-title"
-          >
-            <div className="section-heading supplier-modal-header">
-              <div>
-                <p className="eyebrow">
-                  {categories.some((category) => category.id === draftCategory.id)
-                    ? t("category.editEyebrow")
-                    : t("category.newEyebrow")}
-                </p>
-                <h3 id="category-modal-title">{draftCategory.name || t("category.unnamedCategory")}</h3>
-              </div>
-              <button
-                className="icon-button subtle"
-                type="button"
-                aria-label={t("category.closeLabel")}
-                onClick={closeCategoryEditor}
-              >
-                X
-              </button>
-            </div>
-
-            {formError ? <div className="error-banner">{formError}</div> : null}
-
-            <form className="form-layout" onSubmit={handleSaveCategory}>
-              <div className="form-grid">
-                <label className="full-width">
-                  {t("category.categoryNameLabel")}
-                  <input
-                    autoFocus
-                    value={draftCategory.name}
-                    onChange={(event) => {
-                      updateDraftField("name", event.target.value);
-                      setFormError("");
-                    }}
-                    placeholder={t("category.categoryNamePlaceholder")}
-                    required
-                  />
-                </label>
-
-                <label className="full-width supplier-combobox-field">
-                  {t("category.parentCategoryLabel")}
-                  <div className="supplier-combobox">
-                    <input
-                      type="search"
-                      role="combobox"
-                      aria-expanded={isParentCategoryMenuOpen}
-                      aria-controls="category-parent-list"
-                      aria-autocomplete="list"
-                      value={parentCategoryInput}
-                      onChange={(event) => handleParentCategoryInputChange(event.target.value)}
-                      onFocus={() => setIsParentCategoryMenuOpen(true)}
-                      onBlur={() => setIsParentCategoryMenuOpen(false)}
-                      onKeyDown={handleParentCategoryInputKeyDown}
-                      placeholder={t("category.parentCategoryPlaceholder")}
-                    />
-
-                    {isParentCategoryMenuOpen ? (
-                      <div
-                        className="supplier-combobox-menu"
-                        id="category-parent-list"
-                        role="listbox"
-                      >
-                        {shouldShowRootParentOption ? (
-                          <button
-                            className={
-                              draftCategory.parentId
-                                ? "supplier-combobox-option"
-                                : "supplier-combobox-option active"
-                            }
-                            type="button"
-                            role="option"
-                            aria-selected={!draftCategory.parentId}
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              selectParentCategory(null);
-                            }}
-                          >
-                            {t("category.rootCategoryOption")}
-                          </button>
-                        ) : null}
-
-                        {filteredParentCategoryOptions.map((category) => (
-                          <button
-                            className={
-                              category.id === draftCategory.parentId
-                                ? "supplier-combobox-option active"
-                                : "supplier-combobox-option"
-                            }
-                            key={category.id}
-                            type="button"
-                            role="option"
-                            aria-selected={category.id === draftCategory.parentId}
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              selectParentCategory(category);
-                            }}
-                          >
-                            {category.label}
-                          </button>
-                        ))}
-
-                        {!shouldShowRootParentOption &&
-                        filteredParentCategoryOptions.length === 0 ? (
-                          <div className="supplier-combobox-empty">
-                            {t("category.noMatchingParent")}
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                  <span className="field-helper-text">
-                    {t("category.clearForRoot")}
-                  </span>
-                </label>
-
-                <label className="full-width">
-                  {t("category.descriptionLabel")}
-                  <textarea
-                    rows="3"
-                    value={draftCategory.description}
-                    onChange={(event) => updateDraftField("description", event.target.value)}
-                    placeholder={t("category.descriptionPlaceholder")}
-                  />
-                </label>
-              </div>
-
-              <div className="supplier-modal-actions">
-                <button className="danger-button" type="button" onClick={handleDeleteCategory}>
-                  {t("category.deleteButton")}
-                </button>
-                <button className="secondary-button" type="button" onClick={closeCategoryEditor}>
-                  {t("common.cancel")}
-                </button>
-                <button className="primary-button" type="submit">
-                  {t("category.saveButton")}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <CategoryEditorModal
+          categories={categories}
+          draftCategory={draftCategory}
+          formError={formError}
+          parentCategoryInput={parentCategoryInput}
+          isParentCategoryMenuOpen={isParentCategoryMenuOpen}
+          shouldShowRootParentOption={shouldShowRootParentOption}
+          filteredParentCategoryOptions={filteredParentCategoryOptions}
+          onClose={closeCategoryEditor}
+          onSaveCategory={handleSaveCategory}
+          onDeleteCategory={handleDeleteCategory}
+          onUpdateDraftField={updateDraftField}
+          onSetFormError={setFormError}
+          onParentCategoryInputChange={handleParentCategoryInputChange}
+          onParentCategoryFocus={() => setIsParentCategoryMenuOpen(true)}
+          onParentCategoryBlur={() => setIsParentCategoryMenuOpen(false)}
+          onParentCategoryKeyDown={handleParentCategoryInputKeyDown}
+          onSelectParentCategory={selectParentCategory}
+        />
       ) : null}
     </div>
   );
