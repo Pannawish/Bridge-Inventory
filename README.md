@@ -88,6 +88,7 @@ AGENTS.md   Project engineering standards for contributors and coding agents
 
 - [HANDOUT.md](/Users/peto/Documents/Inventory-Management-frontend/HANDOUT.md) - end-user training manual
 - [docs/business-rules-reference.md](/Users/peto/Documents/Inventory-Management-frontend/docs/business-rules-reference.md) - detailed business-logic reference for exact status, FIFO, and eligibility behavior
+- [docs/codebase-structure.md](/Users/peto/Documents/Inventory-Management-frontend/docs/codebase-structure.md) - current project source tree and navigation map
 - [docs/frontend-refactor-handoff.md](/Users/peto/Documents/Inventory-Management-frontend/docs/frontend-refactor-handoff.md) - frontend maintainability handoff notes
 
 ## Main Workflows
