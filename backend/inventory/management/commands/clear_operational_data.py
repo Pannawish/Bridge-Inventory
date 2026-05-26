@@ -1,22 +1,27 @@
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from inventory.models import (
     BillingNote,
+    Category,
     CreditNote,
+    Customer,
     PaymentBatch,
+    Product,
+    ProductPicture,
     Purchase,
     PurchaseDocument,
     Quotation,
     Sale,
     SaleDocument,
+    Supplier,
 )
 
 
 class Command(BaseCommand):
     help = (
-        "Clear operational transaction data while keeping master data such as "
-        "categories, products, suppliers, and customers."
+        "Clear operational transaction data. Use --include-master-data to also "
+        "remove categories, products, suppliers, and customers."
     )
 
     def add_arguments(self, parser):
@@ -25,9 +30,16 @@ class Command(BaseCommand):
             action="store_true",
             help="Show what would be deleted without changing the database.",
         )
+        parser.add_argument(
+            "--include-master-data",
+            action="store_true",
+            help=(
+                "Also delete master data such as categories, products, suppliers, "
+                "customers, and linked product pictures."
+            ),
+        )
 
-    def handle(self, *args, **options):
-        dry_run = options["dry_run"]
+    def _build_counts(self, include_master_data):
         counts = {
             "credit_notes": CreditNote.objects.count(),
             "billing_notes": BillingNote.objects.count(),
@@ -38,6 +50,40 @@ class Command(BaseCommand):
             "purchases": Purchase.objects.count(),
             "purchase_documents": PurchaseDocument.objects.count(),
         }
+        if include_master_data:
+            counts.update(
+                {
+                    "product_pictures": ProductPicture.objects.count(),
+                    "products": Product.objects.count(),
+                    "categories": Category.objects.count(),
+                    "suppliers": Supplier.objects.count(),
+                    "customers": Customer.objects.count(),
+                }
+            )
+        return counts
+
+    def _delete_categories(self):
+        while Category.objects.exists():
+            deleted_count, _ = Category.objects.filter(children__isnull=True).delete()
+            if deleted_count == 0:
+                raise CommandError(
+                    "Unable to clear all categories because protected child "
+                    "relationships remain."
+                )
+
+    def _delete_master_data(self):
+        for picture in ProductPicture.objects.select_related("product"):
+            picture.file.delete(save=False)
+            picture.delete()
+        Product.objects.all().delete()
+        self._delete_categories()
+        Supplier.objects.all().delete()
+        Customer.objects.all().delete()
+
+    def handle(self, *args, **options):
+        dry_run = options["dry_run"]
+        include_master_data = options["include_master_data"]
+        counts = self._build_counts(include_master_data)
 
         for label, count in counts.items():
             self.stdout.write(f"{label}: {count}")
@@ -69,6 +115,17 @@ class Command(BaseCommand):
                 if purchase.document:
                     purchase.document.delete(save=False)
                 purchase.delete()
+
+            if include_master_data:
+                self._delete_master_data()
+
+        if include_master_data:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    "Operational data cleared. Master data was also cleared."
+                )
+            )
+            return
 
         self.stdout.write(
             self.style.SUCCESS(

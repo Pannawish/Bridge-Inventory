@@ -212,6 +212,12 @@ Clear operational data while preserving master data:
 backend/.venv/bin/python backend/manage.py clear_operational_data
 ```
 
+Clear all operational and master data:
+
+```bash
+backend/.venv/bin/python backend/manage.py clear_operational_data --include-master-data
+```
+
 ## API Notes
 
 Key API capabilities already implemented:

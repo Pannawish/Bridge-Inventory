@@ -14,6 +14,7 @@ from rest_framework.test import APITestCase
 from .models import (
     BillingNote,
     BillingNoteLine,
+    Category,
     CreditNote,
     CreditNoteLine,
     Customer,
@@ -337,6 +338,100 @@ class ProductPictureUploadTests(APITestCase):
         self.assertEqual(len(remove_response.data["productPictures"]), 1)
         self.assertEqual(remove_response.data["selectedPictureId"], front.id)
         self.assertFalse(ProductPicture.objects.filter(id=side.id).exists())
+
+
+@override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
+class ClearOperationalDataCommandTests(TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEST_MEDIA_ROOT, ignore_errors=True)
+
+    def setUp(self):
+        self.command_stdout = StringIO()
+        self.today = timezone.localdate()
+        self.parent_category = Category.objects.create(name="Command Parent")
+        self.child_category = Category.objects.create(
+            name="Command Child",
+            parent=self.parent_category,
+        )
+        self.supplier = Supplier.objects.create(company_name="Command Supplier")
+        self.customer = Customer.objects.create(company_name="Command Customer")
+        self.product = Product.objects.create(
+            sku="CMD-CLEAR-1",
+            product_name="Command Product",
+            category=self.child_category,
+            category_name=self.child_category.name,
+        )
+        ProductPicture.objects.create(
+            product=self.product,
+            file=SimpleUploadedFile(
+                "command-product.png",
+                b"command-product-picture",
+                content_type="image/png",
+            ),
+        )
+        Quotation.objects.create(
+            reference_no="QT-CLEAR-CMD",
+            quotation_date=self.today,
+            customer=self.customer,
+            customer_name=self.customer.company_name,
+            supplier=self.supplier,
+            supplier_name=self.supplier.company_name,
+        )
+        Purchase.objects.create(
+            reference_no="PO-CLEAR-CMD",
+            supplier=self.supplier,
+            supplier_name=self.supplier.company_name,
+            transaction_date=self.today,
+        )
+        Sale.objects.create(
+            reference_no="SO-CLEAR-CMD",
+            customer=self.customer,
+            customer_name=self.customer.company_name,
+            transaction_date=self.today,
+        )
+
+    def test_clear_operational_data_keeps_master_data_by_default(self):
+        call_command(
+            "clear_operational_data",
+            verbosity=0,
+            stdout=self.command_stdout,
+        )
+
+        self.assertEqual(Quotation.objects.count(), 0)
+        self.assertEqual(Purchase.objects.count(), 0)
+        self.assertEqual(Sale.objects.count(), 0)
+        self.assertEqual(Category.objects.count(), 2)
+        self.assertEqual(Product.objects.count(), 1)
+        self.assertEqual(ProductPicture.objects.count(), 1)
+        self.assertEqual(Supplier.objects.count(), 1)
+        self.assertEqual(Customer.objects.count(), 1)
+        self.assertIn(
+            "Operational data cleared. Master data was kept unchanged.",
+            self.command_stdout.getvalue(),
+        )
+
+    def test_include_master_data_clears_master_records_too(self):
+        call_command(
+            "clear_operational_data",
+            include_master_data=True,
+            verbosity=0,
+            stdout=self.command_stdout,
+        )
+
+        self.assertEqual(Quotation.objects.count(), 0)
+        self.assertEqual(Purchase.objects.count(), 0)
+        self.assertEqual(Sale.objects.count(), 0)
+        self.assertEqual(Category.objects.count(), 0)
+        self.assertEqual(Product.objects.count(), 0)
+        self.assertEqual(ProductPicture.objects.count(), 0)
+        self.assertEqual(Supplier.objects.count(), 0)
+        self.assertEqual(Customer.objects.count(), 0)
+        self.assertIn(
+            "Operational data cleared. Master data was also cleared.",
+            self.command_stdout.getvalue(),
+        )
 
 
 class SaleStockValidationTests(APITestCase):

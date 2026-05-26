@@ -149,13 +149,19 @@ Clear operational data while keeping master data:
 python manage.py clear_operational_data
 ```
 
+Clear everything including master data:
+
+```bash
+python manage.py clear_operational_data --include-master-data
+```
+
 Preview what would be removed:
 
 ```bash
 python manage.py clear_operational_data --dry-run
 ```
 
-`clear_operational_data` deletes operational transactions and linked documents, but keeps categories, products, suppliers, customers, migrations, and other master data intact.
+`clear_operational_data` deletes operational transactions and linked documents by default while keeping categories, products, suppliers, customers, migrations, and other master data intact. Add `--include-master-data` for a full data reset that also removes master records and linked product pictures.
 
 ## Testing And Verification
 
