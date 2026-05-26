@@ -1,23 +1,13 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { api } from "../api";
-import { getDefaultCustomers } from "../components/CustomerPage";
-import { getDefaultSuppliers } from "../components/SupplierPage";
-import { getDefaultProducts } from "../components/ProductsPage";
-import { getDefaultCategories } from "../components/CategoryPage";
 import {
-  mockBillingNotes,
-  mockDashboard,
-  mockPaymentBatches,
-  mockPurchases,
-  mockQuotations,
-  mockSales,
-} from "../mockData";
-import {
-  buildListParams,
-  getCollectionPagination,
-  getCollectionRows,
-  mergeQuotationRowsWithMocks,
-} from "../app/appUtils";
+  createEligibilityLoader,
+  createEligibilityRefresher,
+  createInitialDataRequests,
+  createPagedCollectionLoader,
+  applyInitialDataResults,
+} from "./inventoryDataHelpers";
+import { buildInventoryDataSetters } from "./inventoryDataSetters";
 
 export function useInventoryData() {
   const [dashboard, setDashboard] = useState(null);
@@ -67,42 +57,87 @@ export function useInventoryData() {
   const [usingMockCreditNotes, setUsingMockCreditNotes] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const inventoryDataSetters = useMemo(
+    () =>
+      buildInventoryDataSetters({
+        setDashboard,
+        setProducts,
+        setProductRows,
+        setProductPagination,
+        setCategories,
+        setSuppliers,
+        setSupplierRows,
+        setSupplierPagination,
+        setUsingMockSuppliers,
+        setCustomers,
+        setCustomerRows,
+        setCustomerPagination,
+        setUsingMockCustomers,
+        setPurchases,
+        setPurchaseRows,
+        setPurchasePagination,
+        setUsingMockPurchases,
+        setSales,
+        setSaleRows,
+        setSalePagination,
+        setUsingMockSales,
+        setQuotations,
+        setUsingMockQuotations,
+        setUsingMockCategories,
+        setUsingMockProducts,
+        setBillingNotes,
+        setBillingNoteRows,
+        setBillingNotePagination,
+        setBillingNoteEligibleSales,
+        setBillingNoteSummary,
+        setBillingNoteNextReferenceNo,
+        setUsingMockBillingNotes,
+        setPaymentBatches,
+        setPaymentBatchRows,
+        setPaymentBatchPagination,
+        setPaymentBatchEligiblePurchases,
+        setPaymentBatchSummary,
+        setPaymentBatchNextReferenceNo,
+        setUsingMockPaymentBatches,
+        setCreditNotes,
+        setCreditNoteRows,
+        setCreditNotePagination,
+        setCreditNoteEligibleSales,
+        setCreditNoteNextReferenceNo,
+        setUsingMockCreditNotes,
+      }),
+    []
+  );
 
-  const loadSupplierPage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getSuppliers(buildListParams(params));
-      setSupplierRows(getCollectionRows(response));
-      setSupplierPagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
+  const loadSupplierPage = useCallback(
+    createPagedCollectionLoader({
+      request: api.getSuppliers,
+      setRows: setSupplierRows,
+      setPagination: setSupplierPagination,
+      setError,
+    }),
+    []
+  );
 
-  const loadCustomerPage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getCustomers(buildListParams(params));
-      setCustomerRows(getCollectionRows(response));
-      setCustomerPagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
+  const loadCustomerPage = useCallback(
+    createPagedCollectionLoader({
+      request: api.getCustomers,
+      setRows: setCustomerRows,
+      setPagination: setCustomerPagination,
+      setError,
+    }),
+    []
+  );
 
-  const loadProductPage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getProducts(buildListParams(params));
-      setProductRows(getCollectionRows(response));
-      setProductPagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
+  const loadProductPage = useCallback(
+    createPagedCollectionLoader({
+      request: api.getProducts,
+      setRows: setProductRows,
+      setPagination: setProductPagination,
+      setError,
+    }),
+    []
+  );
 
   const reloadDashboard = useCallback(async (period = "month") => {
     try {
@@ -115,369 +150,129 @@ export function useInventoryData() {
     }
   }, []);
 
-  const loadPurchasePage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getPurchases(buildListParams(params));
-      setPurchaseRows(getCollectionRows(response));
-      setPurchasePagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
+  const loadPurchasePage = useCallback(
+    createPagedCollectionLoader({
+      request: api.getPurchases,
+      setRows: setPurchaseRows,
+      setPagination: setPurchasePagination,
+      setError,
+    }),
+    []
+  );
 
-  const loadSalePage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getSales(buildListParams(params));
-      setSaleRows(getCollectionRows(response));
-      setSalePagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
+  const loadSalePage = useCallback(
+    createPagedCollectionLoader({
+      request: api.getSales,
+      setRows: setSaleRows,
+      setPagination: setSalePagination,
+      setError,
+    }),
+    []
+  );
 
-  const loadBillingNotePage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getBillingNotes(buildListParams(params));
-      const rows = getCollectionRows(response);
-      setBillingNotes(rows);
-      setBillingNoteRows(rows);
-      setBillingNotePagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
+  const loadBillingNotePage = useCallback(
+    createPagedCollectionLoader({
+      request: api.getBillingNotes,
+      setCollection: setBillingNotes,
+      setRows: setBillingNoteRows,
+      setPagination: setBillingNotePagination,
+      setError,
+    }),
+    []
+  );
 
-  const loadPaymentBatchPage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getPaymentBatches(buildListParams(params));
-      const rows = getCollectionRows(response);
-      setPaymentBatches(rows);
-      setPaymentBatchRows(rows);
-      setPaymentBatchPagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
+  const loadPaymentBatchPage = useCallback(
+    createPagedCollectionLoader({
+      request: api.getPaymentBatches,
+      setCollection: setPaymentBatches,
+      setRows: setPaymentBatchRows,
+      setPagination: setPaymentBatchPagination,
+      setError,
+    }),
+    []
+  );
 
-  const loadBillingNoteEligibility = useCallback(async () => {
-    const response = await api.getEligibleBillingNoteSales();
-    setBillingNoteEligibleSales(Array.isArray(response?.sales) ? response.sales : []);
-    setBillingNoteSummary(response?.summary || null);
-    setBillingNoteNextReferenceNo(response?.next_reference_no || "");
-    return response;
-  }, []);
+  const loadBillingNoteEligibility = useCallback(
+    createEligibilityLoader({
+      request: api.getEligibleBillingNoteSales,
+      applyResponse: (response) => {
+        setBillingNoteEligibleSales(Array.isArray(response?.sales) ? response.sales : []);
+        setBillingNoteSummary(response?.summary || null);
+        setBillingNoteNextReferenceNo(response?.next_reference_no || "");
+      },
+    }),
+    []
+  );
 
-  const loadPaymentBatchEligibility = useCallback(async () => {
-    const response = await api.getEligiblePaymentBatchPurchases();
-    setPaymentBatchEligiblePurchases(
-      Array.isArray(response?.purchases) ? response.purchases : []
-    );
-    setPaymentBatchSummary(response?.summary || null);
-    setPaymentBatchNextReferenceNo(response?.next_reference_no || "");
-    return response;
-  }, []);
+  const loadPaymentBatchEligibility = useCallback(
+    createEligibilityLoader({
+      request: api.getEligiblePaymentBatchPurchases,
+      applyResponse: (response) => {
+        setPaymentBatchEligiblePurchases(
+          Array.isArray(response?.purchases) ? response.purchases : []
+        );
+        setPaymentBatchSummary(response?.summary || null);
+        setPaymentBatchNextReferenceNo(response?.next_reference_no || "");
+      },
+    }),
+    []
+  );
 
-  const loadCreditNotePage = useCallback(async (params = {}) => {
-    try {
-      const response = await api.getCreditNotes(buildListParams(params));
-      const rows = getCollectionRows(response);
-      setCreditNotes(rows);
-      setCreditNoteRows(rows);
-      setCreditNotePagination(getCollectionPagination(response));
-      return response;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
-  }, []);
+  const loadCreditNotePage = useCallback(
+    createPagedCollectionLoader({
+      request: api.getCreditNotes,
+      setCollection: setCreditNotes,
+      setRows: setCreditNoteRows,
+      setPagination: setCreditNotePagination,
+      setError,
+    }),
+    []
+  );
 
-  const loadCreditNoteEligibility = useCallback(async () => {
-    const response = await api.getEligibleCreditNoteSales();
-    setCreditNoteEligibleSales(Array.isArray(response?.sales) ? response.sales : []);
-    setCreditNoteNextReferenceNo(response?.next_reference_no || "");
-    return response;
-  }, []);
+  const loadCreditNoteEligibility = useCallback(
+    createEligibilityLoader({
+      request: api.getEligibleCreditNoteSales,
+      applyResponse: (response) => {
+        setCreditNoteEligibleSales(Array.isArray(response?.sales) ? response.sales : []);
+        setCreditNoteNextReferenceNo(response?.next_reference_no || "");
+      },
+    }),
+    []
+  );
 
-  const refreshBillingNoteEligibility = useCallback(async () => {
-    try {
-      await loadBillingNoteEligibility();
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  }, [loadBillingNoteEligibility]);
+  const refreshBillingNoteEligibility = useCallback(
+    createEligibilityRefresher({
+      loadEligibility: loadBillingNoteEligibility,
+      setError,
+    }),
+    [loadBillingNoteEligibility]
+  );
 
-  const refreshPaymentBatchEligibility = useCallback(async () => {
-    try {
-      await loadPaymentBatchEligibility();
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  }, [loadPaymentBatchEligibility]);
+  const refreshPaymentBatchEligibility = useCallback(
+    createEligibilityRefresher({
+      loadEligibility: loadPaymentBatchEligibility,
+      setError,
+    }),
+    [loadPaymentBatchEligibility]
+  );
 
-  const refreshCreditNoteEligibility = useCallback(async () => {
-    try {
-      await loadCreditNoteEligibility();
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  }, [loadCreditNoteEligibility]);
+  const refreshCreditNoteEligibility = useCallback(
+    createEligibilityRefresher({
+      loadEligibility: loadCreditNoteEligibility,
+      setError,
+    }),
+    [loadCreditNoteEligibility]
+  );
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
 
-    const results = await Promise.allSettled([
-      api.getDashboard(),
-      api.getSupplierLookups(),
-      api.getCustomerLookups(),
-      api.getCategories(),
-      api.getProductLookups({ include_disabled: "true" }),
-      api.getQuotations(),
-      api.getEligibleBillingNoteSales(),
-      api.getEligiblePaymentBatchPurchases(),
-      api.getEligibleCreditNoteSales(),
-      api.getSuppliers(buildListParams()),
-      api.getCustomers(buildListParams()),
-      api.getProducts(buildListParams()),
-      api.getPurchases(buildListParams()),
-      api.getSales(buildListParams()),
-      api.getBillingNotes(buildListParams()),
-      api.getPaymentBatches(buildListParams()),
-      api.getCreditNotes(buildListParams()),
-    ]);
-
-    const [
-      dashboardResult,
-      supplierResult,
-      customerResult,
-      categoryResult,
-      productResult,
-      quotationResult,
-      billingNoteEligibilityResult,
-      paymentBatchEligibilityResult,
-      creditNoteEligibilityResult,
-      supplierPageResult,
-      customerPageResult,
-      productPageResult,
-      purchasePageResult,
-      salePageResult,
-      billingNotePageResult,
-      paymentBatchPageResult,
-      creditNotePageResult,
-    ] = results;
-    const failures = [];
-
-    if (dashboardResult.status === "fulfilled") {
-      setDashboard(dashboardResult.value);
-    } else {
-      setDashboard(mockDashboard);
-      failures.push("dashboard");
-    }
-
-    if (supplierResult.status === "fulfilled") {
-      const supplierRowsAll = getCollectionRows(supplierResult.value);
-      setSuppliers(supplierRowsAll);
-      setUsingMockSuppliers(false);
-      if (supplierPageResult.status === "fulfilled") {
-        setSupplierRows(getCollectionRows(supplierPageResult.value));
-        setSupplierPagination(getCollectionPagination(supplierPageResult.value));
-      } else {
-        setSupplierRows(supplierRowsAll);
-        setSupplierPagination(null);
-      }
-    } else {
-      setSuppliers(getDefaultSuppliers());
-      setSupplierRows(getDefaultSuppliers());
-      setSupplierPagination(null);
-      setUsingMockSuppliers(true);
-      failures.push("suppliers");
-    }
-
-    if (customerResult.status === "fulfilled") {
-      const customerRowsAll = getCollectionRows(customerResult.value);
-      setCustomers(customerRowsAll);
-      setUsingMockCustomers(false);
-      if (customerPageResult.status === "fulfilled") {
-        setCustomerRows(getCollectionRows(customerPageResult.value));
-        setCustomerPagination(getCollectionPagination(customerPageResult.value));
-      } else {
-        setCustomerRows(customerRowsAll);
-        setCustomerPagination(null);
-      }
-    } else {
-      setCustomers(getDefaultCustomers());
-      setCustomerRows(getDefaultCustomers());
-      setCustomerPagination(null);
-      setUsingMockCustomers(true);
-      failures.push("customers");
-    }
-
-    if (categoryResult.status === "fulfilled") {
-      setCategories(getCollectionRows(categoryResult.value));
-      setUsingMockCategories(false);
-    } else {
-      setCategories(getDefaultCategories());
-      setUsingMockCategories(true);
-      failures.push("categories");
-    }
-
-    if (productResult.status === "fulfilled") {
-      const productRowsAll = getCollectionRows(productResult.value);
-      setProducts(productRowsAll);
-      setUsingMockProducts(false);
-      if (productPageResult.status === "fulfilled") {
-        setProductRows(getCollectionRows(productPageResult.value));
-        setProductPagination(getCollectionPagination(productPageResult.value));
-      } else {
-        setProductRows(productRowsAll);
-        setProductPagination(null);
-      }
-    } else {
-      setProducts(getDefaultProducts());
-      setProductRows(getDefaultProducts());
-      setProductPagination(null);
-      setUsingMockProducts(true);
-      failures.push("products");
-    }
-
-    if (purchasePageResult.status === "fulfilled") {
-      const purchaseRowsAll = getCollectionRows(purchasePageResult.value);
-      setPurchases(purchaseRowsAll);
-      setPurchaseRows(purchaseRowsAll);
-      setPurchasePagination(getCollectionPagination(purchasePageResult.value));
-      setUsingMockPurchases(false);
-    } else {
-      setPurchases(mockPurchases);
-      setPurchaseRows(mockPurchases);
-      setPurchasePagination(null);
-      setUsingMockPurchases(true);
-      failures.push("purchases");
-    }
-
-    if (salePageResult.status === "fulfilled") {
-      const saleRowsAll = getCollectionRows(salePageResult.value);
-      setSales(saleRowsAll);
-      setSaleRows(saleRowsAll);
-      setSalePagination(getCollectionPagination(salePageResult.value));
-      setUsingMockSales(false);
-    } else {
-      setSales(mockSales);
-      setSaleRows(mockSales);
-      setSalePagination(null);
-      setUsingMockSales(true);
-      failures.push("sales");
-    }
-
-    if (quotationResult.status === "fulfilled") {
-      const quotationRows = getCollectionRows(quotationResult.value);
-      setQuotations(mergeQuotationRowsWithMocks(quotationRows, false));
-      setUsingMockQuotations(false);
-    } else {
-      setQuotations(
-        productResult.status === "fulfilled" ? [] : mergeQuotationRowsWithMocks([], true)
-      );
-      setUsingMockQuotations(true);
-      failures.push("quotations");
-    }
-
-    if (billingNoteEligibilityResult.status === "fulfilled") {
-      setBillingNoteEligibleSales(
-        Array.isArray(billingNoteEligibilityResult.value?.sales)
-          ? billingNoteEligibilityResult.value.sales
-          : []
-      );
-      setBillingNoteSummary(billingNoteEligibilityResult.value?.summary || null);
-      setBillingNoteNextReferenceNo(
-        billingNoteEligibilityResult.value?.next_reference_no || ""
-      );
-    } else {
-      setBillingNoteEligibleSales(mockSales);
-      setBillingNoteSummary(null);
-      setBillingNoteNextReferenceNo("");
-      failures.push("billing-note-eligibility");
-    }
-
-    if (billingNotePageResult.status === "fulfilled") {
-      const billingNoteRowsAll = getCollectionRows(billingNotePageResult.value);
-      setBillingNotes(billingNoteRowsAll);
-      setBillingNoteRows(billingNoteRowsAll);
-      setBillingNotePagination(getCollectionPagination(billingNotePageResult.value));
-      setUsingMockBillingNotes(false);
-    } else {
-      setBillingNotes(mockBillingNotes);
-      setBillingNoteRows(mockBillingNotes);
-      setBillingNotePagination(null);
-      setUsingMockBillingNotes(true);
-      failures.push("billing-notes");
-    }
-
-    if (paymentBatchEligibilityResult.status === "fulfilled") {
-      setPaymentBatchEligiblePurchases(
-        Array.isArray(paymentBatchEligibilityResult.value?.purchases)
-          ? paymentBatchEligibilityResult.value.purchases
-          : []
-      );
-      setPaymentBatchSummary(paymentBatchEligibilityResult.value?.summary || null);
-      setPaymentBatchNextReferenceNo(
-        paymentBatchEligibilityResult.value?.next_reference_no || ""
-      );
-    } else {
-      setPaymentBatchEligiblePurchases(mockPurchases);
-      setPaymentBatchSummary(null);
-      setPaymentBatchNextReferenceNo("");
-      failures.push("payment-batch-eligibility");
-    }
-
-    if (paymentBatchPageResult.status === "fulfilled") {
-      const paymentBatchRowsAll = getCollectionRows(paymentBatchPageResult.value);
-      setPaymentBatches(paymentBatchRowsAll);
-      setPaymentBatchRows(paymentBatchRowsAll);
-      setPaymentBatchPagination(getCollectionPagination(paymentBatchPageResult.value));
-      setUsingMockPaymentBatches(false);
-    } else {
-      setPaymentBatches(mockPaymentBatches);
-      setPaymentBatchRows(mockPaymentBatches);
-      setPaymentBatchPagination(null);
-      setUsingMockPaymentBatches(true);
-      failures.push("payment-batches");
-    }
-
-    if (creditNoteEligibilityResult.status === "fulfilled") {
-      setCreditNoteEligibleSales(
-        Array.isArray(creditNoteEligibilityResult.value?.sales)
-          ? creditNoteEligibilityResult.value.sales
-          : []
-      );
-      setCreditNoteNextReferenceNo(
-        creditNoteEligibilityResult.value?.next_reference_no || ""
-      );
-    } else {
-      setCreditNoteEligibleSales([]);
-      setCreditNoteNextReferenceNo("");
-      failures.push("credit-note-eligibility");
-    }
-
-    if (creditNotePageResult.status === "fulfilled") {
-      const creditNoteRowsAll = getCollectionRows(creditNotePageResult.value);
-      setCreditNotes(creditNoteRowsAll);
-      setCreditNoteRows(creditNoteRowsAll);
-      setCreditNotePagination(getCollectionPagination(creditNotePageResult.value));
-      setUsingMockCreditNotes(false);
-    } else {
-      setCreditNotes([]);
-      setCreditNoteRows([]);
-      setCreditNotePagination(null);
-      setUsingMockCreditNotes(true);
-      failures.push("credit-notes");
-    }
+    const results = await Promise.allSettled(createInitialDataRequests(api));
+    const failures = applyInitialDataResults({
+      results,
+      setters: inventoryDataSetters,
+    });
 
     if (failures.length) {
       setError(
@@ -488,7 +283,7 @@ export function useInventoryData() {
     }
 
     setLoading(false);
-  }, []);
+  }, [inventoryDataSetters]);
 
   return {
     dashboard,
