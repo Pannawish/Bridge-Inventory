@@ -27,6 +27,10 @@ This file is for coding agents working in this repository. Follow these rules be
 - Keep functions focused on one responsibility. If a function grows hard to scan, extract named helpers that explain the workflow.
 - Keep page components responsible for composition and user flow; move reusable data loading, formatting, validation, and mapping logic into hooks or utility modules.
 - Avoid duplicating business rules across frontend files. Shared rules should live in one named helper or, when authoritative, in the backend.
+- Prefer reuse when two or more components are near-clones in layout, interaction, and lifecycle.
+- Extract small shared shells, sections, or controls when that removes duplicated UI flow without hiding business rules.
+- Do not force generic abstractions for domain-specific forms or workflows unless the behavior is already aligned and likely to change together.
+- Keep business logic explicit in the owning domain module; share presentation structure before sharing transaction rules.
 - Keep files reasonably sized. When adding new behavior to a large file, first look for an existing focused module or create one with clear ownership.
 - Use comments only to explain non-obvious business rules, edge cases, or safety constraints. Do not comment obvious code.
 - Preserve behavior during refactors. Split files and rename helpers separately from feature changes whenever possible.
