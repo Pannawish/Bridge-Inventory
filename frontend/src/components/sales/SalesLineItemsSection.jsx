@@ -3,6 +3,7 @@ import { useLanguage } from "../../i18n/LanguageContext";
 import {
   buildConvertedItemFields,
   getProductUnitOptions,
+  getProductBaseUnit,
 } from "../../unitConversion";
 import { isProductActive } from "../products/productUtils";
 import {
@@ -179,6 +180,33 @@ function SalesLineItemsSection({
               </div>
               {itemErrors[index] ? (
                 <span className="field-error-text">{itemErrors[index]}</span>
+              ) : selectedProduct ? (
+                (() => {
+                  const currentStock = Number(
+                    selectedProduct.current_stock ??
+                    selectedProduct.currentStock ??
+                    selectedProduct.available_stock ??
+                    0
+                  ) || 0;
+                  const baseUnit = getProductBaseUnit(selectedProduct) || "pcs";
+                  
+                  if (currentStock <= 0) {
+                    return (
+                      <span className="product-stock-preview out-of-stock">
+                        {t("salesForm.productOutOfStock")}
+                      </span>
+                    );
+                  }
+                  
+                  return (
+                    <span className="product-stock-preview in-stock">
+                      {t("salesForm.productTotalStock", {
+                        stock: currentStock,
+                        unit: baseUnit,
+                      })}
+                    </span>
+                  );
+                })()
               ) : null}
             </label>
 
