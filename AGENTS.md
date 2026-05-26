@@ -157,11 +157,23 @@ npm run dev -- --host 127.0.0.1
 
 ## Current Improvement Direction
 
-The next major maintainability step is splitting oversized frontend files. Start with:
+The maintainability refactor is progressing through oversized frontend files. Completed splits:
 
-- `frontend/src/components/ProductsPage.jsx`
-- `frontend/src/App.jsx`
+- `frontend/src/components/ProductsPage.jsx` — orchestration hook and validation helpers extracted
+- `frontend/src/components/CategoryPage.jsx` — state hook and tree helpers extracted
+- `frontend/src/components/CustomerPage.jsx` — state hook and filter helpers extracted
+- `frontend/src/components/SupplierPage.jsx` — state hook and filter helpers extracted
+- purchase/sales history edit forms — state hooks and pure helpers extracted
+- `frontend/src/components/quotation/QuotationForm.jsx` — state hook and helpers extracted
+
+Remaining split targets by approximate size:
+
+- `frontend/src/App.jsx` (391 lines)
+- `frontend/src/components/billing/BillingNoteDetailModal.jsx` (413 lines)
+- `frontend/src/components/suppliers/SupplierEditorModal.jsx` (398 lines)
+- `frontend/src/components/Dashboard.jsx` (367 lines)
+- `frontend/src/components/PurchaseHistoryPage.jsx` (362 lines)
+- `frontend/src/components/customers/CustomerEditorModal.jsx` (357 lines)
 - `frontend/src/styles.css`
-- purchase/sales history forms and shared transaction-detail UI
 
 Keep behavior unchanged while splitting. Extract small, named pieces with clear ownership instead of doing broad rewrites.

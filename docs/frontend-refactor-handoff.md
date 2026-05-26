@@ -33,6 +33,9 @@ Optional broader checks from repo standards:
 - `frontend/src/components/ProductsPage.jsx`
   - split into product-specific components, hooks, and helpers
   - default product seed data moved out
+  - second-pass: orchestration extracted to `frontend/src/components/products/useProductsPageState.js` (402 lines)
+  - save/delete/enable/disable validation extracted to `frontend/src/components/products/productsPageHelpers.js` (231 lines)
+  - page reduced to 133-line composition shell
 - `frontend/src/App.jsx`
   - action clusters moved into focused hooks
   - shell/layout and active-tab rendering extracted
@@ -40,11 +43,24 @@ Optional broader checks from repo standards:
 - `frontend/src/components/QuotationPage.jsx`
   - form, detail modal, directory section, conversion flow, purchase wizard wrapper extracted
   - directory state moved into a dedicated hook
+- `frontend/src/components/quotation/QuotationForm.jsx`
+  - state/workflow extracted to `frontend/src/components/quotation/useQuotationFormState.js` (385 lines)
+  - form reduced to 136-line composition shell
+- `frontend/src/hooks/useAppTransactionActions.js`
+  - split into domain-specific sub-hooks
+  - now a 12-line barrel re-export orchestrator
+- `frontend/src/hooks/useProductEditorState.js`
+  - pure draft mutation helpers extracted to `frontend/src/hooks/productEditorStateHelpers.js` (265 lines)
+  - hook stabilized at 310 lines
 - `frontend/src/components/PurchaseHistoryPage.jsx`
   - edit form, directory section, helpers extracted
+  - edit form state extracted to `frontend/src/components/purchases/usePurchaseEditFormState.js` (353 lines)
+  - pure helpers extracted to `frontend/src/components/purchases/purchaseHistoryUtils.js` (385 lines)
 - `frontend/src/components/SalesHistoryPage.jsx`
   - edit form, directory section, helpers extracted
   - directory state moved into a dedicated hook
+  - edit form state extracted to `frontend/src/components/sales/useSalesEditFormState.js` (422 lines)
+  - pure helpers extracted to `frontend/src/components/sales/salesHistoryUtils.js` (407 lines)
 - `frontend/src/components/BillingNotePage.jsx`
   - create/detail flows, directory section, helpers, and directory state extracted
 - `frontend/src/components/PaymentBatchPage.jsx`
@@ -62,6 +78,17 @@ Optional broader checks from repo standards:
   - split into section components
   - remaining state/workflow extracted to `frontend/src/components/purchases/usePurchaseFormState.js`
   - second-pass pure helper extraction into `frontend/src/components/purchases/purchaseFormStateHelpers.js`
+- `frontend/src/components/CategoryPage.jsx`
+  - state/workflow extracted to `frontend/src/components/categories/useCategoryPageState.js` (388 lines)
+  - tree/filter helpers extracted to `frontend/src/components/categories/categoryPageHelpers.js` (210 lines)
+- `frontend/src/components/CustomerPage.jsx`
+  - state/workflow extracted to `frontend/src/components/customers/useCustomerPageState.js` (347 lines)
+  - filter helpers extracted to `frontend/src/components/customers/customerPageHelpers.js` (44 lines)
+  - page reduced to 151-line composition shell
+- `frontend/src/components/SupplierPage.jsx`
+  - state/workflow extracted to `frontend/src/components/suppliers/useSupplierPageState.js` (343 lines)
+  - filter helpers extracted to `frontend/src/components/suppliers/supplierPageHelpers.js` (46 lines)
+  - page reduced to 146-line composition shell
 - `frontend/src/components/quotation/quotationUtils.js`
   - decomposed into:
     - `frontend/src/components/quotation/quotationDateUtils.js`
@@ -76,61 +103,45 @@ Optional broader checks from repo standards:
 
 ## Current Best Next Targets
 Current approximate sizes:
-- `frontend/src/components/quotation/QuotationForm.jsx`: 484 lines
-- `frontend/src/hooks/useAppTransactionActions.js`: 483 lines
-- `frontend/src/hooks/useProductEditorState.js`: 471 lines
+- `frontend/src/components/billing/BillingNoteDetailModal.jsx`: 413 lines
+- `frontend/src/components/suppliers/SupplierEditorModal.jsx`: 398 lines
+- `frontend/src/App.jsx`: 391 lines
+- `frontend/src/components/Dashboard.jsx`: 367 lines
+- `frontend/src/components/PurchaseHistoryPage.jsx`: 362 lines
+- `frontend/src/components/customers/CustomerEditorModal.jsx`: 357 lines
+- `frontend/src/components/payments/PaymentBatchDetailModal.jsx`: 346 lines
 
 Recommended order:
-1. `frontend/src/components/quotation/QuotationForm.jsx`
-2. `frontend/src/hooks/useAppTransactionActions.js`
-3. `frontend/src/hooks/useProductEditorState.js`
+1. `frontend/src/components/billing/BillingNoteDetailModal.jsx`
+2. `frontend/src/components/suppliers/SupplierEditorModal.jsx` and `CustomerEditorModal.jsx` (symmetric pair)
+3. `frontend/src/App.jsx`
+4. `frontend/src/components/Dashboard.jsx`
 
 ## Target Notes
 
-### 1. `frontend/src/components/quotation/QuotationForm.jsx`
+### 1. `frontend/src/components/billing/BillingNoteDetailModal.jsx`
 Recommended outcome:
-- keep `QuotationForm.jsx` as a thin composition component
-- extract remaining state/workflow into `frontend/src/components/quotation/useQuotationFormState.js`
-- if needed, extract pure mutation/payload logic into `frontend/src/components/quotation/quotationFormStateHelpers.js`
+- extract billing note detail state into a dedicated hook
+- extract pure calculation/formatting helpers if present
+- keep the modal as a composition shell
 
-Likely clusters:
-- quotation form state and validation
-- valid-until day logic
-- product filtering/search helpers
-- supplier option mutations
-- item mutation handlers
-- submit/payload building
-
-Behavior to preserve:
-- edit/create flow
-- product filtering behavior
-- supplier option management
-- VAT calculations
-- valid-until date behavior
-
-### 2. `frontend/src/hooks/useAppTransactionActions.js`
+### 2. `frontend/src/components/suppliers/SupplierEditorModal.jsx` / `CustomerEditorModal.jsx`
 Recommended outcome:
-- split purchase flow helpers from sales flow helpers
-- move pure payload/status/normalization logic into helper modules
-- keep the hook as orchestration for app-level callbacks and prompt triggers
+- extract editor form state into hooks (symmetric pattern)
+- extract contact validation helpers if not already shared through `contactValidation.js`
+- keep modals as composition shells
 
-Likely clusters:
-- purchase create/update/delete/status behavior
-- sale create/update/delete/status behavior
-- stock-draft normalization
-- credit-note prompt triggering
-
-### 3. `frontend/src/hooks/useProductEditorState.js`
+### 3. `frontend/src/App.jsx`
 Recommended outcome:
-- keep the hook public API stable
-- extract pure draft mutation helpers into a sibling helper module
+- identify remaining logic clusters beyond existing hook delegations
+- extract any residual state management or side-effect logic
+- keep App.jsx as a routing/layout orchestrator
 
-Likely clusters:
-- draft picture state
-- sub-name mutations
-- unit conversion mutations
-- category combobox/query state helpers
-- SKU lock/unlock behavior
+### 4. `frontend/src/components/Dashboard.jsx`
+Recommended outcome:
+- extract dashboard data fetching/processing into a hook
+- extract chart configuration or metric calculations into helpers
+- keep the component as a layout shell
 
 ## Working Rules For Future Agents
 - Favor low-risk extraction over broad rewrites.
