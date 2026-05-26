@@ -169,10 +169,10 @@ The maintainability refactor is progressing through oversized frontend files. Co
 - `frontend/src/components/payments/PaymentBatchDetailModal.jsx` — state hook (`usePaymentBatchDetailState.js`) and pure calculations (`paymentBatchDetailHelpers.js`) extracted
 - `frontend/src/components/suppliers/SupplierEditorModal.jsx` — section components extracted, reduced to composition shell
 - `frontend/src/components/customers/CustomerEditorModal.jsx` — section components extracted, reduced to composition shell
+- `frontend/src/App.jsx` — orchestration state hook (`useAppState.js`) extracted, reduced to layout composition shell
 
 Remaining split targets by approximate size:
 
-- `frontend/src/App.jsx` (391 lines)
 - `frontend/src/components/Dashboard.jsx` (367 lines)
 - `frontend/src/styles.css`
 

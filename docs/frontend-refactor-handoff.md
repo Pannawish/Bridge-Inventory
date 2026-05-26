@@ -40,6 +40,8 @@ Optional broader checks from repo standards:
   - action clusters moved into focused hooks
   - shell/layout and active-tab rendering extracted
   - chat and app message helpers extracted
+  - second-pass: complete state orchestration, effects, actions and warning system extracted to `frontend/src/app/useAppState.js` (304 lines)
+  - App.jsx reduced to 124-line layout composition shell
 - `frontend/src/components/QuotationPage.jsx`
   - form, detail modal, directory section, conversion flow, purchase wizard wrapper extracted
   - directory state moved into a dedicated hook
@@ -121,22 +123,14 @@ Optional broader checks from repo standards:
 
 ## Current Best Next Targets
 Current approximate sizes:
-- `frontend/src/App.jsx`: 391 lines
 - `frontend/src/components/Dashboard.jsx`: 367 lines
 
 Recommended order:
-1. `frontend/src/App.jsx`
-2. `frontend/src/components/Dashboard.jsx`
+1. `frontend/src/components/Dashboard.jsx`
 
 ## Target Notes
 
-### 1. `frontend/src/App.jsx`
-Recommended outcome:
-- identify remaining logic clusters beyond existing hook delegations
-- extract any residual state management or side-effect logic
-- keep App.jsx as a routing/layout orchestrator
-
-### 2. `frontend/src/components/Dashboard.jsx`
+### 1. `frontend/src/components/Dashboard.jsx`
 Recommended outcome:
 - extract dashboard data fetching/processing into a hook
 - extract chart configuration or metric calculations into helpers
