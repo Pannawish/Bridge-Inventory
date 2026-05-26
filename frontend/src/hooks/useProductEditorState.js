@@ -7,15 +7,27 @@ import {
   getProductPictures,
   getSelectedProductPicture,
   normalizeProduct,
-  normalizeUniqueNames,
-  normalizeSku,
   resolveProductCategoryId,
 } from "../components/products/productUtils";
-import { createDraftPicture, createProduct } from "../components/products/productEditorHelpers";
+import { createProduct } from "../components/products/productEditorHelpers";
 import {
   collectionsHaveProductTransactionHistory,
   loadedProductHistoryHasTransactions,
 } from "../components/products/productHistoryHelpers";
+import {
+  updateDraftFieldHelper,
+  addDraftPicturesHelper,
+  selectDraftPictureHelper,
+  removeDraftPictureHelper,
+  updateDraftSubNameHelper,
+  addDraftSubNameHelper,
+  removeDraftSubNameHelper,
+  setDraftSubNameAsMainHelper,
+  updateDraftUnitConversionHelper,
+  toggleDraftUnitConversionHelper,
+  addDraftUnitConversionHelper,
+  removeDraftUnitConversionHelper,
+} from "./productEditorStateHelpers";
 
 function useProductEditorState({
   allProducts,
@@ -118,239 +130,66 @@ function useProductEditorState({
   }
 
   function updateDraftField(key, value) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const nextProduct = { ...prev, [key]: value };
-
-      if (key === "categoryId" && !value) {
-        const isExistingProduct = allProducts.some((product) => `${product.id}` === `${prev.id}`);
-
-        return {
-          ...nextProduct,
-          sku: isExistingProduct ? nextProduct.sku : "",
-        };
-      }
-
-      if (key === "categoryId" && getCategoryPathSkuCode(categories, value)) {
-        const isExistingProduct = allProducts.some((product) => `${product.id}` === `${prev.id}`);
-        const shouldRegenerateSku = !isExistingProduct || !normalizeSku(nextProduct.sku);
-
-        if (!shouldRegenerateSku) {
-          return nextProduct;
-        }
-
-        return {
-          ...nextProduct,
-          sku: generateStructuredSku(nextProduct),
-        };
-      }
-
-      return nextProduct;
-    });
+    setDraftProduct((prev) =>
+      updateDraftFieldHelper(prev, key, value, allProducts, categories, generateStructuredSku)
+    );
     setProductFormError("");
   }
 
   function addDraftPictures(files) {
-    const nextPictures = Array.from(files || [])
-      .filter((file) => file?.type?.startsWith("image/"))
-      .map(createDraftPicture);
-
-    if (!nextPictures.length) {
-      return;
-    }
-
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const currentPictures = getProductPictures(prev);
-      const selectedPictureId = prev.selectedPictureId || nextPictures[0].id;
-
-      return {
-        ...prev,
-        productPictures: [...currentPictures, ...nextPictures].map((picture) => ({
-          ...picture,
-          isSelected: picture.id === selectedPictureId,
-        })),
-        selectedPictureId,
-      };
-    });
+    setDraftProduct((prev) => addDraftPicturesHelper(prev, files));
     setProductFormError("");
   }
 
   function selectDraftPicture(pictureId) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        selectedPictureId: pictureId,
-        productPictures: getProductPictures(prev).map((picture) => ({
-          ...picture,
-          isSelected: picture.id === pictureId,
-        })),
-      };
-    });
+    setDraftProduct((prev) => selectDraftPictureHelper(prev, pictureId));
     setProductFormError("");
   }
 
   function removeDraftPicture(pictureId) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const currentPictures = getProductPictures(prev);
-      const removedPicture = currentPictures.find((picture) => picture.id === pictureId);
-      const nextPictures = currentPictures.filter((picture) => picture.id !== pictureId);
-      const currentSelectedRemoved = prev.selectedPictureId === pictureId;
-      const selectedPictureId = currentSelectedRemoved
-        ? nextPictures[0]?.id || ""
-        : prev.selectedPictureId;
-      const removePictureIds =
-        removedPicture && !removedPicture.isNew
-          ? [...(prev.removePictureIds || []), removedPicture.id]
-          : prev.removePictureIds || [];
-
-      return {
-        ...prev,
-        productPictures: nextPictures.map((picture) => ({
-          ...picture,
-          isSelected: picture.id === selectedPictureId,
-        })),
-        selectedPictureId,
-        removePictureIds,
-      };
-    });
+    setDraftProduct((prev) => removeDraftPictureHelper(prev, pictureId));
     setProductFormError("");
   }
 
   function updateDraftSubName(index, value) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const nextSubNames = [...(prev.subNames || [])];
-      nextSubNames[index] = value;
-      return { ...prev, subNames: nextSubNames };
-    });
+    setDraftProduct((prev) => updateDraftSubNameHelper(prev, index, value));
     setProductFormError("");
   }
 
   function addDraftSubName() {
-    setDraftProduct((prev) =>
-      prev ? { ...prev, subNames: [...(prev.subNames || []), ""] } : prev
-    );
+    setDraftProduct((prev) => addDraftSubNameHelper(prev));
     setProductFormError("");
   }
 
   function removeDraftSubName(index) {
-    setDraftProduct((prev) =>
-      prev
-        ? { ...prev, subNames: (prev.subNames || []).filter((_, itemIndex) => itemIndex !== index) }
-        : prev
-    );
+    setDraftProduct((prev) => removeDraftSubNameHelper(prev, index));
     setProductFormError("");
   }
 
   function setDraftSubNameAsMain(index) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const currentSubNames = [...(prev.subNames || [])];
-      const selectedSubName = `${currentSubNames[index] ?? ""}`.trim();
-
-      if (!selectedSubName) {
-        return prev;
-      }
-
-      const currentMainName = `${prev.productName ?? ""}`.trim();
-      const nextSubNames = currentSubNames.filter((_, itemIndex) => itemIndex !== index);
-
-      if (currentMainName) {
-        nextSubNames.unshift(currentMainName);
-      }
-
-      return {
-        ...prev,
-        productName: selectedSubName,
-        subNames: normalizeUniqueNames(nextSubNames),
-      };
-    });
+    setDraftProduct((prev) => setDraftSubNameAsMainHelper(prev)(index));
     setProductFormError("");
   }
 
   function updateDraftUnitConversion(index, key, value) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const nextConversions = [...(prev.unitConversions || [])];
-      nextConversions[index] = {
-        ...nextConversions[index],
-        [key]: value,
-      };
-
-      return { ...prev, unitConversions: nextConversions };
-    });
+    setDraftProduct((prev) => updateDraftUnitConversionHelper(prev, index, key, value));
     setProductFormError("");
   }
 
   function toggleDraftUnitConversion(index, key) {
-    setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const nextConversions = [...(prev.unitConversions || [])];
-      nextConversions[index] = {
-        ...nextConversions[index],
-        [key]: !nextConversions[index]?.[key],
-      };
-
-      return { ...prev, unitConversions: nextConversions };
-    });
+    setDraftProduct((prev) => toggleDraftUnitConversionHelper(prev, index, key));
     setProductFormError("");
   }
 
   function addDraftUnitConversion() {
-    setDraftProduct((prev) =>
-      prev
-        ? {
-            ...prev,
-            unitConversions: [
-              ...(prev.unitConversions || []),
-              { unit: "", factorToBase: 1, allowPurchase: true, allowSale: true },
-            ],
-          }
-        : prev
-    );
+    setDraftProduct((prev) => addDraftUnitConversionHelper(prev));
     setProductFormError("");
   }
 
   function removeDraftUnitConversion(index) {
     setDraftProduct((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
       const stockBaseUnit = getProductBaseUnit(prev);
-      const nextConversions = (prev.unitConversions || []).filter((conversion, itemIndex) =>
-        itemIndex !== index ||
-        `${conversion.unit}`.toLowerCase() === stockBaseUnit.toLowerCase()
-      );
-
-      return { ...prev, unitConversions: nextConversions };
+      return removeDraftUnitConversionHelper(prev, index, stockBaseUnit);
     });
     setProductFormError("");
   }
