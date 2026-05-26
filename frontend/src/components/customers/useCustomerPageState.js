@@ -325,6 +325,7 @@ export function useCustomerPageState({
     totalCustomerCount,
     quickPresets,
     activeChips,
+    resetFilters,
     setSearchTerm,
     setFilterOpen,
     setProfileFilter,

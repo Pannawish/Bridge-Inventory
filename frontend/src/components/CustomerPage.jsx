@@ -1,8 +1,8 @@
-import { FilterPresets, ActiveFilterChips } from "./FilterControls";
 import CustomerDirectorySection from "./customers/CustomerDirectorySection";
 import CustomerEditorModal from "./customers/CustomerEditorModal";
 import { useCustomerPageState } from "./customers/useCustomerPageState";
 import { CUSTOMER_PROFILE_OPTIONS, getDefaultCustomers } from "./customers/customerUtils";
+import PartnerPageShell from "./partners/PartnerPageShell";
 
 // Keep stable public exports for backwards-compatibility
 export { getDefaultCustomers } from "./customers/customerUtils";
@@ -31,6 +31,7 @@ function CustomerPage({
     totalCustomerCount,
     quickPresets,
     activeChips,
+    resetFilters,
     setSearchTerm,
     setFilterOpen,
     setProfileFilter,
@@ -48,7 +49,6 @@ function CustomerPage({
     handleSaveCustomer,
     handleDeleteCustomer,
     getPageRequestParams,
-    t,
   } = useCustomerPageState({
     customers,
     allCustomers,
@@ -59,88 +59,25 @@ function CustomerPage({
   });
 
   return (
-    <div className="stack-layout">
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("customer.eyebrow")}</p>
-            <h3>{t("customer.findTitle")}</h3>
-          </div>
-        </div>
-
-        <div className="supplier-directory-toolbar">
-          <label className="stock-search supplier-search">
-            <span className="stock-search-icon">S</span>
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder={t("customer.searchPlaceholder")}
-            />
-          </label>
-          <div className="stock-report-summary supplier-search-meta">
-            <span>
-              {isServerPaginated
-                ? t("customer.pageCountServer", {
-                    count: filteredCustomers.length,
-                    total: totalCustomerCount,
-                  })
-                : t("customer.pageCountLocal", {
-                    count: filteredCustomers.length,
-                    total: customers.length,
-                  })}
-            </span>
-          </div>
-        </div>
-
-        <div className="history-filter-actions">
-          <button
-            className="secondary-button product-filter-toggle"
-            type="button"
-            aria-expanded={filterOpen}
-            onClick={() => setFilterOpen((currentValue) => !currentValue)}
-          >
-            {t("common.filter")}
-            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
-          </button>
-          <button className="secondary-button" type="button" onClick={() => {
-            setSearchTerm("");
-            setProfileFilter("all");
-            setFilterOpen(false);
-          }}>
-            {t("common.resetFilter")}
-          </button>
-        </div>
-
-        <FilterPresets presets={quickPresets} />
-        <ActiveFilterChips chips={activeChips} onClearAll={() => {
-          setSearchTerm("");
-          setProfileFilter("all");
-          setFilterOpen(false);
-        }} />
-
-        {filterOpen ? (
-          <div className="history-filter-panel">
-            <div className="history-filter-grid">
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("customer.profileFilter")}</span>
-                <select
-                  value={profileFilter}
-                  onChange={(event) => setProfileFilter(event.target.value)}
-                >
-                  <option value="all">{t("customer.allCustomers")}</option>
-                  {CUSTOMER_PROFILE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {t(option.labelKey)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </div>
-        ) : null}
-      </section>
-
+    <PartnerPageShell
+      entityKey="customer"
+      allProfilesLabelKey="customer.allCustomers"
+      searchTerm={searchTerm}
+      onSearchTermChange={setSearchTerm}
+      isServerPaginated={isServerPaginated}
+      filteredCount={filteredCustomers.length}
+      totalCount={totalCustomerCount}
+      localCount={customers.length}
+      filterOpen={filterOpen}
+      activeFilterCount={activeFilterCount}
+      onToggleFilterOpen={() => setFilterOpen((currentValue) => !currentValue)}
+      onResetFilters={resetFilters}
+      quickPresets={quickPresets}
+      activeChips={activeChips}
+      profileFilter={profileFilter}
+      onProfileFilterChange={setProfileFilter}
+      profileOptions={CUSTOMER_PROFILE_OPTIONS}
+    >
       <CustomerDirectorySection
         filteredCustomers={filteredCustomers}
         selectedCustomerId={selectedCustomerId}
@@ -170,7 +107,7 @@ function CustomerPage({
           onSetFormErrors={setFormErrors}
         />
       ) : null}
-    </div>
+    </PartnerPageShell>
   );
 }
 

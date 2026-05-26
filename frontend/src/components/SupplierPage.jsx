@@ -1,8 +1,8 @@
-import { FilterPresets, ActiveFilterChips } from "./FilterControls";
 import SupplierDirectorySection from "./suppliers/SupplierDirectorySection";
 import SupplierEditorModal from "./suppliers/SupplierEditorModal";
 import { useSupplierPageState } from "./suppliers/useSupplierPageState";
 import { SUPPLIER_PROFILE_OPTIONS, getDefaultSuppliers } from "./suppliers/supplierUtils";
+import PartnerPageShell from "./partners/PartnerPageShell";
 
 // Keep stable public exports for backwards-compatibility
 export { getDefaultSuppliers } from "./suppliers/supplierUtils";
@@ -31,6 +31,7 @@ function SupplierPage({
     totalSupplierCount,
     quickPresets,
     activeChips,
+    resetFilters,
     setSearchTerm,
     setFilterOpen,
     setProfileFilter,
@@ -48,7 +49,6 @@ function SupplierPage({
     handleSaveSupplier,
     handleDeleteSupplier,
     getPageRequestParams,
-    t,
   } = useSupplierPageState({
     suppliers,
     allSuppliers,
@@ -59,88 +59,25 @@ function SupplierPage({
   });
 
   return (
-    <div className="stack-layout">
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("supplier.eyebrow")}</p>
-            <h3>{t("supplier.findTitle")}</h3>
-          </div>
-        </div>
-
-        <div className="supplier-directory-toolbar">
-          <label className="stock-search supplier-search">
-            <span className="stock-search-icon">S</span>
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder={t("supplier.searchPlaceholder")}
-            />
-          </label>
-          <div className="stock-report-summary supplier-search-meta">
-            <span>
-              {isServerPaginated
-                ? t("supplier.pageCountServer", {
-                    count: filteredSuppliers.length,
-                    total: totalSupplierCount,
-                  })
-                : t("supplier.pageCountLocal", {
-                    count: filteredSuppliers.length,
-                    total: suppliers.length,
-                  })}
-            </span>
-          </div>
-        </div>
-
-        <div className="history-filter-actions">
-          <button
-            className="secondary-button product-filter-toggle"
-            type="button"
-            aria-expanded={filterOpen}
-            onClick={() => setFilterOpen((currentValue) => !currentValue)}
-          >
-            {t("common.filter")}
-            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
-          </button>
-          <button className="secondary-button" type="button" onClick={() => {
-            setSearchTerm("");
-            setProfileFilter("all");
-            setFilterOpen(false);
-          }}>
-            {t("common.resetFilter")}
-          </button>
-        </div>
-
-        <FilterPresets presets={quickPresets} />
-        <ActiveFilterChips chips={activeChips} onClearAll={() => {
-          setSearchTerm("");
-          setProfileFilter("all");
-          setFilterOpen(false);
-        }} />
-
-        {filterOpen ? (
-          <div className="history-filter-panel">
-            <div className="history-filter-grid">
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("supplier.profileFilter")}</span>
-                <select
-                  value={profileFilter}
-                  onChange={(event) => setProfileFilter(event.target.value)}
-                >
-                  <option value="all">{t("supplier.allSuppliers")}</option>
-                  {SUPPLIER_PROFILE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {t(option.labelKey)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </div>
-        ) : null}
-      </section>
-
+    <PartnerPageShell
+      entityKey="supplier"
+      allProfilesLabelKey="supplier.allSuppliers"
+      searchTerm={searchTerm}
+      onSearchTermChange={setSearchTerm}
+      isServerPaginated={isServerPaginated}
+      filteredCount={filteredSuppliers.length}
+      totalCount={totalSupplierCount}
+      localCount={suppliers.length}
+      filterOpen={filterOpen}
+      activeFilterCount={activeFilterCount}
+      onToggleFilterOpen={() => setFilterOpen((currentValue) => !currentValue)}
+      onResetFilters={resetFilters}
+      quickPresets={quickPresets}
+      activeChips={activeChips}
+      profileFilter={profileFilter}
+      onProfileFilterChange={setProfileFilter}
+      profileOptions={SUPPLIER_PROFILE_OPTIONS}
+    >
       <SupplierDirectorySection
         filteredSuppliers={filteredSuppliers}
         selectedSupplierId={selectedSupplierId}
@@ -170,7 +107,7 @@ function SupplierPage({
           onSetFormErrors={setFormErrors}
         />
       ) : null}
-    </div>
+    </PartnerPageShell>
   );
 }
 

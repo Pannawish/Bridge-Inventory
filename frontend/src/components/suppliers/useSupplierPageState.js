@@ -321,6 +321,7 @@ export function useSupplierPageState({
     totalSupplierCount,
     quickPresets,
     activeChips,
+    resetFilters,
     setSearchTerm,
     setFilterOpen,
     setProfileFilter,
