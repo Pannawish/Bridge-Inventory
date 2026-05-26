@@ -1,12 +1,5 @@
 import { useMemo, useState } from "react";
-import EligiblePartyCombobox from "../EligiblePartyCombobox";
-import { getProductDefaultSalesUnit, getProductUnitConversions } from "../../unitConversion";
-import { formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
-import {
-  getAverageCostForSelectedUnit,
-  getAverageRecentSalePriceForSelectedUnit,
-} from "../productPriceMetrics";
 import { isProductActive } from "../products/productUtils";
 import {
   VAT_OPTION_VALUES,
@@ -18,17 +11,17 @@ import {
   createInitialForm,
   emptyItem,
   emptySupplierOption,
-  findProductForItem,
-  formatDisplayDate,
   getNextQuotationReference,
   getProductName,
   getProductSearchNames,
   getProductSku,
-  isVatEnabled,
   normalizeDiscounts,
   normalizePartnerOptions,
 } from "./quotationUtils";
 import { buildConvertedItemFields } from "../../unitConversion";
+import QuotationFormDetailsSection from "./QuotationFormDetailsSection";
+import QuotationLineItemsSection from "./QuotationLineItemsSection";
+import QuotationFormTotalsSection from "./QuotationFormTotalsSection";
 
 function QuotationForm({
   quotation = null,
@@ -430,431 +423,48 @@ function QuotationForm({
       {formError ? <div className="error-banner">{formError}</div> : null}
 
       <form className="form-layout" onSubmit={handleSubmit}>
-        <div className="form-grid">
-          <label>
-            {t("quotation.referenceLabel")}
-            <input
-              value={form.reference_no}
-              readOnly={!isEditing}
-              onChange={(event) => updateForm("reference_no", event.target.value)}
-              placeholder={initialReference}
-            />
-          </label>
+        <QuotationFormDetailsSection
+          form={form}
+          isEditing={isEditing}
+          initialReference={initialReference}
+          customerOptions={customerOptions}
+          validUntilDate={validUntilDate}
+          onUpdateForm={updateForm}
+          onQuotationDateChange={handleQuotationDateChange}
+          onValidUntilDaysChange={handleValidUntilDaysChange}
+          onValidUntilDayTypeChange={handleValidUntilDayTypeChange}
+        />
 
-          <label>
-            <span className="required-label">{t("quotation.dateLabel")}</span>
-            <input
-              type="date"
-              value={form.quotation_date}
-              onChange={(event) => handleQuotationDateChange(event.target.value)}
-              required
-            />
-          </label>
+        <QuotationLineItemsSection
+          items={items}
+          products={products}
+          supplierOptions={supplierOptions}
+          openProductIndex={openProductIndex}
+          itemErrors={itemErrors}
+          getFilteredProducts={getFilteredProducts}
+          getTranslatedProductName={getTranslatedProductName}
+          getProductSku={getProductSku}
+          onAddItem={addItem}
+          onRemoveItem={removeItem}
+          onUpdateItem={updateItem}
+          onUpdateProductQuery={updateProductQuery}
+          onSetOpenProductIndex={setOpenProductIndex}
+          onSelectProduct={selectProduct}
+          onAddSupplierOption={addSupplierOption}
+          onRemoveSupplierOption={removeSupplierOption}
+          onUpdateSupplierOption={updateSupplierOption}
+          onAddDiscount={addDiscount}
+          onRemoveDiscount={removeDiscount}
+          onUpdateDiscount={updateDiscount}
+        />
 
-          <div className="valid-until-field">
-            <span className="required-label">{t("quotation.validUntilLabel")}</span>
-            <div className="valid-until-days-row">
-              <input
-                type="number"
-                className="valid-until-days-input"
-                min="0"
-                max="100"
-                step="1"
-                value={form.valid_until_days}
-                onChange={(event) => handleValidUntilDaysChange(event.target.value)}
-              />
-              <span className="valid-until-days-unit">{t("quotation.days")}</span>
-            </div>
-            <div
-              className="valid-until-type-options"
-              role="radiogroup"
-              aria-label={t("quotation.validUntilTypeAriaLabel")}
-            >
-              {[
-                { value: "calendar", label: t("quotation.calendarDays") },
-                { value: "business", label: t("quotation.businessDays") },
-                { value: "no_valid_date", label: t("quotation.noValidDate") },
-              ].map((option) => (
-                <label
-                  key={option.value}
-                  className={
-                    form.valid_until_day_type === option.value
-                      ? "valid-until-day-option active"
-                      : "valid-until-day-option"
-                  }
-                >
-                  <input
-                    type="radio"
-                    name="valid_until_day_type"
-                    value={option.value}
-                    checked={form.valid_until_day_type === option.value}
-                    onChange={() => handleValidUntilDayTypeChange(option.value)}
-                  />
-                  <span>{option.label}</span>
-                </label>
-              ))}
-            </div>
-            <p className="valid-until-computed-date">
-              {t("quotation.expiresLabel")}{" "}
-              <strong>
-                {form.valid_until_day_type === "no_valid_date" || !validUntilDate
-                  ? "—"
-                  : formatDisplayDate(validUntilDate)}
-              </strong>
-            </p>
-          </div>
-
-          <EligiblePartyCombobox
-            id="quotation-customer"
-            label={t("quotation.customerLabel")}
-            value={form.customer_name}
-            options={customerOptions}
-            placeholder={t("quotation.searchCustomerPlaceholder")}
-            emptyMessage={t("quotation.noCustomerFound")}
-            onChange={(nextCustomerName) => updateForm("customer_name", nextCustomerName)}
-          />
-
-          <label className="full-width">
-            {t("quotation.noteLabel")}
-            <textarea
-              rows="3"
-              value={form.note}
-              onChange={(event) => updateForm("note", event.target.value)}
-            />
-          </label>
-        </div>
-
-        <div className="line-items-card">
-          <div className="line-items-header">
-            <h4>{t("quotation.itemsTitle")}</h4>
-            <button className="secondary-button" type="button" onClick={addItem}>
-              {t("quotation.addItem")}
-            </button>
-          </div>
-
-          {items.map((item, index) => {
-            const selectedProduct = findProductForItem(item, products);
-            const filteredProducts = getFilteredProducts(item.product_query);
-            const unitOptions = selectedProduct ? getProductUnitConversions(selectedProduct) : [];
-            const saleAmount = computeAmount(item, "sale_price");
-            const averageCostForSelectedUnit = getAverageCostForSelectedUnit(
-              selectedProduct,
-              item.unit
-            );
-            const recentAverageSalePriceForSelectedUnit =
-              getAverageRecentSalePriceForSelectedUnit(selectedProduct, item.unit);
-
-            return (
-              <div className="line-item-row quotation-line-item-row" key={item.line_id}>
-                <div
-                  className="line-item-index"
-                  aria-label={t("quotation.itemAriaLabel", { index: index + 1 })}
-                >
-                  {index + 1}
-                </div>
-
-                <label className="purchase-item-field quotation-item-product">
-                  <span className="required-label">{t("quotation.colProduct")}</span>
-                  <div className="supplier-combobox">
-                    <input
-                      value={item.product_query}
-                      onChange={(event) => updateProductQuery(index, event.target.value)}
-                      onFocus={() => setOpenProductIndex(index)}
-                      onBlur={() => {
-                        window.setTimeout(() => setOpenProductIndex(null), 120);
-                      }}
-                      placeholder={t("quotation.searchProductPlaceholder")}
-                      autoComplete="off"
-                      aria-expanded={openProductIndex === index}
-                      aria-controls={`quotation-product-list-${item.line_id}`}
-                      aria-invalid={itemErrors[index] ? "true" : "false"}
-                      required
-                    />
-
-                    {openProductIndex === index ? (
-                      <div
-                        className="supplier-combobox-menu"
-                        id={`quotation-product-list-${item.line_id}`}
-                        role="listbox"
-                      >
-                        {filteredProducts.length ? (
-                          filteredProducts.map((product) => {
-                            const productName = getTranslatedProductName(product);
-                            const sku = getProductSku(product);
-                            const disabled = !isProductActive(product);
-
-                            return (
-                              <button
-                                key={product.id}
-                                type="button"
-                                className={`supplier-combobox-option${
-                                  `${product.id}` === `${item.product_id}` ? " active" : ""
-                                }${disabled ? " supplier-combobox-option-disabled" : ""}`}
-                                onMouseDown={(event) => {
-                                  event.preventDefault();
-                                  selectProduct(index, product);
-                                }}
-                                role="option"
-                                aria-selected={`${product.id}` === `${item.product_id}`}
-                                aria-disabled={disabled}
-                                title={disabled ? t("products.disabledOptionHint") : undefined}
-                              >
-                                <span>{sku ? `${productName} (${sku})` : productName}</span>
-                                {disabled ? (
-                                  <span className="combobox-option-tag">
-                                    {t("products.disabledBadge")}
-                                  </span>
-                                ) : null}
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <div className="supplier-combobox-empty">
-                            {t("quotation.noProductFound")}
-                          </div>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
-                  {itemErrors[index] ? (
-                    <span className="field-error-text">{itemErrors[index]}</span>
-                  ) : null}
-                </label>
-
-                <label className="purchase-item-field quotation-item-unit">
-                  <span className="required-label">{t("quotation.colUnit")}</span>
-                  <select
-                    value={item.unit}
-                    onChange={(event) => updateItem(index, "unit", event.target.value)}
-                    disabled={!selectedProduct}
-                  >
-                    {unitOptions.length ? (
-                      unitOptions.map((conversion) => (
-                        <option key={conversion.unit} value={conversion.unit}>
-                          {conversion.unit}
-                        </option>
-                      ))
-                    ) : (
-                      <option value={item.unit || "pcs"}>{item.unit || "pcs"}</option>
-                    )}
-                  </select>
-                </label>
-
-                <label className="purchase-item-field quotation-item-qty">
-                  <span className="required-label">{t("quotation.colQty")}</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                    required
-                  />
-                </label>
-
-                <label className="purchase-item-field quotation-item-sale">
-                  <span className="required-label">{t("quotation.colSalePrice")}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.sale_price}
-                    onChange={(event) => updateItem(index, "sale_price", event.target.value)}
-                    placeholder="0.00"
-                    required
-                  />
-                  {averageCostForSelectedUnit ? (
-                    <span className="field-helper-text">
-                      {t("common.avgCostForUnit", {
-                        amount: fmt(averageCostForSelectedUnit),
-                        unit: item.unit || getProductDefaultSalesUnit(selectedProduct),
-                      })}
-                    </span>
-                  ) : null}
-                  {recentAverageSalePriceForSelectedUnit ? (
-                    <span className="field-helper-text">
-                      {t("common.avgRecentSalePriceForUnit", {
-                        amount: fmt(recentAverageSalePriceForSelectedUnit),
-                        unit: item.unit || getProductDefaultSalesUnit(selectedProduct),
-                      })}
-                    </span>
-                  ) : null}
-                </label>
-
-                <div className="purchase-item-field quotation-item-discounts">
-                  <span>{t("quotation.colDiscounts")}</span>
-                  <div className="sales-discount-cell">
-                    {normalizeDiscounts(item).map((discount, discountIndex) => (
-                      <div key={discountIndex} className="sales-discount-entry">
-                        {discountIndex > 0 ? (
-                          <span className="sales-discount-chain-label">
-                            {t("quotation.discountThen")}
-                          </span>
-                        ) : null}
-                        <input
-                          className="sales-discount-input"
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={discount}
-                          onChange={(event) =>
-                            updateDiscount(index, discountIndex, event.target.value)
-                          }
-                          placeholder="0"
-                        />
-                        <span className="sales-discount-pct">%</span>
-                        {normalizeDiscounts(item).length > 1 ? (
-                          <button
-                            className="sales-discount-remove"
-                            type="button"
-                            aria-label={t("quotation.removeDiscount")}
-                            onClick={() => removeDiscount(index, discountIndex)}
-                          >
-                            X
-                          </button>
-                        ) : null}
-                      </div>
-                    ))}
-                    <button
-                      className="sales-discount-add"
-                      type="button"
-                      onClick={() => addDiscount(index)}
-                    >
-                      {t("quotation.addDiscount")}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="purchase-item-field quotation-item-amount">
-                  <span>{t("quotation.colSaleAmount")}</span>
-                  <div className="sales-line-amount">{fmt(saleAmount)}</div>
-                </div>
-
-                <button
-                  className="danger-button quotation-item-remove"
-                  type="button"
-                  onClick={() => removeItem(index)}
-                  disabled={items.length === 1}
-                >
-                  {t("quotation.removeItem")}
-                </button>
-
-                <div className="purchase-item-field quotation-item-suppliers">
-                  <span>{t("quotation.suppliersLabel")}</span>
-                  <div className="quotation-supplier-list">
-                    {(item.supplier_options || []).map((option, optionIndex) => (
-                      <div className="quotation-supplier-row" key={option.option_id}>
-                        <EligiblePartyCombobox
-                          id={`quotation-item-${item.line_id}-supplier-${option.option_id}`}
-                          label={t("quotation.supplierLabel")}
-                          value={option.supplier_name}
-                          options={supplierOptions}
-                          placeholder={t("quotation.searchSupplierPlaceholder")}
-                          emptyMessage={t("quotation.noSupplierFound")}
-                          onChange={(nextSupplierName) =>
-                            updateSupplierOption(index, optionIndex, "supplier_name", nextSupplierName)
-                          }
-                        />
-                        <label className="quotation-supplier-cost">
-                          <span>{t("quotation.colCostPrice")}</span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={option.cost_price}
-                            onChange={(event) =>
-                              updateSupplierOption(index, optionIndex, "cost_price", event.target.value)
-                            }
-                            placeholder="0.00"
-                          />
-                        </label>
-                        <button
-                          className="danger-button quotation-supplier-remove"
-                          type="button"
-                          onClick={() => removeSupplierOption(index, optionIndex)}
-                        >
-                          {t("quotation.removeSupplierOption")}
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      className="secondary-button quotation-supplier-add"
-                      type="button"
-                      onClick={() => addSupplierOption(index)}
-                    >
-                      {t("quotation.addSupplierOption")}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <section className="purchase-vat-card">
-          <div className="purchase-vat-card-header">
-            <p className="purchase-vat-label">{t("quotation.vatSetting")}</p>
-            <label className="vat-toggle">
-              <input
-                type="checkbox"
-                checked={isVatEnabled(form.vat_mode)}
-                onChange={(event) =>
-                  updateForm("vat_mode", event.target.checked ? "not_included" : "none")
-                }
-              />
-              <span className="vat-toggle-track" />
-              <span className="vat-toggle-text">
-                {isVatEnabled(form.vat_mode) ? t("quotation.vatOn") : t("quotation.vatOff")}
-              </span>
-            </label>
-          </div>
-          {isVatEnabled(form.vat_mode) ? (
-            <div
-              className="purchase-vat-options"
-              role="radiogroup"
-              aria-label={t("quotation.vatAriaLabel")}
-            >
-              {vatOptions.map((option) => (
-                <label
-                  key={option.value}
-                  className={
-                    form.vat_mode === option.value
-                      ? "purchase-vat-option active"
-                      : "purchase-vat-option"
-                  }
-                >
-                  <input
-                    type="radio"
-                    name={`quotation-vat-mode-${quotation?.id || "new"}`}
-                    value={option.value}
-                    checked={form.vat_mode === option.value}
-                    onChange={(event) => updateForm("vat_mode", event.target.value)}
-                  />
-                  <span>{option.label}</span>
-                </label>
-              ))}
-            </div>
-          ) : null}
-        </section>
-
-        <div className="sales-summary-card">
-          {isVatEnabled(form.vat_mode) ? (
-            <>
-              <div className="sales-summary-row">
-                <span>{t("quotation.subtotal")}</span>
-                <span>{fmt(vatSummary.total)}</span>
-              </div>
-              <div className="sales-summary-row">
-                <span>{t("quotation.vat")}</span>
-                <span>{fmt(vatSummary.vat)}</span>
-              </div>
-            </>
-          ) : null}
-          <div className="sales-summary-row sales-summary-grand">
-            <strong>{t("quotation.grandTotal")}</strong>
-            <strong>{fmt(vatSummary.grandTotal)}</strong>
-          </div>
-        </div>
+        <QuotationFormTotalsSection
+          vatMode={form.vat_mode}
+          vatOptions={vatOptions}
+          vatSummary={vatSummary}
+          radioName={`quotation-vat-mode-${quotation?.id || "new"}`}
+          onVatModeChange={(value) => updateForm("vat_mode", value)}
+        />
 
         <div className="supplier-modal-actions">
           {onCancel ? (

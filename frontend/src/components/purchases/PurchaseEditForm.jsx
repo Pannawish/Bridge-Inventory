@@ -1,11 +1,8 @@
 import { useMemo, useState } from "react";
-import { formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
-import { getStatusLabel } from "../../i18n/statusLabels";
 import {
   getInitialPurchaseItemStatus,
   getPurchaseStatusFromItems,
-  purchaseStatuses,
 } from "../../purchaseStatus";
 import { buildConvertedItemFields, getProductUnitOptions } from "../../unitConversion";
 import { isProductActive } from "../products/productUtils";
@@ -17,7 +14,6 @@ import {
   createEditItems,
   defaultSupplierOptions,
   findProductForItem,
-  getDocumentName,
   getProductName,
   getProductSearchNames,
   getProductSku,
@@ -25,10 +21,11 @@ import {
   getPurchaseProductQuery,
   getToday,
   getTransactionDocuments,
-  isVatEnabled,
   normalizeSupplierOptions,
-  renderBillDiscount,
 } from "./purchaseHistoryUtils";
+import PurchaseEditDetailsSection from "./PurchaseEditDetailsSection";
+import PurchaseEditLineItemsSection from "./PurchaseEditLineItemsSection";
+import PurchaseEditTotalsSection from "./PurchaseEditTotalsSection";
 
 function PurchaseEditForm({
   purchase,
@@ -408,504 +405,73 @@ function PurchaseEditForm({
       {formError ? <div className="error-banner">{formError}</div> : null}
 
       <form className="form-layout" onSubmit={handleSubmit}>
-        <div className="form-grid">
-          <label>
-            {t("purchaseForm.referenceLabel")}
-            <input
-              value={form.reference_no}
-              onChange={(event) => updateForm("reference_no", event.target.value)}
-              placeholder={t("purchaseForm.referencePlaceholder")}
-            />
-          </label>
-
-          <label className="supplier-combobox-field">
-            <span className="required-label">{t("purchaseForm.supplierNameLabel")}</span>
-            <div className="supplier-combobox">
-              <input
-                value={supplierQuery}
-                onChange={(event) => {
-                  setSupplierQuery(event.target.value);
-                  updateForm("supplier_name", "");
-                  setSupplierError("");
-                  setSupplierOpen(true);
-                }}
-                onFocus={() => setSupplierOpen(true)}
-                onBlur={() => {
-                  window.setTimeout(() => setSupplierOpen(false), 120);
-                }}
-                placeholder={t("purchaseForm.searchSupplierPlaceholder")}
-                autoComplete="off"
-                aria-expanded={supplierOpen}
-                aria-controls="edit-purchase-supplier-list"
-                aria-invalid={supplierError ? "true" : "false"}
-              />
-
-              {supplierOpen ? (
-                <div className="supplier-combobox-menu" id="edit-purchase-supplier-list" role="listbox">
-                  {filteredSuppliers.length ? (
-                    filteredSuppliers.map((supplier) => (
-                      <button
-                        key={supplier.id}
-                        type="button"
-                        className={
-                          supplier.companyName === form.supplier_name
-                            ? "supplier-combobox-option active"
-                            : "supplier-combobox-option"
-                        }
-                        onMouseDown={(event) => {
-                          event.preventDefault();
-                          selectSupplier(supplier);
-                        }}
-                        role="option"
-                        aria-selected={supplier.companyName === form.supplier_name}
-                      >
-                        {supplier.companyName}
-                      </button>
-                    ))
-                  ) : (
-                    <div className="supplier-combobox-empty">
-                      {t("purchaseForm.noSupplierFound")}
-                    </div>
-                  )}
-                </div>
-              ) : null}
-            </div>
-            {supplierError ? <span className="field-error-text">{supplierError}</span> : null}
-          </label>
-
-          <label>
-            {t("purchaseForm.taxInvoiceLabel")}
-            <input
-              value={form.supplier_tax_invoice}
-              onChange={(event) =>
-                updateForm("supplier_tax_invoice", event.target.value)
-              }
-              placeholder={t("purchaseForm.taxInvoicePlaceholder")}
-            />
-          </label>
-
-          <label>
-            <span className="required-label">{t("purchaseForm.statusLabel")}</span>
-            <select
-              value={form.status}
-              onChange={(event) => updateForm("status", event.target.value)}
-            >
-              {purchaseStatuses.map((status) => (
-                <option key={status} value={status} disabled={status === "partially_received"}>
-                  {getStatusLabel(t, status)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            <span className="required-label">{t("purchaseForm.dateLabel")}</span>
-            <input
-              type="date"
-              value={form.transaction_date}
-              onChange={(event) => updateForm("transaction_date", event.target.value)}
-            />
-          </label>
-
-          <label className="full-width">
-            {t("purchaseForm.noteLabel")}
-            <textarea
-              rows="3"
-              value={form.note}
-              onChange={(event) => updateForm("note", event.target.value)}
-            />
-          </label>
-
-          <div className="transaction-document-panel full-width">
-            <div className="transaction-document-panel-header">
-              <div>
-                <strong>{t("purchaseForm.documentsLabel")}</strong>
-                <span>
-                  {visibleDocuments.length + form.new_documents.length
-                    ? t("transactionTable.attachedCount", {
-                        count: visibleDocuments.length + form.new_documents.length,
-                      })
-                    : t("purchaseForm.noDocumentsAttached")}
-                </span>
-              </div>
-              <label className="document-upload-button">
-                {t("purchaseForm.documentsAddFiles")}
-                <input
-                  type="file"
-                  multiple
-                  onChange={(event) => {
-                    updateForm("new_documents", [
-                      ...form.new_documents,
-                      ...Array.from(event.target.files || []),
-                    ]);
-                    updateForm("remove_document", false);
-                  }}
-                />
-              </label>
-            </div>
-
-            {visibleDocuments.length || form.new_documents.length ? (
-              <>
-                <div className="transaction-document-list">
-                  {visibleDocuments.map((document) => (
-                    <span className="transaction-document-row" key={document.id}>
-                      <a href={document.url} target="_blank" rel="noreferrer">
-                        {document.name || getDocumentName(document.url, t)}
-                      </a>
-                      <button
-                        className="text-danger-button"
-                        type="button"
-                        onClick={() =>
-                          updateForm("remove_document_ids", [
-                            ...form.remove_document_ids,
-                            document.id,
-                          ])
-                        }
-                      >
-                        {t("purchaseForm.documentDelete")}
-                      </button>
-                    </span>
-                  ))}
-                  {form.new_documents.map((document, index) => (
-                    <span className="transaction-document-row" key={`${document.name}-${index}`}>
-                      <span>{document.name}</span>
-                      <button
-                        className="text-danger-button"
-                        type="button"
-                        onClick={() =>
-                          updateForm(
-                            "new_documents",
-                            form.new_documents.filter((_, documentIndex) => documentIndex !== index)
-                          )
-                        }
-                      >
-                        {t("purchaseForm.documentRemove")}
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <div className="transaction-document-actions">
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => {
-                      updateForm(
-                        "remove_document_ids",
-                        getTransactionDocuments(purchase, t).map((document) => document.id)
-                      );
-                      updateForm("new_documents", []);
-                    }}
-                  >
-                    {t("purchaseForm.documentRemoveAll")}
-                  </button>
-                </div>
-              </>
-            ) : form.remove_document_ids.length ? (
-              <div className="transaction-document-state">
-                <div>
-                  <strong>{t("purchaseForm.documentMarkedDeletion")}</strong>
-                  <span>{t("purchaseForm.documentMarkedDeletionHelp")}</span>
-                </div>
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => updateForm("remove_document_ids", [])}
-                >
-                  {t("purchaseForm.documentUndo")}
-                </button>
-              </div>
-            ) : (
-              <p className="transaction-document-empty">{t("purchaseForm.documentsEmpty")}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="line-items-card">
-          <div className="line-items-header">
-            <h4>{t("purchaseForm.itemsTitle")}</h4>
-            <button className="secondary-button" type="button" onClick={addItem}>
-              {t("purchaseForm.addItem")}
-            </button>
-          </div>
-
-          {items.map((item, index) => {
-            const amount = computeAmount(item, purchase);
-            const filteredProducts = getFilteredProducts(item.product_query || "");
-            const selectedProduct = findProductForItem(item, products);
-            const unitOptions = selectedProduct
-              ? getProductUnitOptions(selectedProduct, "purchase")
-              : [];
-            const conversionPreview = selectedProduct
-              ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "purchase")
-              : null;
-
-            return (
-              <div className="line-item-row purchase-line-item-row" key={item.id}>
-                <div className="line-item-index" aria-label={t("purchaseForm.itemAriaLabel", { index: index + 1 })}>
-                  {index + 1}
-                </div>
-
-                <label className="purchase-item-field purchase-item-product purchase-product-field">
-                  <span>{t("purchaseForm.colProduct")}</span>
-                  <div className="supplier-combobox">
-                    <input
-                      value={item.product_query || ""}
-                      onChange={(event) => updateProductQuery(index, event.target.value)}
-                      onFocus={() => setOpenProductIndex(index)}
-                      onBlur={() => {
-                        window.setTimeout(() => setOpenProductIndex(null), 120);
-                      }}
-                      placeholder={t("purchaseForm.searchProductPlaceholder")}
-                      autoComplete="off"
-                      aria-expanded={openProductIndex === index}
-                      aria-controls={`edit-purchase-product-list-${item.id}`}
-                      aria-invalid={itemErrors[index] ? "true" : "false"}
-                      required
-                    />
-
-                    {openProductIndex === index ? (
-                      <div
-                        className="supplier-combobox-menu"
-                        id={`edit-purchase-product-list-${item.id}`}
-                        role="listbox"
-                      >
-                        {filteredProducts.length ? (
-                          filteredProducts.map((product) => {
-                            const productName = getProductName(product);
-                            const sku = getProductSku(product);
-                            const disabled = !isProductActive(product);
-
-                            return (
-                              <button
-                                key={product.id}
-                                type="button"
-                                className={`supplier-combobox-option${
-                                  `${product.id}` === `${item.product_id}` ? " active" : ""
-                                }${disabled ? " supplier-combobox-option-disabled" : ""}`}
-                                onMouseDown={(event) => {
-                                  event.preventDefault();
-                                  selectProduct(index, product);
-                                }}
-                                role="option"
-                                aria-selected={`${product.id}` === `${item.product_id}`}
-                                aria-disabled={disabled}
-                                title={disabled ? t("products.disabledOptionHint") : undefined}
-                              >
-                                <span>{getPurchaseProductQuery(productName, sku)}</span>
-                                {disabled ? (
-                                  <span className="combobox-option-tag">
-                                    {t("products.disabledBadge")}
-                                  </span>
-                                ) : null}
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <div className="supplier-combobox-empty">
-                            {t("purchaseForm.noProductFound")}
-                          </div>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
-                  {itemErrors[index] ? (
-                    <span className="field-error-text">{itemErrors[index]}</span>
-                  ) : null}
-                </label>
-
-                <label className="purchase-item-field purchase-item-sku">
-                  <span>{t("purchaseForm.colSKU")}</span>
-                  <input
-                    value={item.sku}
-                    readOnly
-                    placeholder={t("purchaseForm.skuPlaceholder")}
-                  />
-                </label>
-
-                <label className="purchase-item-field purchase-item-unit">
-                  <span>{t("purchaseForm.colUnit")}</span>
-                  <select
-                    value={item.unit}
-                    onChange={(event) => updateItem(index, "unit", event.target.value)}
-                    disabled={!selectedProduct}
-                  >
-                    {unitOptions.length ? (
-                      unitOptions.map((conversion) => (
-                        <option key={conversion.unit} value={conversion.unit}>
-                          {conversion.unit}
-                        </option>
-                      ))
-                    ) : (
-                      <option value={item.unit || "pcs"}>{item.unit || "pcs"}</option>
-                    )}
-                  </select>
-                  {conversionPreview ? (
-                    <span className="unit-conversion-preview">
-                      {conversionPreview.base_quantity} {conversionPreview.base_unit}
-                    </span>
-                  ) : null}
-                </label>
-
-                <label className="purchase-item-field purchase-item-delivery">
-                  <span>{t("purchaseForm.colExpectedDelivery")}</span>
-                  <input
-                    type="date"
-                    value={item.expected_delivery_date}
-                    onChange={(event) =>
-                      updateItem(index, "expected_delivery_date", event.target.value)
-                    }
-                    min={form.transaction_date}
-                  />
-                </label>
-
-                <label className="purchase-item-field purchase-item-qty">
-                  <span>{t("purchaseForm.colQty")}</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                    placeholder={t("purchaseForm.qtyPlaceholder")}
-                    required
-                  />
-                </label>
-
-                <label className="purchase-item-field purchase-item-cost">
-                  <span>{t("purchaseForm.colUnitCost")}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.unit_cost}
-                    onChange={(event) => updateItem(index, "unit_cost", event.target.value)}
-                    placeholder="0.00"
-                    required
-                  />
-                </label>
-
-                <div className="purchase-item-field purchase-item-discounts">
-                  <span>{t("purchaseForm.colDiscounts")}</span>
-                  <div className="sales-discount-cell">
-                    {(item.discounts || [0]).map((discount, discountIndex) => (
-                      <div key={discountIndex} className="sales-discount-entry">
-                        {discountIndex > 0 ? (
-                          <span className="sales-discount-chain-label">{t("purchaseForm.discountThen")}</span>
-                        ) : null}
-                        <input
-                          className="sales-discount-input"
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={discount}
-                          onChange={(event) =>
-                            updateDiscount(index, discountIndex, event.target.value)
-                          }
-                          placeholder="0"
-                        />
-                        <span className="sales-discount-pct">%</span>
-                        {(item.discounts || [0]).length > 1 ? (
-                          <button
-                            className="sales-discount-remove"
-                            type="button"
-                            aria-label={t("purchaseForm.removeDiscount")}
-                            onClick={() => removeDiscount(index, discountIndex)}
-                          >
-                            X
-                          </button>
-                        ) : null}
-                      </div>
-                    ))}
-                    <button
-                      className="sales-discount-add"
-                      type="button"
-                      onClick={() => addDiscount(index)}
-                    >
-                      {t("purchaseForm.addDiscount")}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="purchase-item-field purchase-item-amount">
-                  <span>{t("purchaseForm.colAmount")}</span>
-                  <div className="sales-line-amount">{fmt(amount)}</div>
-                </div>
-
-                <button
-                  className="danger-button purchase-item-remove"
-                  type="button"
-                  onClick={() => removeItem(index)}
-                  disabled={items.length === 1}
-                >
-                  {t("purchaseForm.removeItem")}
-                </button>
-              </div>
+        <PurchaseEditDetailsSection
+          form={form}
+          supplierQuery={supplierQuery}
+          supplierOpen={supplierOpen}
+          supplierError={supplierError}
+          filteredSuppliers={filteredSuppliers}
+          visibleDocuments={visibleDocuments}
+          onUpdateForm={updateForm}
+          onSupplierQueryChange={(value) => {
+            setSupplierQuery(value);
+            updateForm("supplier_name", "");
+            setSupplierError("");
+            setSupplierOpen(true);
+          }}
+          onSupplierOpen={() => setSupplierOpen(true)}
+          onSupplierClose={() => {
+            window.setTimeout(() => setSupplierOpen(false), 120);
+          }}
+          onSelectSupplier={selectSupplier}
+          onAddDocuments={(documents) => {
+            updateForm("new_documents", [...form.new_documents, ...documents]);
+            updateForm("remove_document", false);
+          }}
+          onDeleteVisibleDocument={(documentId) =>
+            updateForm("remove_document_ids", [...form.remove_document_ids, documentId])
+          }
+          onRemoveNewDocument={(documentIndex) =>
+            updateForm(
+              "new_documents",
+              form.new_documents.filter((_, index) => index !== documentIndex)
+            )
+          }
+          onRemoveAllDocuments={() => {
+            updateForm(
+              "remove_document_ids",
+              getTransactionDocuments(purchase, t).map((document) => document.id)
             );
-          })}
-        </div>
+            updateForm("new_documents", []);
+          }}
+          onUndoRemoveDocuments={() => updateForm("remove_document_ids", [])}
+        />
 
-        <section className="purchase-vat-card">
-          <div className="purchase-vat-card-header">
-            <p className="purchase-vat-label">{t("purchaseForm.vatSetting")}</p>
-            <label className="vat-toggle">
-              <input
-                type="checkbox"
-                checked={isVatEnabled(vatMode)}
-                onChange={(event) =>
-                  setVatMode(event.target.checked ? "not_included" : "none")
-                }
-              />
-              <span className="vat-toggle-track" />
-              <span className="vat-toggle-text">
-                {isVatEnabled(vatMode) ? t("purchaseForm.vatOn") : t("purchaseForm.vatOff")}
-              </span>
-            </label>
-          </div>
-          {isVatEnabled(vatMode) ? (
-            <div className="purchase-vat-options" role="radiogroup" aria-label={t("purchaseForm.vatAriaLabel")}>
-              {vatOptions.map((option) => (
-                <label
-                  key={option.value}
-                  className={vatMode === option.value ? "purchase-vat-option active" : "purchase-vat-option"}
-                >
-                  <input
-                    type="radio"
-                    name={`edit-purchase-vat-mode-${purchase.id}`}
-                    value={option.value}
-                    checked={vatMode === option.value}
-                    onChange={(event) => setVatMode(event.target.value)}
-                  />
-                  <span>{option.label}</span>
-                </label>
-              ))}
-            </div>
-          ) : null}
-        </section>
+        <PurchaseEditLineItemsSection
+          form={form}
+          items={items}
+          products={products}
+          openProductIndex={openProductIndex}
+          itemErrors={itemErrors}
+          getFilteredProducts={getFilteredProducts}
+          onAddItem={addItem}
+          onRemoveItem={removeItem}
+          onUpdateItem={updateItem}
+          onUpdateProductQuery={updateProductQuery}
+          onSetOpenProductIndex={setOpenProductIndex}
+          onSelectProduct={selectProduct}
+          onAddDiscount={addDiscount}
+          onRemoveDiscount={removeDiscount}
+          onUpdateDiscount={updateDiscount}
+        />
 
-        <div className="sales-summary-card">
-          {renderBillDiscount(purchase) !== "—" ? (
-            <div className="sales-summary-row">
-              <span>{t("transactionTable.billDiscount")}</span>
-              <span>{renderBillDiscount(purchase)}</span>
-            </div>
-          ) : null}
-          {isVatEnabled(vatMode) ? (
-            <>
-              <div className="sales-summary-row">
-                <span>{t("purchaseForm.subtotal")}</span>
-                <span>{fmt(vatSummary.total)}</span>
-              </div>
-              <div className="sales-summary-row">
-                <span>{t("purchaseForm.vat")}</span>
-                <span>{fmt(vatSummary.vat)}</span>
-              </div>
-            </>
-          ) : null}
-          <div className="sales-summary-row sales-summary-grand">
-            <strong>{t("purchaseForm.grandTotal")}</strong>
-            <strong>{fmt(vatSummary.grandTotal)}</strong>
-          </div>
-        </div>
+        <PurchaseEditTotalsSection
+          purchase={purchase}
+          vatMode={vatMode}
+          vatOptions={vatOptions}
+          vatSummary={vatSummary}
+          onVatModeChange={setVatMode}
+        />
 
         <div className="supplier-modal-actions">
           <button className="secondary-button" type="button" onClick={onCancel}>

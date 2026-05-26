@@ -1,343 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatMoney as fmt, formatNumber } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
 import { withinRange } from "./FilterControls";
-
-// ── Field readers ─────────────────────────────────────────
-// The backend stock report is authoritative, but the mock fallback exposes a
-// smaller shape, so every read falls back to a sensible derived value.
-
-function num(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function getAvailable(row) {
-  return num(row.available_stock ?? row.current_stock);
-}
-
-function getDailyDemand(row) {
-  if (row.average_daily_demand !== undefined && row.average_daily_demand !== null) {
-    return num(row.average_daily_demand);
-  }
-  return num(row.predicted_7_day_demand) / 7;
-}
-
-function getReorderLevel(row) {
-  return num(row.reorder_level);
-}
-
-function getStockValue(row) {
-  if (row.stock_value !== undefined && row.stock_value !== null) {
-    return num(row.stock_value);
-  }
-  return getAvailable(row) * num(row.average_unit_cost ?? row.unit_cost);
-}
-
-function getBuyQuantity(row) {
-  return num(row.recommended_restock);
-}
-
-function getSupplierOptions(row) {
-  return Array.isArray(row.supplier_options) ? row.supplier_options : [];
-}
-
-// ── Classification ────────────────────────────────────────
-// Health mirrors the "Health" rule in the column reference: shortage / demand
-// pressure / at-reorder is Low, near-reorder or delayed/pending is Approaching,
-// no-sales-but-stocked is Dead, otherwise Healthy.
-
-const WATCH_MULTIPLIER = 1.25;
-const HEALTH_ORDER = { low: 0, watch: 1, dead: 2, healthy: 3 };
-
-function getHealth(row) {
-  const available = getAvailable(row);
-  const reorder = getReorderLevel(row);
-  const demand = getDailyDemand(row);
-  const oversold = num(row.oversold_units);
-  const pendingSales = num(row.pending_sales_units);
-  const incomingPo = num(row.incoming_purchase_units ?? row.pending_purchase_units);
-  const delayedPo = num(row.delayed_purchase_units);
-  const salesHistory = num(row.sales_history_units);
-
-  if (oversold > 0) return "low";
-  if (pendingSales > 0 && pendingSales > available + incomingPo) return "low";
-
-  const hasNoSalesSignal = salesHistory <= 0 && demand <= 0 && pendingSales <= 0;
-  if (hasNoSalesSignal) return "dead";
-
-  if (reorder > 0 && available <= reorder) return "low";
-  if (reorder > 0 && available <= reorder * WATCH_MULTIPLIER) return "watch";
-  if (delayedPo > 0 || pendingSales > 0) return "watch";
-  return "healthy";
-}
-
-function buildMovementClassifier(rows) {
-  const sellingDemands = rows.map(getDailyDemand).filter((demand) => demand > 0);
-  const averageDemand = sellingDemands.length
-    ? sellingDemands.reduce((sum, demand) => sum + demand, 0) / sellingDemands.length
-    : 0;
-
-  return (row) => {
-    const demand = getDailyDemand(row);
-    if (demand <= 0) return "dead";
-    return demand >= averageDemand ? "fast" : "slow";
-  };
-}
-
-const SORT_OPTIONS = ["priority", "demand", "value", "days", "buy"];
-
-function sortRows(rows, sortKey) {
-  const copy = [...rows];
-  if (sortKey === "demand") {
-    copy.sort((a, b) => getDailyDemand(b) - getDailyDemand(a));
-  } else if (sortKey === "value") {
-    copy.sort((a, b) => getStockValue(b) - getStockValue(a));
-  } else if (sortKey === "days") {
-    copy.sort((a, b) => {
-      const aDays = a.days_until_stockout;
-      const bDays = b.days_until_stockout;
-      if (aDays === null || aDays === undefined) return 1;
-      if (bDays === null || bDays === undefined) return -1;
-      return aDays - bDays;
-    });
-  } else if (sortKey === "buy") {
-    copy.sort((a, b) => getBuyQuantity(b) - getBuyQuantity(a));
-  } else {
-    copy.sort(
-      (a, b) =>
-        HEALTH_ORDER[getHealth(a)] - HEALTH_ORDER[getHealth(b)] ||
-        getBuyQuantity(b) - getBuyQuantity(a)
-    );
-  }
-  return copy;
-}
-
-function formatUnits(value) {
-  return formatNumber(value);
-}
-
-function HealthBadge({ health }) {
-  const { t } = useLanguage();
-  return (
-    <span className={`inv-health-badge inv-health-${health}`}>
-      <i className="inv-health-dot" aria-hidden="true" />
-      {t(`inventory.health.${health}`)}
-    </span>
-  );
-}
-
-function MovementBadge({ movement }) {
-  const { t } = useLanguage();
-  return (
-    <span className={`inv-move-badge inv-move-${movement}`}>
-      {t(`inventory.movement.${movement}`)}
-    </span>
-  );
-}
-
-function ReferenceTable({ title, subtitle, rows }) {
-  const { t } = useLanguage();
-  return (
-    <section className="section-card inv-ref-card">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">{title}</p>
-          <h4>{subtitle}</h4>
-        </div>
-      </div>
-      <div className="table-scroll">
-        <table className="detail-item-table inv-ref-table">
-          <thead>
-            <tr>
-              <th>{t("inventory.refColHeader")}</th>
-              <th>{t("inventory.refDescHeader")}</th>
-              <th>{t("inventory.refFormulaHeader")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(Array.isArray(rows) ? rows : []).map((row) => (
-              <tr key={row.col}>
-                <td><strong>{row.col}</strong></td>
-                <td>{row.desc}</td>
-                <td className="inv-ref-formula">{row.formula}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-function InventoryReferenceModal({ onClose }) {
-  const { t } = useLanguage();
-  return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="detail-modal inv-ref-modal section-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="inv-ref-title"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("inventory.refEyebrow")}</p>
-            <h3 id="inv-ref-title">{t("inventory.refTitle")}</h3>
-            <p className="inv-ref-subtitle">{t("inventory.refSubtitle")}</p>
-          </div>
-          <button
-            type="button"
-            className="secondary-button table-action-button"
-            onClick={onClose}
-          >
-            {t("common.close")}
-          </button>
-        </div>
-
-        <div className="inv-ref-stack">
-          <ReferenceTable
-            title={t("inventory.refPlanningTitle")}
-            subtitle={t("inventory.refPlanningSubtitle")}
-            rows={t("inventory.refPlanningRows")}
-          />
-          <ReferenceTable
-            title={t("inventory.refPositionTitle")}
-            subtitle={t("inventory.refPositionSubtitle")}
-            rows={t("inventory.refPositionRows")}
-          />
-          <ReferenceTable
-            title={t("inventory.refContextTitle")}
-            subtitle={t("inventory.refContextSubtitle")}
-            rows={t("inventory.refContextRows")}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProductStockRow({ row, health, movement }) {
-  const { t } = useLanguage();
-  const unit = row.unit || "";
-  const available = getAvailable(row);
-  const reorder = getReorderLevel(row);
-  const demand = getDailyDemand(row);
-  const buy = getBuyQuantity(row);
-  const days = row.days_until_stockout;
-  const options = getSupplierOptions(row);
-  const best = options[0] || null;
-  const hasPoint = reorder > 0;
-  const belowPoint = hasPoint && available <= reorder;
-  const daysText =
-    days === null || days === undefined
-      ? t("inventory.card.noDemandDays")
-      : t("inventory.card.daysLeft", { days: formatUnits(days) });
-  const demandText =
-    demand > 0 ? formatUnits(Math.round(demand * 100) / 100) : "—";
-  const supplierNote = best
-    ? options.length > 1
-      ? t("inventory.card.moreSuppliers", { count: options.length - 1 })
-      : t("inventory.card.onlySupplier")
-    : null;
-
-  return (
-    <article className={`inv-card inv-card-${health}`}>
-      <div className="inv-row-grid">
-        <section className="inv-row-section inv-row-product">
-          <p className="inv-row-section-label">{t("inventory.colProduct")}</p>
-          <div className="inv-card-name">
-            <strong>{row.product_name || "—"}</strong>
-            <span>
-              {(row.sku || "—") + " · " + (row.category || t("inventory.uncategorized"))}
-            </span>
-          </div>
-          <div className="inv-row-badges">
-            <HealthBadge health={health} />
-            <MovementBadge movement={movement} />
-          </div>
-        </section>
-
-        <section className="inv-row-section inv-row-stock">
-          <p className="inv-row-section-label">{t("inventory.sectionStock")}</p>
-          <div className="inv-row-metric">
-            <span>{t("inventory.card.onHand")}</span>
-            <strong>{t("inventory.unitsValue", { qty: formatUnits(available), unit })}</strong>
-          </div>
-          <div className="inv-row-metric">
-            <span>{t("inventory.card.reorderPoint")}</span>
-            <strong>{t("inventory.unitsValue", { qty: formatUnits(reorder), unit })}</strong>
-          </div>
-          <div className="inv-row-metric">
-            <span>{t("inventory.card.suggestedBuy")}</span>
-            {buy > 0 ? (
-              <strong>{t("inventory.unitsValue", { qty: formatUnits(buy), unit })}</strong>
-            ) : (
-              <em className="inv-row-value-muted">{t("inventory.card.noBuy")}</em>
-            )}
-          </div>
-          <p className={`inv-row-note ${hasPoint ? (belowPoint ? "is-low" : "is-ok") : ""}`}>
-            {hasPoint
-              ? belowPoint
-                ? t("inventory.card.belowPoint")
-                : t("inventory.card.abovePoint")
-              : t("inventory.card.noPoint")}
-          </p>
-          <p className="inv-row-note">
-            {t("inventory.card.demandPerDay")}: {demandText} · {daysText}
-          </p>
-        </section>
-
-        <section className="inv-row-section inv-row-supplier">
-          <p className="inv-row-section-label">{t("inventory.sectionSupplier")}</p>
-          <div className="inv-row-metric">
-            <span>{t("inventory.card.reorderFrom")}</span>
-            {best ? (
-              <strong>{best.supplier_name}</strong>
-            ) : (
-              <em className="inv-row-value-muted">{t("inventory.card.noSupplier")}</em>
-            )}
-          </div>
-          <div className="inv-row-metric">
-            <span>{t("inventory.card.lastCost")}</span>
-            {best ? (
-              <strong>
-                {t("inventory.card.pricePerUnit", {
-                  amount: fmt(best.last_cost),
-                  unit: unit || "unit",
-                })}
-              </strong>
-            ) : (
-              <em className="inv-row-value-muted">—</em>
-            )}
-          </div>
-          <div className="inv-row-metric">
-            <span>{t("inventory.card.stockValue")}</span>
-            <strong>{fmt(getStockValue(row))}</strong>
-          </div>
-          {supplierNote ? <p className="inv-row-note">{supplierNote}</p> : null}
-        </section>
-      </div>
-    </article>
-  );
-}
-
-const HEALTH_KEYS = ["low", "watch", "healthy", "dead"];
-const MOVEMENT_KEYS = ["fast", "slow", "dead"];
-const DAYS_OPTIONS = ["7", "14", "30"];
-
-function toggleInSet(setter, value) {
-  setter((current) => {
-    const next = new Set(current);
-    if (next.has(value)) {
-      next.delete(value);
-    } else {
-      next.add(value);
-    }
-    return next;
-  });
-}
+import InventoryOverviewSection from "./inventory/InventoryOverviewSection";
+import InventoryProductStockRow from "./inventory/InventoryProductStockRow";
+import InventoryReferenceModal from "./inventory/InventoryReferenceModal";
+import {
+  buildMovementClassifier,
+  DAYS_OPTIONS,
+  formatUnits,
+  getBuyQuantity,
+  getHealth,
+  getStockValue,
+  getSupplierOptions,
+  HEALTH_KEYS,
+  MOVEMENT_KEYS,
+  SORT_OPTIONS,
+  sortRows,
+  toggleInSet,
+} from "./inventory/inventoryUtils";
 
 function InventoryPage({ dashboard }) {
   const { t } = useLanguage();
@@ -620,53 +300,12 @@ function InventoryPage({ dashboard }) {
 
   return (
     <div className="stack-layout inventory-page">
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("inventory.eyebrow")}</p>
-            <h3>{t("inventory.title")}</h3>
-            <p className="inv-subtitle">{t("inventory.subtitle")}</p>
-          </div>
-          <button
-            type="button"
-            className="secondary-button table-action-button"
-            onClick={() => setReferenceOpen(true)}
-          >
-            {t("inventory.formulaReference")}
-          </button>
-        </div>
-
-        <div className="dashboard-summary-grid">
-          <article className="dashboard-kpi-card neutral">
-            <p>{t("inventory.kpiValue")}</p>
-            <strong>{fmt(summary.inventoryValue)}</strong>
-            <span>{t("inventory.kpiValueUnit", { count: stockReport.length })}</span>
-          </article>
-          <article className="dashboard-kpi-card danger">
-            <p>{t("inventory.kpiAttention")}</p>
-            <strong>{formatUnits(summary.attention)}</strong>
-            <span>{t("inventory.kpiAttentionHelper")}</span>
-          </article>
-          <article className="dashboard-kpi-card warning">
-            <p>{t("inventory.kpiApproaching")}</p>
-            <strong>{formatUnits(summary.approaching)}</strong>
-            <span>{t("inventory.kpiApproachingHelper")}</span>
-          </article>
-          <article className="dashboard-kpi-card neutral">
-            <p>{t("inventory.kpiDead")}</p>
-            <strong>{formatUnits(summary.deadCount)}</strong>
-            <span>{fmt(summary.deadValue)} · {t("inventory.kpiDeadHelper")}</span>
-          </article>
-        </div>
-
-        <p className="inv-insight-line">
-          {t("inventory.insightLine", {
-            fast: movementCounts.fast,
-            slow: movementCounts.slow,
-            dead: movementCounts.dead,
-          })}
-        </p>
-      </section>
+      <InventoryOverviewSection
+        stockReportCount={stockReport.length}
+        summary={summary}
+        movementCounts={movementCounts}
+        onOpenReference={() => setReferenceOpen(true)}
+      />
 
       <section className="section-card">
         <div className="supplier-directory-toolbar">
@@ -874,7 +513,7 @@ function InventoryPage({ dashboard }) {
         ) : (
           <div className="inv-card-list">
             {filteredRows.map(({ row, health, movement }) => (
-              <ProductStockRow
+              <InventoryProductStockRow
                 key={row.product_id}
                 row={row}
                 health={health}
