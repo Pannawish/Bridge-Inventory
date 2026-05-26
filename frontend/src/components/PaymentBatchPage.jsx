@@ -1,15 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import CreatePaymentBatchModal from "./payments/CreatePaymentBatchModal";
 import PaymentBatchDirectorySection from "./payments/PaymentBatchDirectorySection";
 import PaymentBatchDetailModal from "./payments/PaymentBatchDetailModal";
-import {
-  daysAgoString,
-  formatPaymentBatchStatus,
-  getToday,
-  paymentBatchInDateRange,
-  paymentBatchMatchesQuery,
-} from "./payments/paymentBatchUtils";
-import { withinRange } from "./FilterControls";
+import { getToday } from "./payments/paymentBatchUtils";
+import { usePaymentBatchDirectoryFilters } from "../hooks/usePaymentBatchDirectoryFilters";
 import { useLanguage } from "../i18n/LanguageContext";
 
 function PaymentBatchPage({
@@ -25,60 +19,42 @@ function PaymentBatchPage({
   onDeletePaymentBatch,
 }) {
   const { t } = useLanguage();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [amountMin, setAmountMin] = useState("");
-  const [amountMax, setAmountMax] = useState("");
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [showAllRows, setShowAllRows] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activeBatch, setActiveBatch] = useState(null);
-  const STATUS_OPTIONS = [
-    { value: "scheduled", label: t("paymentBatch.statusScheduled") },
-    { value: "partially_paid", label: t("paymentBatch.statusPartiallyPaid") },
-    { value: "paid", label: t("paymentBatch.statusPaid") },
-    { value: "cancelled", label: t("paymentBatch.statusCancelled") },
-  ];
-
-  const normalizedSearch = searchTerm.trim().toLowerCase();
-  const isServerPaginated = Boolean(pagination && onPageRequest);
-  const filtered = useMemo(() => {
-    if (isServerPaginated) {
-      return paymentBatches;
-    }
-
-    return paymentBatches.filter((batch) => {
-      if (normalizedSearch && !paymentBatchMatchesQuery(batch, normalizedSearch, t)) {
-        return false;
-      }
-      if (statusFilter !== "all" && batch.status !== statusFilter) {
-        return false;
-      }
-      if (!paymentBatchInDateRange(batch, dateFrom, dateTo)) {
-        return false;
-      }
-      if (!withinRange(batch.total_amount, amountMin, amountMax)) {
-        return false;
-      }
-      return true;
-    });
-  }, [
-    amountMin,
-    amountMax,
-    dateFrom,
-    dateTo,
-    isServerPaginated,
-    normalizedSearch,
-    paymentBatches,
+  const {
+    searchTerm,
+    setSearchTerm,
     statusFilter,
-  ]);
-
-  const compactRows = 5;
-  const shouldShowViewAll = !isServerPaginated && filtered.length > compactRows;
-  const isCompact = shouldShowViewAll && !showAllRows;
-  const totalPaymentBatchCount = pagination?.count ?? paymentBatches.length;
+    setStatusFilter,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    amountMin,
+    setAmountMin,
+    amountMax,
+    setAmountMax,
+    filterOpen,
+    setFilterOpen,
+    showAllRows,
+    setShowAllRows,
+    statusOptions,
+    filteredPaymentBatches,
+    isServerPaginated,
+    shouldShowViewAll,
+    isCompact,
+    totalPaymentBatchCount,
+    activeFilterCount,
+    resetFilters,
+    quickPresets,
+    activeChips,
+    handlePageChange,
+  } = usePaymentBatchDirectoryFilters({
+    paymentBatches,
+    pagination,
+    onPageRequest,
+    t,
+  });
 
   const computedSummary = useMemo(() => {
     const today = getToday();
@@ -98,110 +74,6 @@ function PaymentBatchPage({
     return { outstanding, overdue, paid };
   }, [allPaymentBatches]);
   const summary = serverSummary || computedSummary;
-
-  const activeFilterCount =
-    (statusFilter !== "all" ? 1 : 0) +
-    (dateFrom || dateTo ? 1 : 0) +
-    (amountMin ? 1 : 0) +
-    (amountMax ? 1 : 0);
-
-  function resetFilters() {
-    setSearchTerm("");
-    setStatusFilter("all");
-    setDateFrom("");
-    setDateTo("");
-    setAmountMin("");
-    setAmountMax("");
-    setFilterOpen(false);
-  }
-
-  const last30Active = dateFrom === daysAgoString(30) && !dateTo;
-  const quickPresets = [
-    {
-      label: t("paymentBatch.filterLastDays"),
-      active: last30Active,
-      onClick: () => {
-        setDateFrom(last30Active ? "" : daysAgoString(30));
-        setDateTo("");
-      },
-    },
-    {
-      label: t("paymentBatch.filterScheduled"),
-      active: statusFilter === "scheduled",
-      onClick: () =>
-        setStatusFilter((current) =>
-          current === "scheduled" ? "all" : "scheduled"
-        ),
-    },
-    {
-      label: t("paymentBatch.filterPaid"),
-      active: statusFilter === "paid",
-      onClick: () =>
-        setStatusFilter((current) => (current === "paid" ? "all" : "paid")),
-    },
-  ];
-  const activeChips = [
-    statusFilter !== "all" && {
-      key: "status",
-      label: t("filterControls.statusChip", {
-        label: formatPaymentBatchStatus(statusFilter, t),
-      }),
-      onRemove: () => setStatusFilter("all"),
-    },
-    dateFrom && {
-      key: "dateFrom",
-      label: t("filterControls.fromChip", { date: dateFrom }),
-      onRemove: () => setDateFrom(""),
-    },
-    dateTo && {
-      key: "dateTo",
-      label: t("filterControls.toChip", { date: dateTo }),
-      onRemove: () => setDateTo(""),
-    },
-    amountMin && {
-      key: "amountMin",
-      label: t("filterControls.minChip", { value: amountMin }),
-      onRemove: () => setAmountMin(""),
-    },
-    amountMax && {
-      key: "amountMax",
-      label: t("filterControls.maxChip", { value: amountMax }),
-      onRemove: () => setAmountMax(""),
-    },
-  ].filter(Boolean);
-
-  function getPageRequestParams(page = 1) {
-    return {
-      page,
-      search: searchTerm,
-      status: statusFilter === "all" ? "" : statusFilter,
-      dateFrom,
-      dateTo,
-      amountMin,
-      amountMax,
-    };
-  }
-
-  useEffect(() => {
-    if (!isServerPaginated) {
-      return undefined;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      onPageRequest(getPageRequestParams(1));
-    }, 250);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [
-    amountMin,
-    amountMax,
-    dateFrom,
-    dateTo,
-    isServerPaginated,
-    onPageRequest,
-    searchTerm,
-    statusFilter,
-  ]);
 
   async function handleCreate(payload) {
     const saved = await onCreatePaymentBatch?.(payload);
@@ -245,7 +117,7 @@ function PaymentBatchPage({
     <div className="stack-layout">
       <PaymentBatchDirectorySection
         paymentBatches={paymentBatches}
-        filteredPaymentBatches={filtered}
+        filteredPaymentBatches={filteredPaymentBatches}
         summary={summary}
         pagination={pagination}
         isServerPaginated={isServerPaginated}
@@ -260,7 +132,7 @@ function PaymentBatchPage({
         activeChips={activeChips}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
-        statusOptions={STATUS_OPTIONS}
+        statusOptions={statusOptions}
         dateFrom={dateFrom}
         onDateFromChange={setDateFrom}
         dateTo={dateTo}
@@ -276,7 +148,7 @@ function PaymentBatchPage({
         activeBatch={activeBatch}
         onSelectBatch={setActiveBatch}
         onCreatePaymentBatch={() => setCreating(true)}
-        onPageChange={(page) => onPageRequest?.(getPageRequestParams(page))}
+        onPageChange={handlePageChange}
       />
 
       {activeBatch ? (
