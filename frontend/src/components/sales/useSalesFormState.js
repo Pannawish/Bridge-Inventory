@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { computePaymentDate, formatMoney as fmt } from "../../format";
+import { computePaymentDate } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { applySaleStatusToItems, getSaleStatusFromItems } from "../../saleStatus";
 import { formatSaleStockIssueMessage, getSaleStockIssues } from "../../saleStock";
-import { buildConvertedItemFields } from "../../unitConversion";
 import { getActiveTransactionDiscount } from "../transactionDiscounts";
 import { isProductActive } from "../products/productUtils";
 import {
@@ -13,16 +12,28 @@ import {
   createInitialItems,
   emptyItem,
   getCustomerPaymentTerms,
-  getLatestSupplierCost,
-  getLineLoss,
   getNextSalesReference,
   getNextSalesReferenceAfter,
-  getProductName,
-  getProductSku,
-  getProductUnit,
   showStockAlert,
   vatOptionValues,
 } from "./salesFormUtils";
+import {
+  addDiscountToItems,
+  appendEmptyItem,
+  buildBelowCostConfirmationMessage,
+  buildSaleSubmissionItems,
+  buildStockPreviewItems,
+  getBelowCostItems,
+  removeDiscountFromItems,
+  removeItemAtIndex,
+  reorderItems as reorderDraftItems,
+  resolveCustomerName as resolveSelectedCustomerName,
+  selectProductItems,
+  updateDiscountInItems,
+  updateItemValue,
+  updateProductQueryItems,
+  updateSupplierItems,
+} from "./salesFormStateHelpers";
 
 function useSalesFormState({
   products,
@@ -104,29 +115,7 @@ function useSalesFormState({
   }, [customers, form.customer_name, form.payment_term_days, form.payment_term_type]);
 
   const stockPreviewItems = useMemo(
-    () =>
-      items
-        .filter((item) => item.product_id && item.quantity)
-        .map((item) => {
-          const selectedProduct = products.find(
-            (product) => `${product.id}` === `${item.product_id}`
-          );
-
-          return {
-            product_id: item.product_id,
-            product_name: selectedProduct ? getProductName(selectedProduct) : item.product_name,
-            sku: selectedProduct ? getProductSku(selectedProduct) : item.sku,
-            ...(selectedProduct
-              ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
-              : {
-                  unit: item.unit || "pcs",
-                  base_unit: item.unit || "pcs",
-                  conversion_factor: 1,
-                  base_quantity: Number(item.quantity) || 0,
-                }),
-            quantity: Number(item.quantity) || 0,
-          };
-        }),
+    () => buildStockPreviewItems(items, products),
     [items, products]
   );
 
@@ -212,28 +201,11 @@ function useSalesFormState({
   }
 
   function updateItem(itemIndex, key, value) {
-    setItems((currentItems) =>
-      currentItems.map((item, index) =>
-        index === itemIndex ? { ...item, [key]: value } : item
-      )
-    );
+    setItems((currentItems) => updateItemValue(currentItems, itemIndex, key, value));
   }
 
   function updateProductQuery(itemIndex, value) {
-    setItems((currentItems) =>
-      currentItems.map((item, index) =>
-        index === itemIndex
-          ? {
-              ...item,
-              product_id: "",
-              product_query: value,
-              product_name: "",
-              sku: "",
-              unit: "pcs",
-            }
-          : item
-      )
-    );
+    setItems((currentItems) => updateProductQueryItems(currentItems, itemIndex, value));
     setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
     setOpenProductIndex(itemIndex);
   }
@@ -243,35 +215,8 @@ function useSalesFormState({
       return;
     }
 
-    const productName = getProductName(product);
-    const sku = getProductSku(product);
-
     setItems((currentItems) =>
-      currentItems.map((item, index) => {
-        if (index !== itemIndex) {
-          return item;
-        }
-
-        const nextItem = {
-          ...item,
-          product_id: product.id,
-          product_query: sku ? `${productName} (${sku})` : productName,
-          product_name: productName,
-          sku,
-          unit: getProductUnit(product),
-        };
-        const suggestedCost = getLatestSupplierCost(
-          purchases,
-          product.id,
-          item.supplier_name
-        );
-
-        if (suggestedCost != null) {
-          nextItem.unit_cost = `${suggestedCost}`;
-        }
-
-        return nextItem;
-      })
+      selectProductItems(currentItems, itemIndex, product, purchases)
     );
     setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
     setOpenProductIndex(null);
@@ -279,95 +224,36 @@ function useSalesFormState({
 
   function updateSupplier(itemIndex, supplierName) {
     setItems((currentItems) =>
-      currentItems.map((item, index) => {
-        if (index !== itemIndex) {
-          return item;
-        }
-
-        const nextItem = { ...item, supplier_name: supplierName };
-        const suggestedCost = getLatestSupplierCost(
-          purchases,
-          item.product_id,
-          supplierName
-        );
-
-        if (suggestedCost != null) {
-          nextItem.unit_cost = `${suggestedCost}`;
-        }
-
-        return nextItem;
-      })
+      updateSupplierItems(currentItems, itemIndex, supplierName, purchases)
     );
   }
 
   function addDiscount(itemIndex) {
-    setItems((currentItems) =>
-      currentItems.map((item, index) =>
-        index === itemIndex
-          ? { ...item, discounts: [...item.discounts, ""] }
-          : item
-      )
-    );
+    setItems((currentItems) => addDiscountToItems(currentItems, itemIndex));
   }
 
   function removeDiscount(itemIndex, discountIndex) {
     setItems((currentItems) =>
-      currentItems.map((item, index) => {
-        if (index !== itemIndex) {
-          return item;
-        }
-
-        const nextDiscounts = item.discounts.filter(
-          (_, currentDiscountIndex) => currentDiscountIndex !== discountIndex
-        );
-        return { ...item, discounts: nextDiscounts.length === 0 ? [""] : nextDiscounts };
-      })
+      removeDiscountFromItems(currentItems, itemIndex, discountIndex)
     );
   }
 
   function updateDiscount(itemIndex, discountIndex, value) {
     setItems((currentItems) =>
-      currentItems.map((item, index) => {
-        if (index !== itemIndex) {
-          return item;
-        }
-
-        const nextDiscounts = item.discounts.map((discount, currentDiscountIndex) =>
-          currentDiscountIndex === discountIndex ? value : discount
-        );
-        return { ...item, discounts: nextDiscounts };
-      })
+      updateDiscountInItems(currentItems, itemIndex, discountIndex, value)
     );
   }
 
   function addItem() {
-    setItems((currentItems) => [...currentItems, emptyItem()]);
+    setItems((currentItems) => appendEmptyItem(currentItems));
   }
 
   function removeItem(index) {
-    setItems((currentItems) => currentItems.filter((_, itemIndex) => itemIndex !== index));
+    setItems((currentItems) => removeItemAtIndex(currentItems, index));
   }
 
   function reorderItems(fromIndex, toIndex) {
-    if (fromIndex === toIndex) {
-      return;
-    }
-
-    setItems((currentItems) => {
-      if (
-        fromIndex < 0 ||
-        toIndex < 0 ||
-        fromIndex >= currentItems.length ||
-        toIndex >= currentItems.length
-      ) {
-        return currentItems;
-      }
-
-      const nextItems = [...currentItems];
-      const [movedItem] = nextItems.splice(fromIndex, 1);
-      nextItems.splice(toIndex, 0, movedItem);
-      return nextItems;
-    });
+    setItems((currentItems) => reorderDraftItems(currentItems, fromIndex, toIndex));
   }
 
   function handleItemDragStart(event, index) {
@@ -411,20 +297,7 @@ function useSalesFormState({
   }
 
   function resolveCustomerName() {
-    const selectedCustomer = customers.find(
-      (customer) => customer.companyName === form.customer_name
-    );
-
-    if (selectedCustomer) {
-      return selectedCustomer.companyName;
-    }
-
-    const exactMatch = customers.find(
-      (customer) =>
-        customer.companyName.toLowerCase() === customerQuery.trim().toLowerCase()
-    );
-
-    return exactMatch?.companyName || "";
+    return resolveSelectedCustomerName(customers, form.customer_name, customerQuery);
   }
 
   async function handleSubmit(event) {
@@ -456,25 +329,11 @@ function useSalesFormState({
       return;
     }
 
-    const belowCostItems = items.filter(
-      (item) =>
-        item.product_id &&
-        item.quantity &&
-        item.unit_price &&
-        getLineLoss(item, activeAllItemsDiscount) > 0
-    );
+    const belowCostItems = getBelowCostItems(items, activeAllItemsDiscount);
 
     if (belowCostItems.length) {
-      const lines = belowCostItems
-        .map(
-          (item) =>
-            `• ${item.product_name || t("salesForm.unnamedItem")} - ${t("salesForm.belowCostBy")} ${fmt(
-              getLineLoss(item, activeAllItemsDiscount)
-            )}`
-        )
-        .join("\n");
       const confirmed = window.confirm(
-        `${belowCostItems.length} ${t("salesForm.belowCostConfirm")}\n\n${lines}\n\n${t("salesForm.belowCostSaveAnyway")}`
+        buildBelowCostConfirmationMessage(belowCostItems, activeAllItemsDiscount, t)
       );
 
       if (!confirmed) {
@@ -505,25 +364,11 @@ function useSalesFormState({
       formData.append("documents", document);
     });
 
-    const filteredItems = items
-      .filter((item) => item.product_id && item.quantity && item.unit_price)
-      .map((item) => {
-        const { line_id, ...itemPayload } = item;
-        const selectedProduct = products.find(
-          (product) => `${product.id}` === `${item.product_id}`
-        );
-
-        return {
-          ...itemPayload,
-          product_name: selectedProduct ? getProductName(selectedProduct) : item.product_name,
-          sku: selectedProduct ? getProductSku(selectedProduct) : item.sku,
-          discounts: item.discounts,
-          ...(selectedProduct
-            ? buildConvertedItemFields(selectedProduct, item.quantity, item.unit, "sale")
-            : {}),
-          amount: computeAmount(item, activeAllItemsDiscount),
-        };
-      });
+    const filteredItems = buildSaleSubmissionItems(
+      items,
+      products,
+      activeAllItemsDiscount
+    );
 
     const saleWithItems = applySaleStatusToItems(
       {

@@ -5,24 +5,32 @@ import {
   getInitialPurchaseItemStatus,
   getTodayString,
 } from "../../purchaseStatus";
-import { buildConvertedItemFields } from "../../unitConversion";
 import { getActiveTransactionDiscount } from "../transactionDiscounts";
 import { isProductActive } from "../products/productUtils";
 import {
   computeAmount,
-  computeLeadTimeDays,
   computeVatSummary,
   createInitialForm,
   createInitialItems,
   emptyItem,
   getNextPurchaseReference,
   getNextPurchaseReferenceAfter,
-  getProductName,
-  getProductSku,
-  getProductUnit,
   getSupplierPaymentTerms,
   vatOptionValues,
 } from "./purchaseFormUtils";
+import {
+  addDiscountToItems,
+  appendEmptyItem,
+  buildPurchaseSubmissionItems,
+  removeDiscountFromItems,
+  removeItemAtIndex,
+  reorderItems as reorderDraftItems,
+  resolveSupplierName as resolveSelectedSupplierName,
+  selectProductItems,
+  updateDiscountInItems,
+  updateItemValue,
+  updateProductQueryItems,
+} from "./purchaseFormStateHelpers";
 
 function usePurchaseFormState({
   products,
@@ -124,28 +132,11 @@ function usePurchaseFormState({
   }
 
   function updateItem(index, key, value) {
-    setItems((currentItems) =>
-      currentItems.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, [key]: value } : item
-      )
-    );
+    setItems((currentItems) => updateItemValue(currentItems, index, key, value));
   }
 
   function updateProductQuery(index, value) {
-    setItems((currentItems) =>
-      currentItems.map((item, itemIndex) =>
-        itemIndex === index
-          ? {
-              ...item,
-              product_id: "",
-              product_query: value,
-              product_name: "",
-              sku: "",
-              unit: "pcs",
-            }
-          : item
-      )
-    );
+    setItems((currentItems) => updateProductQueryItems(currentItems, index, value));
     setItemErrors((currentErrors) => ({ ...currentErrors, [index]: "" }));
     setOpenProductIndex(index);
   }
@@ -155,102 +146,37 @@ function usePurchaseFormState({
       return;
     }
 
-    const productName = getProductName(product);
-    const sku = getProductSku(product);
-    const unit = getProductUnit(product);
-
-    setItems((currentItems) =>
-      currentItems.map((item, itemIndex) =>
-        itemIndex === index
-          ? {
-              ...item,
-              product_id: product.id,
-              product_query: sku ? `${productName} (${sku})` : productName,
-              product_name: productName,
-              sku,
-              unit,
-            }
-          : item
-      )
-    );
+    setItems((currentItems) => selectProductItems(currentItems, index, product));
     setItemErrors((currentErrors) => ({ ...currentErrors, [index]: "" }));
     setOpenProductIndex(null);
   }
 
   function addDiscount(itemIndex) {
-    setItems((currentItems) =>
-      currentItems.map((item, index) =>
-        index === itemIndex
-          ? { ...item, discounts: [...(item.discounts || [""]), ""] }
-          : item
-      )
-    );
+    setItems((currentItems) => addDiscountToItems(currentItems, itemIndex));
   }
 
   function removeDiscount(itemIndex, discountIndex) {
     setItems((currentItems) =>
-      currentItems.map((item, index) => {
-        if (index !== itemIndex) {
-          return item;
-        }
-
-        const nextDiscounts = (item.discounts || [""]).filter(
-          (_, currentDiscountIndex) => currentDiscountIndex !== discountIndex
-        );
-
-        return {
-          ...item,
-          discounts: nextDiscounts.length ? nextDiscounts : [""],
-        };
-      })
+      removeDiscountFromItems(currentItems, itemIndex, discountIndex)
     );
   }
 
   function updateDiscount(itemIndex, discountIndex, value) {
     setItems((currentItems) =>
-      currentItems.map((item, index) => {
-        if (index !== itemIndex) {
-          return item;
-        }
-
-        const nextDiscounts = (item.discounts || [""]).map(
-          (discount, currentDiscountIndex) =>
-            currentDiscountIndex === discountIndex ? value : discount
-        );
-
-        return { ...item, discounts: nextDiscounts };
-      })
+      updateDiscountInItems(currentItems, itemIndex, discountIndex, value)
     );
   }
 
   function addItem() {
-    setItems((currentItems) => [...currentItems, emptyItem()]);
+    setItems((currentItems) => appendEmptyItem(currentItems));
   }
 
   function removeItem(index) {
-    setItems((currentItems) => currentItems.filter((_, itemIndex) => itemIndex !== index));
+    setItems((currentItems) => removeItemAtIndex(currentItems, index));
   }
 
   function reorderItems(fromIndex, toIndex) {
-    if (fromIndex === toIndex) {
-      return;
-    }
-
-    setItems((currentItems) => {
-      if (
-        fromIndex < 0 ||
-        toIndex < 0 ||
-        fromIndex >= currentItems.length ||
-        toIndex >= currentItems.length
-      ) {
-        return currentItems;
-      }
-
-      const nextItems = [...currentItems];
-      const [movedItem] = nextItems.splice(fromIndex, 1);
-      nextItems.splice(toIndex, 0, movedItem);
-      return nextItems;
-    });
+    setItems((currentItems) => reorderDraftItems(currentItems, fromIndex, toIndex));
     setItemErrors({});
     setOpenProductIndex(null);
   }
@@ -296,20 +222,7 @@ function usePurchaseFormState({
   }
 
   function resolveSupplierName() {
-    const selectedSupplier = suppliers.find(
-      (supplier) => supplier.companyName === form.supplier_name
-    );
-
-    if (selectedSupplier) {
-      return selectedSupplier.companyName;
-    }
-
-    const exactMatch = suppliers.find(
-      (supplier) =>
-        supplier.companyName.toLowerCase() === supplierQuery.trim().toLowerCase()
-    );
-
-    return exactMatch?.companyName || "";
+    return resolveSelectedSupplierName(suppliers, form.supplier_name, supplierQuery);
   }
 
   async function handleSubmit(event) {
@@ -323,58 +236,27 @@ function usePurchaseFormState({
       return;
     }
 
-    const nextItemErrors = {};
-    const filteredItems = items.reduce((nextItems, item, index) => {
-      const selectedProduct = products.find(
-        (product) => `${product.id}` === `${item.product_id}`
-      );
+    const { filteredItems, nextItemErrors } = buildPurchaseSubmissionItems({
+      items,
+      products,
+      transactionDate: form.transaction_date,
+      status: form.status,
+      activeAllItemsDiscount,
+      getInitialPurchaseItemStatus,
+      getTodayString,
+    });
 
-      if (!selectedProduct) {
-        nextItemErrors[index] = t("purchaseForm.errorSelectProduct");
-        return nextItems;
-      }
+    const translatedItemErrors = Object.fromEntries(
+      Object.entries(nextItemErrors).map(([index, code]) => [
+        index,
+        code === "missing_delivery"
+          ? t("purchaseForm.errorSelectDelivery")
+          : t("purchaseForm.errorSelectProduct"),
+      ])
+    );
 
-      if (!item.expected_delivery_date) {
-        nextItemErrors[index] = t("purchaseForm.errorSelectDelivery");
-        return nextItems;
-      }
-
-      if (!item.quantity || !item.unit_cost) {
-        return nextItems;
-      }
-
-      return [
-        ...nextItems,
-        {
-          product_id: selectedProduct.id,
-          product_name: getProductName(selectedProduct),
-          sku: getProductSku(selectedProduct),
-          ...buildConvertedItemFields(
-            selectedProduct,
-            item.quantity,
-            item.unit,
-            "purchase"
-          ),
-          expected_delivery_date: item.expected_delivery_date,
-          item_status: getInitialPurchaseItemStatus(form.status),
-          received_date:
-            getInitialPurchaseItemStatus(form.status) === "received"
-              ? getTodayString()
-              : "",
-          lead_time_days: computeLeadTimeDays(
-            form.transaction_date,
-            item.expected_delivery_date
-          ),
-          quantity: item.quantity,
-          unit_cost: item.unit_cost,
-          discounts: item.discounts,
-          amount: computeAmount(item, activeAllItemsDiscount),
-        },
-      ];
-    }, []);
-
-    if (Object.keys(nextItemErrors).length) {
-      setItemErrors(nextItemErrors);
+    if (Object.keys(translatedItemErrors).length) {
+      setItemErrors(translatedItemErrors);
       setOpenProductIndex(Number(Object.keys(nextItemErrors)[0]));
       return;
     }
