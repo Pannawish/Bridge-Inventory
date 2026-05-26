@@ -1264,6 +1264,8 @@ export const translations = {
       presetAll: "All",
       presetOpen: "Open",
       presetCancelledReturned: "Cancelled / Returned",
+      presetInsufficientStock: "⚠ Insufficient Stock",
+      insufficientStockChip: "Insufficient Stock",
     },
     transactionTable: {
       colProduct: "Product",
@@ -2980,6 +2982,8 @@ export const translations = {
       presetAll: "ทั้งหมด",
       presetOpen: "ค้างดำเนินการ",
       presetCancelledReturned: "ยกเลิก / คืนสินค้า",
+      presetInsufficientStock: "⚠ สต็อกไม่เพียงพอ",
+      insufficientStockChip: "สต็อกไม่เพียงพอ",
     },
     transactionTable: {
       colProduct: "สินค้า",

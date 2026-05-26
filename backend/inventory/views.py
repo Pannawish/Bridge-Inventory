@@ -804,6 +804,43 @@ class SaleViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     party_filter_param = "customer"
     amount_filter_field = "grand_total"
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        params = self.request.query_params
+
+        stock_filter = (params.get("stock_filter") or "").strip()
+        if stock_filter == "insufficient_stock":
+            candidate_sales_qs = queryset.exclude(status__in=[Sale.STATUS_CANCELLED, Sale.STATUS_RETURNED])
+            product_ids = set(
+                SaleItem.objects.filter(sale__in=candidate_sales_qs, item_status=SaleItem.ITEM_PENDING)
+                .values_list("product_id", flat=True)
+                .distinct()
+            )
+            stock_by_product_id = get_available_stock_by_product_id(product_ids=list(product_ids))
+
+            candidate_sales = candidate_sales_qs.prefetch_related("items")
+            insufficient_sale_ids = []
+            for sale in candidate_sales:
+                req_qty_by_product = {}
+                for item in sale.items.all():
+                    if not item.product_id or item.item_status != SaleItem.ITEM_PENDING:
+                        continue
+                    req_qty_by_product[item.product_id] = req_qty_by_product.get(item.product_id, Decimal("0")) + (item.base_quantity or Decimal("0"))
+
+                has_insufficient = False
+                for prod_id, req_qty in req_qty_by_product.items():
+                    available_qty = stock_by_product_id.get(prod_id, Decimal("0"))
+                    if req_qty > available_qty:
+                        has_insufficient = True
+                        break
+                if has_insufficient:
+                    insufficient_sale_ids.append(sale.id)
+
+            queryset = queryset.filter(id__in=insufficient_sale_ids)
+
+        return queryset
+
+
 
 class QuotationViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     reference_prefix = "QT"

@@ -738,6 +738,106 @@ class SaleStockValidationTests(APITestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["customer_po_reference"], "CPO-12345")
 
+    def test_stock_filter_insufficient_stock(self):
+        # 1. Draft sale with insufficient stock
+        sale_insufficient = Sale.objects.create(
+            customer_name="Insufficient Customer",
+            status=Sale.STATUS_DRAFT,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=sale_insufficient,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=SaleItem.ITEM_PENDING,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("11"),
+            base_quantity=Decimal("11"),
+            unit_price=Decimal("1"),
+            amount=Decimal("11"),
+        )
+
+        # 2. Draft sale with sufficient stock
+        sale_sufficient = Sale.objects.create(
+            customer_name="Sufficient Customer",
+            status=Sale.STATUS_DRAFT,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=sale_sufficient,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=SaleItem.ITEM_PENDING,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("5"),
+            base_quantity=Decimal("5"),
+            unit_price=Decimal("1"),
+            amount=Decimal("5"),
+        )
+
+        # 3. Non-draft sale (partially packed) with an insufficient pending item
+        sale_insufficient_nondraft = Sale.objects.create(
+            customer_name="Nondraft Insufficient Customer",
+            status=Sale.STATUS_PARTIALLY_PACKED,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=sale_insufficient_nondraft,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=SaleItem.ITEM_PENDING,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("15"),
+            base_quantity=Decimal("15"),
+            unit_price=Decimal("1"),
+            amount=Decimal("15"),
+        )
+
+        # 4. Non-draft sale (partially packed) where items are sufficient
+        sale_sufficient_nondraft = Sale.objects.create(
+            customer_name="Nondraft Sufficient Customer",
+            status=Sale.STATUS_PARTIALLY_PACKED,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=sale_sufficient_nondraft,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=SaleItem.ITEM_PENDING,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("2"),
+            base_quantity=Decimal("2"),
+            unit_price=Decimal("1"),
+            amount=Decimal("2"),
+        )
+
+        response = self.client.get("/api/sales/", {"stock_filter": "insufficient_stock"})
+        self.assertEqual(response.status_code, 200)
+
+        if isinstance(response.data, list):
+            sales_data = response.data
+        else:
+            sales_data = response.data.get("results", [])
+
+        sale_ids = [s["id"] for s in sales_data]
+        self.assertIn(sale_insufficient.id, sale_ids)
+        self.assertIn(sale_insufficient_nondraft.id, sale_ids)
+        self.assertNotIn(sale_sufficient.id, sale_ids)
+        self.assertNotIn(sale_sufficient_nondraft.id, sale_ids)
+
+
 
 class SaleItemAllocationTests(APITestCase):
     def setUp(self):

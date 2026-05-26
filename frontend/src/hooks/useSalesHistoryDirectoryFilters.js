@@ -30,6 +30,7 @@ export function useSalesHistoryDirectoryFilters({
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
   const [vatFilter, setVatFilter] = useState("all");
+  const [stockFilter, setStockFilter] = useState("");
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const isServerPaginated = Boolean(pagination && onPageRequest);
@@ -105,7 +106,8 @@ export function useSalesHistoryDirectoryFilters({
     (dateTo ? 1 : 0) +
     (amountMin ? 1 : 0) +
     (amountMax ? 1 : 0) +
-    (vatFilter === "all" ? 0 : 1);
+    (vatFilter === "all" ? 0 : 1) +
+    (stockFilter ? 1 : 0);
 
   function getPageRequestParams(page = 1) {
     return {
@@ -123,6 +125,7 @@ export function useSalesHistoryDirectoryFilters({
       amountMin,
       amountMax,
       vatMode: vatFilter === "all" ? "" : vatFilter,
+      stockFilter,
     };
   }
 
@@ -147,6 +150,7 @@ export function useSalesHistoryDirectoryFilters({
     selectedCustomer,
     selectedStatusKey,
     vatFilter,
+    stockFilter,
   ]);
 
   function selectCustomerFilter(customer) {
@@ -171,6 +175,7 @@ export function useSalesHistoryDirectoryFilters({
     setAmountMin("");
     setAmountMax("");
     setVatFilter("all");
+    setStockFilter("");
     setFilterOpen(false);
     setCustomerFilterOpen(false);
   }
@@ -198,6 +203,17 @@ export function useSalesHistoryDirectoryFilters({
         setDateTo("");
       },
     },
+    {
+      label: t("salesHistory.presetInsufficientStock"),
+      active: stockFilter === "insufficient_stock",
+      onClick: () => {
+        if (stockFilter === "insufficient_stock") {
+          setStockFilter("");
+        } else {
+          setStockFilter("insufficient_stock");
+        }
+      },
+    },
   ].filter(Boolean);
 
   const activeChips = [
@@ -207,6 +223,13 @@ export function useSalesHistoryDirectoryFilters({
       onRemove: () => {
         setSelectedCustomer("");
         setCustomerFilterQuery("");
+      },
+    },
+    stockFilter === "insufficient_stock" && {
+      key: "stockFilter",
+      label: t("salesHistory.insufficientStockChip"),
+      onRemove: () => {
+        setStockFilter("");
       },
     },
     selectedStatuses.length !== statusOptions.length && {
@@ -270,6 +293,8 @@ export function useSalesHistoryDirectoryFilters({
     setAmountMax,
     vatFilter,
     setVatFilter,
+    stockFilter,
+    setStockFilter,
     filteredCustomerOptions,
     filteredSales,
     isServerPaginated,
