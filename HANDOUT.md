@@ -70,6 +70,8 @@ The sidebar is grouped by business function.
 Screenshot to insert:
 - Sidebar with each group labeled
 
+![Sidebar navigation](docs/screenshots/sidebar-navigation.png)
+
 ## 4. Training Sequence For New Users
 
 Train new users in this order:
@@ -133,6 +135,8 @@ Checklist:
 Screenshot to insert:
 - Category tree with parent and child rows visible
 
+![Category tree](docs/screenshots/categories-tree.png)
+
 ### 7.2 Products
 
 Use `Products` to define the item master.
@@ -167,6 +171,8 @@ Common mistake:
 Screenshot to insert:
 - Product form showing unit fields and conversions
 
+![Product form with unit conversions](docs/screenshots/product-form-unit-conversions.png)
+
 ### 7.3 Suppliers
 
 Use `Suppliers` to maintain vendor records.
@@ -190,6 +196,8 @@ Checklist:
 
 Screenshot to insert:
 - Supplier form or supplier list with filters
+
+![Supplier form](docs/screenshots/suppliers-form.png)
 
 ### 7.4 Customers
 
@@ -215,6 +223,8 @@ Checklist:
 
 Screenshot to insert:
 - Customer form or customer list with filters
+
+![Customer form](docs/screenshots/customers-form.png)
 
 ## 8. Daily Workflow Training
 
@@ -255,6 +265,8 @@ What to watch:
 
 Screenshot to insert:
 - Quotation entry screen with line items and stock sufficiency
+
+![Quotation entry screen](docs/screenshots/quotation-entry.png)
 
 ### 8.2 Purchase Workflow
 
@@ -314,6 +326,8 @@ Common mistake:
 Screenshot to insert:
 - Purchase form
 - Purchase line items with receiving statuses
+
+![Purchase detail with receiving statuses](docs/screenshots/purchase-form-receiving-status.png)
 
 ### 8.3 Sales Workflow
 
@@ -377,6 +391,8 @@ Screenshot to insert:
 - Sales form
 - Sale detail with item statuses
 
+![Sales detail with delivery statuses](docs/screenshots/sales-form-delivery-statuses.png)
+
 ### 8.4 Billing Note Workflow
 
 Use `Billing Notes` to group eligible sales for customer collection.
@@ -424,6 +440,8 @@ Billing note statuses:
 Screenshot to insert:
 - Billing note creation with eligible sales selector
 
+![Billing note eligible sales selector](docs/screenshots/billing-note-eligible-sales.png)
+
 ### 8.5 Payment Batch Workflow
 
 Use `Payment Batches` to group eligible purchases for supplier payment.
@@ -470,6 +488,8 @@ Payment batch statuses:
 
 Screenshot to insert:
 - Payment batch creation with eligible purchases selector
+
+![Payment batch eligible purchases selector](docs/screenshots/payment-batch-eligible-purchases.png)
 
 ### 8.6 Credit Note Workflow
 
@@ -526,6 +546,8 @@ Credit note statuses:
 Screenshot to insert:
 - Credit note creation screen
 
+![Credit note eligible sales selector](docs/screenshots/credit-note-eligible-sales.png)
+
 ## 9. Inventory Review Training
 
 ### 9.1 Dashboard
@@ -546,6 +568,8 @@ Daily checklist:
 
 Screenshot to insert:
 - Dashboard overview
+
+![Dashboard overview](docs/screenshots/dashboard-overview.png)
 
 ### 9.2 Inventory
 
@@ -569,6 +593,8 @@ Daily checklist:
 Screenshot to insert:
 - Inventory table with filters and stock health columns
 
+![Inventory stock review table](docs/screenshots/inventory-stock-review.png)
+
 ### 9.3 Product History
 
 Use `Products` when you need to inspect one product in detail.
@@ -588,6 +614,8 @@ Checklist:
 
 Screenshot to insert:
 - Product detail or history modal
+
+![Product detail and history](docs/screenshots/product-history-detail.png)
 
 ## 10. Daily End-To-End Example
 
