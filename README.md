@@ -13,7 +13,7 @@ If this project is useful to you, give it a star. That helps more builders and o
 | Products and stock | Product master data, categories, images, supplier options, base units, unit conversions, current stock, and on-demand transaction history. |
 | Quotations | Customer quotations with supplier sourcing, base-unit quantities, stock sufficiency indicators, and conversion into sales or purchase orders. |
 | Purchases | Purchase orders, receiving statuses, expected delivery dates, supplier tax invoice tracking, attachments, base quantity, and base unit cost visibility. |
-| Sales | Stock-aware sales creation, delivery progress, item-level statuses, returned/cancelled flows, and average unit cost guidance. |
+| Sales | Stock-aware sales creation, delivery progress, item-level statuses, returned/cancelled flows, average unit cost guidance, and FIFO-based stock allocation with automatic or manual source selection. |
 | Finance | Billing notes for customer receivables, payment batches for supplier payables, and credit notes for cancelled or returned sale items. |
 | Dashboard and assistant | Backend-calculated stock metrics, demand and pipeline visibility, and an optional OpenAI-powered inventory assistant. |
 
@@ -50,6 +50,7 @@ This project is designed around a middle-man business model:
 - Backend-authoritative stock validation for sales
 - Base-unit quantity normalization across purchases, sales, and quotations
 - Product average unit cost derived from the latest received purchase history
+- FIFO-based stock allocation for sales, with automatic allocation or manual purchase-layer selection
 - Eligibility endpoints for billing notes, payment batches, and credit notes
 - Opt-in pagination for large directories and history pages
 - Lookup endpoints so forms do not need to load full datasets blindly

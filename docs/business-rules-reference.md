@@ -199,13 +199,14 @@ Sales represent outbound customer demand and fulfillment progress.
 
 ## 6. FIFO Stock Allocation Rules
 
-FIFO logic matters most for sales cost and margin tracking.
+FIFO logic matters most for sales cost and margin tracking. The system supports both automatic FIFO allocation and manual stock-source selection.
 
 ### 6.1 What FIFO means in this system
 
 - The system allocates stock from the oldest available received purchase layers first.
 - Only purchase lines with `received` status can provide stock layers.
 - A purchase layer is considered available only for its remaining unallocated quantity.
+- Automatic FIFO is the default behavior when users do not choose layers manually.
 
 ### 6.2 FIFO order
 
@@ -222,15 +223,18 @@ This means the oldest received stock is consumed first.
 
 - If a sale line is in a stock-deducting status and no manual allocation is supplied, the system allocates automatically using FIFO.
 - If stock is insufficient after walking the available layers, the sale is rejected.
+- Automatic allocation is the normal path for users who do not need to control the exact purchase layers used by a sale.
 
 ### 6.4 Manual allocation
 
 - Users can manually choose specific purchase layers for a sale line.
+- Manual selection overrides the default automatic FIFO choice for that sale line.
 - Manual allocations must match the sale line quantity exactly.
 - A selected purchase layer must:
   - belong to the same product
   - already be received
   - still have enough remaining quantity
+- If manual allocations are missing, incomplete, or invalid, the backend rejects the sale update rather than silently guessing a different layer mix.
 
 ### 6.5 Cost snapshot behavior
 

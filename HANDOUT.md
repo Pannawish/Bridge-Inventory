@@ -110,6 +110,8 @@ These are the most important operating rules in the system.
 - Stock is not a free-text number. It is derived from transaction history.
 - Receiving purchase items increases available stock.
 - Sale progress can reduce stock according to backend rules.
+- Stock allocation and cost movement follow FIFO (first in, first out) by default, so older received stock is used before newer stock.
+- Sales can use automatic FIFO allocation or a manual stock-source choice when the user needs to choose specific purchase layers.
 - Product base units matter. Incorrect units create incorrect stock.
 - Purchase, sale, billing note, and payment batch records keep historical snapshots on purpose.
 - Use eligible records when creating billing notes, payment batches, and credit notes.
@@ -392,6 +394,7 @@ Sale item statuses:
 Common mistake:
 
 - Do not move sale items forward just to make the screen look complete. These statuses affect stock and downstream finance eligibility.
+- If stock sources are chosen manually, make sure the selected purchase layers match the intended shipment. Otherwise, leave allocation to automatic FIFO.
 
 Screenshot:
 
@@ -592,6 +595,7 @@ Look here for:
 - stock value
 - movement
 - suggested supplier restock context
+- FIFO stock layers when reviewing how current stock and cost are built
 
 Daily checklist:
 
