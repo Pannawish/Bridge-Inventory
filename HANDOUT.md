@@ -67,10 +67,11 @@ The sidebar is grouped by business function.
 
 - language switch between English and Thai
 
-Screenshot to insert:
-- Sidebar with each group labeled
+Screenshot:
 
-![Sidebar navigation](docs/screenshots/sidebar-navigation.png)
+<img src="docs/screenshots/sidebar-navigation.png" alt="Sidebar navigation" width="1100" />
+
+*Sidebar navigation showing the Workspace, Purchasing, Sales, Records, and Settings groups.*
 
 ## 4. Training Sequence For New Users
 
@@ -132,10 +133,11 @@ Checklist:
 - [ ] Child categories are attached to the correct parent
 - [ ] No duplicate category names were created by mistake
 
-Screenshot to insert:
-- Category tree with parent and child rows visible
+Screenshot:
 
-![Category tree](docs/screenshots/categories-tree.png)
+<img src="docs/screenshots/categories-tree.png" alt="Category tree" width="1100" />
+
+*Category tree with parent and child rows visible in one screen.*
 
 ### 7.2 Products
 
@@ -168,10 +170,11 @@ Common mistake:
 
 - Do not skip unit conversion when buying and selling in different units.
 
-Screenshot to insert:
-- Product form showing unit fields and conversions
+Screenshot:
 
-![Product form with unit conversions](docs/screenshots/product-form-unit-conversions.png)
+<img src="docs/screenshots/product-form-unit-conversions.png" alt="Product form with unit conversions" width="1100" />
+
+*Product form showing base unit, default purchase and sales units, and unit conversions.*
 
 ### 7.3 Suppliers
 
@@ -194,10 +197,11 @@ Checklist:
 - [ ] Procurement contact is entered
 - [ ] Payment terms are reviewed
 
-Screenshot to insert:
-- Supplier form or supplier list with filters
+Screenshot:
 
-![Supplier form](docs/screenshots/suppliers-form.png)
+<img src="docs/screenshots/suppliers-form.png" alt="Supplier form" width="1100" />
+
+*Supplier form for entering company, procurement, contact, and delivery details.*
 
 ### 7.4 Customers
 
@@ -221,10 +225,11 @@ Checklist:
 - [ ] Billing or shipping details are reviewed
 - [ ] Payment terms are reviewed
 
-Screenshot to insert:
-- Customer form or customer list with filters
+Screenshot:
 
-![Customer form](docs/screenshots/customers-form.png)
+<img src="docs/screenshots/customers-form.png" alt="Customer form" width="1100" />
+
+*Customer form for entering company, billing, shipping, and payment details.*
 
 ## 8. Daily Workflow Training
 
@@ -263,10 +268,11 @@ What to watch:
 - `Sufficient` means stock can cover the line
 - `Need Purchase` means additional buying is likely required
 
-Screenshot to insert:
-- Quotation entry screen with line items and stock sufficiency
+Screenshot:
 
-![Quotation entry screen](docs/screenshots/quotation-entry.png)
+<img src="docs/screenshots/quotation-entry.png" alt="Quotation entry screen" width="1100" />
+
+*Quotation entry screen with customer selection, line items, pricing, and supplier sourcing fields.*
 
 ### 8.2 Purchase Workflow
 
@@ -323,11 +329,11 @@ Common mistake:
 
 - Do not mark items as `received` before physical stock is in hand.
 
-Screenshot to insert:
-- Purchase form
-- Purchase line items with receiving statuses
+Screenshot:
 
-![Purchase detail with receiving statuses](docs/screenshots/purchase-form-receiving-status.png)
+<img src="docs/screenshots/purchase-form-receiving-status.png" alt="Purchase detail with receiving statuses" width="1100" />
+
+*Purchase detail showing line items and item receiving statuses.*
 
 ### 8.3 Sales Workflow
 
@@ -387,11 +393,11 @@ Common mistake:
 
 - Do not move sale items forward just to make the screen look complete. These statuses affect stock and downstream finance eligibility.
 
-Screenshot to insert:
-- Sales form
-- Sale detail with item statuses
+Screenshot:
 
-![Sales detail with delivery statuses](docs/screenshots/sales-form-delivery-statuses.png)
+<img src="docs/screenshots/sales-form-delivery-statuses.png" alt="Sales detail with delivery statuses" width="1100" />
+
+*Sales detail showing sale lines and delivery progress statuses.*
 
 ### 8.4 Billing Note Workflow
 
@@ -437,10 +443,11 @@ Billing note statuses:
 - `fully_received`
 - `cancelled`
 
-Screenshot to insert:
-- Billing note creation with eligible sales selector
+Screenshot:
 
-![Billing note eligible sales selector](docs/screenshots/billing-note-eligible-sales.png)
+<img src="docs/screenshots/billing-note-eligible-sales.png" alt="Billing note eligible sales selector" width="1100" />
+
+*Billing note creation screen with eligible sales available for selection.*
 
 ### 8.5 Payment Batch Workflow
 
@@ -486,10 +493,11 @@ Payment batch statuses:
 - `paid`
 - `cancelled`
 
-Screenshot to insert:
-- Payment batch creation with eligible purchases selector
+Screenshot:
 
-![Payment batch eligible purchases selector](docs/screenshots/payment-batch-eligible-purchases.png)
+<img src="docs/screenshots/payment-batch-eligible-purchases.png" alt="Payment batch eligible purchases selector" width="1100" />
+
+*Payment batch creation screen with eligible purchase orders available for selection.*
 
 ### 8.6 Credit Note Workflow
 
@@ -543,10 +551,11 @@ Credit note statuses:
 - `issued`
 - `cancelled`
 
-Screenshot to insert:
-- Credit note creation screen
+Screenshot:
 
-![Credit note eligible sales selector](docs/screenshots/credit-note-eligible-sales.png)
+<img src="docs/screenshots/credit-note-eligible-sales.png" alt="Credit note eligible sales selector" width="1100" />
+
+*Credit note creation screen showing cancelled or returned items selected for credit.*
 
 ## 9. Inventory Review Training
 
@@ -566,10 +575,11 @@ Daily checklist:
 - [ ] Check whether recent activity looks correct
 - [ ] Check whether the numbers match current operations
 
-Screenshot to insert:
-- Dashboard overview
+Screenshot:
 
-![Dashboard overview](docs/screenshots/dashboard-overview.png)
+<img src="docs/screenshots/dashboard-overview.png" alt="Dashboard overview" width="1100" />
+
+*Dashboard overview with KPI cards, trend chart, and top products summary.*
 
 ### 9.2 Inventory
 
@@ -590,10 +600,11 @@ Daily checklist:
 - [ ] Review dead stock or no-sales products
 - [ ] Review products that need purchase follow-up
 
-Screenshot to insert:
-- Inventory table with filters and stock health columns
+Screenshot:
 
-![Inventory stock review table](docs/screenshots/inventory-stock-review.png)
+<img src="docs/screenshots/inventory-stock-review.png" alt="Inventory stock review table" width="1100" />
+
+*Inventory stock review table with filters and stock health metrics.*
 
 ### 9.3 Product History
 
@@ -612,10 +623,11 @@ Checklist:
 - [ ] Stock position makes sense
 - [ ] Recent purchases and sales explain current stock
 
-Screenshot to insert:
-- Product detail or history modal
+Screenshot:
 
-![Product detail and history](docs/screenshots/product-history-detail.png)
+<img src="docs/screenshots/product-history-detail.png" alt="Product detail and history" width="1100" />
+
+*Product detail view with stock context and transaction history.*
 
 ## 10. Daily End-To-End Example
 
