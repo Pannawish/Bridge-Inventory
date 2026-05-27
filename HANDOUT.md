@@ -1,4 +1,4 @@
-# Inventory Management Training Manual
+# Bridge Inventory Training Manual
 
 This document is written for end users of the web app: operations staff, purchasing staff, sales staff, finance staff, supervisors, and new team members.
 

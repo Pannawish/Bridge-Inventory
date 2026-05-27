@@ -1,6 +1,6 @@
-# Inventory Backend
+# Bridge Inventory Backend
 
-Django + Django REST Framework backend for the inventory management system in this repository.
+Django + Django REST Framework backend for Bridge Inventory.
 
 This backend supports a middle-man SME workflow: products, categories, suppliers, customers, quotations, purchases, sales, billing notes, payment batches, credit notes, dashboard summaries, and an AI inventory assistant.
 

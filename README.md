@@ -1,6 +1,6 @@
-# Inventory Management System
+# Bridge Inventory
 
-Inventory Management System is a full-stack operations app for SME trading businesses that buy from suppliers, hold stock, and resell to customers. It focuses on the workflows that matter in day-to-day operations: products, quotations, purchases, sales, billing notes, payment batches, stock visibility, and margin awareness.
+Bridge Inventory is a full-stack inventoy management system operations app for SME trading businesses that buy from suppliers, hold stock, and resell to customers. It focuses on the workflows that matter in day-to-day operations: products, quotations, purchases, sales, billing notes, payment batches, stock visibility, and margin awareness.
 
 This repository is built for teams that need something more practical than a generic stock tracker. It combines transaction history, supplier sourcing, stock validation, finance flows, and an AI inventory assistant in one system.
 

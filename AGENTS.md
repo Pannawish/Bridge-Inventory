@@ -1,4 +1,4 @@
-# Inventory Management Project Standards
+# Bridge Inventory Project Standards
 
 This file is for coding agents working in this repository. Follow these rules before changing code.
 
@@ -8,7 +8,7 @@ This file is for coding agents working in this repository. Follow these rules be
 - Frontend: React + Vite in `frontend/`.
 - Backend: Django + Django REST Framework in `backend/`.
 - Database: MySQL.
-- The app is an inventory management system with products, categories, suppliers, customers, purchases, sales, quotations, billing notes, payment batches, dashboard summaries, and AI inventory assistant.
+- The app is Bridge Inventory, with products, categories, suppliers, customers, purchases, sales, quotations, billing notes, payment batches, dashboard summaries, and AI inventory assistant.
 
 ## Engineering Standards
 
