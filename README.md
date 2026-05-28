@@ -100,10 +100,11 @@ AGENTS.md   Project engineering standards for contributors and coding agents
 
 ## Documentation
 
-- [HANDOUT.md](/Users/peto/Documents/Inventory-Management-frontend/HANDOUT.md) - end-user training manual
-- [docs/business-rules-reference.md](/Users/peto/Documents/Inventory-Management-frontend/docs/business-rules-reference.md) - detailed business-logic reference for exact status, FIFO, and eligibility behavior
-- [docs/codebase-structure.md](/Users/peto/Documents/Inventory-Management-frontend/docs/codebase-structure.md) - current project source tree and navigation map
-- [docs/frontend-refactor-handoff.md](/Users/peto/Documents/Inventory-Management-frontend/docs/frontend-refactor-handoff.md) - frontend maintainability handoff notes
+- [HANDOUT.md](./HANDOUT.md) - end-user training manual
+- [docs/business-rules-reference.md](./docs/business-rules-reference.md) - detailed business-logic reference for exact status, FIFO, and eligibility behavior
+- [docs/codebase-structure.md](./docs/codebase-structure.md) - current project source tree and navigation map
+- [docs/frontend-refactor-handoff.md](./docs/frontend-refactor-handoff.md) - frontend maintainability handoff notes
+- [docs/login_system.md](./docs/login_system.md) - developer guide for the JWT authentication and guest mode
 
 ## Main Workflows
 
