@@ -117,6 +117,7 @@ graph TD
 
 For deeper codebase context and engineering rules, check out the specialized guides:
 *   [HANDOUT.md](./HANDOUT.md) — End-user training manual and user workflows.
+*   [docs/workflow-reference.md](./docs/workflow-reference.md) — End-to-end workflow text for diagrams, presentations, and onboarding.
 *   [docs/business-rules-reference.md](./docs/business-rules-reference.md) — Master business logic for exact status, FIFO, and eligibility behaviors.
 *   [docs/codebase-structure.md](./docs/codebase-structure.md) — Navigation maps for the source tree and modular splits.
 *   [docs/frontend-refactor-handoff.md](./docs/frontend-refactor-handoff.md) — Frontend split structures and state hooks details.
