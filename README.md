@@ -12,6 +12,9 @@ Want to see the UI before setting anything up locally?
 
 Preview the frontend here: [bridge-inventory.netlify.app](https://bridge-inventory.netlify.app)
 
+> [!NOTE]
+> When the login page appears, simply click the **"Continue as Guest"** button to bypass authentication and preview the full app.
+
 This preview is a frontend-only deployment, which makes it useful for exploring the interface, navigation, and offline/mock-data flows quickly.
 
 For a frontend-only deploy, leave `VITE_API_BASE_URL` unset so the app stays in safe mock fallback mode instead of probing a live backend.
