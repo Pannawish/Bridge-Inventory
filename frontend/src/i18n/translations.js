@@ -7,6 +7,20 @@ export const SUPPORTED_LANGUAGES = ["en", "th"];
 
 export const translations = {
   en: {
+    login: {
+      title: "Sign In",
+      subtitle: "Enter your credentials to access the system",
+      username: "Username",
+      password: "Password",
+      rememberMe: "Remember me",
+      loginButton: "Sign In",
+      guestButton: "Continue as Guest",
+      invalidCredentials: "Invalid username or password",
+      showPassword: "Show password",
+      hidePassword: "Hide password",
+      signingIn: "Signing in...",
+      logout: "Sign Out",
+    },
     app: {
       title: "Inventory",
       loadingInventoryData: "Loading inventory data...",
@@ -1726,6 +1740,20 @@ export const translations = {
     },
   },
   th: {
+    login: {
+      title: "เข้าสู่ระบบ",
+      subtitle: "กรอกชื่อผู้ใช้และรหัสผ่านเพื่อเข้าสู่ระบบ",
+      username: "ชื่อผู้ใช้",
+      password: "รหัสผ่าน",
+      rememberMe: "จดจำการเข้าสู่ระบบ",
+      loginButton: "เข้าสู่ระบบ",
+      guestButton: "ดำเนินการต่อในฐานะผู้เยี่ยมชม",
+      invalidCredentials: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
+      showPassword: "แสดงรหัสผ่าน",
+      hidePassword: "ซ่อนรหัสผ่าน",
+      signingIn: "กำลังเข้าสู่ระบบ...",
+      logout: "ออกจากระบบ",
+    },
     app: {
       title: "คลังสินค้า",
       loadingInventoryData: "กำลังโหลดข้อมูลคลังสินค้า...",

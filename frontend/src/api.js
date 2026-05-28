@@ -26,6 +26,8 @@ function buildQueryString(params = {}) {
   return query.toString();
 }
 
+let isRefreshing = false;
+
 async function request(path, options = {}) {
   if (!API_BASE_URL) {
     throw new Error("Backend API is not configured for this deployment.");
@@ -34,6 +36,11 @@ async function request(path, options = {}) {
   const { params, ...requestOptions } = options;
   const queryString = buildQueryString(params);
   const url = `${API_BASE_URL}${path}${queryString ? `?${queryString}` : ""}`;
+  
+  const accessToken =
+    localStorage.getItem("inventory_access_token") ||
+    sessionStorage.getItem("inventory_access_token");
+
   const config = {
     method: "GET",
     ...requestOptions,
@@ -42,16 +49,64 @@ async function request(path, options = {}) {
     },
   };
 
+  if (accessToken) {
+    config.headers["Authorization"] = `Bearer ${accessToken}`;
+  }
+
   if (config.body && !(config.body instanceof FormData)) {
     config.headers["Content-Type"] = "application/json";
     config.body = JSON.stringify(config.body);
   }
 
   const response = await fetch(url, config);
+
+  if (response.status === 401 && !path.startsWith("/auth/")) {
+    const refreshToken =
+      localStorage.getItem("inventory_refresh_token") ||
+      sessionStorage.getItem("inventory_refresh_token");
+
+    if (refreshToken && !isRefreshing) {
+      isRefreshing = true;
+      try {
+        const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh: refreshToken }),
+        });
+
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          const newAccessToken = refreshData.access;
+
+          localStorage.setItem("inventory_access_token", newAccessToken);
+          sessionStorage.setItem("inventory_access_token", newAccessToken);
+
+          config.headers["Authorization"] = `Bearer ${newAccessToken}`;
+          const retryResponse = await fetch(url, config);
+          const retryData = await retryResponse.json().catch(() => ({}));
+
+          isRefreshing = false;
+          if (!retryResponse.ok) {
+            throw new Error(retryData.error || retryData.detail || "Request failed after refresh.");
+          }
+          return retryData;
+        } else {
+          isRefreshing = false;
+          window.dispatchEvent(new Event("auth-expired"));
+        }
+      } catch (err) {
+        isRefreshing = false;
+        window.dispatchEvent(new Event("auth-expired"));
+      }
+    } else {
+      window.dispatchEvent(new Event("auth-expired"));
+    }
+  }
+
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error || "Request failed.");
+    throw new Error(data.error || data.detail || "Request failed.");
   }
 
   return data;
@@ -240,5 +295,14 @@ export const api = {
   },
   askChat(question) {
     return request("/chat/", { method: "POST", body: { question } });
+  },
+  login(username, password) {
+    return request("/auth/login/", { method: "POST", body: { username, password } });
+  },
+  refreshToken(refresh) {
+    return request("/auth/refresh/", { method: "POST", body: { refresh } });
+  },
+  getMe() {
+    return request("/auth/me/");
   },
 };

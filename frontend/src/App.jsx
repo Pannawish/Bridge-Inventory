@@ -2,9 +2,36 @@ import ActiveTabContent from "./app/ActiveTabContent";
 import AppShell from "./app/AppShell";
 import CreditNotePrompt from "./components/CreditNotePrompt";
 import { useAppState } from "./app/useAppState";
+import { useAuth } from "./auth/AuthContext";
+import { useLanguage } from "./i18n/LanguageContext";
+import { LoginPage } from "./components/LoginPage";
 
 function App() {
   const state = useAppState();
+  const { isAuthenticated, isGuest, loading } = useAuth();
+  const { t } = useLanguage();
+
+  if (loading) {
+    return (
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100vw",
+        height: "100vh",
+        backgroundColor: "var(--bg)",
+        color: "var(--muted)",
+        fontSize: "0.875rem",
+        fontFamily: "Inter, sans-serif"
+      }}>
+        {t("app.loadingInventoryData")}
+      </div>
+    );
+  }
+
+  if (!isAuthenticated && !isGuest) {
+    return <LoginPage />;
+  }
 
   return (
     <>
