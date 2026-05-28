@@ -187,6 +187,7 @@ Resource endpoints:
 
 - `/api/categories/`
 - `/api/suppliers/`
+- `/api/product-suppliers/`
 - `/api/customers/`
 - `/api/products/`
 - `/api/purchases/`
@@ -204,10 +205,17 @@ Utility endpoints:
 - `/api/lookups/suppliers/`
 - `/api/lookups/customers/`
 - `/api/products/<product_id>/history/`
+- `/api/products/<product_id>/stock-layers/`
 - `/api/eligibility/billing-note-sales/`
 - `/api/eligibility/payment-batch-purchases/`
 - `/api/eligibility/credit-note-sales/`
 - `/api/chat/`
+
+Authentication endpoints:
+
+- `/api/auth/login/` (Simple JWT login, returns access/refresh token pair)
+- `/api/auth/refresh/` (Simple JWT token refresh, returns new access token)
+- `/api/auth/me/` (User profile details endpoint)
 
 ## Pagination
 

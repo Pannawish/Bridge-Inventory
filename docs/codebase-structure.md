@@ -67,6 +67,7 @@ backend/
 │   │   ├── 0020_alter_sale_status_alter_saleitem_item_status.py
 │   │   ├── 0021_purchase_payable_total.py
 │   │   └── 0022_productsupplier_saleitemallocation.py
+│   ├── auth_views.py
 │   ├── models.py
 │   ├── pagination.py
 │   ├── serializers.py
@@ -115,6 +116,8 @@ frontend/
 │   │   ├── tabs.js
 │   │   └── useAppState.js
 │   ├── assets/
+│   ├── auth/
+│   │   └── AuthContext.jsx
 │   ├── components/
 │   │   ├── AllItemsDiscountControl.jsx
 │   │   ├── BillingNotePage.jsx
@@ -130,6 +133,7 @@ frontend/
 │   │   ├── EligiblePartyCombobox.jsx
 │   │   ├── FilterControls.jsx
 │   │   ├── InventoryPage.jsx
+│   │   ├── LoginPage.jsx
 │   │   ├── MultiPurchaseWizard.jsx
 │   │   ├── PaginationControls.jsx
 │   │   ├── PaymentBatchPage.jsx
@@ -309,6 +313,7 @@ frontend/
 │       ├── finance.css
 │       ├── forms-tables.css
 │       ├── inventory.css
+│       ├── login.css
 │       ├── products.css
 │       ├── quotations-categories.css
 │       └── responsive-overrides.css
@@ -330,14 +335,20 @@ frontend/
 docs/
 ├── business-rules-reference.md
 ├── codebase-structure.md
-└── frontend-refactor-handoff.md
+├── database-schema.md
+├── frontend-refactor-handoff.md
+├── login_system.md
+└── workflow-reference.md
 ```
 
 ### Docs Notes
 
 - `business-rules-reference.md` is the detailed workflow and business-rules reference
 - `codebase-structure.md` is this structure map
+- `database-schema.md` is the comprehensive relational schema reference for the MySQL database
 - `frontend-refactor-handoff.md` documents the current frontend maintainability and refactor state
+- `login_system.md` documents the Django + React JWT login and authentication architecture
+- `workflow-reference.md` explains the end-to-end operational story and business flows
 
 ## Recommended Reading Order
 
