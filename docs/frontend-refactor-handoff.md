@@ -1,298 +1,156 @@
-# Frontend Refactor Handoff
+# 🎨 Frontend Architecture & Maintainability Guidelines
+
+<p align="left">
+  <img src="https://img.shields.io/badge/Document-Architecture%20Guide-4a7b9c?style=flat-square" alt="Architecture Guide" />
+  <img src="https://img.shields.io/badge/Pattern-Thin%20Composition%20Shells-714b67?style=flat-square" alt="Composition Shells" />
+  <img src="https://img.shields.io/badge/Standard-Clean%20Decomposition-2e7d32?style=flat-square" alt="Clean Decomposition" />
+  <img src="https://img.shields.io/badge/Target-Vite%20%7C%20React%2018-646CFF?style=flat-square" alt="Target Stack" />
+</p>
+
+This document serves as the permanent, authoritative architectural baseline and guidelines for maintaining and extending the frontend of **Bridge Inventory**. 
+
+The goal is to keep the inventory system stable, predictable, and clean as new features arrive. We achieve this by reducing file complexity, enforcing clear separation of concerns, and preventing hooks or components from becoming monolithic.
+
+---
+
+## 1. Core Architectural Baseline
+
+The frontend is built on a modular, decoupled architecture rather than large, monolithic page files. Every primary view or modal is split into three distinct, single-responsibility files:
+
+```mermaid
+graph LR
+    A[Component.jsx<br/>Composition Shell] -->|Uses state / handlers| B(useComponentState.js<br/>Orchestration Hook)
+    B -->|Utilizes pure math / filter rules| C(componentHelpers.js<br/>Pure Helpers)
+    
+    style A fill:#eef,stroke:#333,stroke-width:1px
+    style B fill:#bbf,stroke:#333,stroke-width:1px
+    style C fill:#fbf,stroke:#333,stroke-width:1px
+```
+
+*   **Thin Composition Shells**: Keep rendering markup clean and delegate all state management, effects, and actions.
+*   **Orchestration Hooks**: Custom React hooks focused on owning component state, coordinating async API requests, and exposing view-ready structures.
+*   **Pure Helper Modules**: Standard Javascript files responsible for calculations, formatters, and payload structures. They contain absolutely no React code or state.
 
-## Purpose
+---
+
+## 2. Refactor Objectives
+
+> [!TIP]
+> **Every frontend modification or refactor should aim to improve at least one of these goals:**
+> *   **Decompress Monoliths**: Reduce file sizes and cognitive load in large hooks or components.
+> *   **Separate Concerns**: Isolate presentational rendering from asynchronous backend API calls.
+> *   **Isolate Business Logic**: Move formulas, averages, and status filters into clean, named helper files.
+> *   **Avoid Duplication**: Standardize repeated form logic or transaction details across folders.
 
-This document is the working handoff for future frontend maintainability refactoring in this repository. It defines the current architectural baseline, the rules for safe refactors, the preferred extraction patterns, and the practical backlog for the next rounds of work.
+---
 
-The goal is not broad redesign. The goal is to keep the inventory system behavior stable while continuing to reduce file complexity, clarify ownership, and make future feature work safer.
+## 3. Non-Negotiable Guardrails
 
-## Scope
+> [!WARNING]
+> **To maintain stable system behavior, developers must adhere to these guardrails:**
+> *   **Preserve Workflows**: Never alter active purchase, sales, quotation, or finance statuses and calculations unless the ticket explicitly requires a behavior rewrite.
+> *   **Backend is Authoritative**: Frontend checks exist purely to aid user experience. Stock sufficiency, document eligibility, and transaction transitions are strictly validated backend-side.
+> *   **Keep mock-data fallbacks intact**: Do not remove offline/mock-data fallback systems casually. They support frontend-only demo deployments.
+>   **Maintain i18n support**: All user-facing labels must be registered in the Thai and English sections of `frontend/src/i18n/translations.js` and rendered via the `t()` helper.
+> *   **Adhere to UI Standards**: Keep the square, compact system UI (4px border-radius, constrained border outlines, tight spacing) intact. No oversized decorative or card marketing sections are allowed.
 
-This handoff applies to maintainability refactors in `frontend/` only.
+---
 
-It does not authorize:
+## 4. The Three-Part Decomposed Shape
 
-- product behavior changes
-- API contract changes
-- visual redesign
-- translation rewrites
-- CSS system replacement
-- mock-data fallback removal
+When expanding pages, split components using this exact structured pattern:
 
-## Current Baseline
+### 4.1 The Composition Shell (`Component.jsx`)
+*   **Responsibilities**:
+    *   Render visual layout, structural HTML, and compact CSS classes.
+    *   Pass simple properties down to child section components.
+    *   Consume your custom state hook.
+*   **Avoid**:
+    *   Complex asynchronous fetch triggers.
+    *   Direct data manipulation or formatting operations.
+    *   Large inline calculation chains.
 
-The frontend has already moved away from a monolithic page structure.
+### 4.2 The Orchestration Hook (`useComponentState.js`)
+*   **Responsibilities**:
+    *   Manage component-specific React states, refs, and effects.
+    *   Orchestrate and coordinate backend API requests via the `api` module.
+    *   Expose structured, UI-ready states and handlers to the Shell.
+*   **Avoid**:
+    *   Returning large, loosely grouped variables (prefer returning focused, named sub-objects).
+    *   Embedding JSX code fragments inside the hook.
+    *   Burying pure math formulas or data formatting.
 
-Current architecture patterns in active use:
+### 4.3 Pure Helper Modules (`componentHelpers.js`)
+*   **Responsibilities**:
+    *   Compute totals, taxes, and conversions.
+    *   Format timestamps, currencies, or text labels.
+    *   Structure payloads or validate fields.
+*   **Rules**:
+    *   **No React imports** (`useState`, `useEffect`, etc.).
+    *   **Strictly Pure Functions**: No side-effects, browser window mutation, or global state variables.
 
-- Thin composition shells for major pages and modals
-- Focused orchestration hooks for state, effects, and async workflows
-- Pure helper modules for calculations, formatting, filtering, and payload shaping
-- Section-level components for large forms and directory tables
-- Split CSS entrypoint, with `frontend/src/styles.css` now limited to stylesheet imports
+---
 
-Examples of refactors already completed:
+## 5. Refactor Priority Backlog
 
-- `frontend/src/App.jsx` now delegates orchestration to `frontend/src/app/useAppState.js`
-- `frontend/src/components/ProductsPage.jsx` delegates state and helper logic to `frontend/src/components/products/`
-- `frontend/src/components/CategoryPage.jsx`, `CustomerPage.jsx`, and `SupplierPage.jsx` follow the same split pattern
-- purchase, sales, and quotation forms now use dedicated state hooks plus section components
-- billing note and payment batch detail modals already extract state and helper logic into dedicated files
+Keep components highly modular. Focus refactoring efforts on these priority areas:
 
-This means future refactors should extend the existing modular structure, not introduce a new architecture.
+### Priority 1: High-Complexity Orchestration Hooks
+Several orchestration hooks are currently acting as central logic hubs, risking becoming monoliths:
+*   `frontend/src/app/useAppState.js`
+*   `frontend/src/components/sales/useSalesFormState.js` / `useSalesEditFormState.js`
+*   `frontend/src/components/purchases/usePurchaseFormState.js` / `usePurchaseEditFormState.js`
+*   `frontend/src/components/quotation/useQuotationFormState.js`
 
-## Refactor Objectives
+*   **Direction**: Extract repeated line-item calculations, draft builders, and status check matrices into local helper modules. Maintain hooks strictly as workflow coordinators.
 
-Every future frontend refactor should improve at least one of these outcomes:
+### Priority 2: Complex Section and Directory Components
+Table rows and directories are likely to accumulate UI conditions and conditional styling over time:
+*   `frontend/src/components/transactions/TransactionDetailItemsSection.jsx`
+*   `frontend/src/components/quotation/QuotationDirectorySection.jsx`
+*   `frontend/src/components/sales/SalesLineItemsSection.jsx`
+*   `frontend/src/components/payments/CreatePaymentBatchModal.jsx`
 
-- reduce file size and cognitive load in oversized components or hooks
-- separate rendering from workflow orchestration
-- isolate reusable business rules into named helpers
-- make forms and directory pages easier to test and extend
-- reduce duplication across adjacent inventory, finance, and transaction flows
+*   **Direction**: Extract row renderers, action bars, or filter groups only when files exceed readability limits. Avoid premature extraction if files remain small and coherent.
 
-If a proposed refactor does not materially improve one of those outcomes, it should probably not be done.
+---
 
-## Non-Negotiable Guardrails
+## 6. Standard Refactor Workflow
 
-- Preserve existing create, edit, delete, status-change, filtering, and detail-view workflows.
-- Keep backend validation authoritative.
-- Do not break mock-data fallback behavior unless the task explicitly requires it.
-- Keep all user-facing strings in `frontend/src/i18n/translations.js` and render them through `t()`.
-- Keep the current compact UI system: square controls, restrained spacing, and existing shared classes.
-- Do not add new feature logic into `frontend/src/App.jsx`, `frontend/src/components/ProductsPage.jsx`, or `frontend/src/styles.css` unless the task is explicitly to stabilize or split those files.
-- Avoid mixing maintainability refactors with unrelated visual, behavioral, or API changes.
+```text
+Step 1: Inspect ➔ Map responsibilities, note translations and mock dependencies.
+Step 2: Isolate ➔ Extract pure math/filters into a dedicated helper module first.
+Step 3: Hook    ➔ Move states, effects, and API triggers into a custom state hook.
+Step 4: Shell   ➔ Clean up the component, removing dead imports, variables, and handlers.
+Step 5: Verify  ➔ Run complete verification checks and build tests.
+```
 
-## Preferred Frontend Shape
+---
 
-Use the existing three-part separation pattern when a file is large enough to justify extraction.
+## 7. Refactor Acceptance Criteria
 
-### 1. Composition Shell
+> [!IMPORTANT]
+> **A refactor pull-request is acceptable only if all of the following are checked off:**
+> - [ ] **No Behavior Churn**: Document status, FIFO layers, and transaction logic work identically.
+> - [ ] **Localization Intact**: Bilingual translations switch correctly through `t()`.
+> - [ ] **Mock Fallbacks Work**: Offline preview datasets load cleanly when base API URL is unset.
+> - [ ] **Simplicity Achieved**: Target code files are simpler, cleanly bound, and easier to read.
+> - [ ] **Clean Verification**: All Django checks, unit tests, and production build checks pass.
 
-Typical file: `Component.jsx`
+---
 
-Responsibilities:
+## 8. Verification Checks
 
-- render layout and structure
-- connect props to section components
-- consume a custom state hook
-
-Should avoid:
-
-- large inline calculations
-- complex async logic
-- multi-branch workflow handlers
-- direct data normalization logic
-
-### 2. Orchestration Hook
-
-Typical file: `useComponentState.js`
-
-Responsibilities:
-
-- own React state and effects
-- coordinate API calls
-- prepare view-ready values
-- expose action handlers to the shell
-
-Should avoid:
-
-- large JSX fragments
-- buried pure utility logic that should live in helpers
-- unrelated cross-domain behavior
-
-### 3. Pure Helpers or Utilities
-
-Typical file: `componentHelpers.js`, `componentUtils.js`, `componentStateHelpers.js`
-
-Responsibilities:
-
-- calculations
-- filtering
-- normalization
-- payload shaping
-- validation helpers
-- presentational formatting that does not require React
-
-Rules:
-
-- no React imports
-- no side effects
-- no hidden mutation unless the helper name makes mutation explicit
-
-## How To Choose The Next Refactor Target
-
-Prioritize files using this order:
-
-1. High-complexity state hooks that now carry too many workflows
-2. Large components that still mix rendering and business logic
-3. Repeated utility logic that exists in multiple transaction domains
-4. Large directory or modal components that would benefit from section extraction
-5. Large CSS modules only when there is clear ownership to split, not cosmetic churn
-
-Do not prioritize a file only because it has a high line count. Some large files are data-heavy by nature and may not benefit from decomposition without a clear ownership boundary.
-
-## Current Priority Backlog
-
-This backlog reflects the frontend structure as of May 26, 2026.
-
-### Priority 1: Remaining Mixed Dashboard Component
-
-- `frontend/src/components/Dashboard.jsx`
-
-Why it is next:
-
-- It still combines rendering, formatting helpers, async segment loading, and dashboard-specific subcomponents in one file.
-- It is the clearest remaining example of a page-level component that has not fully adopted the established shell and hook pattern.
-
-Recommended direction:
-
-- extract `useDashboardState.js` for period state, loading flags, and segment-fetch orchestration
-- extract `dashboardHelpers.js` for formatting, metrics shaping, and chart-ready transforms
-- keep `Dashboard.jsx` focused on composition of cards, trend sections, and summary layout
-
-### Priority 2: High-Complexity Orchestration Hooks
-
-- `frontend/src/app/useAppState.js`
-- `frontend/src/components/sales/useSalesFormState.js`
-- `frontend/src/components/sales/useSalesEditFormState.js`
-- `frontend/src/components/products/useProductsPageState.js`
-- `frontend/src/components/categories/useCategoryPageState.js`
-- `frontend/src/components/quotation/useQuotationFormState.js`
-- `frontend/src/components/purchases/usePurchaseEditFormState.js`
-- `frontend/src/components/purchases/usePurchaseFormState.js`
-- `frontend/src/components/purchases/usePurchaseHistoryPageState.js`
-
-Why these matter:
-
-- They already follow the right direction, but several are becoming orchestration hubs with too many responsibilities.
-- The risk is not that they are "wrong". The risk is that future features will pile into them and recreate monoliths one layer deeper.
-
-Recommended direction:
-
-- split workflow-specific logic into smaller local helpers
-- extract repeated line-item operations, status transforms, and draft builders into dedicated modules
-- keep each hook as the coordinator, not the implementation site for every rule
-
-### Priority 3: Large Section and Directory Components
-
-- `frontend/src/components/transactions/TransactionDetailItemsSection.jsx`
-- `frontend/src/components/quotation/QuotationDirectorySection.jsx`
-- `frontend/src/components/sales/SalesLineItemsSection.jsx`
-- `frontend/src/components/credits/CreditNoteDirectorySection.jsx`
-- `frontend/src/components/payments/CreatePaymentBatchModal.jsx`
-- `frontend/src/components/payments/PaymentBatchDirectorySection.jsx`
-
-Why these matter:
-
-- These files are likely to attract incremental UI conditions, formatting rules, and eligibility display logic.
-- They are good candidates for subcomponent extraction if future feature work lands there.
-
-Recommended direction:
-
-- extract table row renderers, summary blocks, filter controls, or repeated field groups only when a real boundary exists
-- avoid premature fragmentation when the file is still readable end to end
-
-## Files That Are Not Good Generic Refactor Targets
-
-Refactor these only with explicit justification:
-
-- `frontend/src/i18n/translations.js`
-- `frontend/src/mockData.js`
-- stylesheet modules that are large because they intentionally own a visual domain
-
-These files are large for structural reasons. They should not be split casually during routine maintainability work.
-
-## Standard Refactor Workflow
-
-### 1. Inspect Before Editing
-
-- map current responsibilities in the target file
-- identify render logic, state orchestration, and pure business logic
-- note any coupling to translations, mock fallbacks, pagination, or transaction status rules
-
-### 2. Define The Smallest Safe Extraction
-
-- choose one clear ownership boundary
-- prefer one focused extraction over a broad rewrite
-- keep names literal and domain-specific
-
-Good examples:
-
-- `useDashboardState.js`
-- `salesLineItemHelpers.js`
-- `transactionDetailFormatting.js`
-
-Avoid vague names such as:
-
-- `utils.js`
-- `helpers.js`
-- `common.js`
-
-### 3. Move Pure Logic First
-
-- extract calculations, filters, payload builders, and formatting helpers before moving React workflow code
-- keep helper inputs and outputs explicit
-- do not bury business rules inside inline array chains if a named helper would be clearer
-
-### 4. Extract Orchestration Second
-
-- move state, effects, and async flows into a hook only when that hook has a clear owner
-- return a predictable, documented surface to the component
-- avoid returning a grab-bag of loosely related values if a small nested domain object improves clarity
-
-### 5. Reduce The Shell Last
-
-- keep the component as a readable composition layer
-- remove dead imports and dead handlers
-- make prop names line up with the vocabulary already used in adjacent modules
-
-## Refactor Acceptance Criteria
-
-A frontend maintainability refactor is acceptable only if all of the following are true:
-
-- user-visible behavior is unchanged unless the task explicitly includes a behavior fix
-- translations still resolve through `t()`
-- mock fallback flows still work where they worked before
-- the new file boundaries are easier to understand than the old one
-- no important business rule is duplicated across multiple new files without reason
-- the target file is meaningfully simpler after the change
-
-## Verification Requirements
-
-Run relevant checks after completing refactor work:
+Run the verification suite before committing any refactored code:
 
 ```bash
+# 1. Backend Verification
 backend/.venv/bin/python backend/manage.py check
 backend/.venv/bin/python backend/manage.py makemigrations --check --dry-run
 backend/.venv/bin/python backend/manage.py test inventory
-```
 
-```bash
+# 2. Frontend Production Build Check
 cd frontend
 npm run build
 npm audit --audit-level=moderate
 ```
-
-If the refactor touches behavior that is hard to validate from build output alone, also run the frontend locally and exercise the affected workflow.
-
-```bash
-cd frontend
-npm run dev -- --host 127.0.0.1
-```
-
-## Expected Deliverable For Future Refactor PRs
-
-Each future refactor should leave behind:
-
-- a smaller, clearer primary file
-- well-named extracted modules with obvious ownership
-- no hidden behavior changes
-- concise notes on what moved and why
-- verification results or a clear statement of what could not be run
-
-## Handoff Summary
-
-The frontend no longer needs a broad architectural reset. The remaining work is targeted decomposition: finish the Dashboard split, prevent large state hooks from turning into new monoliths, and keep extracting repeated transaction logic into explicit local modules as new changes arrive.
-
-That is the standard for future refactoring in this codebase.
