@@ -48,17 +48,43 @@ Most free inventory tools handle only one slice of the business: simple ledger t
 
 ```mermaid
 graph TD
-    A[Supplier Catalog] -->|Purchase Order| B[FIFO Stock Layers]
-    B -->|Live Sufficiency Check| C[Quotation Form]
-    C -->|Sales Invoice| D[Committed Stock]
-    D -->|Receivables| E[Billing Notes]
-    A -->|Payables| F[Payment Batches]
-    D -->|Returns/Cancellations| G[Credit Notes]
-    
-    style B fill:#f9f,stroke:#333,stroke-width:2px
-    style C fill:#bbf,stroke:#333,stroke-width:1px
-    style E fill:#bfb,stroke:#333,stroke-width:1px
-    style F fill:#fbb,stroke:#333,stroke-width:1px
+    A[Master Data<br/>Categories / Products / Suppliers / Customers] --> B[Quotation]
+    A --> D[Purchase Order]
+    A --> G[Sale Order]
+
+    B --> C{Stock Sufficiency Check}
+    C -->|Enough stock| G
+    C -->|Short stock| D
+
+    D --> E[Received Purchase Items]
+    E --> F[Available Stock]
+    F --> G
+
+    G --> H[Packed / Shipped / Delivered Sale Items]
+    H --> I[Billing Notes]
+
+    D --> J[Eligible Purchases]
+    J --> K[Payment Batches]
+
+    G --> L[Cancelled / Returned Sale Items]
+    L --> M[Credit Notes]
+
+    E --> N[Dashboard]
+    H --> N
+    I --> N
+    K --> N
+    M --> N
+    N --> O[AI Assistant]
+
+    style A fill:#eef,stroke:#333,stroke-width:1px
+    style B fill:#bbf,stroke:#333,stroke-width:1px
+    style C fill:#ffe7a3,stroke:#333,stroke-width:1px
+    style F fill:#f9f,stroke:#333,stroke-width:2px
+    style I fill:#bfb,stroke:#333,stroke-width:1px
+    style K fill:#fbb,stroke:#333,stroke-width:1px
+    style M fill:#ffd1d1,stroke:#333,stroke-width:1px
+    style N fill:#d9f2ff,stroke:#333,stroke-width:1px
+    style O fill:#e7ddff,stroke:#333,stroke-width:1px
 ```
 
 ---
