@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "");
 
 function buildQueryString(params = {}) {
   const query = new URLSearchParams();
@@ -25,6 +27,10 @@ function buildQueryString(params = {}) {
 }
 
 async function request(path, options = {}) {
+  if (!API_BASE_URL) {
+    throw new Error("Backend API is not configured for this deployment.");
+  }
+
   const { params, ...requestOptions } = options;
   const queryString = buildQueryString(params);
   const url = `${API_BASE_URL}${path}${queryString ? `?${queryString}` : ""}`;
