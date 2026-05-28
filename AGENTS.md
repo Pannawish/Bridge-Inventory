@@ -19,6 +19,7 @@ This file is for coding agents working in this repository. Follow these rules be
 - Keep backend validation authoritative. Frontend validation is helpful, but direct API calls must still be safe.
 - Do not silently remove existing data fields from serializers, API payloads, or frontend state.
 - Avoid unrelated formatting churn in large files.
+- When linking to other codebase documents or files within any `.md` file, always use **relative repository links** (e.g., `./docs/business-rules-reference.md`) instead of absolute local file system paths. This ensures the links redirect successfully for contributors navigating the repository on GitHub.
 
 ## Readability And Maintainability Standards
 
