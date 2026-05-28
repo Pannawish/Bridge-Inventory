@@ -4,7 +4,24 @@
   justify-content: center;
   width: 100vw;
   height: 100vh;
-  background-color: var(--bg);
+  background: radial-gradient(circle at 10% 10%, rgba(113, 75, 103, 0.07) 0%, transparent 40%),
+              radial-gradient(circle at 90% 90%, rgba(113, 75, 103, 0.05) 0%, transparent 45%),
+              linear-gradient(135deg, #f6f8fc 0%, #ebf0f8 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.login-viewport::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(113, 75, 103, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(113, 75, 103, 0.035) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: center center;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .login-card {
@@ -14,6 +31,11 @@
   background-color: var(--panel);
   border: 1px solid var(--line-strong);
   border-radius: 4px;
+  box-shadow: 
+    0 10px 30px -10px rgba(113, 75, 103, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.01);
+  z-index: 2;
+  position: relative;
 }
 
 .login-header {
