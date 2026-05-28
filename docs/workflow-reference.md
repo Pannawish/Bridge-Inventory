@@ -7,7 +7,7 @@ This document describes the business workflow of Bridge Inventory in a form that
 - onboarding summaries
 - workflow reviews
 
-Use [business-rules-reference.md](/Users/peto/Documents/Inventory-Management-frontend/docs/business-rules-reference.md) when you need exact status, eligibility, FIFO, and stock-behavior rules. Use this file when you need the end-to-end operational story.
+Use [business-rules-reference.md](./business-rules-reference.md) when you need exact status, eligibility, FIFO, and stock-behavior rules. Use this file when you need the end-to-end operational story.
 
 ## 1. Workflow Summary
 

@@ -343,10 +343,10 @@ docs/
 
 For a new contributor, this is the fastest reading order:
 
-1. [README.md](/Users/peto/Documents/Inventory-Management-frontend/README.md)
-2. [AGENTS.md](/Users/peto/Documents/Inventory-Management-frontend/AGENTS.md)
-3. [HANDOUT.md](/Users/peto/Documents/Inventory-Management-frontend/HANDOUT.md)
-4. [docs/business-rules-reference.md](/Users/peto/Documents/Inventory-Management-frontend/docs/business-rules-reference.md)
-5. [backend/README.md](/Users/peto/Documents/Inventory-Management-frontend/backend/README.md)
+1. [README.md](../README.md)
+2. [AGENTS.md](../AGENTS.md)
+3. [HANDOUT.md](../HANDOUT.md)
+4. [docs/business-rules-reference.md](./business-rules-reference.md)
+5. [backend/README.md](../backend/README.md)
 6. `backend/inventory/`
 7. `frontend/src/app/`, `frontend/src/hooks/`, and the domain folders under `frontend/src/components/`
