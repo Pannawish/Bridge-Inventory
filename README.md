@@ -6,6 +6,14 @@ This repository is built for teams that need something more practical than a gen
 
 If this project is useful to you, give it a star. That helps more builders and operators find it.
 
+## Preview The App
+
+Want to see the UI before setting anything up locally?
+
+Preview the frontend here: [bridge-inventory.netlify.app](https://bridge-inventory.netlify.app)
+
+This preview is a frontend-only deployment, which makes it useful for exploring the interface, navigation, and offline/mock-data flows quickly.
+
 ## Feature Snapshot
 
 | Area | What is implemented |
