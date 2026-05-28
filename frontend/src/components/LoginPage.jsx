@@ -37,7 +37,7 @@ export function LoginPage() {
     <div className="login-viewport">
       <div className="login-card">
         <div className="login-header">
-          <h1 className="login-brand">{t("app.title")}</h1>
+          <h1 className="login-brand">{t("login.brand")}</h1>
           <p className="login-subtitle">{t("login.subtitle")}</p>
         </div>
 

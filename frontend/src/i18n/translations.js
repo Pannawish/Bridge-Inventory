@@ -8,6 +8,7 @@ export const SUPPORTED_LANGUAGES = ["en", "th"];
 export const translations = {
   en: {
     login: {
+      brand: "Bridge Inventory",
       title: "Sign In",
       subtitle: "Enter your credentials to access the system",
       username: "Username",
@@ -1741,6 +1742,7 @@ export const translations = {
   },
   th: {
     login: {
+      brand: "Bridge Inventory",
       title: "เข้าสู่ระบบ",
       subtitle: "กรอกชื่อผู้ใช้และรหัสผ่านเพื่อเข้าสู่ระบบ",
       username: "ชื่อผู้ใช้",

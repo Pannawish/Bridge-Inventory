@@ -170,15 +170,15 @@
 }
 
 .login-btn-secondary {
-  background-color: transparent;
-  color: var(--muted);
-  border: 1px solid var(--line-strong);
+  background-color: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid rgba(113, 75, 103, 0.15);
 }
 
 .login-btn-secondary:hover {
-  background-color: var(--bg);
-  color: var(--text);
-  border-color: var(--muted);
+  background-color: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
 }
 
 .login-lang-selector {
