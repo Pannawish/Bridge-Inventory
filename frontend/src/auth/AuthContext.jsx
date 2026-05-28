@@ -129,6 +129,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     clearAuth();
+    window.location.reload();
   };
 
   const continueAsGuest = () => {
