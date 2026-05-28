@@ -120,6 +120,7 @@ export const AuthProvider = ({ children }) => {
       sessionStorage.removeItem("inventory_is_guest");
 
       startTokenRefreshInterval();
+      window.location.reload();
       return userData;
     } catch (error) {
       clearAuth();
@@ -136,6 +137,7 @@ export const AuthProvider = ({ children }) => {
     clearAuth();
     setIsGuest(true);
     sessionStorage.setItem("inventory_is_guest", "true");
+    window.location.reload();
   };
 
   const value = {
