@@ -1,431 +1,343 @@
-# Business Rules Reference
+# ⚖️ Business Rules Reference
 
-This document is the detailed business-logic reference for the inventory system.
+<p align="left">
+  <img src="https://img.shields.io/badge/Document-Technical%20Reference-4a7b9c?style=flat-square" alt="Technical Reference" />
+  <img src="https://img.shields.io/badge/Authority-Backend--Authoritative-b71c1c?style=flat-square" alt="Backend Authoritative" />
+  <img src="https://img.shields.io/badge/Engine-FIFO%20Allocation-2e7d32?style=flat-square" alt="FIFO Engine" />
+  <img src="https://img.shields.io/badge/Target-Supervisors%20%7C%20Maintainers-714b67?style=flat-square" alt="Audience" />
+</p>
 
-Use it when you need exact behavior, not just training steps. It is intended for:
+This document serves as the absolute, authoritative business-logic and validation reference for the inventory system.
 
-- supervisors
-- process owners
-- trainers
-- implementation reviewers
-- advanced end users
+> [!NOTE]
+> **Scope & Purpose:**  
+> Use this reference when you need to inspect exact database behaviors, status state-machines, or financial constraints. For training checklists or onboarding guides, refer to [HANDOUT.md](../HANDOUT.md). If this file and user training sheets differ, this document represents the authoritative description of system behavior.
 
-Use [HANDOUT.md](/Users/peto/Documents/Inventory-Management-frontend/HANDOUT.md) for step-by-step user training. Use this file when you need to understand why the system behaves the way it does.
-
-When this file and the handout differ, this file should be treated as the more exact description of current system behavior.
+---
 
 ## 1. Core Principles
 
-These rules apply across the whole website.
+These core principles are enforced authoritatively across all operations:
 
-### 1.1 Stock is derived, not typed in manually
+### 1.1 Stock is Derived, Not Manually Typed
+*   The system does not treat product stock as a static, manually maintained master data field.
+*   **Available Stock** is derived dynamically from **Received Purchase Quantities** minus **Committed Sale Quantities**.
+*   A purchase line item increments stock only when it reaches the `received` status.
+*   A sales line item decrements stock only when it reaches a committed fulfillment status (`packed`, `shipped`, or `delivered`).
+*   Line items in `draft`, `pending`, `cancelled`, or `returned` statuses do not commit or reduce stock.
 
-- The system does not treat product stock as a manually maintained master-data field.
-- Available stock is derived from received purchase quantities minus committed sale quantities.
-- A purchase line affects stock only when it is `received`.
-- A sale line affects stock only when it is `packed`, `shipped`, or `delivered`.
-- Sale lines in `draft`, `pending`, `cancelled`, or `returned` do not reduce available stock.
+### 1.2 Line-Item Status is the Operational Source of Truth
+*   For purchases and sales, the line-item status drives stock increments/decrements and partial-progress calculations.
+*   Whole-document statuses (e.g. `partially_received`, `partially_shipped`) are aggregate calculations derived from individual line-item statuses.
+*   Partial statuses exist strictly at the document level. Line items never use `partial_*` states.
 
-### 1.2 Line-item status is the operational source of truth
+### 1.3 Historical Snapshotting
+*   Transaction records store explicit duplicates of master data (e.g., partner names, product names, SKUs, prices, tax totals).
+*   These duplicates are intentional. They act as immutable historical business audit records so past documents remain accurate and readable even if master product registries are updated or partner records are edited.
 
-- For purchases and sales, line-item status is what drives stock and partial-progress logic.
-- Whole-document statuses such as `partially_received` or `partially_shipped` are aggregate results of line-item statuses.
-- Partial statuses exist at the document level only. Line items never use `partial_*` statuses.
+### 1.4 Authoritative Backend Validation
+*   While the React frontend provides validation guides to aid operations, all stock allocations, eligibility filtering, and financial status overrides are re-validated and enforced by the Django API backend.
 
-### 1.3 Historical snapshot fields are intentional
-
-- Transaction records keep snapshots such as partner names, product names, SKU, prices, totals, and tax values.
-- These snapshots are not redundant mistakes. They preserve the meaning of historical business documents even if master data changes later.
-
-### 1.4 Backend rules are authoritative
-
-- The frontend helps users, but the backend decides what is valid.
-- Stock validation, eligibility filtering, and finance-link protection must be assumed to come from backend logic.
+---
 
 ## 2. Master Data Rules
 
 ### 2.1 Categories
-
-- Categories form a tree, not a flat list.
-- A category cannot be deleted if it is still referenced by products.
-- Parent-child relationships matter. A parent category should not be removed while child categories still depend on it.
+*   Categories are structured as a relational tree, not a flat table.
+*   A category **cannot be deleted** if it is referenced by any product master.
+*   Parent categories cannot be removed if active child subcategories depend on them.
 
 ### 2.2 Products
-
-- A product with purchase, sale, or quotation history should be treated as historical business data.
-- Such a product cannot be deleted once it has transaction history.
-- The correct action is usually to disable the product instead of deleting it.
-- Disabled products cannot be used in new quotations, purchases, or sales.
-- Existing historical transactions that already reference the product remain valid.
+*   A product with any purchase, sale, or quotation history represents durable business transaction data.
+*   A product **cannot be deleted** once it has transaction history.
+*   The standard action is to **disable** the product instead of deleting it.
+*   Disabled products cannot be added to new quotations, purchases, or sales.
+*   All existing historical records referencing disabled products remain fully readable and valid.
 
 ### 2.3 Suppliers and Customers
+*   Partner master cards contain vendor/buyer defaults used to initialize new documents.
+*   Historical transactions keep their own independent name and Tax ID snapshots, remaining fully accurate and unaffected by subsequent partner card updates.
 
-- Supplier and customer records are the partner master data used for new transactions.
-- Historical purchase, sale, quotation, billing, payment, and credit records keep their own name snapshots and remain readable even if partner master data changes later.
+---
 
 ## 3. Quotation Rules
 
-Quotations do not use a stored workflow status like purchases and sales do. Their visible state is derived from validity settings.
+Unlike purchases and sales, quotations do not use a saved workflow state. Their visual status is derived dynamically from date conditions.
 
-### 3.1 Validity logic
+### 3.1 Validity Logic
+*   If `valid_until_date` is blank: status is `Valid`.
+*   If `valid_until_date` is today or in the future: status is `Valid`.
+*   If `valid_until_date` is in the past: status is `Expired`.
 
-- If `valid_until_date` is blank, the quotation is treated as `Valid`.
-- If `valid_until_date` is today or later, the quotation is `Valid`.
-- If `valid_until_date` is before today, the quotation is `Expired`.
+### 3.2 Validity Calculation Modes
+*   **`calendar`**: Add literal calendar days to the quotation date.
+*   **`business`**: Add working days only, automatically skipping Saturdays and Sundays.
+*   **`no_valid_date`**: No expiration date is set; the quotation remains `Valid` in the UI indefinitely.
 
-### 3.2 Valid-until calculation modes
+### 3.3 Quotation Line Storage
+*   Quotation lines are stored as normalized relational items inside `QuotationItem` tables (practical 3NF).
+*   The API exposes an `items` array to maintain frontend compatibility, but the database schema uses a fully normalized table structure.
 
-- `calendar`: add calendar days to the quotation date
-- `business`: add working days only, skipping Saturday and Sunday
-- `no_valid_date`: no expiry date is stored, so the quotation remains `Valid` in the UI
+### 3.4 Operational Role
+*   A quotation is a commercial proposal and **does not reserve or deduct stock**.
+*   A quotation can be converted into active purchase or sales orders, but the quotation itself remains intact as a historical document.
 
-### 3.3 Quotation line storage
-
-- Quotation lines are stored as normalized line items, not as a single JSON blob.
-- The API still exposes an `items` array for frontend compatibility, but the database source of truth is line-item based.
-
-### 3.4 Operational meaning
-
-- A quotation is a commercial proposal, not a stock-moving document.
-- Creating a quotation does not reserve or deduct stock by itself.
-- A quotation may be used as the starting point for later purchase or sale records, but the quotation itself remains part of history.
+---
 
 ## 4. Purchase Rules
 
-Purchases represent inbound stock from suppliers.
+Purchases record incoming inventory layers from suppliers.
 
-### 4.1 Purchase statuses
+### 4.1 Purchase Document Statuses
 
-| Status | Meaning |
-| --- | --- |
-| `draft` | Internal draft only. No stock has been received. |
-| `ordered` | Sent or considered placed with supplier, but no received quantity yet. |
-| `partially_received` | At least one active line is received, but not all active lines are received. |
-| `received` | All active lines are received. |
-| `cancelled` | All lines are cancelled, or the whole purchase has been cancelled. |
+| Document Status | Operational Meaning |
+| :--- | :--- |
+| **`draft`** | Internal draft only. No stock is received or registered. |
+| **`ordered`** | PO has been placed with the vendor, but no quantities have been received yet. |
+| **`partially_received`** | At least one active line item has arrived, but other active lines are still pending. |
+| **`received`** | All active line items have been successfully received at the warehouse. |
+| **`cancelled`** | The whole purchase order, or all individual line items within it, have been cancelled. |
 
-### 4.2 Purchase item statuses
+### 4.2 Purchase Line-Item Statuses
 
-| Item status | Meaning | Stock effect |
-| --- | --- | --- |
-| `pending` | Not yet received | No stock increase |
-| `received` | Physically received into stock | Increases stock |
-| `cancelled` | Will not be received | No stock increase |
+| Line Status | Operational Meaning | Available Stock Impact |
+| :--- | :--- | :--- |
+| **`pending`** | Not yet arrived. | No stock increase. |
+| **`received`** | Physically arrived and shelved. | **Increases available stock immediately.** |
+| **`cancelled`** | Will not arrive. | No stock increase. |
 
-### 4.3 How purchase status is derived
+### 4.3 Purchase Status Derivation
+*   If all lines are `cancelled`, the PO status becomes `cancelled`.
+*   If all non-cancelled lines are `received`, the PO status becomes `received`.
+*   If some non-cancelled lines are `received` and others remain `pending`, the PO status becomes `partially_received`.
+*   If no active lines are received yet, the PO remains in `draft` or `ordered` based on the document-level switch.
 
-- If all line items are `cancelled`, the purchase becomes `cancelled`.
-- If all non-cancelled line items are `received`, the purchase becomes `received`.
-- If some non-cancelled line items are `received` and others are still `pending`, the purchase becomes `partially_received`.
-- If no active lines are received yet, the purchase remains `draft` or `ordered` depending on its fallback document state.
+### 4.4 Document Status Propagation
+*   If a user sets the overall PO status to `received` and no explicit line statuses are provided in the payload, the backend automatically propagates that status to all line items.
+*   Once explicit line-level statuses are present, the PO status is derived strictly from line-level calculations.
 
-### 4.4 Whole-document status propagation
+### 4.5 Date Rules
+*   When a line becomes `received`, `received_date` is automatically set to the current date if it was blank.
+*   If a line drops back to `pending` or is `cancelled`, the `received_date` is cleared.
+*   If a pending line has an `expected_delivery_date` before today, the UI flags it as `delayed` (this is a visual prompt only and is not a stored database status).
 
-- If a user sets the purchase to a full document status such as `received` and there are no explicit line-item statuses provided, the system propagates that full status to every line.
-- Once line-level statuses are explicitly present, the document status is recalculated from the lines.
+### 4.6 Financial Grand Totals vs. Payables
+*   `grand_total` preserves the original PO total for billing audits.
+*   `payable_total` is calculated dynamically and **excludes** the value of cancelled purchase lines. This ensures a PO retains its full historical total while showing the exact current payable amount owed to the vendor.
 
-### 4.5 Date behavior
-
-- When a purchase line becomes `received`, `received_date` is automatically set if blank.
-- When a purchase line becomes `pending` or `cancelled`, `received_date` is cleared.
-- If a pending line has an `expected_delivery_date` earlier than today, the UI shows `delayed`.
-- `delayed` is a display state only. It is not a stored backend status.
-
-### 4.6 Financial amount behavior
-
-- `grand_total` preserves the original document total for audit purposes.
-- `payable_total` is derived separately.
-- `payable_total` excludes the value of cancelled purchase lines.
-- This means a purchase can keep its full historical total while still showing a lower current amount owed to the supplier.
+---
 
 ## 5. Sales Rules
 
-Sales represent outbound customer demand and fulfillment progress.
+Sales represent customer orders and outbound fulfillment.
 
-### 5.1 Sale statuses
+### 5.1 Sales Document Statuses
 
-| Status | Meaning |
-| --- | --- |
-| `draft` | No line has reached a stock-deducting fulfillment stage. |
-| `partially_packed` | At least one active line is `packed`, but not all active lines are fully at the same highest stage. |
-| `packed` | All active lines are `packed`. |
-| `partially_shipped` | At least one active line is `shipped`, but not all active lines are shipped or delivered. |
-| `shipped` | All active lines are `shipped`. |
-| `partially_delivered` | At least one active line is `delivered`, but not all active lines are delivered. |
-| `delivered` | All active lines are `delivered`. |
-| `cancelled` | All lines are cancelled. |
-| `returned` | All lines are inactive and at least one line is returned. |
+| Document Status | Operational Meaning |
+| :--- | :--- |
+| **`draft`** | Standard draft. No stock has reached a committed, stock-deducting stage. |
+| **`partially_packed`** | At least one active line has reached the `packed` stage, but others remain pending. |
+| **`packed`** | All active line items have been packed and are committed to this order. |
+| **`partially_shipped`** | At least one line has been shipped, but others are packed or pending. |
+| **`shipped`** | All active line items have been shipped out. |
+| **`partially_delivered`** | At least one line has been delivered, but others are in transit. |
+| **`delivered`** | All active line items have been successfully delivered to the customer. |
+| **`cancelled`** | All line items in the order have been cancelled. |
+| **`returned`** | All lines are inactive and at least one line has been returned by the customer. |
 
-### 5.2 Sale item statuses
+### 5.2 Sales Line-Item Statuses
 
-| Item status | Meaning | Stock effect |
-| --- | --- | --- |
-| `pending` | Not yet committed to stock | No stock decrease |
-| `packed` | Committed to fulfill | Decreases stock |
-| `shipped` | Sent out | Decreases stock |
-| `delivered` | Delivered to customer | Decreases stock |
-| `cancelled` | Cancelled before completion | Releases or avoids stock commitment |
-| `returned` | Returned after fulfillment | Releases stock commitment from active demand |
+| Line Status | Operational Meaning | Available Stock Impact |
+| :--- | :--- | :--- |
+| **`pending`** | Order recorded but not yet committed. | No stock decrease. |
+| **`packed`** | Goods are packed and committed. | **Decreases available stock immediately.** |
+| **`shipped`** | In transit to customer. | **Decreases available stock immediately.** |
+| **`delivered`** | Handed over to customer. | **Decreases available stock immediately.** |
+| **`cancelled`** | Cancelled before fulfillment. | Releases/avoids stock commitment. |
+| **`returned`** | Returned after delivery. | **Releases stock back to available inventory.** |
 
-### 5.3 How sale status is derived
+### 5.3 Sales Status Derivation
+*   If all active lines are `delivered`, the sale status is `delivered`.
+*   If at least one active line is `delivered`, the sale status is `partially_delivered`.
+*   Else if all active lines are `shipped`, the sale status is `shipped`.
+*   Else if at least one active line is `shipped`, the sale status is `partially_shipped`.
+*   Else if all active lines are `packed`, the sale status is `packed`.
+*   Else if at least one active line is `packed`, the sale status is `partially_packed`.
+*   Else the sale status is `draft`.
+*   If all lines are inactive and at least one line is `returned`, the sale status is `returned`.
+*   If all lines are inactive and no line is `returned`, the sale status is `cancelled`.
 
-- If all active lines are `delivered`, the sale becomes `delivered`.
-- If at least one active line is `delivered`, the sale becomes `partially_delivered`.
-- Else if all active lines are `shipped`, the sale becomes `shipped`.
-- Else if at least one active line is `shipped`, the sale becomes `partially_shipped`.
-- Else if all active lines are `packed`, the sale becomes `packed`.
-- Else if at least one active line is `packed`, the sale becomes `partially_packed`.
-- Else the sale is `draft`.
-- If all lines are inactive and at least one line is `returned`, the sale becomes `returned`.
-- If all lines are inactive and no line is `returned`, the sale becomes `cancelled`.
+### 5.4 Document Status Propagation
+*   If a user sets the overall sale status to `packed`, `shipped`, or `delivered` and no explicit line statuses are provided in the payload, the backend automatically propagates that status to all line items.
+*   Once explicit line-level statuses are present, the sale status is derived strictly from line-level calculations.
 
-### 5.4 Whole-document status propagation
+### 5.5 Date Rules
+*   When a line becomes `shipped`, `shipped_date` is automatically set if it was blank.
+*   When a line becomes `delivered`, both `shipped_date` and `delivered_date` are automatically set if blank.
+*   When a line drops back below a shipped state, the shipment and delivery dates are cleared.
 
-- If a user sets the sale to a full document status such as `packed`, `shipped`, or `delivered` and there are no explicit line-item statuses provided, the system propagates the corresponding item status to every line.
-- If explicit line-item statuses exist, the document status is recalculated from the lines.
-- Partial document statuses are never pushed down as partial item statuses. They exist only as aggregate results.
+### 5.6 Server-Side Stock Validation
+*   Stock is checked server-side for quantities that would be committed by sale lines in `packed`, `shipped`, or `delivered`.
+*   A sale can remain `draft` without sufficient stock because draft lines do not commit stock.
+*   A sale **cannot move active quantities** into stock-deducting statuses if sufficient stock is not available in your received FIFO layers.
 
-### 5.5 Date behavior
-
-- When a line becomes `shipped`, `shipped_date` is automatically set if blank.
-- When a line becomes `delivered`, both `shipped_date` and `delivered_date` are automatically set if blank.
-- When a line drops back to a non-shipped state, shipment and delivery dates are cleared.
-
-### 5.6 Stock validation
-
-- Stock is checked server-side for quantities that would be committed by sale lines in `packed`, `shipped`, or `delivered`.
-- A sale can remain `draft` without enough stock because draft lines do not commit stock yet.
-- A sale cannot move active quantities into stock-deducting statuses if enough stock is not available.
+---
 
 ## 6. FIFO Stock Allocation Rules
 
-FIFO logic matters most for sales cost and margin tracking. The system supports both automatic FIFO allocation and manual stock-source selection.
+First-In, First-Out (FIFO) logic governs inventory costing, margins, and stock layer consumptions.
 
-### 6.1 What FIFO means in this system
+### 6.1 What FIFO Means in This System
+*   The system allocates stock from your **oldest available received purchase layers first**.
+*   Only purchase lines with the `received` status can provide stock layers.
+*   A purchase layer is available only up to its remaining unallocated quantity.
+*   Automatic FIFO is the default behavior when users do not choose layers manually.
 
-- The system allocates stock from the oldest available received purchase layers first.
-- Only purchase lines with `received` status can provide stock layers.
-- A purchase layer is considered available only for its remaining unallocated quantity.
-- Automatic FIFO is the default behavior when users do not choose layers manually.
+### 6.2 FIFO Priority Ordering
+When auto-allocating a sale line, the backend sorts candidate purchase layers by:
+1.  `received_date` ascending (Oldest physical stock arrival first)
+2.  Purchase `transaction_date` ascending
+3.  Purchase `created_at` ascending
+4.  Purchase Line `id` ascending
 
-### 6.2 FIFO order
+This sorting ensures that older stock is mathematically consumed first.
 
-When the system auto-allocates a sale line, it sorts candidate purchase layers by:
+### 6.3 Automatic Allocation
+*   If a sale line enters a stock-deducting status and no manual allocation is supplied, the system allocates automatically using FIFO.
+*   If available stock is insufficient after walking the active layers, the update is rejected.
 
-1. `received_date` ascending
-2. purchase `transaction_date` ascending
-3. purchase `created_at` ascending
-4. line `id` ascending
+### 6.4 Manual Allocation (Layer Overrides)
+*   Users can manually choose specific purchase layers for a sale line in the UI.
+*   Manual selection overrides the default automatic FIFO choice for that sale line.
+*   Manual allocations must match the sale line quantity exactly.
+*   A selected purchase layer must:
+    *   Belong to the exact same product.
+    *   Already be received.
+    *   Have sufficient remaining quantity.
+*   If manual allocations are incomplete, missing, or invalid, the backend rejects the update instead of silently guessing or substituting layers.
 
-This means the oldest received stock is consumed first.
+### 6.5 Cost Snapshot Behavior
+*   Once allocations are locked, the system computes the exact cost of goods sold (COGS) based on the cost of the allocated layers and saves it on the sale line.
+*   If a sale line uses stock from exactly one supplier layer, that supplier's name is snapshotted as the line's supplier reference.
 
-### 6.3 Automatic allocation
-
-- If a sale line is in a stock-deducting status and no manual allocation is supplied, the system allocates automatically using FIFO.
-- If stock is insufficient after walking the available layers, the sale is rejected.
-- Automatic allocation is the normal path for users who do not need to control the exact purchase layers used by a sale.
-
-### 6.4 Manual allocation
-
-- Users can manually choose specific purchase layers for a sale line.
-- Manual selection overrides the default automatic FIFO choice for that sale line.
-- Manual allocations must match the sale line quantity exactly.
-- A selected purchase layer must:
-  - belong to the same product
-  - already be received
-  - still have enough remaining quantity
-- If manual allocations are missing, incomplete, or invalid, the backend rejects the sale update rather than silently guessing a different layer mix.
-
-### 6.5 Cost snapshot behavior
-
-- Once allocations are created, the system stores the sale line cost snapshot from those allocations.
-- If the sale line uses stock from exactly one supplier layer set, that supplier can become the line's supplier snapshot.
+---
 
 ## 7. Billing Note Rules
 
-Billing notes group sales for customer collection follow-up.
+Billing Notes organize completed customer shipments for collections tracking.
 
-### 7.1 Actual eligibility logic
+### 7.1 Invoice Eligibility Rules
+A sales order is eligible for inclusion in a new Billing Note only if all of the following conditions are met:
+1.  The sales order belongs to the target customer.
+2.  The sales order is in an eligible document status: `partially_packed`, `packed`, `partially_shipped`, `shipped`, `partially_delivered`, or `delivered`.
+3.  The sales order is not already linked to another active (non-cancelled) Billing Note.
+4.  If a Billing Note is `cancelled`, all associated sales orders are instantly released and become eligible for billing notes again.
 
-A sale is eligible for billing-note creation only if all of the following are true:
+### 7.2 Billing Note Document Statuses
 
-- its sale status is one of:
-  - `shipped`
-  - `partially_delivered`
-  - `delivered`
-- it is not already linked to another active billing note
-- if a previous billing note was `cancelled`, that link no longer blocks reuse
+| Document Status | Meaning |
+| :--- | :--- |
+| **`draft`** | Internal draft only. |
+| **`issued`** | Sent to the customer. Expected payment tracking begins. |
+| **`partially_received`** | At least one sales order inside has been paid, but others remain outstanding. |
+| **`fully_received`** | All associated sales orders have been fully paid. |
+| **`cancelled`** | Cancelled. All associated sales orders are released back to billing eligibility. |
 
-Important note:
+### 7.3 Billing Note Payment Recalculations
+*   A Billing Note does not rely on a simple status toggle for payments. 
+*   Its status is derived dynamically based on the payment status of the sales orders grouped within it.
+*   When a sales order's payment date is set or cleared, the Billing Note status is recomputed dynamically.
 
-- The training handout simplifies this rule as "shipped or delivered."
-- The current backend logic also allows `partially_delivered`.
-
-### 7.2 Customer rule
-
-- All sales inside one billing note must belong to the same customer.
-
-### 7.3 Billing note statuses
-
-| Status | Meaning |
-| --- | --- |
-| `draft` | User-entered draft value, but line state may later recalculate status |
-| `issued` | No billing-note lines are marked received |
-| `partially_received` | Some lines are marked received |
-| `fully_received` | All lines are marked received |
-| `cancelled` | Billing note is cancelled and no longer blocks sale eligibility |
-
-### 7.4 How billing-note status is derived
-
-- If no lines are marked received, the status is `issued`.
-- If some but not all lines are marked received, the status is `partially_received`.
-- If all lines are marked received, the status is `fully_received`.
-
-### 7.5 Payment-date rule
-
-- `actual_payment_date` is set to the latest received date among received billing-note lines.
-
-### 7.6 Credit-note effect on net receivable
-
-- Active credit notes linked to the billing note reduce the net amount the customer is expected to pay.
-- Cancelled credit notes do not reduce the net amount.
+---
 
 ## 8. Payment Batch Rules
 
-Payment batches group purchases for supplier payment follow-up.
+Payment Batches manage supplier payables (AP) for received warehouse inventory.
 
-### 8.1 Actual eligibility logic
+### 8.1 Payable Eligibility Rules
+A purchase order (PO) is eligible for inclusion in a new Payment Batch only if all of the following conditions are met:
+1.  The PO belongs to the target supplier.
+2.  The PO is in an eligible received status: `partially_received` or `received`.
+3.  The PO is not already linked to another active (non-cancelled) Payment Batch.
+4.  If a Payment Batch is `cancelled`, all associated POs are instantly released and become eligible for payment batches again.
 
-A purchase is eligible for payment-batch creation only if all of the following are true:
+### 8.2 Payment Batch Document Statuses
 
-- its purchase status is one of:
-  - `received`
-  - `partially_received`
-- it is not already linked to another active payment batch
-- if a previous payment batch was `cancelled`, that link no longer blocks reuse
+| Document Status | Meaning |
+| :--- | :--- |
+| **`draft`** | Internal draft only. |
+| **`scheduled`** | Payment scheduled. Planned payment tracking begins. |
+| **`partially_paid`** | At least one PO inside has been paid, but others remain outstanding. |
+| **`paid`** | All associated POs have been fully paid. |
+| **`cancelled`** | Cancelled. All associated POs are released back to payment eligibility. |
 
-Important note:
+### 8.3 Payment Batch Status Recalculations
+*   A Payment Batch status is derived dynamically based on the payment status of the POs grouped within it.
+*   When a PO's payment date is set or cleared, the Payment Batch status is recomputed dynamically.
 
-- The training handout simplifies this rule as "received."
-- The current backend logic also allows `partially_received`.
-
-### 8.2 Supplier rule
-
-- All purchases inside one payment batch must belong to the same supplier.
-
-### 8.3 Payment batch statuses
-
-| Status | Meaning |
-| --- | --- |
-| `draft` | User-entered draft value, but line state may later recalculate status |
-| `scheduled` | No lines are marked paid |
-| `partially_paid` | Some lines are marked paid |
-| `paid` | All lines are marked paid |
-| `cancelled` | Batch is cancelled and no longer blocks purchase eligibility |
-
-### 8.4 How payment-batch status is derived
-
-- If no lines are marked paid, the status is `scheduled`.
-- If some but not all lines are marked paid, the status is `partially_paid`.
-- If all lines are marked paid, the status is `paid`.
-
-### 8.5 Payment-date rule
-
-- `actual_payment_date` is set to the latest paid date among paid lines.
-
-### 8.6 Amount-sync behavior
-
-- Unpaid payment-batch lines always reflect the current `payable_total` of their purchase.
-- If a purchase later has cancelled items and its payable amount drops, unpaid payment-batch lines resync automatically.
-- Paid payment-batch lines are frozen as financial history and do not auto-rewrite after payment is marked complete.
+---
 
 ## 9. Credit Note Rules
 
-Credit notes reduce receivable value for cancelled or returned sale items.
+Credit Notes adjust customer accounts for returned or cancelled sales.
 
-### 9.1 Credit-note source logic
+### 9.1 Credit Note Eligibility Rules
+A sales order is eligible for a new Credit Note only if all of the following conditions are met:
+1.  The sales order has at least one line item in `cancelled` or `returned` status.
+2.  The cancelled or returned quantity has not already been credited by another active Credit Note.
+3.  If a Credit Note is `cancelled`, its credited sales lines are released back to credit note eligibility.
 
-- Credit notes are driven by sale items, not just by sale headers.
-- A sale becomes credit-note eligible when it has at least one line in `cancelled` or `returned` status.
+### 9.2 Auto-Prompt Workflow
+*   When a sales line status is updated to `cancelled` or `returned`, the system automatically opens the credit note prompt.
+*   This prompt allows immediate generation of a Credit Note for the newly adjusted quantities.
+*   If the user selects `Create Later`, the quantities are saved as eligible lines and can be processed via the **Credit Notes** directory at a later time.
 
-### 9.2 Eligibility logic
+### 9.3 Credit Note Document Statuses
+*   **`issued`**: Approved credit note. Customer credit balances are adjusted.
+*   **`cancelled`**: Cancelled. Released credited sales lines back to eligibility.
 
-A sale item is eligible for a new credit note only if:
+---
 
-- its status is `cancelled` or `returned`
-- it is not already included in another active credit note
+## 10. Financial Totals & Tax Calculations
 
-If the earlier credit note is cancelled, the line becomes eligible again.
+All financial documents (Quotations, Purchases, Sales, Billing Notes, Payment Batches, Credit Notes) must adhere to exact calculation rules.
 
-### 9.3 Credit note statuses
+### 10.1 Mathematical Formulas
 
-| Status | Meaning |
-| --- | --- |
-| `issued` | Active credit note |
-| `cancelled` | Cancelled credit note that no longer blocks eligibility |
+$$\text{Line Subtotal} = \text{Quantity} \times \text{Unit Price}$$
 
-### 9.4 Customer consistency
+$$\text{Line Net Amount} = \text{Line Subtotal} - \text{Line Discounts}$$
 
-- The credit note customer must match the selected sale customer.
-- If a billing note is linked, it must belong to the same customer as the credit note.
+$$\text{Document Subtotal} = \sum \text{Line Net Amounts}$$
 
-### 9.5 Line requirements
+$$\text{Document Discounted Subtotal} = \text{Document Subtotal} - \text{All-Items Discount}$$
 
-- A credit note must contain at least one cancelled or returned line.
-- Credit-note totals are the sum of the selected credit-note line amounts.
+$$\text{Document Tax (VAT 7\%)} = \text{Document Discounted Subtotal} \times 0.07 \quad (\text{if Tax Category is VAT})$$
 
-## 10. Dashboard And Inventory Logic
+$$\text{Document Grand Total} = \text{Document Discounted Subtotal} + \text{Document Tax}$$
 
-### 10.1 Backend-calculated stock metrics
+### 10.2 Tax Rules
+*   **`no_tax`**: Tax is set to `0.00`. Grand Total equals the Discounted Subtotal.
+*   **`vat` (7%)**: Tax is calculated at exactly 7% of the Discounted Subtotal. Grand Total is the sum of the Discounted Subtotal plus Tax.
 
-- Dashboard and inventory stock metrics are backend-calculated.
-- The frontend should not be treated as independently calculating full stock truth from partial page data.
+---
 
-### 10.2 Current stock formula
+## 11. Practical Interpretation Notes
 
-At a business level:
+*   **`draft`**: The record exists, but no core operational or stock progress has started.
+*   **`partial_*`**: The document has mixed line-item statuses (e.g. some shipped, others pending).
+*   **`cancelled`**: The document is stopped. Cancelled lines stop driving active workflows.
+*   **`returned`**: Distinct from cancelled. Indicates the item had progressed to delivery before being returned, requiring return treatment rather than pre-fulfillment cancellation.
+*   Billing Notes and Payment Batches recalculate their statuses dynamically based on line-level payment and received dates.
 
-- current stock = received purchase quantity - committed sale quantity
+---
 
-Where committed sale quantity means sale lines already at:
+## 12. Maintenance Workflow Rules
 
-- `packed`
-- `shipped`
-- `delivered`
-
-### 10.3 Why this matters operationally
-
-- Moving sale items too early into stock-deducting statuses makes stock look lower than the physical warehouse reality.
-- Leaving received purchase items in `pending` makes stock look lower than reality.
-- Status discipline is therefore part of stock discipline.
-
-## 11. Operational Consequence Matrix
-
-| Action | Stock | Billing eligibility | Payment eligibility | Credit-note eligibility |
-| --- | --- | --- | --- | --- |
-| Mark purchase item `received` | Increases stock | No direct effect | Can help purchase become eligible | No direct effect |
-| Mark purchase item `cancelled` | Prevents stock increase | No direct effect | Can reduce payable amount | No direct effect |
-| Mark sale item `packed` | Decreases stock | Not yet eligible by itself | No effect | No direct effect |
-| Mark sale item `shipped` | Decreases stock | Can make sale eligible | No effect | No direct effect |
-| Mark sale item `delivered` | Decreases stock | Can make sale eligible | No effect | No direct effect |
-| Mark sale item `cancelled` | Releases active demand | No improvement toward billing | No effect | Makes line eligible |
-| Mark sale item `returned` | Releases active demand | Sale is no longer an active fulfilled line for that item | No effect | Makes line eligible |
-
-## 12. Practical Interpretation Notes
-
-- `draft` means the transaction exists, but core operational progress has not started.
-- `partial_*` means the document has mixed line states.
-- `cancelled` means the line or document should stop driving active workflow.
-- `returned` is distinct from `cancelled`: it indicates the item had progressed far enough to require a return treatment, not just a pre-fulfillment cancellation.
-- Billing notes and payment batches are not just labels. Their statuses are recomputed from line-level received or paid flags.
-
-## 13. Suggested Maintenance Rule
-
-When business rules change:
-
-1. update backend logic first
-2. update tests
-3. update this file
-4. then update [HANDOUT.md](/Users/peto/Documents/Inventory-Management-frontend/HANDOUT.md) if the end-user explanation should also change
-
-That order keeps the detailed reference aligned with the real system behavior.
+> [!CAUTION]
+> **When Business Logic Changes:**
+> Always follow this exact order of operations to prevent system divergence:
+> 1.  **Backend First**: Update backend validation, serializers, and eligibility views.
+> 2.  **Verify Tests**: Update and run all unit tests (`python manage.py test inventory`).
+> 3.  **Document Rules**: Update this file (`docs/business-rules-reference.md`) to reflect the exact new schema behaviors.
+> 4.  **Update Handout**: Update [HANDOUT.md](../HANDOUT.md) only if the end-user instructions should change.
