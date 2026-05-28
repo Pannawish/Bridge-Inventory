@@ -1,0 +1,267 @@
+# 🗄️ Database Schema & Models Reference
+
+<p align="left">
+  <img src="https://img.shields.io/badge/Document-Database%20Schema-4a7b9c?style=flat-square" alt="Database Schema" />
+  <img src="https://img.shields.io/badge/Schema-MySQL%208-00758F?style=flat-square&logo=mysql&logoColor=white" alt="MySQL 8" />
+  <img src="https://img.shields.io/badge/ORM-Django%205.1-092E20?style=flat-square&logo=django&logoColor=white" alt="Django ORM" />
+  <img src="https://img.shields.io/badge/Design-Practical%203NF-2e7d32?style=flat-square" alt="3NF Design" />
+</p>
+
+This document serves as the permanent, detailed relational schema reference for the **Bridge Inventory** MySQL database structure.
+
+---
+
+## 1. Entity-Relationship Diagram (ERD)
+
+The following diagram illustrates how Master Data, Transactional Operations, and Finance/Receivables tables relate via Foreign Key (FK) constraints:
+
+```mermaid
+erDiagram
+    CATEGORY ||--o{ PRODUCT : "contains"
+    PRODUCT ||--o{ PRODUCT_PICTURE : "owns"
+    PRODUCT ||--o{ PRODUCT_UNIT_CONVERSION : "maps"
+    PRODUCT ||--o{ PRODUCT_SUPPLIER : "negotiates"
+    SUPPLIER ||--o{ PRODUCT_SUPPLIER : "negotiates"
+    
+    SUPPLIER ||--o{ PURCHASE : "supplies"
+    PURCHASE ||--o{ PURCHASE_ITEM : "contains"
+    PURCHASE ||--o{ PURCHASE_DOCUMENT : "attaches"
+    PURCHASE ||--o{ PAYMENT_BATCH_LINE : "links"
+    PAYMENT_BATCH ||--o{ PAYMENT_BATCH_LINE : "groups"
+    
+    CUSTOMER ||--o{ SALE : "buys"
+    SALE ||--o{ SALE_ITEM : "contains"
+    SALE ||--o{ SALE_DOCUMENT : "attaches"
+    SALE ||--o{ BILLING_NOTE_LINE : "links"
+    BILLING_NOTE ||--o{ BILLING_NOTE_LINE : "groups"
+    
+    SALE_ITEM ||--o{ SALE_ITEM_ALLOCATION : "consumes"
+    PURCHASE_ITEM ||--o{ SALE_ITEM_ALLOCATION : "provides"
+    
+    CUSTOMER ||--o{ QUOTATION : "requests"
+    QUOTATION ||--o{ QUOTATION_ITEM : "contains"
+    QUOTATION_ITEM ||--o{ QUOTATION_ITEM_SUPPLIER : "sources"
+    
+    CUSTOMER ||--o{ CREDIT_NOTE : "adjusts"
+    SALE ||--o{ CREDIT_NOTE : "adjusts"
+    CREDIT_NOTE ||--o{ CREDIT_NOTE_LINE : "groups"
+    SALE_ITEM ||--o{ CREDIT_NOTE_LINE : "credits"
+```
+
+---
+
+## 2. Master Data Tables
+
+### 2.1 Category (`Category`)
+Defines the hierarchical nested tree structure for products.
+*   `id` (CharField, 80, PK): Prefixed UUID string (`category-xxxxxxxxxxxx`).
+*   `name` (CharField, 255): Category display name.
+*   `description` (TextField): Descriptive notes.
+*   `parent` (ForeignKey, `self`, `on_delete=models.PROTECT`, nullable): Recursive self-link establishing tree relations.
+
+---
+
+### 2.2 Supplier (`Supplier`)
+Represents the supplier vendor profile cards (inherits from `BusinessPartner`).
+*   `id` (CharField, 80, PK): Prefixed UUID string (`supplier-xxxxxxxxxxxx`).
+*   `company_name` (CharField, 255): Official vendor legal name.
+*   `procurement_name` (CharField, 255): Primary purchase agent contact name.
+*   `procurement_tel` (CharField, 80): Agent direct contact number.
+*   `taxpayer_id` (CharField, 64): Legal corporate Tax ID for invoice filing.
+*   `locations` (JSONField): Collection of physical addresses.
+*   `emails` (JSONField): Registry of email contacts.
+*   `tels` (JSONField): Phone contact arrays.
+*   `term_type` (CharField, 20): Default credit terms or debit/cash defaults.
+*   *Indexes*: Indexed by `company_name` and `taxpayer_id` for fast directory searches.
+
+---
+
+### 2.3 Customer (`Customer`)
+Organizes corporate client registries (inherits from `BusinessPartner`).
+*   `id` (CharField, 80, PK): Prefixed UUID string (`customer-xxxxxxxxxxxx`).
+*   `company_name` (CharField, 255): Client corporate trade name.
+*   `taxpayer_id` (CharField, 64): Corporate Tax ID for invoicing audits.
+*   `locations` (JSONField): Shipping/billing location registries.
+*   `emails` / `tels` (JSONField): Contact registries.
+*   `term_type` (CharField, 20): Payment credit rules.
+*   *Indexes*: Indexed by `company_name` and `taxpayer_id`.
+
+---
+
+### 2.4 Product (`Product`)
+Core catalog listing for inventory records.
+*   `id` (CharField, 80, PK): Prefixed UUID string (`product-xxxxxxxxxxxx`).
+*   `product_display_id` (PositiveIntegerField): Readable product sequential ID (defaults from `1001`).
+*   `sku` (CharField, 80, Unique): Product stock keeping unit.
+*   `product_name` (CharField, 255): Primary product display title.
+*   `stock_base_unit` (CharField, 40, default "pcs"): Smallest indivisible warehouse unit.
+*   `default_purchase_unit` / `default_sales_unit` (CharField, 40): Standard operational units.
+*   `category` (ForeignKey, `Category`, `on_delete=models.SET_NULL`, nullable): Category classification.
+*   `category_name` (CharField, 255): Denormalized category snapshot for fast list rendering.
+*   `reorder_level` (DecimalField, 12,3): Stock reorder threshold.
+*   `is_active` (BooleanField, default True): Set to False to disable the product without breaking history.
+*   *Indexes*: Composited index on `[product_display_id, product_name]`, `[is_active, product_name]`, and independent indices on product search strings.
+
+---
+
+### 2.5 Supplementary Product Tables
+*   **ProductPicture (`ProductPicture`)**:
+    *   `product` (ForeignKey, `Product`, `on_delete=models.CASCADE`): Image owner.
+    *   `file` (FileField): Uploaded path under `products/pictures/`.
+    *   `is_selected` (BooleanField): Primary thumbnail toggle.
+*   **ProductUnitConversion (`ProductUnitConversion`)**:
+    *   `product` (ForeignKey, `Product`, `on_delete=models.CASCADE`): Product context.
+    *   `unit` (CharField, 40): Operational package unit (e.g. *box*).
+    *   `factor_to_base` (DecimalField, 12,6): Conversion multiplier (`1 box = 12 pcs`).
+    *   *Constraints*: Unique composite constraint on `(product, unit)`.
+*   **ProductSupplier (`ProductSupplier`)**:
+    *   `product` (ForeignKey, `Product`, `on_delete=models.CASCADE`)
+    *   `supplier` (ForeignKey, `Supplier`, `on_delete=models.CASCADE`)
+    *   `supplier_sku` (CharField, 80): Vendor SKU reference.
+    *   `default_unit_cost` (DecimalField, 14,2): Pre-negotiated catalog cost.
+    *   `is_preferred` (BooleanField): Preferred sourcing toggle.
+
+---
+
+## 3. Transaction & Operations Tables
+
+### 3.1 Purchase (`Purchase`)
+Represents inbound PO documents.
+*   `id` (CharField, 80, PK): Prefixed UUID (`purchase-xxxxxxxxxxxx`).
+*   `reference_no` (CharField, 80): Human-readable PO transaction reference.
+*   `supplier` (ForeignKey, `Supplier`, `on_delete=models.SET_NULL`, nullable): Vendor key.
+*   `supplier_name` (CharField, 255): **Supplier name snapshot** (audit-safe).
+*   `status` (CharField): Document status (`draft`, `ordered`, `partially_received`, `received`, `cancelled`).
+*   `transaction_date` (DateField): PO calendar date.
+*   `vat_mode` (CharField): VAT mode (`included`, `not_included`, `no_tax`).
+*   `payable_total` (DecimalField, 14,2): Server-calculated total excluding cancelled lines.
+*   `grand_total` (DecimalField, 14,2): Historical immutable total including all lines.
+
+---
+
+### 3.2 PurchaseItem (`PurchaseItem`)
+Lines items inside a Purchase Order.
+*   `purchase` (ForeignKey, `Purchase`, `on_delete=models.CASCADE`): Parent PO.
+*   `product` (ForeignKey, `Product`, `on_delete=models.SET_NULL`, nullable)
+*   `product_name` (CharField, 255) / `sku` (CharField, 80): **Immutable audit snapshots**.
+*   `item_status` (CharField): `pending`, `received`, `cancelled`.
+*   `received_date` (DateField, nullable): Shelving timestamp (defines FIFO allocation date).
+*   `quantity` / `unit` (CharField): Package measurements.
+*   `base_quantity` (DecimalField, 14,3): **Normalized base quantity** derived from conversions.
+*   `unit_cost` / `amount` (DecimalField): Cost logs.
+
+---
+
+### 3.3 Sale (`Sale`)
+Represents customer invoices and sales orders.
+*   `id` (CharField, 80, PK): Prefixed UUID (`sale-xxxxxxxxxxxx`).
+*   `reference_no` (CharField, 80): Invoicing serial number.
+*   `customer` (ForeignKey, `Customer`, `on_delete=models.SET_NULL`, nullable): Buyer key.
+*   `customer_name` (CharField, 255): **Customer name snapshot** (audit-safe).
+*   `status` (CharField): `draft`, `partially_packed`, `packed`, `partially_shipped`, `shipped`, `partially_delivered`, `delivered`, `cancelled`, `returned`.
+*   `transaction_date` (DateField)
+*   `grand_total` / `vat_amount` / `total_before_vat` (DecimalField, 14,2): Invoice sums.
+
+---
+
+### 3.4 SaleItem (`SaleItem`)
+Line items inside a Sales Order.
+*   `sale` (ForeignKey, `Sale`, `on_delete=models.CASCADE`): Parent invoice.
+*   `product` (ForeignKey, `Product`, `on_delete=models.SET_NULL`, nullable)
+*   `product_name` / `sku`: **Audit snapshots**.
+*   `item_status` (CharField): `pending`, `packed`, `shipped`, `delivered`, `cancelled`, `returned`.
+*   `quantity` / `base_quantity` / `unit_price` / `amount` (DecimalField).
+*   `shipped_date` / `delivered_date` (DateField): Logistical timestamps.
+
+---
+
+### 3.5 SaleItemAllocation (`SaleItemAllocation`)
+The core transactional link mapping sales lines to specific received purchase FIFO layers.
+*   `sale_item` (ForeignKey, `SaleItem`, `on_delete=models.CASCADE`): Consumer.
+*   `purchase_item` (ForeignKey, `PurchaseItem`, `on_delete=models.PROTECT`): Sourcing layer.
+*   `quantity` / `base_quantity` (DecimalField, 14,3): Allocated quantities.
+*   `base_unit_cost` (DecimalField, 14,6): Unit cost of the matching purchase layer.
+*   `total_cost` (DecimalField, 14,2): Total COGS of this allocated layer (`base_quantity * base_unit_cost`).
+
+---
+
+### 3.6 Quotation (`Quotation`)
+Commercial client quote records.
+*   `id` (CharField, 80, PK): Prefixed UUID (`quotation-xxxxxxxxxxxx`).
+*   `valid_until_date` (DateField, nullable): Expiration calculation timestamp.
+*   `customer` / `customer_name`: Relational key and audit name snapshot.
+*   `grand_total` / `vat_amount` (DecimalField): Estimated totals.
+*   **QuotationItem (`QuotationItem`)**:
+    *   `quotation` (ForeignKey, `Quotation`, `on_delete=models.CASCADE`): Parent quote.
+    *   `base_quantity` / `sale_price` / `cost_price` (DecimalField).
+*   **QuotationItemSupplier (`QuotationItemSupplier`)**:
+    *   `quotation_item` (ForeignKey, `QuotationItem`, `on_delete=models.CASCADE`)
+    *   `supplier` (ForeignKey, `Supplier`, `on_delete=models.SET_NULL`, nullable): Sourcing option key.
+    *   `cost_price` (DecimalField): Quoted vendor procurement cost.
+
+---
+
+## 4. Finance, Receivables & Payables Tables
+
+### 4.1 Billing Note (`BillingNote`)
+Customer collections receivables invoice groups.
+*   `id` (CharField, 80, PK): Prefixed UUID (`billing-note-xxxxxxxxxxxx`).
+*   `customer` / `customer_name`: Relational buyer and audit name snapshot.
+*   `status` (CharField): `draft`, `issued`, `partially_received`, `fully_received`, `cancelled`.
+*   `billing_note_date` / `expected_payment_date` / `actual_payment_date` (DateField).
+*   `bank_reference` (CharField, 120): Logged bank transfer ID.
+*   `total_amount` (DecimalField): Total collections value.
+*   **BillingNoteLine (`BillingNoteLine`)**:
+    *   `billing_note` (ForeignKey, `BillingNote`, `on_delete=models.CASCADE`): Parent.
+    *   `sale` (ForeignKey, `Sale`, `on_delete=models.PROTECT`): Sales invoice billed.
+    *   `received` (BooleanField, default False): Live payment marker for this line.
+    *   `received_date` (DateField): Actual payment arrival timestamp.
+
+---
+
+### 4.2 Payment Batch (`PaymentBatch`)
+Supplier payable disbursements groups.
+*   `id` (CharField, 80, PK): Prefixed UUID (`payment-batch-xxxxxxxxxxxx`).
+*   `supplier` / `supplier_name`: Relational supplier and audit name snapshot.
+*   `status` (CharField): `draft`, `scheduled`, `partially_paid`, `paid`, `cancelled`.
+*   `batch_date` / `planned_payment_date` / `actual_payment_date` (DateField).
+*   `bank_reference` (CharField): Bank transfer serial logs.
+*   `total_amount` (DecimalField): Total payable value.
+*   **PaymentBatchLine (`PaymentBatchLine`)**:
+    *   `payment_batch` (ForeignKey, `PaymentBatch`, `on_delete=models.CASCADE`): Parent.
+    *   `purchase` (ForeignKey, `Purchase`, `on_delete=models.PROTECT`): PO settled.
+    *   `paid` (BooleanField, default False): Payment clearance marker for this line.
+    *   `paid_date` (DateField).
+
+---
+
+### 4.3 Credit Note (`CreditNote`)
+Customer account valuation reduction adjustments.
+*   `id` (CharField, 80, PK): Prefixed UUID (`credit-note-xxxxxxxxxxxx`).
+*   `customer` / `customer_name`: Relational buyer and name snapshot.
+*   `sale` (ForeignKey, `Sale`, `on_delete=models.PROTECT`): Sourced invoice.
+*   `billing_note` (ForeignKey, `BillingNote`, `on_delete=models.SET_NULL`, nullable): Associated BN.
+*   `credit_note_date` (DateField).
+*   `status` (CharField): `issued`, `cancelled`.
+*   `total_amount` (DecimalField): Credit value.
+*   **CreditNoteLine (`CreditNoteLine`)**:
+    *   `credit_note` (ForeignKey, `CreditNote`, `on_delete=models.CASCADE`): Parent.
+    *   `sale_item` (ForeignKey, `SaleItem`, `on_delete=models.SET_NULL`, nullable): Sourced sales item line.
+    *   `product_name` / `sku` (CharField): Audit snapshots.
+    *   `quantity` / `unit_price` / `amount` (DecimalField): Credited amounts.
+
+---
+
+## 5. Referential Integrity & Deletion Rules
+
+To protect audit trails, financial calculations, and stock balances, Django on-delete behaviors are configured strictly:
+
+*   `CASCADE` (Cascading Deletes):
+    Used only for owned, dependent children rows that have no life outside their parent document.
+    *   *Examples*: `PurchaseItem` ➔ `Purchase`, `SaleItem` ➔ `Sale`, `QuotationItem` ➔ `Quotation`, `BillingNoteLine` ➔ `BillingNote`, `ProductPicture` ➔ `Product`.
+*   `PROTECT` (Prevent Deletions):
+    Used when deleting a referenced entity would corrupt financial ledgers or break stock audits. Deleting the master card is blocked until all transactional links are deleted or resolved first.
+    *   *Examples*: `Category` referenced by child `Category` (blocking tree breaking), `PurchaseItem` referenced by `SaleItemAllocation` (blocking FIFO layer deletion), `Sale` referenced by `BillingNoteLine` (blocking billed invoice deletion), `Purchase` referenced by `PaymentBatchLine` (blocking paid PO deletion).
+*   `SET_NULL` (Nullify Reference):
+    Used where historical audit snapshots (`supplier_name`, `customer_name`, `product_name`) are saved on the transaction lines. The transaction remains completely readable and auditable even if the master master card is deleted.
+    *   *Examples*: `Supplier` on `Purchase`, `Customer` on `Sale`, `Product` on `PurchaseItem` / `SaleItem` / `QuotationItem`.

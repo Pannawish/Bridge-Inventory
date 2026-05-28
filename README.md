@@ -107,7 +107,8 @@ graph TD
 │   ├── business-rules-reference.md  # Status mappings, FIFO layer calculations
 │   ├── codebase-structure.md         # Source tree navigation map
 │   ├── frontend-refactor-handoff.md  # Maintainability splits and hooks details
-│   └── login_system.md               # JWT & Guest Mode developer guide
+│   ├── login_system.md               # JWT & Guest Mode developer guide
+│   └── database-schema.md            # MySQL database schemas & ERD reference
 └── AGENTS.md     # Engineering standards & constraints for contributors
 ```
 
@@ -122,6 +123,7 @@ For deeper codebase context and engineering rules, check out the specialized gui
 *   [docs/codebase-structure.md](./docs/codebase-structure.md) — Navigation maps for the source tree and modular splits.
 *   [docs/frontend-refactor-handoff.md](./docs/frontend-refactor-handoff.md) — Frontend split structures and state hooks details.
 *   [docs/login_system.md](./docs/login_system.md) — Comprehensive guide on the backend JWT configuration and frontend 401 retry interceptor.
+*   [docs/database-schema.md](./docs/database-schema.md) — Full relational MySQL database tables, fields, ERD, and constraints.
 
 ---
 
