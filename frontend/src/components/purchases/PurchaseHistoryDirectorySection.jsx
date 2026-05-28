@@ -16,6 +16,7 @@ function PurchaseHistoryDirectorySection({
   products = [],
   pagination = null,
   isServerPaginated = false,
+  isPaginated = false,
   totalPurchaseCount = 0,
   searchTerm,
   onSearchTermChange,
@@ -84,7 +85,7 @@ function PurchaseHistoryDirectorySection({
                   })
                 : t("purchaseHistory.pageCountLocal", {
                     count: filteredPurchases.length,
-                    total: purchases.length,
+                    total: totalPurchaseCount,
                   })}
             </span>
           </div>
@@ -230,8 +231,8 @@ function PurchaseHistoryDirectorySection({
         onPurchaseItemStatusChange={onPurchaseItemStatusChange}
         onEditRow={onEditPurchase}
         onDeleteRow={onDeletePurchase}
-        compactRows={isServerPaginated ? 0 : 5}
-        enableViewAll={!isServerPaginated}
+        compactRows={isPaginated ? 0 : 5}
+        enableViewAll={!isPaginated}
         headerActions={
           <button className="primary-button" type="button" onClick={onCreatePurchase}>
             {t("purchaseHistory.newPurchase")}

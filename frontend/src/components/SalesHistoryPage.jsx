@@ -51,6 +51,7 @@ function SalesHistoryPage({
     filteredCustomerOptions,
     filteredSales,
     isServerPaginated,
+    pagination: resolvedPagination,
     totalSalesCount,
     activeFilterCount,
     resetFilters,
@@ -60,6 +61,7 @@ function SalesHistoryPage({
     selectCustomerFilter,
     handleCustomerFilterQueryChange,
     handlePageChange,
+    usesPaginationControls,
   } = useSalesHistoryDirectoryFilters({
     sales,
     allSales,
@@ -145,8 +147,9 @@ function SalesHistoryPage({
       purchases={purchases}
       allSales={allSales}
       enableStockValidation={enableStockValidation}
-      pagination={pagination}
+      pagination={resolvedPagination}
       isServerPaginated={isServerPaginated}
+      isPaginated={usesPaginationControls}
       totalSalesCount={totalSalesCount}
       searchTerm={searchTerm}
       onSearchTermChange={setSearchTerm}

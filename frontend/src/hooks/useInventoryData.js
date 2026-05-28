@@ -6,6 +6,14 @@ import {
   createInitialDataRequests,
   createPagedCollectionLoader,
   applyInitialDataResults,
+  filterLocalBillingNotes,
+  filterLocalCreditNotes,
+  filterLocalCustomers,
+  filterLocalPaymentBatches,
+  filterLocalProducts,
+  filterLocalPurchases,
+  filterLocalSales,
+  filterLocalSuppliers,
 } from "./inventoryDataHelpers";
 import { buildInventoryDataSetters } from "./inventoryDataSetters";
 
@@ -115,8 +123,11 @@ export function useInventoryData() {
       setRows: setSupplierRows,
       setPagination: setSupplierPagination,
       setError,
+      isUsingMock: () => usingMockSuppliers,
+      getMockRows: () => suppliers,
+      resolveLocalRows: filterLocalSuppliers,
     }),
-    []
+    [suppliers, usingMockSuppliers]
   );
 
   const loadCustomerPage = useCallback(
@@ -125,8 +136,11 @@ export function useInventoryData() {
       setRows: setCustomerRows,
       setPagination: setCustomerPagination,
       setError,
+      isUsingMock: () => usingMockCustomers,
+      getMockRows: () => customers,
+      resolveLocalRows: filterLocalCustomers,
     }),
-    []
+    [customers, usingMockCustomers]
   );
 
   const loadProductPage = useCallback(
@@ -135,8 +149,12 @@ export function useInventoryData() {
       setRows: setProductRows,
       setPagination: setProductPagination,
       setError,
+      isUsingMock: () => usingMockProducts,
+      getMockRows: () => products,
+      resolveLocalRows: (rows, params) =>
+        filterLocalProducts(rows, params, { categories, purchases, sales }),
     }),
-    []
+    [categories, products, purchases, sales, usingMockProducts]
   );
 
   const reloadDashboard = useCallback(async (period = "month") => {
@@ -156,8 +174,11 @@ export function useInventoryData() {
       setRows: setPurchaseRows,
       setPagination: setPurchasePagination,
       setError,
+      isUsingMock: () => usingMockPurchases,
+      getMockRows: () => purchases,
+      resolveLocalRows: filterLocalPurchases,
     }),
-    []
+    [purchases, usingMockPurchases]
   );
 
   const loadSalePage = useCallback(
@@ -166,8 +187,12 @@ export function useInventoryData() {
       setRows: setSaleRows,
       setPagination: setSalePagination,
       setError,
+      isUsingMock: () => usingMockSales,
+      getMockRows: () => sales,
+      resolveLocalRows: (rows, params) =>
+        filterLocalSales(rows, params, { products, purchases }),
     }),
-    []
+    [products, purchases, sales, usingMockSales]
   );
 
   const loadBillingNotePage = useCallback(
@@ -177,8 +202,11 @@ export function useInventoryData() {
       setRows: setBillingNoteRows,
       setPagination: setBillingNotePagination,
       setError,
+      isUsingMock: () => usingMockBillingNotes,
+      getMockRows: () => billingNotes,
+      resolveLocalRows: filterLocalBillingNotes,
     }),
-    []
+    [billingNotes, usingMockBillingNotes]
   );
 
   const loadPaymentBatchPage = useCallback(
@@ -188,8 +216,11 @@ export function useInventoryData() {
       setRows: setPaymentBatchRows,
       setPagination: setPaymentBatchPagination,
       setError,
+      isUsingMock: () => usingMockPaymentBatches,
+      getMockRows: () => paymentBatches,
+      resolveLocalRows: filterLocalPaymentBatches,
     }),
-    []
+    [paymentBatches, usingMockPaymentBatches]
   );
 
   const loadBillingNoteEligibility = useCallback(
@@ -225,8 +256,11 @@ export function useInventoryData() {
       setRows: setCreditNoteRows,
       setPagination: setCreditNotePagination,
       setError,
+      isUsingMock: () => usingMockCreditNotes,
+      getMockRows: () => creditNotes,
+      resolveLocalRows: filterLocalCreditNotes,
     }),
-    []
+    [creditNotes, usingMockCreditNotes]
   );
 
   const loadCreditNoteEligibility = useCallback(

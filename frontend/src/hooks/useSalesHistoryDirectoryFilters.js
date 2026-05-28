@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { withinRange } from "../components/FilterControls";
 import { getStatusLabel } from "../i18n/statusLabels";
+import { PAGE_SIZE } from "../app/appUtils";
 import {
   buildCustomerFilterOptions,
   daysAgoString,
@@ -31,12 +32,11 @@ export function useSalesHistoryDirectoryFilters({
   const [amountMax, setAmountMax] = useState("");
   const [vatFilter, setVatFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("");
+  const [localPage, setLocalPage] = useState(1);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const isServerPaginated = Boolean(pagination && onPageRequest);
   const selectedStatusKey = selectedStatuses.join(",");
-  const totalSalesCount = pagination?.count ?? sales.length;
-
   const customerOptions = useMemo(
     () => buildCustomerFilterOptions(allSales, customers),
     [allSales, customers]
@@ -99,6 +99,40 @@ export function useSalesHistoryDirectoryFilters({
     vatFilter,
   ]);
 
+  const localPagination = useMemo(() => {
+    if (isServerPaginated) {
+      return pagination;
+    }
+
+    const count = filteredSales.length;
+    const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+    const page = Math.min(localPage, totalPages);
+
+    return {
+      count,
+      next: null,
+      previous: null,
+      page,
+      page_size: PAGE_SIZE,
+      total_pages: totalPages,
+    };
+  }, [filteredSales.length, isServerPaginated, localPage, pagination]);
+
+  const visibleSales = useMemo(() => {
+    if (isServerPaginated) {
+      return filteredSales;
+    }
+
+    const page = Number(localPagination?.page || 1);
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredSales.slice(start, start + PAGE_SIZE);
+  }, [filteredSales, isServerPaginated, localPagination]);
+
+  const usesPaginationControls = Boolean(localPagination?.count > PAGE_SIZE || isServerPaginated);
+  const totalSalesCount = isServerPaginated
+    ? pagination?.count ?? sales.length
+    : filteredSales.length;
+
   const activeFilterCount =
     (selectedCustomer ? 1 : 0) +
     (selectedStatuses.length === statusOptions.length ? 0 : 1) +
@@ -152,6 +186,36 @@ export function useSalesHistoryDirectoryFilters({
     vatFilter,
     stockFilter,
   ]);
+
+  useEffect(() => {
+    if (isServerPaginated) {
+      return;
+    }
+
+    setLocalPage(1);
+  }, [
+    amountMax,
+    amountMin,
+    dateFrom,
+    dateTo,
+    isServerPaginated,
+    normalizedSearch,
+    selectedCustomer,
+    selectedStatusKey,
+    stockFilter,
+    vatFilter,
+  ]);
+
+  useEffect(() => {
+    if (isServerPaginated) {
+      return;
+    }
+
+    const totalPages = Math.max(1, Number(localPagination?.total_pages || 1));
+    if (localPage > totalPages) {
+      setLocalPage(totalPages);
+    }
+  }, [isServerPaginated, localPage, localPagination]);
 
   function selectCustomerFilter(customer) {
     setSelectedCustomer(customer.companyName);
@@ -269,7 +333,12 @@ export function useSalesHistoryDirectoryFilters({
   ].filter(Boolean);
 
   function handlePageChange(page) {
-    onPageRequest?.(getPageRequestParams(page));
+    if (isServerPaginated) {
+      onPageRequest?.(getPageRequestParams(page));
+      return;
+    }
+
+    setLocalPage(page);
   }
 
   return {
@@ -296,8 +365,10 @@ export function useSalesHistoryDirectoryFilters({
     stockFilter,
     setStockFilter,
     filteredCustomerOptions,
-    filteredSales,
+    filteredSales: visibleSales,
     isServerPaginated,
+    usesPaginationControls,
+    pagination: localPagination,
     totalSalesCount,
     activeFilterCount,
     resetFilters,
@@ -307,5 +378,6 @@ export function useSalesHistoryDirectoryFilters({
     selectCustomerFilter,
     handleCustomerFilterQueryChange,
     handlePageChange,
+    usesPaginationControls,
   };
 }

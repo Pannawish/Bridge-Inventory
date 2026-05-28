@@ -22,6 +22,7 @@ function SalesHistoryDirectorySection({
   enableStockValidation = true,
   pagination = null,
   isServerPaginated = false,
+  isPaginated = false,
   totalSalesCount = 0,
   searchTerm,
   onSearchTermChange,
@@ -91,7 +92,7 @@ function SalesHistoryDirectorySection({
                   })
                 : t("salesHistory.pageCountLocal", {
                     count: filteredSales.length,
-                    total: sales.length,
+                    total: totalSalesCount,
                   })}
             </span>
           </div>
@@ -241,8 +242,8 @@ function SalesHistoryDirectorySection({
         onWarning={onWarning}
         onEditRow={onEditSale}
         onDeleteRow={onDeleteSale}
-        compactRows={isServerPaginated ? 0 : 5}
-        enableViewAll={!isServerPaginated}
+        compactRows={isPaginated ? 0 : 5}
+        enableViewAll={!isPaginated}
         headerActions={
           <button className="primary-button" type="button" onClick={onCreateSale}>
             {t("salesHistory.newSale")}

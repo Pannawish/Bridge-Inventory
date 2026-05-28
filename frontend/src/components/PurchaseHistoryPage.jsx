@@ -66,6 +66,7 @@ function PurchaseHistoryPage({
       products={state.products}
       pagination={state.pagination}
       isServerPaginated={state.isServerPaginated}
+      isPaginated={state.usesPaginationControls}
       totalPurchaseCount={state.totalPurchaseCount}
       searchTerm={state.searchTerm}
       onSearchTermChange={state.setSearchTerm}
@@ -108,7 +109,7 @@ function PurchaseHistoryPage({
         state.setEditingPurchase(null);
         state.setShowNewPurchaseForm(true);
       }}
-      onPageChange={(page) => onPageRequest?.(state.getPageRequestParams(page))}
+      onPageChange={state.handlePageChange}
     />
   );
 }

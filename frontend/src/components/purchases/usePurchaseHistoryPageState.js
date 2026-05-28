@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { withinRange } from "../FilterControls";
 import { getStatusLabel } from "../../i18n/statusLabels";
+import { PAGE_SIZE } from "../../app/appUtils";
 import {
   buildSupplierFilterOptions,
   daysAgoString,
@@ -37,6 +38,7 @@ function usePurchaseHistoryPageState({
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
   const [vatFilter, setVatFilter] = useState("all");
+  const [localPage, setLocalPage] = useState(1);
   const [editingPurchase, setEditingPurchase] = useState(null);
   const [showNewPurchaseForm, setShowNewPurchaseForm] = useState(false);
 
@@ -113,7 +115,39 @@ function usePurchaseHistoryPageState({
     vatFilter,
   ]);
 
-  const totalPurchaseCount = pagination?.count ?? purchases.length;
+  const localPagination = useMemo(() => {
+    if (isServerPaginated) {
+      return pagination;
+    }
+
+    const count = filteredPurchases.length;
+    const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+    const page = Math.min(localPage, totalPages);
+
+    return {
+      count,
+      next: null,
+      previous: null,
+      page,
+      page_size: PAGE_SIZE,
+      total_pages: totalPages,
+    };
+  }, [filteredPurchases.length, isServerPaginated, localPage, pagination]);
+
+  const visiblePurchases = useMemo(() => {
+    if (isServerPaginated) {
+      return filteredPurchases;
+    }
+
+    const page = Number(localPagination?.page || 1);
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredPurchases.slice(start, start + PAGE_SIZE);
+  }, [filteredPurchases, isServerPaginated, localPagination]);
+
+  const usesPaginationControls = Boolean(localPagination?.count > PAGE_SIZE || isServerPaginated);
+  const totalPurchaseCount = isServerPaginated
+    ? pagination?.count ?? purchases.length
+    : filteredPurchases.length;
 
   function getPageRequestParams(page = 1) {
     return {
@@ -156,6 +190,35 @@ function usePurchaseHistoryPageState({
     selectedSupplier,
     vatFilter,
   ]);
+
+  useEffect(() => {
+    if (isServerPaginated) {
+      return;
+    }
+
+    setLocalPage(1);
+  }, [
+    amountMin,
+    amountMax,
+    dateFrom,
+    dateTo,
+    isServerPaginated,
+    normalizedSearch,
+    selectedStatusKey,
+    selectedSupplier,
+    vatFilter,
+  ]);
+
+  useEffect(() => {
+    if (isServerPaginated) {
+      return;
+    }
+
+    const totalPages = Math.max(1, Number(localPagination?.total_pages || 1));
+    if (localPage > totalPages) {
+      setLocalPage(totalPages);
+    }
+  }, [isServerPaginated, localPage, localPagination]);
 
   function selectSupplierFilter(supplier) {
     setSelectedSupplier(supplier.companyName);
@@ -270,6 +333,15 @@ function usePurchaseHistoryPageState({
     );
   }
 
+  function handlePageChange(page) {
+    if (isServerPaginated) {
+      onPageRequest?.(getPageRequestParams(page));
+      return;
+    }
+
+    setLocalPage(page);
+  }
+
   const vatOptions = [
     { value: "included", label: t("purchaseHistory.vatIncluded") },
     { value: "not_included", label: t("purchaseHistory.vatExcluded") },
@@ -285,11 +357,12 @@ function usePurchaseHistoryPageState({
     // Directory props
     products,
     suppliers,
-    purchases,
+    purchases: visiblePurchases,
     allPurchases,
-    filteredPurchases,
-    pagination,
+    filteredPurchases: visiblePurchases,
+    pagination: localPagination,
     isServerPaginated,
+    usesPaginationControls,
     totalPurchaseCount,
     searchTerm,
     setSearchTerm,
@@ -328,6 +401,7 @@ function usePurchaseHistoryPageState({
     handleCreatePurchase,
     handleDelete,
     getPageRequestParams,
+    handlePageChange,
   };
 }
 
