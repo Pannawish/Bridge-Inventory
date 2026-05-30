@@ -1,4 +1,4 @@
-# 📦 Bridge Inventory
+# Bridge Inventory
 
 <p align="left">
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React 18" />
@@ -15,11 +15,11 @@ Instead of a generic stock tracker, this platform coordinates actual day-to-day 
 
 ---
 
-## 🚀 Preview The App
+## Preview The App
 
 Want to explore the user interface without running any local databases? 
 
-👉 **Explore the Live Demo:** [bridge-inventory.netlify.app](https://bridge-inventory.netlify.app)
+**Explore the Live Demo:** [bridge-inventory.netlify.app](https://bridge-inventory.netlify.app)
 
 > [!TIP]
 > **To Preview the App:**  
@@ -29,20 +29,20 @@ Want to explore the user interface without running any local databases?
 
 ---
 
-## ⚡ Feature Snapshot
+## Feature Snapshot
 
 | Functional Area | Implemented Operational Capabilities |
 | :--- | :--- |
-| **📦 Products & Stock** | Product master setups, nested categories, multi-image uploads, supplier-specific sourcing options, unit conversions, and on-demand FIFO stock history. |
-| **📄 Quotations** | Customer billing quotes with unit-aware quantities, live stock-sufficiency indicators, and one-click conversion into sales orders or purchase lines. |
-| **🛒 Purchases** | Detailed PO setups, partial/full receiving updates, expected arrival schedules, supplier tax invoice tracking, base quantity normalization, and cost snapshotting. |
-| **💼 Sales** | Stock-aware sales validation, live delivery trackers, cancelled/returned flows, average cost references, and automatic/manual FIFO purchase layer allocation. |
-| **💰 Finance (BN / PB / CN)** | Billing Notes for receivables, Payment Batches for payables, and Credit Notes for cancelled/returned goods, with server-validated transaction eligibility checks. |
-| **🤖 AI Assistant** | OpenAI-powered bilingual natural language query assistant for checking low stocks, recent orders, product value, and margins. |
+| **Products & Stock** | Product master setups, nested categories, multi-image uploads, supplier-specific sourcing options, unit conversions, and on-demand FIFO stock history. |
+| **Quotations** | Customer billing quotes with unit-aware quantities, live stock-sufficiency indicators, and one-click conversion into sales orders or purchase lines. |
+| **Purchases** | Detailed PO setups, partial/full receiving updates, expected arrival schedules, supplier tax invoice tracking, base quantity normalization, and cost snapshotting. |
+| **Sales** | Stock-aware sales validation, live delivery trackers, cancelled/returned flows, average cost references, and automatic/manual FIFO purchase layer allocation. |
+| **Finance (BN / PB / CN)** | Billing Notes for receivables, Payment Batches for payables, and Credit Notes for cancelled/returned goods, with server-validated transaction eligibility checks. |
+| **AI Assistant** | OpenAI-powered bilingual natural language query assistant for checking low stocks, recent orders, product value, and margins. |
 
 ---
 
-## 🧠 Why This Project Exists
+## Why This Project Exists
 
 Most free inventory tools handle only one slice of the business: simple ledger tracking, simple invoicing, or basic purchasing. In the real world, **these workflows must be integrated relational cycles**:
 
@@ -89,7 +89,7 @@ graph TD
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 *   **Frontend**: React 18, Vite 7.3, Vanilla CSS custom design tokens (4px square system)
 *   **Backend**: Django 5.1, Django REST Framework 3.15, JWT-based security (Simple JWT)
@@ -98,7 +98,7 @@ graph TD
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 ```text
 ├── frontend/     # React + Vite single-page application
@@ -114,7 +114,7 @@ graph TD
 
 ---
 
-## 📋 Documentation Reference
+## Documentation Reference
 
 For deeper codebase context and engineering rules, check out the specialized guides:
 *   [HANDOUT.md](./HANDOUT.md) — End-user training manual and user workflows.
@@ -127,7 +127,7 @@ For deeper codebase context and engineering rules, check out the specialized gui
 
 ---
 
-## 🚀 Local Quick Start
+## Local Quick Start
 
 ### 1. Backend Setup
 
@@ -167,7 +167,7 @@ Once both servers are running, access the local system at [http://127.0.0.1:5173
 
 ---
 
-## ⚙️ Key Configuration Options
+## Key Configuration Options
 
 Backend configurations live in `backend/.env`. Important operational switches:
 *   `INVENTORY_REQUIRE_AUTH`: Set to `True` to enforce global API JWT validation (all unauthenticated calls will be rejected with `401 Unauthorized`). Defaults to `False` for easy guest development.
@@ -176,7 +176,7 @@ Backend configurations live in `backend/.env`. Important operational switches:
 
 ---
 
-## 🔧 Useful Commands
+## Useful Commands
 
 ### Running Project Verification
 ```bash
@@ -203,7 +203,7 @@ backend/.venv/bin/python backend/manage.py clear_operational_data --include-mast
 
 ---
 
-## 🤝 Contributing & Extension Rules
+## Contributing & Extension Rules
 
 If you adopt this repository to learn or to construct your own custom ERP program, please read [AGENTS.md](AGENTS.md) carefully.
 
