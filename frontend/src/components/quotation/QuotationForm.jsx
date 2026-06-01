@@ -22,7 +22,11 @@ function QuotationForm({
     vatOptions,
     isEditing,
     initialReference,
-    customerOptions,
+    customerQuery,
+    setCustomerQuery,
+    customerOpen,
+    setCustomerOpen,
+    selectCustomer,
     supplierOptions,
     vatSummary,
     validUntilDate,
@@ -79,12 +83,27 @@ function QuotationForm({
           form={form}
           isEditing={isEditing}
           initialReference={initialReference}
-          customerOptions={customerOptions}
+          customers={customers}
+          customerQuery={customerQuery}
+          customerOpen={customerOpen}
+          onCustomerQueryChange={(value) => {
+            updateForm("customer_name", "");
+            setCustomerQuery(value);
+            setCustomerOpen(true);
+          }}
+          onCustomerOpen={() => setCustomerOpen(true)}
+          onCustomerClose={() => window.setTimeout(() => setCustomerOpen(false), 120)}
+          onSelectCustomer={selectCustomer}
           validUntilDate={validUntilDate}
           onUpdateForm={updateForm}
           onQuotationDateChange={handleQuotationDateChange}
           onValidUntilDaysChange={handleValidUntilDaysChange}
           onValidUntilDayTypeChange={handleValidUntilDayTypeChange}
+          onPaymentTermTypeChange={(value) => {
+            updateForm("payment_term_type", value);
+            if (value !== "credit") updateForm("payment_term_days", "");
+          }}
+          onPaymentTermDaysChange={(value) => updateForm("payment_term_days", value)}
         />
 
         <QuotationLineItemsSection

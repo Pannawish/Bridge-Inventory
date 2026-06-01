@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { isProductActive } from "../products/productUtils";
 import { getProductDefaultSalesUnit } from "../../unitConversion";
@@ -23,6 +23,7 @@ import {
   validateQuotationForm,
   buildNormalizedItems,
 } from "./quotationFormStateHelpers";
+import { getCustomerPaymentTerms, getFilteredCustomers } from "../sales/salesFormUtils";
 
 export function useQuotationFormState({
   quotation = null,
@@ -56,13 +57,50 @@ export function useQuotationFormState({
   const [formError, setFormError] = useState("");
   const [openProductIndex, setOpenProductIndex] = useState(null);
   const [itemErrors, setItemErrors] = useState({});
+  const [customerQuery, setCustomerQuery] = useState(quotation?.customer_name || "");
+  const [customerOpen, setCustomerOpen] = useState(false);
+
+  const normalizedCustomers = useMemo(
+    () => normalizePartnerOptions(customers, form.customer_name),
+    [customers, form.customer_name]
+  );
+
+  useEffect(() => {
+    if (!form.customer_name || form.payment_term_type || form.payment_term_days) {
+      return;
+    }
+
+    const matchedCustomer = normalizedCustomers.find(
+      (customer) =>
+        `${customer.companyName ?? ""}`.trim().toLowerCase() ===
+        `${form.customer_name}`.trim().toLowerCase()
+    );
+
+    if (!matchedCustomer) {
+      return;
+    }
+
+    const nextTerms = getCustomerPaymentTerms(matchedCustomer);
+    if (!nextTerms.payment_term_type && !nextTerms.payment_term_days) {
+      return;
+    }
+
+    setForm((currentForm) => {
+      if (
+        `${currentForm.customer_name}`.trim().toLowerCase() !==
+          `${matchedCustomer.companyName ?? ""}`.trim().toLowerCase() ||
+        currentForm.payment_term_type ||
+        currentForm.payment_term_days
+      ) {
+        return currentForm;
+      }
+      return { ...currentForm, ...nextTerms };
+    });
+  }, [normalizedCustomers, form.customer_name, form.payment_term_type, form.payment_term_days]);
 
   const customerOptions = useMemo(
-    () =>
-      normalizePartnerOptions(customers, form.customer_name).map(
-        (customer) => customer.companyName
-      ),
-    [customers, form.customer_name]
+    () => normalizedCustomers,
+    [normalizedCustomers]
   );
   const supplierOptions = useMemo(
     () => normalizePartnerOptions(suppliers).map((supplier) => supplier.companyName),
@@ -79,6 +117,17 @@ export function useQuotationFormState({
       ),
     [form.quotation_date, form.valid_until_days, form.valid_until_day_type]
   );
+
+  function selectCustomer(customer) {
+    const nextTerms = getCustomerPaymentTerms(customer);
+    setForm((currentForm) => ({
+      ...currentForm,
+      customer_name: customer.companyName,
+      ...nextTerms,
+    }));
+    setCustomerQuery(customer.companyName);
+    setCustomerOpen(false);
+  }
 
   function updateForm(key, value) {
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
@@ -330,6 +379,8 @@ export function useQuotationFormState({
         valid_until_day_type: form.valid_until_day_type,
         valid_until_date: form.valid_until_day_type === "no_valid_date" ? null : validUntilDate,
         customer_name: form.customer_name,
+        payment_term_type: form.payment_term_type,
+        payment_term_days: form.payment_term_type === "credit" ? form.payment_term_days : "",
         vat_mode: form.vat_mode,
         note: form.note,
         items: normalizedItems,
@@ -358,6 +409,12 @@ export function useQuotationFormState({
     isEditing,
     initialReference,
     customerOptions,
+    customerQuery,
+    setCustomerQuery,
+    customerOpen,
+    setCustomerOpen,
+    selectCustomer,
+    getFilteredCustomers: (query) => getFilteredCustomers(customerOptions, query),
     supplierOptions,
     vatSummary,
     validUntilDate,

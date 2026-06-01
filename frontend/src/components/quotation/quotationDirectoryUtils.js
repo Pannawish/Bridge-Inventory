@@ -44,6 +44,8 @@ export function createInitialForm(referenceNo) {
     valid_until_days: 30,
     valid_until_day_type: "calendar",
     customer_name: "",
+    payment_term_type: "",
+    payment_term_days: "",
     vat_mode: "not_included",
     note: "",
   };
@@ -59,6 +61,8 @@ export function createEditForm(quotation) {
         : quotation.valid_until_days || 30,
     valid_until_day_type: quotation.valid_until_day_type || "calendar",
     customer_name: quotation.customer_name || "",
+    payment_term_type: quotation.payment_term_type || "",
+    payment_term_days: quotation.payment_term_days || "",
     vat_mode: quotation.vat_mode || "not_included",
     note: quotation.note || "",
   };

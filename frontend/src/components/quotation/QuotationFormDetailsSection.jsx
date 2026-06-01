@@ -1,19 +1,32 @@
-import EligiblePartyCombobox from "../EligiblePartyCombobox";
+import { useMemo } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { formatDisplayDate } from "./quotationUtils";
+import { getFilteredCustomers } from "../sales/salesFormUtils";
 
 function QuotationFormDetailsSection({
   form,
   isEditing,
   initialReference,
-  customerOptions,
+  customers,
+  customerQuery,
+  customerOpen,
+  onCustomerQueryChange,
+  onCustomerOpen,
+  onCustomerClose,
+  onSelectCustomer,
   validUntilDate,
   onUpdateForm,
   onQuotationDateChange,
   onValidUntilDaysChange,
   onValidUntilDayTypeChange,
+  onPaymentTermTypeChange,
+  onPaymentTermDaysChange,
 }) {
   const { t } = useLanguage();
+  const filteredCustomers = useMemo(
+    () => getFilteredCustomers(customers, customerQuery),
+    [customers, customerQuery]
+  );
 
   return (
     <div className="form-grid">
@@ -90,15 +103,77 @@ function QuotationFormDetailsSection({
         </p>
       </div>
 
-      <EligiblePartyCombobox
-        id="quotation-customer"
-        label={t("quotation.customerLabel")}
-        value={form.customer_name}
-        options={customerOptions}
-        placeholder={t("quotation.searchCustomerPlaceholder")}
-        emptyMessage={t("quotation.noCustomerFound")}
-        onChange={(nextCustomerName) => onUpdateForm("customer_name", nextCustomerName)}
-      />
+      <label className="supplier-combobox-field">
+        <span className="required-label">{t("quotation.customerLabel")}</span>
+        <div className="supplier-combobox">
+          <input
+            value={customerQuery}
+            onChange={(event) => onCustomerQueryChange(event.target.value)}
+            onFocus={onCustomerOpen}
+            onBlur={onCustomerClose}
+            placeholder={t("quotation.searchCustomerPlaceholder")}
+            autoComplete="off"
+            aria-expanded={customerOpen}
+            aria-controls="quotation-customer-list"
+          />
+          {customerOpen ? (
+            <div className="supplier-combobox-menu" id="quotation-customer-list" role="listbox">
+              {filteredCustomers.length ? (
+                filteredCustomers.map((customer) => (
+                  <button
+                    key={customer.id}
+                    type="button"
+                    className={
+                      customer.companyName === form.customer_name
+                        ? "supplier-combobox-option active"
+                        : "supplier-combobox-option"
+                    }
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      onSelectCustomer(customer);
+                    }}
+                    role="option"
+                    aria-selected={customer.companyName === form.customer_name}
+                  >
+                    {customer.companyName}
+                  </button>
+                ))
+              ) : (
+                <div className="supplier-combobox-empty">
+                  {t("quotation.noCustomerFound")}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </label>
+
+      <label>
+        {t("quotation.paymentTermLabel")}
+        <select
+          value={form.payment_term_type}
+          onChange={(event) => onPaymentTermTypeChange(event.target.value)}
+        >
+          <option value="">{t("quotation.paymentTermPlaceholder")}</option>
+          <option value="debit">{t("quotation.paymentTermDebit")}</option>
+          <option value="credit">{t("quotation.paymentTermCredit")}</option>
+        </select>
+      </label>
+
+      {form.payment_term_type === "credit" ? (
+        <label>
+          {t("quotation.creditTermLabel")}
+          <select
+            value={form.payment_term_days}
+            onChange={(event) => onPaymentTermDaysChange(event.target.value)}
+          >
+            <option value="">{t("quotation.creditTermPlaceholder")}</option>
+            <option value="30 days">{t("quotation.creditTerm30")}</option>
+            <option value="60 days">{t("quotation.creditTerm60")}</option>
+            <option value="90 days">{t("quotation.creditTerm90")}</option>
+          </select>
+        </label>
+      ) : null}
 
       <label className="full-width">
         {t("quotation.noteLabel")}
