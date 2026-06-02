@@ -88,6 +88,14 @@ function PurchaseHistoryPage({
       filteredSupplierOptions={state.filteredSupplierOptions}
       selectedSupplier={state.selectedSupplier}
       onSelectSupplierFilter={state.selectSupplierFilter}
+      productFilterQuery={state.productFilterQuery}
+      onProductFilterQueryChange={state.handleProductFilterQueryChange}
+      productFilterOpen={state.productFilterOpen}
+      onProductFilterOpen={() => state.setProductFilterOpen(true)}
+      onProductFilterClose={() => state.setProductFilterOpen(false)}
+      filteredProductOptions={state.filteredProductOptions}
+      selectedProduct={state.selectedProduct}
+      onSelectProductFilter={state.selectProductFilter}
       dateFrom={state.dateFrom}
       onDateFromChange={state.setDateFrom}
       dateTo={state.dateTo}

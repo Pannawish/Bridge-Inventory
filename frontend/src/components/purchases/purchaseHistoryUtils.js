@@ -130,6 +130,19 @@ export function buildSupplierFilterOptions(purchases, suppliers = []) {
   );
 }
 
+export function buildProductFilterOptions(products = []) {
+  return products
+    .map((product) => {
+      const name = `${product.product_name ?? product.productName ?? ""}`.trim();
+      const sku = `${product.sku ?? ""}`.trim();
+      const label = sku ? `${name || sku} (${sku})` : name || `${product.id ?? ""}`;
+
+      return { id: `${product.id ?? ""}`, label };
+    })
+    .filter((option) => option.id && option.label)
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
 export function transactionMatchesDateRange(transactionDate, dateFrom, dateTo) {
   if (!dateFrom && !dateTo) {
     return true;

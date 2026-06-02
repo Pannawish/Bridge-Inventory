@@ -253,6 +253,7 @@ export function filterLocalPurchases(rows, params) {
   const normalizedSearch = normalizeSearch(params.search);
   const statusValues = parseStatusValues(params.status);
   const supplier = `${params.supplier || ""}`.trim();
+  const product = `${params.product || ""}`.trim();
   const dateFrom = params.date_from || "";
   const dateTo = params.date_to || "";
   const amountMin = params.amount_min || "";
@@ -267,6 +268,14 @@ export function filterLocalPurchases(rows, params) {
       return false;
     }
     if (supplier && purchase.supplier_name !== supplier) {
+      return false;
+    }
+    if (
+      product &&
+      !(purchase.items || []).some(
+        (item) => `${item.product ?? item.product_id ?? ""}` === product
+      )
+    ) {
       return false;
     }
     if (!purchaseTransactionMatchesDateRange(purchase.transaction_date, dateFrom, dateTo)) {

@@ -440,6 +440,7 @@ class InventoryModelViewSet(viewsets.ModelViewSet):
     party_filter_field = None
     party_filter_param = None
     amount_filter_field = None
+    product_filter_field = None
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -467,6 +468,10 @@ class InventoryModelViewSet(viewsets.ModelViewSet):
         ).strip()
         if party_value and self.party_filter_field:
             queryset = queryset.filter(**{f"{self.party_filter_field}__iexact": party_value})
+
+        product_value = (params.get("product") or "").strip()
+        if product_value and self.product_filter_field:
+            queryset = queryset.filter(**{self.product_filter_field: product_value}).distinct()
 
         if self.date_filter_field:
             date_from = (params.get("date_from") or params.get("from") or "").strip()
@@ -776,6 +781,7 @@ class PurchaseViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     party_filter_field = "supplier_name"
     party_filter_param = "supplier"
     amount_filter_field = "grand_total"
+    product_filter_field = "items__product_id"
 
 
 class SaleViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):

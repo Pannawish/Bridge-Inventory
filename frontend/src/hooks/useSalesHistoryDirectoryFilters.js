@@ -230,7 +230,6 @@ export function useSalesHistoryDirectoryFilters({
   }
 
   function resetFilters() {
-    setSearchTerm("");
     setSelectedStatuses(statusOptions);
     setSelectedCustomer("");
     setCustomerFilterQuery("");
@@ -240,7 +239,6 @@ export function useSalesHistoryDirectoryFilters({
     setAmountMax("");
     setVatFilter("all");
     setStockFilter("");
-    setFilterOpen(false);
     setCustomerFilterOpen(false);
   }
 

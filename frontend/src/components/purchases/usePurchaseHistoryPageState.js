@@ -4,6 +4,7 @@ import { withinRange } from "../FilterControls";
 import { getStatusLabel } from "../../i18n/statusLabels";
 import { PAGE_SIZE } from "../../app/appUtils";
 import {
+  buildProductFilterOptions,
   buildSupplierFilterOptions,
   daysAgoString,
   defaultSupplierOptions,
@@ -33,6 +34,9 @@ function usePurchaseHistoryPageState({
   const [selectedSupplier, setSelectedSupplier] = useState("");
   const [supplierFilterQuery, setSupplierFilterQuery] = useState("");
   const [supplierFilterOpen, setSupplierFilterOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState("");
+  const [productFilterQuery, setProductFilterQuery] = useState("");
+  const [productFilterOpen, setProductFilterOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [amountMin, setAmountMin] = useState("");
@@ -47,6 +51,7 @@ function usePurchaseHistoryPageState({
   const selectedStatusKey = selectedStatuses.join(",");
   const activeFilterCount =
     (selectedSupplier ? 1 : 0) +
+    (selectedProduct ? 1 : 0) +
     (selectedStatuses.length === statusOptions.length ? 0 : 1) +
     (dateFrom ? 1 : 0) +
     (dateTo ? 1 : 0) +
@@ -71,6 +76,28 @@ function usePurchaseHistoryPageState({
     );
   }, [supplierFilterQuery, supplierOptions]);
 
+  const productOptions = useMemo(
+    () => buildProductFilterOptions(products),
+    [products]
+  );
+
+  const filteredProductOptions = useMemo(() => {
+    const normalizedQuery = productFilterQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return productOptions;
+    }
+
+    return productOptions.filter((product) =>
+      product.label.toLowerCase().includes(normalizedQuery)
+    );
+  }, [productFilterQuery, productOptions]);
+
+  const selectedProductLabel = useMemo(
+    () => productOptions.find((product) => product.id === selectedProduct)?.label || "",
+    [productOptions, selectedProduct]
+  );
+
   const filteredPurchases = useMemo(() => {
     if (isServerPaginated) {
       return [...purchases].sort(sortRecentTransactions);
@@ -83,6 +110,11 @@ function usePurchaseHistoryPageState({
       const matchesStatus = selectedStatuses.includes(purchase.status);
       const matchesSupplier = selectedSupplier
         ? purchase.supplier_name === selectedSupplier
+        : true;
+      const matchesProduct = selectedProduct
+        ? (purchase.items || []).some(
+            (item) => `${item.product ?? item.product_id ?? ""}` === `${selectedProduct}`
+          )
         : true;
       const matchesDateRange = transactionMatchesDateRange(
         purchase.transaction_date,
@@ -97,6 +129,7 @@ function usePurchaseHistoryPageState({
         matchesSearch &&
         matchesStatus &&
         matchesSupplier &&
+        matchesProduct &&
         matchesDateRange &&
         matchesAmount &&
         matchesVat
@@ -110,6 +143,7 @@ function usePurchaseHistoryPageState({
     isServerPaginated,
     normalizedSearch,
     purchases,
+    selectedProduct,
     selectedStatuses,
     selectedSupplier,
     vatFilter,
@@ -160,6 +194,7 @@ function usePurchaseHistoryPageState({
             ? selectedStatuses
             : "__none__",
       supplier: selectedSupplier,
+      product: selectedProduct,
       dateFrom,
       dateTo,
       amountMin,
@@ -188,6 +223,7 @@ function usePurchaseHistoryPageState({
     searchTerm,
     selectedStatusKey,
     selectedSupplier,
+    selectedProduct,
     vatFilter,
   ]);
 
@@ -206,6 +242,7 @@ function usePurchaseHistoryPageState({
     normalizedSearch,
     selectedStatusKey,
     selectedSupplier,
+    selectedProduct,
     vatFilter,
   ]);
 
@@ -226,17 +263,30 @@ function usePurchaseHistoryPageState({
     setSupplierFilterOpen(false);
   }
 
+  function selectProductFilter(product) {
+    setSelectedProduct(product.id);
+    setProductFilterQuery(product.label);
+    setProductFilterOpen(false);
+  }
+
+  function handleProductFilterQueryChange(value) {
+    setProductFilterQuery(value);
+    setSelectedProduct("");
+    setProductFilterOpen(true);
+  }
+
   function resetFilters() {
-    setSearchTerm("");
     setSelectedStatuses(statusOptions);
     setSelectedSupplier("");
     setSupplierFilterQuery("");
+    setSelectedProduct("");
+    setProductFilterQuery("");
+    setProductFilterOpen(false);
     setDateFrom("");
     setDateTo("");
     setAmountMin("");
     setAmountMax("");
     setVatFilter("all");
-    setFilterOpen(false);
     setSupplierFilterOpen(false);
   }
 
@@ -262,6 +312,14 @@ function usePurchaseHistoryPageState({
       onRemove: () => {
         setSelectedSupplier("");
         setSupplierFilterQuery("");
+      },
+    },
+    selectedProduct && {
+      key: "product",
+      label: t("purchaseHistory.productChip", { name: selectedProductLabel }),
+      onRemove: () => {
+        setSelectedProduct("");
+        setProductFilterQuery("");
       },
     },
     selectedStatuses.length !== statusOptions.length && {
@@ -380,6 +438,13 @@ function usePurchaseHistoryPageState({
     selectedSupplier,
     setSelectedSupplier,
     selectSupplierFilter,
+    productFilterQuery,
+    productFilterOpen,
+    setProductFilterOpen,
+    filteredProductOptions,
+    selectedProduct,
+    selectProductFilter,
+    handleProductFilterQueryChange,
     dateFrom,
     setDateFrom,
     dateTo,

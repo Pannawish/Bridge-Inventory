@@ -34,6 +34,14 @@ function PurchaseHistoryDirectorySection({
   filteredSupplierOptions = [],
   selectedSupplier,
   onSelectSupplierFilter,
+  productFilterQuery,
+  onProductFilterQueryChange,
+  productFilterOpen,
+  onProductFilterOpen,
+  onProductFilterClose,
+  filteredProductOptions = [],
+  selectedProduct,
+  onSelectProductFilter,
   dateFrom,
   onDateFromChange,
   dateTo,
@@ -158,6 +166,59 @@ function PurchaseHistoryDirectorySection({
                       ) : (
                         <div className="supplier-combobox-empty">
                           {t("purchaseHistory.noSupplierFound")}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              </label>
+
+              <label className="history-filter-field supplier-combobox-field">
+                <span className="history-filter-title">{t("purchaseHistory.productFilter")}</span>
+                <div className="supplier-combobox">
+                  <input
+                    type="search"
+                    value={productFilterQuery}
+                    onChange={(event) => onProductFilterQueryChange(event.target.value)}
+                    onFocus={onProductFilterOpen}
+                    onBlur={() => {
+                      window.setTimeout(onProductFilterClose, 120);
+                    }}
+                    placeholder={t("purchaseHistory.searchProductPlaceholder")}
+                    autoComplete="off"
+                    aria-expanded={productFilterOpen}
+                    aria-controls="purchase-history-product-filter"
+                  />
+
+                  {productFilterOpen ? (
+                    <div
+                      className="supplier-combobox-menu"
+                      id="purchase-history-product-filter"
+                      role="listbox"
+                    >
+                      {filteredProductOptions.length ? (
+                        filteredProductOptions.map((product) => (
+                          <button
+                            key={product.id}
+                            type="button"
+                            className={
+                              product.id === selectedProduct
+                                ? "supplier-combobox-option active"
+                                : "supplier-combobox-option"
+                            }
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              onSelectProductFilter(product);
+                            }}
+                            role="option"
+                            aria-selected={product.id === selectedProduct}
+                          >
+                            {product.label}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="supplier-combobox-empty">
+                          {t("purchaseHistory.noProductFound")}
                         </div>
                       )}
                     </div>
