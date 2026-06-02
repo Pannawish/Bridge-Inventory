@@ -1,6 +1,7 @@
 import { useLanguage } from "../../i18n/LanguageContext";
 import ProductHistoryProfilePanel from "./ProductHistoryProfilePanel";
 import ProductStockSourcesSection from "./ProductStockSourcesSection";
+import ProductPriceInsightsSection from "./ProductPriceInsightsSection";
 import ProductHistoryTableSection from "./ProductHistoryTableSection";
 import ProductTransactionDetailModal from "./ProductTransactionDetailModal";
 import { getTranslatedProductDisplayName } from "./productEditorHelpers";
@@ -11,6 +12,19 @@ function ProductHistoryModal({
   onViewingPictureChange,
   categories,
   viewingProductMetrics,
+  priceInsights,
+  purchasePartyOptions,
+  salesPartyOptions,
+  historySupplierFilter,
+  onHistorySupplierFilterChange,
+  historyCustomerFilter,
+  onHistoryCustomerFilterChange,
+  historyDateFrom,
+  onHistoryDateFromChange,
+  historyDateTo,
+  onHistoryDateToChange,
+  historyFilterActive,
+  onResetHistoryFilters,
   productHistoryLoadingId,
   productHistoryError,
   viewPurchaseHistory,
@@ -75,6 +89,23 @@ function ProductHistoryModal({
           stockLayers={stockLayers}
           loading={stockLayersLoading}
           error={stockLayersError}
+        />
+
+        <ProductPriceInsightsSection
+          viewingProduct={viewingProduct}
+          insights={priceInsights}
+          supplierOptions={purchasePartyOptions}
+          customerOptions={salesPartyOptions}
+          supplierFilter={historySupplierFilter}
+          onSupplierFilterChange={onHistorySupplierFilterChange}
+          customerFilter={historyCustomerFilter}
+          onCustomerFilterChange={onHistoryCustomerFilterChange}
+          dateFrom={historyDateFrom}
+          onDateFromChange={onHistoryDateFromChange}
+          dateTo={historyDateTo}
+          onDateToChange={onHistoryDateToChange}
+          filterActive={historyFilterActive}
+          onResetFilters={onResetHistoryFilters}
         />
 
         {productHistoryLoadingId === `${viewingProduct.id}` ? (

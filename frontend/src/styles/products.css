@@ -1745,3 +1745,153 @@
   color: var(--text);
 }
 
+/* Price & Margin insights */
+.price-insights {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.price-insights-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.price-insights-unit {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.price-insights-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.price-insights-filter {
+  display: grid;
+  gap: 4px;
+  min-width: 150px;
+  flex: 1 1 150px;
+}
+
+.price-insights-filter > span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.price-insights-filter select,
+.price-insights-filter input {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.price-insights-reset {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.price-insights-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.price-insights-card {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.price-insights-card-buy {
+  border-top: 3px solid #1a5ab5;
+}
+
+.price-insights-card-sell {
+  border-top: 3px solid #0f5a3d;
+}
+
+.price-insights-card-margin {
+  border-top: 3px solid #f59e0b;
+}
+
+.price-insights-card-margin.price-insights-positive {
+  background: #f0faf4;
+  border-color: #b7e3c6;
+}
+
+.price-insights-card-margin.price-insights-negative {
+  background: #fdf1f1;
+  border-color: #f3c2c2;
+}
+
+.price-insights-card-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.price-insights-card-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.price-insights-percent {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.price-insights-positive .price-insights-card-value,
+.price-insights-positive .price-insights-percent {
+  color: #0f5a3d;
+}
+
+.price-insights-negative .price-insights-card-value,
+.price-insights-negative .price-insights-percent {
+  color: #b42318;
+}
+
+.price-insights-card-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+.price-insights-card-secondary {
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin: 2px 0 0;
+}
+
+@media (max-width: 720px) {
+  .price-insights-cards {
+    grid-template-columns: 1fr;
+  }
+}
+

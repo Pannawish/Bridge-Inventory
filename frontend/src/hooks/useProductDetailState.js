@@ -6,6 +6,11 @@ import {
   getProductPurchaseHistoryEntries,
   getProductSalesHistoryEntries,
 } from "../components/products/productHistoryHelpers";
+import {
+  buildPartyOptions,
+  computePriceInsights,
+  filterHistoryEntries,
+} from "../components/products/productPriceInsights";
 import { getProductMetrics, getSelectedProductPicture } from "../components/products/productUtils";
 
 function useProductDetailState({
@@ -21,10 +26,18 @@ function useProductDetailState({
   const [productHistoryError, setProductHistoryError] = useState("");
   const [purchaseHistoryPage, setPurchaseHistoryPage] = useState(1);
   const [salesHistoryPage, setSalesHistoryPage] = useState(1);
+  const [historySupplierFilter, setHistorySupplierFilter] = useState("");
+  const [historyCustomerFilter, setHistoryCustomerFilter] = useState("");
+  const [historyDateFrom, setHistoryDateFrom] = useState("");
+  const [historyDateTo, setHistoryDateTo] = useState("");
 
   useEffect(() => {
     setPurchaseHistoryPage(1);
     setSalesHistoryPage(1);
+    setHistorySupplierFilter("");
+    setHistoryCustomerFilter("");
+    setHistoryDateFrom("");
+    setHistoryDateTo("");
   }, [viewingProduct?.id]);
 
   const [stockLayers, setStockLayers] = useState([]);
@@ -143,22 +156,73 @@ function useProductDetailState({
         : [],
     [sales, viewingHistory, viewingProduct]
   );
+  const purchasePartyOptions = useMemo(
+    () => buildPartyOptions(viewPurchaseHistory, "purchase"),
+    [viewPurchaseHistory]
+  );
+  const salesPartyOptions = useMemo(
+    () => buildPartyOptions(viewSalesHistory, "sale"),
+    [viewSalesHistory]
+  );
+
+  const filteredPurchaseHistory = useMemo(
+    () =>
+      filterHistoryEntries(viewPurchaseHistory, "purchase", {
+        party: historySupplierFilter,
+        dateFrom: historyDateFrom,
+        dateTo: historyDateTo,
+      }),
+    [historyDateFrom, historyDateTo, historySupplierFilter, viewPurchaseHistory]
+  );
+  const filteredSalesHistory = useMemo(
+    () =>
+      filterHistoryEntries(viewSalesHistory, "sale", {
+        party: historyCustomerFilter,
+        dateFrom: historyDateFrom,
+        dateTo: historyDateTo,
+      }),
+    [historyCustomerFilter, historyDateFrom, historyDateTo, viewSalesHistory]
+  );
+
+  // Reset to the first page whenever the active scope changes.
+  useEffect(() => {
+    setPurchaseHistoryPage(1);
+  }, [historySupplierFilter, historyDateFrom, historyDateTo]);
+  useEffect(() => {
+    setSalesHistoryPage(1);
+  }, [historyCustomerFilter, historyDateFrom, historyDateTo]);
+
+  const priceInsights = useMemo(
+    () => computePriceInsights(filteredPurchaseHistory, filteredSalesHistory),
+    [filteredPurchaseHistory, filteredSalesHistory]
+  );
+  const historyFilterActive = Boolean(
+    historySupplierFilter || historyCustomerFilter || historyDateFrom || historyDateTo
+  );
+
   const purchaseHistoryPagination = useMemo(
-    () => createLocalPagination(viewPurchaseHistory.length, purchaseHistoryPage),
-    [purchaseHistoryPage, viewPurchaseHistory.length]
+    () => createLocalPagination(filteredPurchaseHistory.length, purchaseHistoryPage),
+    [purchaseHistoryPage, filteredPurchaseHistory.length]
   );
   const salesHistoryPagination = useMemo(
-    () => createLocalPagination(viewSalesHistory.length, salesHistoryPage),
-    [salesHistoryPage, viewSalesHistory.length]
+    () => createLocalPagination(filteredSalesHistory.length, salesHistoryPage),
+    [salesHistoryPage, filteredSalesHistory.length]
   );
   const paginatedPurchaseHistory = useMemo(
-    () => getPaginatedRows(viewPurchaseHistory, purchaseHistoryPagination),
-    [purchaseHistoryPagination, viewPurchaseHistory]
+    () => getPaginatedRows(filteredPurchaseHistory, purchaseHistoryPagination),
+    [purchaseHistoryPagination, filteredPurchaseHistory]
   );
   const paginatedSalesHistory = useMemo(
-    () => getPaginatedRows(viewSalesHistory, salesHistoryPagination),
-    [salesHistoryPagination, viewSalesHistory]
+    () => getPaginatedRows(filteredSalesHistory, salesHistoryPagination),
+    [salesHistoryPagination, filteredSalesHistory]
   );
+
+  function resetHistoryFilters() {
+    setHistorySupplierFilter("");
+    setHistoryCustomerFilter("");
+    setHistoryDateFrom("");
+    setHistoryDateTo("");
+  }
   const viewingProductMetrics = useMemo(
     () =>
       viewingProduct
@@ -183,6 +247,19 @@ function useProductDetailState({
     paginatedPurchaseHistory,
     paginatedSalesHistory,
     viewingProductMetrics,
+    priceInsights,
+    purchasePartyOptions,
+    salesPartyOptions,
+    historySupplierFilter,
+    setHistorySupplierFilter,
+    historyCustomerFilter,
+    setHistoryCustomerFilter,
+    historyDateFrom,
+    setHistoryDateFrom,
+    historyDateTo,
+    setHistoryDateTo,
+    historyFilterActive,
+    resetHistoryFilters,
     loadProductHistory,
     openProductDetail,
     closeProductDetail,
