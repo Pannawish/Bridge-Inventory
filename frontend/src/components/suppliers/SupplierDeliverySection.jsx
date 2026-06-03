@@ -72,7 +72,7 @@ function SupplierDeliverySection({
               onUpdateDraftSupplier((supplier) => ({
                 ...supplier,
                 termType: next,
-                billingNoteDate: next === "debit" ? "" : supplier.billingNoteDate,
+                billingNoteDate: next === "cash" ? "" : supplier.billingNoteDate,
               }));
               onSetFormErrors((currentErrors) => ({
                 ...currentErrors,
@@ -92,7 +92,7 @@ function SupplierDeliverySection({
             aria-invalid={formErrors.termType ? "true" : undefined}
           >
             <option value="">{t("supplier.selectPaymentTerm")}</option>
-            <option value="debit">{t("supplier.termDebit")}</option>
+            <option value="cash">{t("supplier.termDebit")}</option>
             <option value="credit">{t("supplier.termCredit")}</option>
           </select>
           {formErrors.termType ? (

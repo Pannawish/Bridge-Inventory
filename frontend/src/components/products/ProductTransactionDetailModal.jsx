@@ -111,7 +111,7 @@ function ProductTransactionDetailModal({
                 ? t("products.creditPaymentTerm", {
                     term: transaction.payment_term_days || "—",
                   })
-                : transaction.payment_term_type === "debit"
+                : transaction.payment_term_type === "cash"
                   ? t("products.debitPaymentTerm")
                   : "—"}
             </strong>

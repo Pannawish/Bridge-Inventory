@@ -102,7 +102,7 @@ function PurchaseForm({
             setForm((currentForm) => ({
               ...currentForm,
               payment_term_type: value,
-              payment_term_days: value === "debit" ? "" : currentForm.payment_term_days,
+              payment_term_days: value === "cash" ? "" : currentForm.payment_term_days,
             }));
           }}
           onPaymentTermDaysChange={(value) =>

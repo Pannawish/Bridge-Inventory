@@ -252,7 +252,7 @@ function CreatePaymentBatchModal({
                                 ? t("paymentBatch.paymentCreditTerm", {
                                     days: purchase.payment_term_days || "",
                                   })
-                                : purchase.payment_term_type === "debit"
+                                : purchase.payment_term_type === "cash"
                                   ? t("paymentBatch.paymentDebitTerm")
                                   : "—"}
                             </td>

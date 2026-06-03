@@ -353,7 +353,7 @@ class Command(BaseCommand):
                 "shipping_addresses": [f"Receiving dock, {location}"],
                 "selected_shipping_address_index": 0,
                 "remark": remark,
-                "term_type": ["credit", "debit", "credit", "credit"][idx % 4],
+                "term_type": ["credit", "cash", "credit", "credit"][idx % 4],
                 "billing_note_date": ["30 days", "", "60 days", "90 days"][idx % 4],
             }
             if supplier:
@@ -403,7 +403,7 @@ class Command(BaseCommand):
                 "shipping_addresses": [f"{location} receiving counter", f"{location} storage room"],
                 "selected_shipping_address_index": idx % 2,
                 "remark": remark,
-                "term_type": ["debit", "credit", "credit", "credit"][idx % 4],
+                "term_type": ["cash", "credit", "credit", "credit"][idx % 4],
                 "billing_note_date": ["", "30 days", "60 days", "90 days"][idx % 4],
             }
             if customer:
@@ -664,7 +664,7 @@ class Command(BaseCommand):
             total_before_vat, vat_amount, grand_total = transaction_totals(line_amounts, vat_mode)
             payment_term_type = supplier.term_type or ""
             payment_term_days = supplier.billing_note_date if payment_term_type == "credit" else ""
-            if payment_term_type == "debit":
+            if payment_term_type == "cash":
                 payment_date = transaction_date
             elif payment_term_type == "credit":
                 days_value = "".join(c for c in payment_term_days if c.isdigit())
@@ -1031,7 +1031,7 @@ class Command(BaseCommand):
             vat_mode = vat_modes[index % len(vat_modes)]
             payment_term_type = customer.term_type or ""
             payment_term_days = customer.billing_note_date if payment_term_type == "credit" else ""
-            if payment_term_type == "debit":
+            if payment_term_type == "cash":
                 payment_date = transaction_date
             elif payment_term_type == "credit":
                 days_value = "".join(c for c in payment_term_days if c.isdigit())

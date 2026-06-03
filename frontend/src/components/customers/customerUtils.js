@@ -70,7 +70,7 @@ const defaultCustomers = [
     shippingAddresses: ["15 University Avenue, Bangkok 10330"],
     selectedShippingAddressIndex: 0,
     remark: "Often requests event supplies on short notice.",
-    termType: "debit",
+    termType: "cash",
     billingNoteDate: "",
   }),
   createCustomer({
@@ -106,7 +106,7 @@ const defaultCustomers = [
     shippingAddresses: ["88 University Avenue, Pathum Wan, Bangkok 10330"],
     selectedShippingAddressIndex: 0,
     remark: "Needs organized document packs before semester enrollment season.",
-    termType: "debit",
+    termType: "cash",
     billingNoteDate: "",
   }),
   createCustomer({

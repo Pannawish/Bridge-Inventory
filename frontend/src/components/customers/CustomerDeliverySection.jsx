@@ -72,7 +72,7 @@ function CustomerDeliverySection({
               onUpdateDraftCustomer((customer) => ({
                 ...customer,
                 termType: next,
-                billingNoteDate: next === "debit" ? "" : customer.billingNoteDate,
+                billingNoteDate: next === "cash" ? "" : customer.billingNoteDate,
               }));
               onSetFormErrors((currentErrors) => ({
                 ...currentErrors,
@@ -92,7 +92,7 @@ function CustomerDeliverySection({
             aria-invalid={formErrors.termType ? "true" : undefined}
           >
             <option value="">{t("customer.selectPaymentTerm")}</option>
-            <option value="debit">{t("customer.termDebit")}</option>
+            <option value="cash">{t("customer.termDebit")}</option>
             <option value="credit">{t("customer.termCredit")}</option>
           </select>
           {formErrors.termType ? (

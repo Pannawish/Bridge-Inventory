@@ -247,7 +247,7 @@ function CreateBillingNoteModal({
                                 ? t("billingNote.paymentCreditTerm", {
                                     days: sale.payment_term_days || "",
                                   })
-                                : sale.payment_term_type === "debit"
+                                : sale.payment_term_type === "cash"
                                   ? t("billingNote.paymentDebitTerm")
                                   : "—"}
                             </td>

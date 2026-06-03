@@ -71,7 +71,7 @@ Represents the supplier vendor profile cards (inherits from `BusinessPartner`).
 *   `locations` (JSONField): Collection of physical addresses.
 *   `emails` (JSONField): Registry of email contacts.
 *   `tels` (JSONField): Phone contact arrays.
-*   `term_type` (CharField, 20): Default credit terms or debit/cash defaults.
+*   `term_type` (CharField, 20): Default payment term keyword — `"credit"` or `"cash"` (displayed as "Cash" / "เงินสด").
 *   *Indexes*: Indexed by `company_name` and `taxpayer_id` for fast directory searches.
 
 ---

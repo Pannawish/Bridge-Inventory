@@ -100,7 +100,7 @@ function SalesEditForm({
           onStatusChange={handleStatusChange}
           onPaymentTermTypeChange={(next) => {
             updateForm("payment_term_type", next);
-            if (next === "debit") {
+            if (next === "cash") {
               updateForm("payment_term_days", "");
             }
           }}

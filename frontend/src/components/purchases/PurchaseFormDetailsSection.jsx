@@ -95,7 +95,7 @@ function PurchaseFormDetailsSection({
           onChange={(event) => onPaymentTermTypeChange(event.target.value)}
         >
           <option value="">{t("purchaseForm.paymentTermPlaceholder")}</option>
-          <option value="debit">{t("purchaseForm.paymentTermDebit")}</option>
+          <option value="cash">{t("purchaseForm.paymentTermDebit")}</option>
           <option value="credit">{t("purchaseForm.paymentTermCredit")}</option>
         </select>
       </label>

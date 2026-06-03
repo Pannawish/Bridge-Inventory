@@ -82,7 +82,7 @@ function TransactionDetailFields({
             ? t("transactionTable.paymentCredit", {
                 days: selectedRow.payment_term_days || "—",
               })
-            : selectedRow.payment_term_type === "debit"
+            : selectedRow.payment_term_type === "cash"
               ? t("transactionTable.paymentDebit")
               : "—"}
         </strong>

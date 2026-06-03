@@ -133,7 +133,7 @@ function buildPurchasePayableTotals(doc, t) {
 export function buildDocConfig(t) {
   function paymentTerm(type, days) {
     if (type === "credit") return t("documentRef.creditTermCredit", { days: days || "" });
-    if (type === "debit") return t("documentRef.creditTermDebit");
+    if (type === "cash") return t("documentRef.creditTermDebit");
     return "—";
   }
 

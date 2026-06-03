@@ -226,7 +226,7 @@ function chooseDiscounts(rng, allowMultiple = true) {
 }
 
 function getPaymentDate(transactionDate, termType, termDays) {
-  if (termType === "debit") {
+  if (termType === "cash") {
     return formatDate(transactionDate);
   }
   if (termType === "credit") {

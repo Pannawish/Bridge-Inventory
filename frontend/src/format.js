@@ -49,7 +49,7 @@ export function formatDate(value) {
 
 export function computePaymentDate(transactionDate, termType, termDays) {
   if (!transactionDate || !termType) return "";
-  if (termType === "debit") return transactionDate;
+  if (termType === "cash") return transactionDate;
   if (termType === "credit") {
     const days = parseInt(termDays, 10) || 0;
     if (!days) return "";

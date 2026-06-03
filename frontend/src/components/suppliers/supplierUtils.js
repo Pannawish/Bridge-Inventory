@@ -100,7 +100,7 @@ const defaultSuppliers = [
     ],
     selectedShippingAddressIndex: 1,
     remark: "Best source for bulk paper goods and notebook cartons.",
-    termType: "debit",
+    termType: "cash",
     billingNoteDate: "",
   }),
   createSupplier({
@@ -140,7 +140,7 @@ const defaultSuppliers = [
     shippingAddresses: ["199 Huay Kaew Road, Mueang Chiang Mai 50200"],
     selectedShippingAddressIndex: 0,
     remark: "Backup supplier for classroom consumables and urgent replenishment.",
-    termType: "debit",
+    termType: "cash",
     billingNoteDate: "",
   }),
 ];

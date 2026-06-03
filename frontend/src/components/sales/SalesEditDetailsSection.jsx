@@ -114,7 +114,7 @@ function SalesEditDetailsSection({
           onChange={(event) => onPaymentTermTypeChange(event.target.value)}
         >
           <option value="">{t("purchaseForm.paymentTermPlaceholder")}</option>
-          <option value="debit">{t("salesForm.paymentTermDebit")}</option>
+          <option value="cash">{t("salesForm.paymentTermDebit")}</option>
           <option value="credit">{t("salesForm.paymentTermCredit")}</option>
         </select>
       </label>

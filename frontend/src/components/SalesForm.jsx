@@ -113,7 +113,7 @@ function SalesForm({
           onSelectCustomer={selectCustomer}
           onPaymentTermTypeChange={(value) => {
             updateForm("payment_term_type", value);
-            if (value === "debit") {
+            if (value === "cash") {
               updateForm("payment_term_days", "");
             }
           }}

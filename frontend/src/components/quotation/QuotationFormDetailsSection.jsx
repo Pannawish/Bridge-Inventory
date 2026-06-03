@@ -165,7 +165,7 @@ function QuotationFormDetailsSection({
             onChange={(event) => onPaymentTermTypeChange(event.target.value)}
           >
             <option value="">{t("quotation.paymentTermPlaceholder")}</option>
-            <option value="debit">{t("quotation.paymentTermDebit")}</option>
+            <option value="cash">{t("quotation.paymentTermDebit")}</option>
             <option value="credit">{t("quotation.paymentTermCredit")}</option>
           </select>
         </label>

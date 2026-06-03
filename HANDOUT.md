@@ -177,7 +177,7 @@ Use `Suppliers` to organize and list your vendor network.
 1. Go to **Suppliers** and click **New Supplier**.
 2. Register the **Company Name** and legal **Tax ID**.
 3. Enter key **Procurement Contacts**, phone numbers, emails, and address terms.
-4. Input default **Payment Terms** (e.g., credit terms or debit/cash terms).
+4. Input default **Payment Terms** (e.g., credit terms or cash terms).
 
 *   [ ] Legal company name is correct.
 *   [ ] Payment terms and bank details are entered.
