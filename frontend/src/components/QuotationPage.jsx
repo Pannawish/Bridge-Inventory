@@ -41,6 +41,9 @@ function QuotationPage({
     setFilterOpen,
     selectedCustomer,
     setSelectedCustomer,
+    selectedProduct,
+    setSelectedProduct,
+    productOptions,
     stateFilter,
     setStateFilter,
     vatFilter,
@@ -232,6 +235,9 @@ function QuotationPage({
         selectedCustomer={selectedCustomer}
         onSelectedCustomerChange={setSelectedCustomer}
         customerOptions={customerOptions}
+        selectedProduct={selectedProduct}
+        onSelectedProductChange={setSelectedProduct}
+        productOptions={productOptions}
         stateFilter={stateFilter}
         onStateFilterChange={setStateFilter}
         vatFilter={vatFilter}

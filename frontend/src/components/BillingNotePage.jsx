@@ -26,6 +26,9 @@ function BillingNotePage({
     setSearchTerm,
     statusFilter,
     setStatusFilter,
+    customerFilter,
+    setCustomerFilter,
+    customerOptions,
     dateFrom,
     setDateFrom,
     dateTo,
@@ -51,6 +54,7 @@ function BillingNotePage({
     handlePageChange,
   } = useBillingNoteDirectoryFilters({
     billingNotes,
+    allBillingNotes,
     pagination,
     onPageRequest,
     t,
@@ -133,6 +137,9 @@ function BillingNotePage({
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
         statusOptions={statusOptions}
+        customerFilter={customerFilter}
+        onCustomerFilterChange={setCustomerFilter}
+        customerOptions={customerOptions}
         dateFrom={dateFrom}
         onDateFromChange={setDateFrom}
         dateTo={dateTo}

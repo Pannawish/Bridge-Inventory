@@ -11,11 +11,13 @@ import {
   transactionMatchesDateRange,
   vatOptionValues,
 } from "../components/sales/salesHistoryUtils";
+import { buildProductFilterOptions } from "../components/purchases/purchaseHistoryUtils";
 
 export function useSalesHistoryDirectoryFilters({
   sales = [],
   allSales = sales,
   customers = [],
+  products = [],
   pagination = null,
   onPageRequest,
   t,
@@ -26,6 +28,7 @@ export function useSalesHistoryDirectoryFilters({
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [customerFilterQuery, setCustomerFilterQuery] = useState("");
   const [customerFilterOpen, setCustomerFilterOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [amountMin, setAmountMin] = useState("");
@@ -40,6 +43,10 @@ export function useSalesHistoryDirectoryFilters({
   const customerOptions = useMemo(
     () => buildCustomerFilterOptions(allSales, customers),
     [allSales, customers]
+  );
+  const productOptions = useMemo(
+    () => buildProductFilterOptions(products),
+    [products]
   );
 
   const filteredCustomerOptions = useMemo(() => {
@@ -68,6 +75,11 @@ export function useSalesHistoryDirectoryFilters({
         const matchesCustomer = selectedCustomer
           ? sale.customer_name === selectedCustomer
           : true;
+        const matchesProduct = selectedProduct
+          ? (sale.items || []).some(
+              (item) => `${item.product ?? item.product_id ?? ""}` === `${selectedProduct}`
+            )
+          : true;
         const matchesDateRange = transactionMatchesDateRange(
           sale.transaction_date,
           dateFrom,
@@ -80,6 +92,7 @@ export function useSalesHistoryDirectoryFilters({
           matchesSearch &&
           matchesStatus &&
           matchesCustomer &&
+          matchesProduct &&
           matchesDateRange &&
           matchesAmount &&
           matchesVat
@@ -95,6 +108,7 @@ export function useSalesHistoryDirectoryFilters({
     normalizedSearch,
     sales,
     selectedCustomer,
+    selectedProduct,
     selectedStatuses,
     vatFilter,
   ]);
@@ -135,6 +149,7 @@ export function useSalesHistoryDirectoryFilters({
 
   const activeFilterCount =
     (selectedCustomer ? 1 : 0) +
+    (selectedProduct ? 1 : 0) +
     (selectedStatuses.length === statusOptions.length ? 0 : 1) +
     (dateFrom ? 1 : 0) +
     (dateTo ? 1 : 0) +
@@ -154,6 +169,7 @@ export function useSalesHistoryDirectoryFilters({
             ? selectedStatuses
             : "__none__",
       customer: selectedCustomer,
+      product: selectedProduct,
       dateFrom,
       dateTo,
       amountMin,
@@ -182,6 +198,7 @@ export function useSalesHistoryDirectoryFilters({
     onPageRequest,
     searchTerm,
     selectedCustomer,
+    selectedProduct,
     selectedStatusKey,
     vatFilter,
     stockFilter,
@@ -201,6 +218,7 @@ export function useSalesHistoryDirectoryFilters({
     isServerPaginated,
     normalizedSearch,
     selectedCustomer,
+    selectedProduct,
     selectedStatusKey,
     stockFilter,
     vatFilter,
@@ -233,6 +251,7 @@ export function useSalesHistoryDirectoryFilters({
     setSelectedStatuses(statusOptions);
     setSelectedCustomer("");
     setCustomerFilterQuery("");
+    setSelectedProduct("");
     setDateFrom("");
     setDateTo("");
     setAmountMin("");
@@ -278,6 +297,8 @@ export function useSalesHistoryDirectoryFilters({
     },
   ].filter(Boolean);
 
+  const selectedProductLabel =
+    productOptions.find((product) => product.value === selectedProduct)?.label || "";
   const activeChips = [
     selectedCustomer && {
       key: "customer",
@@ -286,6 +307,11 @@ export function useSalesHistoryDirectoryFilters({
         setSelectedCustomer("");
         setCustomerFilterQuery("");
       },
+    },
+    selectedProduct && {
+      key: "product",
+      label: t("salesHistory.productChip", { name: selectedProductLabel }),
+      onRemove: () => setSelectedProduct(""),
     },
     stockFilter === "insufficient_stock" && {
       key: "stockFilter",
@@ -362,6 +388,9 @@ export function useSalesHistoryDirectoryFilters({
     setVatFilter,
     stockFilter,
     setStockFilter,
+    selectedProduct,
+    setSelectedProduct,
+    productOptions,
     filteredCustomerOptions,
     filteredSales: visibleSales,
     isServerPaginated,

@@ -62,10 +62,14 @@ function SalesHistoryPage({
     handleCustomerFilterQueryChange,
     handlePageChange,
     usesPaginationControls,
+    selectedProduct,
+    setSelectedProduct,
+    productOptions,
   } = useSalesHistoryDirectoryFilters({
     sales,
     allSales,
     customers,
+    products,
     pagination,
     onPageRequest,
     t,
@@ -167,6 +171,9 @@ function SalesHistoryPage({
       filteredCustomerOptions={filteredCustomerOptions}
       selectedCustomer={selectedCustomer}
       onSelectCustomerFilter={selectCustomerFilter}
+      selectedProduct={selectedProduct}
+      onProductFilterChange={setSelectedProduct}
+      productOptions={productOptions}
       dateFrom={dateFrom}
       onDateFromChange={setDateFrom}
       dateTo={dateTo}

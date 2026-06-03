@@ -19,6 +19,7 @@ export function useQuotationDirectoryFilters({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState("");
   const [stateFilter, setStateFilter] = useState("all");
   const [vatFilter, setVatFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -32,9 +33,27 @@ export function useQuotationDirectoryFilters({
     () => getQuotationPartnerOptions(quotations, "customer_name", customers),
     [customers, quotations]
   );
+  const productOptions = useMemo(() => {
+    const optionMap = new Map();
+    quotations.forEach((quotation) => {
+      (quotation.items || []).forEach((item) => {
+        const id = `${item.product_id ?? item.product ?? ""}`;
+        if (!id || optionMap.has(id)) {
+          return;
+        }
+        const name = `${item.product_name ?? ""}`.trim();
+        const sku = `${item.sku ?? ""}`.trim();
+        optionMap.set(id, { value: id, label: sku ? `${name || sku} (${sku})` : name || id });
+      });
+    });
+    return Array.from(optionMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [quotations]);
+  const selectedProductLabel =
+    productOptions.find((product) => product.value === selectedProduct)?.label || "";
 
   const activeFilterCount =
     (selectedCustomer ? 1 : 0) +
+    (selectedProduct ? 1 : 0) +
     (stateFilter === "all" ? 0 : 1) +
     (vatFilter === "all" ? 0 : 1) +
     (dateFrom ? 1 : 0) +
@@ -51,6 +70,11 @@ export function useQuotationDirectoryFilters({
             : true;
           const matchesCustomer = selectedCustomer
             ? quotation.customer_name === selectedCustomer
+            : true;
+          const matchesProduct = selectedProduct
+            ? (quotation.items || []).some(
+                (item) => `${item.product_id ?? item.product ?? ""}` === `${selectedProduct}`
+              )
             : true;
           const matchesState =
             stateFilter === "all" ||
@@ -70,6 +94,7 @@ export function useQuotationDirectoryFilters({
           return (
             matchesSearch &&
             matchesCustomer &&
+            matchesProduct &&
             matchesState &&
             matchesVat &&
             matchesDateRange &&
@@ -85,6 +110,7 @@ export function useQuotationDirectoryFilters({
       normalizedSearch,
       quotations,
       selectedCustomer,
+      selectedProduct,
       stateFilter,
       vatFilter,
     ]
@@ -116,20 +142,20 @@ export function useQuotationDirectoryFilters({
     normalizedSearch,
     quotations,
     selectedCustomer,
+    selectedProduct,
     stateFilter,
     vatFilter,
   ]);
 
   function resetFilters() {
-    setSearchTerm("");
     setSelectedCustomer("");
+    setSelectedProduct("");
     setStateFilter("all");
     setVatFilter("all");
     setDateFrom("");
     setDateTo("");
     setAmountMin("");
     setAmountMax("");
-    setFilterOpen(false);
   }
 
   const vatLabels = {
@@ -169,6 +195,11 @@ export function useQuotationDirectoryFilters({
       key: "customer",
       label: t("quotation.chipCustomer", { value: selectedCustomer }),
       onRemove: () => setSelectedCustomer(""),
+    },
+    selectedProduct && {
+      key: "product",
+      label: t("quotation.chipProduct", { value: selectedProductLabel }),
+      onRemove: () => setSelectedProduct(""),
     },
     stateFilter !== "all" && {
       key: "state",
@@ -213,6 +244,9 @@ export function useQuotationDirectoryFilters({
     setFilterOpen,
     selectedCustomer,
     setSelectedCustomer,
+    selectedProduct,
+    setSelectedProduct,
+    productOptions,
     stateFilter,
     setStateFilter,
     vatFilter,

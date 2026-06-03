@@ -4,6 +4,7 @@ import TransactionTable from "../TransactionTable";
 import {
   FilterPresets,
   ActiveFilterChips,
+  FilterCombobox,
   RangeField,
 } from "../FilterControls";
 import { useLanguage } from "../../i18n/LanguageContext";
@@ -40,6 +41,9 @@ function SalesHistoryDirectorySection({
   filteredCustomerOptions = [],
   selectedCustomer,
   onSelectCustomerFilter,
+  selectedProduct,
+  onProductFilterChange,
+  productOptions = [],
   dateFrom,
   onDateFromChange,
   dateTo,
@@ -171,6 +175,16 @@ function SalesHistoryDirectorySection({
                   ) : null}
                 </div>
               </label>
+
+              <FilterCombobox
+                id="sales-history-product-filter"
+                title={t("salesHistory.productFilter")}
+                value={selectedProduct}
+                options={productOptions}
+                placeholder={t("salesHistory.searchProductPlaceholder")}
+                emptyMessage={t("salesHistory.noProductFound")}
+                onChange={onProductFilterChange}
+              />
 
               <label className="history-filter-field">
                 <span className="history-filter-title">{t("salesHistory.dateFromLabel")}</span>

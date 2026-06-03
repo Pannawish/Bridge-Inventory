@@ -9,12 +9,14 @@ import {
 
 export function useCreditNoteDirectoryFilters({
   creditNotes = [],
+  allCreditNotes = creditNotes,
   pagination = null,
   onPageRequest,
   t,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [customerFilter, setCustomerFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [amountMin, setAmountMin] = useState("");
@@ -30,6 +32,19 @@ export function useCreditNoteDirectoryFilters({
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const isServerPaginated = Boolean(pagination && onPageRequest);
 
+  const customerOptions = useMemo(() => {
+    const names = new Set();
+    allCreditNotes.forEach((note) => {
+      const name = `${note.customer_name ?? ""}`.trim();
+      if (name) {
+        names.add(name);
+      }
+    });
+    return Array.from(names)
+      .sort((a, b) => a.localeCompare(b))
+      .map((name) => ({ value: name, label: name }));
+  }, [allCreditNotes]);
+
   const filteredCreditNotes = useMemo(() => {
     if (isServerPaginated) {
       return creditNotes;
@@ -40,6 +55,9 @@ export function useCreditNoteDirectoryFilters({
         return false;
       }
       if (statusFilter !== "all" && note.status !== statusFilter) {
+        return false;
+      }
+      if (customerFilter && note.customer_name !== customerFilter) {
         return false;
       }
       if (!creditNoteInDateRange(note, dateFrom, dateTo)) {
@@ -54,6 +72,7 @@ export function useCreditNoteDirectoryFilters({
     amountMax,
     amountMin,
     creditNotes,
+    customerFilter,
     dateFrom,
     dateTo,
     isServerPaginated,
@@ -70,18 +89,18 @@ export function useCreditNoteDirectoryFilters({
 
   const activeFilterCount =
     (statusFilter !== "all" ? 1 : 0) +
+    (customerFilter ? 1 : 0) +
     (dateFrom || dateTo ? 1 : 0) +
     (amountMin ? 1 : 0) +
     (amountMax ? 1 : 0);
 
   function resetFilters() {
-    setSearchTerm("");
     setStatusFilter("all");
+    setCustomerFilter("");
     setDateFrom("");
     setDateTo("");
     setAmountMin("");
     setAmountMax("");
-    setFilterOpen(false);
   }
 
   const last30Active = dateFrom === daysAgoString(30) && !dateTo;
@@ -118,6 +137,11 @@ export function useCreditNoteDirectoryFilters({
       }),
       onRemove: () => setStatusFilter("all"),
     },
+    customerFilter && {
+      key: "customer",
+      label: t("creditNote.customerChip", { name: customerFilter }),
+      onRemove: () => setCustomerFilter(""),
+    },
     dateFrom && {
       key: "dateFrom",
       label: t("filterControls.fromChip", { date: dateFrom }),
@@ -145,6 +169,7 @@ export function useCreditNoteDirectoryFilters({
       page,
       search: searchTerm,
       status: statusFilter === "all" ? "" : statusFilter,
+      customer: customerFilter,
       dateFrom,
       dateTo,
       amountMin,
@@ -163,6 +188,7 @@ export function useCreditNoteDirectoryFilters({
   }, [
     amountMax,
     amountMin,
+    customerFilter,
     dateFrom,
     dateTo,
     isServerPaginated,
@@ -180,6 +206,9 @@ export function useCreditNoteDirectoryFilters({
     setSearchTerm,
     statusFilter,
     setStatusFilter,
+    customerFilter,
+    setCustomerFilter,
+    customerOptions,
     dateFrom,
     setDateFrom,
     dateTo,

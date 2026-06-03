@@ -295,6 +295,7 @@ export function filterLocalSales(rows, params, context = {}) {
   const normalizedSearch = normalizeSearch(params.search);
   const statusValues = parseStatusValues(params.status);
   const customer = `${params.customer || ""}`.trim();
+  const product = `${params.product || ""}`.trim();
   const dateFrom = params.date_from || "";
   const dateTo = params.date_to || "";
   const amountMin = params.amount_min || "";
@@ -312,6 +313,14 @@ export function filterLocalSales(rows, params, context = {}) {
       return false;
     }
     if (customer && sale.customer_name !== customer) {
+      return false;
+    }
+    if (
+      product &&
+      !(sale.items || []).some(
+        (item) => `${item.product ?? item.product_id ?? ""}` === product
+      )
+    ) {
       return false;
     }
     if (!saleTransactionMatchesDateRange(sale.transaction_date, dateFrom, dateTo)) {
@@ -340,6 +349,7 @@ export function filterLocalSales(rows, params, context = {}) {
 export function filterLocalBillingNotes(rows, params) {
   const normalizedSearch = normalizeSearch(params.search);
   const status = params.status || "all";
+  const customer = `${params.customer || ""}`.trim();
   const dateFrom = params.date_from || "";
   const dateTo = params.date_to || "";
   const amountMin = params.amount_min || "";
@@ -350,6 +360,9 @@ export function filterLocalBillingNotes(rows, params) {
       return false;
     }
     if (status !== "all" && status && note.status !== status) {
+      return false;
+    }
+    if (customer && note.customer_name !== customer) {
       return false;
     }
     if (!billingNoteInDateRange(note, dateFrom, dateTo)) {
@@ -365,6 +378,7 @@ export function filterLocalBillingNotes(rows, params) {
 export function filterLocalPaymentBatches(rows, params) {
   const normalizedSearch = normalizeSearch(params.search);
   const status = params.status || "all";
+  const supplier = `${params.supplier || ""}`.trim();
   const dateFrom = params.date_from || "";
   const dateTo = params.date_to || "";
   const amountMin = params.amount_min || "";
@@ -375,6 +389,9 @@ export function filterLocalPaymentBatches(rows, params) {
       return false;
     }
     if (status !== "all" && status && batch.status !== status) {
+      return false;
+    }
+    if (supplier && batch.supplier_name !== supplier) {
       return false;
     }
     if (!paymentBatchInDateRange(batch, dateFrom, dateTo)) {
@@ -390,6 +407,7 @@ export function filterLocalPaymentBatches(rows, params) {
 export function filterLocalCreditNotes(rows, params) {
   const normalizedSearch = normalizeSearch(params.search);
   const status = params.status || "all";
+  const customer = `${params.customer || ""}`.trim();
   const dateFrom = params.date_from || "";
   const dateTo = params.date_to || "";
   const amountMin = params.amount_min || "";
@@ -400,6 +418,9 @@ export function filterLocalCreditNotes(rows, params) {
       return false;
     }
     if (status !== "all" && status && note.status !== status) {
+      return false;
+    }
+    if (customer && note.customer_name !== customer) {
       return false;
     }
     if (!creditNoteInDateRange(note, dateFrom, dateTo)) {

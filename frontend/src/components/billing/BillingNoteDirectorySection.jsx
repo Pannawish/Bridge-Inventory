@@ -5,6 +5,7 @@ import BillingNoteStatusPill from "./BillingNoteStatusPill";
 import {
   FilterPresets,
   ActiveFilterChips,
+  FilterCombobox,
   RangeField,
 } from "../FilterControls";
 
@@ -26,6 +27,9 @@ function BillingNoteDirectorySection({
   statusFilter,
   onStatusFilterChange,
   statusOptions = [],
+  customerFilter,
+  onCustomerFilterChange,
+  customerOptions = [],
   dateFrom,
   onDateFromChange,
   dateTo,
@@ -142,6 +146,15 @@ function BillingNoteDirectorySection({
                   ))}
                 </select>
               </label>
+              <FilterCombobox
+                id="billing-note-customer-filter"
+                title={t("billingNote.customerFilter")}
+                value={customerFilter}
+                options={customerOptions}
+                placeholder={t("billingNote.searchCustomerPlaceholder")}
+                emptyMessage={t("billingNote.noCustomerFound")}
+                onChange={onCustomerFilterChange}
+              />
               <label className="history-filter-field">
                 <span className="history-filter-title">{t("filterControls.from")}</span>
                 <input

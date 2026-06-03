@@ -9,12 +9,14 @@ import {
 
 export function usePaymentBatchDirectoryFilters({
   paymentBatches = [],
+  allPaymentBatches = paymentBatches,
   pagination = null,
   onPageRequest,
   t,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [supplierFilter, setSupplierFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [amountMin, setAmountMin] = useState("");
@@ -32,6 +34,19 @@ export function usePaymentBatchDirectoryFilters({
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const isServerPaginated = Boolean(pagination && onPageRequest);
 
+  const supplierOptions = useMemo(() => {
+    const names = new Set();
+    allPaymentBatches.forEach((batch) => {
+      const name = `${batch.supplier_name ?? ""}`.trim();
+      if (name) {
+        names.add(name);
+      }
+    });
+    return Array.from(names)
+      .sort((a, b) => a.localeCompare(b))
+      .map((name) => ({ value: name, label: name }));
+  }, [allPaymentBatches]);
+
   const filteredPaymentBatches = useMemo(() => {
     if (isServerPaginated) {
       return paymentBatches;
@@ -42,6 +57,9 @@ export function usePaymentBatchDirectoryFilters({
         return false;
       }
       if (statusFilter !== "all" && batch.status !== statusFilter) {
+        return false;
+      }
+      if (supplierFilter && batch.supplier_name !== supplierFilter) {
         return false;
       }
       if (!paymentBatchInDateRange(batch, dateFrom, dateTo)) {
@@ -61,6 +79,7 @@ export function usePaymentBatchDirectoryFilters({
     normalizedSearch,
     paymentBatches,
     statusFilter,
+    supplierFilter,
     t,
   ]);
 
@@ -72,18 +91,18 @@ export function usePaymentBatchDirectoryFilters({
 
   const activeFilterCount =
     (statusFilter !== "all" ? 1 : 0) +
+    (supplierFilter ? 1 : 0) +
     (dateFrom || dateTo ? 1 : 0) +
     (amountMin ? 1 : 0) +
     (amountMax ? 1 : 0);
 
   function resetFilters() {
-    setSearchTerm("");
     setStatusFilter("all");
+    setSupplierFilter("");
     setDateFrom("");
     setDateTo("");
     setAmountMin("");
     setAmountMax("");
-    setFilterOpen(false);
   }
 
   const last30Active = dateFrom === daysAgoString(30) && !dateTo;
@@ -118,6 +137,11 @@ export function usePaymentBatchDirectoryFilters({
       }),
       onRemove: () => setStatusFilter("all"),
     },
+    supplierFilter && {
+      key: "supplier",
+      label: t("paymentBatch.supplierChip", { name: supplierFilter }),
+      onRemove: () => setSupplierFilter(""),
+    },
     dateFrom && {
       key: "dateFrom",
       label: t("filterControls.fromChip", { date: dateFrom }),
@@ -145,6 +169,7 @@ export function usePaymentBatchDirectoryFilters({
       page,
       search: searchTerm,
       status: statusFilter === "all" ? "" : statusFilter,
+      supplier: supplierFilter,
       dateFrom,
       dateTo,
       amountMin,
@@ -171,6 +196,7 @@ export function usePaymentBatchDirectoryFilters({
     onPageRequest,
     searchTerm,
     statusFilter,
+    supplierFilter,
   ]);
 
   function handlePageChange(page) {
@@ -182,6 +208,9 @@ export function usePaymentBatchDirectoryFilters({
     setSearchTerm,
     statusFilter,
     setStatusFilter,
+    supplierFilter,
+    setSupplierFilter,
+    supplierOptions,
     dateFrom,
     setDateFrom,
     dateTo,

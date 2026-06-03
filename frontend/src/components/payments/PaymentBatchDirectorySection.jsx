@@ -3,6 +3,7 @@ import { useLanguage } from "../../i18n/LanguageContext";
 import {
   FilterPresets,
   ActiveFilterChips,
+  FilterCombobox,
   RangeField,
 } from "../FilterControls";
 import PaginationControls from "../PaginationControls";
@@ -26,6 +27,9 @@ function PaymentBatchDirectorySection({
   statusFilter,
   onStatusFilterChange,
   statusOptions = [],
+  supplierFilter,
+  onSupplierFilterChange,
+  supplierOptions = [],
   dateFrom,
   onDateFromChange,
   dateTo,
@@ -142,6 +146,15 @@ function PaymentBatchDirectorySection({
                   ))}
                 </select>
               </label>
+              <FilterCombobox
+                id="payment-batch-supplier-filter"
+                title={t("paymentBatch.supplierFilter")}
+                value={supplierFilter}
+                options={supplierOptions}
+                placeholder={t("paymentBatch.searchSupplierPlaceholder")}
+                emptyMessage={t("paymentBatch.noSupplierFound")}
+                onChange={onSupplierFilterChange}
+              />
               <label className="history-filter-field">
                 <span className="history-filter-title">{t("filterControls.from")}</span>
                 <input

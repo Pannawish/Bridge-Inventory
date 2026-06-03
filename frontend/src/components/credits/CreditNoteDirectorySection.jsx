@@ -3,6 +3,7 @@ import { useLanguage } from "../../i18n/LanguageContext";
 import {
   FilterPresets,
   ActiveFilterChips,
+  FilterCombobox,
   RangeField,
 } from "../FilterControls";
 import PaginationControls from "../PaginationControls";
@@ -26,6 +27,9 @@ function CreditNoteDirectorySection({
   statusFilter,
   onStatusFilterChange,
   statusOptions = [],
+  customerFilter,
+  onCustomerFilterChange,
+  customerOptions = [],
   dateFrom,
   onDateFromChange,
   dateTo,
@@ -143,6 +147,15 @@ function CreditNoteDirectorySection({
                   ))}
                 </select>
               </label>
+              <FilterCombobox
+                id="credit-note-customer-filter"
+                title={t("creditNote.customerFilter")}
+                value={customerFilter}
+                options={customerOptions}
+                placeholder={t("creditNote.searchCustomerPlaceholder")}
+                emptyMessage={t("creditNote.noCustomerFound")}
+                onChange={onCustomerFilterChange}
+              />
               <label className="history-filter-field">
                 <span className="history-filter-title">{t("filterControls.from")}</span>
                 <input

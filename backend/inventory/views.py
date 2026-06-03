@@ -809,6 +809,7 @@ class SaleViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     party_filter_field = "customer_name"
     party_filter_param = "customer"
     amount_filter_field = "grand_total"
+    product_filter_field = "items__product_id"
 
     def get_queryset(self):
         queryset = super().get_queryset()

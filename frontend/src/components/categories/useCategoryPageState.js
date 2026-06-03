@@ -212,10 +212,8 @@ export function useCategoryPageState({
   }
 
   function resetFilters() {
-    setSearchTerm("");
     setLevelFilter("all");
     setUsageFilter("all");
-    setFilterOpen(false);
   }
 
   const levelLabels = useMemo(

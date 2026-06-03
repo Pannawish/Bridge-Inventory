@@ -2,7 +2,112 @@
 // quick presets, active-filter chips, and range inputs look and behave
 // identically everywhere.
 
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "../i18n/LanguageContext";
+
+// Self-contained searchable dropdown for a single filter facet (supplier,
+// customer, product, …). It owns its own query/open state so the page hook
+// only has to track the selected value. `options` is [{ value, label }].
+export function FilterCombobox({
+  id,
+  title,
+  value = "",
+  options = [],
+  placeholder,
+  emptyMessage,
+  onChange,
+}) {
+  const selectedLabel = useMemo(
+    () => options.find((option) => `${option.value}` === `${value}`)?.label || "",
+    [options, value]
+  );
+  const [query, setQuery] = useState(selectedLabel);
+  const [open, setOpen] = useState(false);
+  const lastValueRef = useRef(value);
+
+  // Keep the visible text in sync when the selection changes from outside
+  // (e.g. a chip removed the filter, or Reset cleared everything).
+  useEffect(() => {
+    if (value !== lastValueRef.current) {
+      lastValueRef.current = value;
+      setQuery(selectedLabel);
+    }
+  }, [selectedLabel, value]);
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredOptions = normalizedQuery
+    ? options.filter((option) => option.label.toLowerCase().includes(normalizedQuery))
+    : options;
+
+  function handleInputChange(event) {
+    setQuery(event.target.value);
+    setOpen(true);
+    if (value) {
+      lastValueRef.current = "";
+      onChange("");
+    }
+  }
+
+  function handleSelect(option) {
+    lastValueRef.current = option.value;
+    setQuery(option.label);
+    setOpen(false);
+    onChange(option.value);
+  }
+
+  function handleBlur() {
+    window.setTimeout(() => {
+      setOpen(false);
+      setQuery(selectedLabel);
+    }, 120);
+  }
+
+  return (
+    <label className="history-filter-field supplier-combobox-field">
+      <span className="history-filter-title">{title}</span>
+      <div className="supplier-combobox">
+        <input
+          id={id}
+          type="search"
+          value={query}
+          onChange={handleInputChange}
+          onFocus={() => setOpen(true)}
+          onBlur={handleBlur}
+          placeholder={placeholder}
+          autoComplete="off"
+          aria-expanded={open}
+        />
+        {open ? (
+          <div className="supplier-combobox-menu" role="listbox">
+            {filteredOptions.length ? (
+              filteredOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={
+                    `${option.value}` === `${value}`
+                      ? "supplier-combobox-option active"
+                      : "supplier-combobox-option"
+                  }
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    handleSelect(option);
+                  }}
+                  role="option"
+                  aria-selected={`${option.value}` === `${value}`}
+                >
+                  {option.label}
+                </button>
+              ))
+            ) : (
+              <div className="supplier-combobox-empty">{emptyMessage}</div>
+            )}
+          </div>
+        ) : null}
+      </div>
+    </label>
+  );
+}
 
 export function FilterPresets({ presets }) {
   const { t } = useLanguage();

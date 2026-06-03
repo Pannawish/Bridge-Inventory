@@ -19,6 +19,9 @@ function QuotationDirectorySection({
   selectedCustomer,
   onSelectedCustomerChange,
   customerOptions = [],
+  selectedProduct,
+  onSelectedProductChange,
+  productOptions = [],
   stateFilter,
   onStateFilterChange,
   vatFilter,
@@ -103,6 +106,23 @@ function QuotationDirectorySection({
                   {customerOptions.map((customerName) => (
                     <option key={customerName} value={customerName}>
                       {customerName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="history-filter-field">
+                <span className="history-filter-title">
+                  {t("quotation.filterProductTitle")}
+                </span>
+                <select
+                  value={selectedProduct}
+                  onChange={(event) => onSelectedProductChange(event.target.value)}
+                >
+                  <option value="">{t("quotation.filterAllProducts")}</option>
+                  {productOptions.map((product) => (
+                    <option key={product.value} value={product.value}>
+                      {product.label}
                     </option>
                   ))}
                 </select>

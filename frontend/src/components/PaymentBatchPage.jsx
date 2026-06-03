@@ -26,6 +26,9 @@ function PaymentBatchPage({
     setSearchTerm,
     statusFilter,
     setStatusFilter,
+    supplierFilter,
+    setSupplierFilter,
+    supplierOptions,
     dateFrom,
     setDateFrom,
     dateTo,
@@ -51,6 +54,7 @@ function PaymentBatchPage({
     handlePageChange,
   } = usePaymentBatchDirectoryFilters({
     paymentBatches,
+    allPaymentBatches,
     pagination,
     onPageRequest,
     t,
@@ -133,6 +137,9 @@ function PaymentBatchPage({
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
         statusOptions={statusOptions}
+        supplierFilter={supplierFilter}
+        onSupplierFilterChange={setSupplierFilter}
+        supplierOptions={supplierOptions}
         dateFrom={dateFrom}
         onDateFromChange={setDateFrom}
         dateTo={dateTo}

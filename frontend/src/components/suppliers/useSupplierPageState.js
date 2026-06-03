@@ -97,9 +97,7 @@ export function useSupplierPageState({
   }, [isServerPaginated, onPageRequest, profileFilter, searchTerm]);
 
   function resetFilters() {
-    setSearchTerm("");
     setProfileFilter("all");
-    setFilterOpen(false);
   }
 
   const quickPresets = useMemo(

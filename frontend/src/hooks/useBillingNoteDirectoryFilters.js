@@ -9,12 +9,14 @@ import {
 
 export function useBillingNoteDirectoryFilters({
   billingNotes = [],
+  allBillingNotes = billingNotes,
   pagination = null,
   onPageRequest,
   t,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [customerFilter, setCustomerFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [amountMin, setAmountMin] = useState("");
@@ -35,6 +37,19 @@ export function useBillingNoteDirectoryFilters({
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const isServerPaginated = Boolean(pagination && onPageRequest);
 
+  const customerOptions = useMemo(() => {
+    const names = new Set();
+    allBillingNotes.forEach((note) => {
+      const name = `${note.customer_name ?? ""}`.trim();
+      if (name) {
+        names.add(name);
+      }
+    });
+    return Array.from(names)
+      .sort((a, b) => a.localeCompare(b))
+      .map((name) => ({ value: name, label: name }));
+  }, [allBillingNotes]);
+
   const filteredBillingNotes = useMemo(() => {
     if (isServerPaginated) {
       return billingNotes;
@@ -45,6 +60,9 @@ export function useBillingNoteDirectoryFilters({
         return false;
       }
       if (statusFilter !== "all" && note.status !== statusFilter) {
+        return false;
+      }
+      if (customerFilter && note.customer_name !== customerFilter) {
         return false;
       }
       if (!billingNoteInDateRange(note, dateFrom, dateTo)) {
@@ -59,6 +77,7 @@ export function useBillingNoteDirectoryFilters({
     amountMax,
     amountMin,
     billingNotes,
+    customerFilter,
     dateFrom,
     dateTo,
     isServerPaginated,
@@ -75,18 +94,18 @@ export function useBillingNoteDirectoryFilters({
 
   const activeFilterCount =
     (statusFilter !== "all" ? 1 : 0) +
+    (customerFilter ? 1 : 0) +
     (dateFrom || dateTo ? 1 : 0) +
     (amountMin ? 1 : 0) +
     (amountMax ? 1 : 0);
 
   function resetFilters() {
-    setSearchTerm("");
     setStatusFilter("all");
+    setCustomerFilter("");
     setDateFrom("");
     setDateTo("");
     setAmountMin("");
     setAmountMax("");
-    setFilterOpen(false);
   }
 
   const last30Active = dateFrom === daysAgoString(30) && !dateTo;
@@ -123,6 +142,11 @@ export function useBillingNoteDirectoryFilters({
       }),
       onRemove: () => setStatusFilter("all"),
     },
+    customerFilter && {
+      key: "customer",
+      label: t("billingNote.customerChip", { name: customerFilter }),
+      onRemove: () => setCustomerFilter(""),
+    },
     dateFrom && {
       key: "dateFrom",
       label: t("filterControls.fromChip", { date: dateFrom }),
@@ -150,6 +174,7 @@ export function useBillingNoteDirectoryFilters({
       page,
       search: searchTerm,
       status: statusFilter === "all" ? "" : statusFilter,
+      customer: customerFilter,
       dateFrom,
       dateTo,
       amountMin,
@@ -170,6 +195,7 @@ export function useBillingNoteDirectoryFilters({
   }, [
     amountMax,
     amountMin,
+    customerFilter,
     dateFrom,
     dateTo,
     isServerPaginated,
@@ -187,6 +213,9 @@ export function useBillingNoteDirectoryFilters({
     setSearchTerm,
     statusFilter,
     setStatusFilter,
+    customerFilter,
+    setCustomerFilter,
+    customerOptions,
     dateFrom,
     setDateFrom,
     dateTo,

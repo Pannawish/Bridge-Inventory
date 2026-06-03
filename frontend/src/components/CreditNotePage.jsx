@@ -31,6 +31,9 @@ function CreditNotePage({
     setSearchTerm,
     statusFilter,
     setStatusFilter,
+    customerFilter,
+    setCustomerFilter,
+    customerOptions,
     dateFrom,
     setDateFrom,
     dateTo,
@@ -56,6 +59,7 @@ function CreditNotePage({
     handlePageChange,
   } = useCreditNoteDirectoryFilters({
     creditNotes,
+    allCreditNotes,
     pagination,
     onPageRequest,
     t,
@@ -146,6 +150,9 @@ function CreditNotePage({
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
         statusOptions={statusOptions}
+        customerFilter={customerFilter}
+        onCustomerFilterChange={setCustomerFilter}
+        customerOptions={customerOptions}
         dateFrom={dateFrom}
         onDateFromChange={setDateFrom}
         dateTo={dateTo}

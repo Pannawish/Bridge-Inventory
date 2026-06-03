@@ -111,6 +111,75 @@ class InventoryPaginationTests(APITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["reference_no"], "PO-SEARCH-1")
 
+    def test_purchase_product_filter_returns_only_matching_orders(self):
+        target = Product.objects.get(sku="PAGE-0")
+        other = Product.objects.get(sku="PAGE-1")
+        for product, ref in ((target, "PO-PROD-A"), (other, "PO-PROD-B")):
+            purchase = Purchase.objects.create(
+                reference_no=ref,
+                supplier_name="Filter Supplier",
+                status=Purchase.STATUS_RECEIVED,
+                transaction_date="2026-05-01",
+            )
+            PurchaseItem.objects.create(
+                purchase=purchase,
+                product=product,
+                product_name=product.product_name,
+                sku=product.sku,
+                item_status=PurchaseItem.ITEM_RECEIVED,
+                unit="pcs",
+                base_unit="pcs",
+                conversion_factor=Decimal("1"),
+                quantity=Decimal("1"),
+                base_quantity=Decimal("1"),
+                unit_cost=Decimal("1"),
+                amount=Decimal("1"),
+            )
+
+        response = self.client.get(
+            "/api/purchases/",
+            {"page": 1, "page_size": 10, "product": target.id},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["reference_no"], "PO-PROD-A")
+
+    def test_sale_product_filter_returns_only_matching_orders(self):
+        target = Product.objects.get(sku="PAGE-0")
+        other = Product.objects.get(sku="PAGE-1")
+        for product, ref in ((target, "SO-PROD-A"), (other, "SO-PROD-B")):
+            sale = Sale.objects.create(
+                reference_no=ref,
+                customer_name="Filter Customer",
+                status=Sale.STATUS_PACKED,
+                transaction_date="2026-05-01",
+            )
+            SaleItem.objects.create(
+                sale=sale,
+                product=product,
+                product_name=product.product_name,
+                sku=product.sku,
+                item_status=SaleItem.ITEM_PACKED,
+                unit="pcs",
+                base_unit="pcs",
+                conversion_factor=Decimal("1"),
+                quantity=Decimal("1"),
+                base_quantity=Decimal("1"),
+                unit_price=Decimal("8"),
+                unit_cost=Decimal("4"),
+                amount=Decimal("8"),
+            )
+
+        response = self.client.get(
+            "/api/sales/",
+            {"page": 1, "page_size": 10, "product": target.id},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["reference_no"], "SO-PROD-A")
+
     def test_product_stock_filter_applies_before_pagination(self):
         product = Product.objects.get(sku="PAGE-0")
         purchase = Purchase.objects.create(
