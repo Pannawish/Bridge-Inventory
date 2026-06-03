@@ -46,6 +46,7 @@ export function createInitialForm(referenceNo) {
     customer_name: "",
     payment_term_type: "",
     payment_term_days: "",
+    shipping_date: "",
     vat_mode: "not_included",
     note: "",
   };
@@ -63,6 +64,7 @@ export function createEditForm(quotation) {
     customer_name: quotation.customer_name || "",
     payment_term_type: quotation.payment_term_type || "",
     payment_term_days: quotation.payment_term_days || "",
+    shipping_date: quotation.shipping_date || "",
     vat_mode: quotation.vat_mode || "not_included",
     note: quotation.note || "",
   };

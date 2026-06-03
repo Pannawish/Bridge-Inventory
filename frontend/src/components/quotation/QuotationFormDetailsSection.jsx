@@ -50,6 +50,60 @@ function QuotationFormDetailsSection({
         />
       </label>
 
+      <label className="supplier-combobox-field">
+        <span className="required-label">{t("quotation.customerLabel")}</span>
+        <div className="supplier-combobox">
+          <input
+            value={customerQuery}
+            onChange={(event) => onCustomerQueryChange(event.target.value)}
+            onFocus={onCustomerOpen}
+            onBlur={onCustomerClose}
+            placeholder={t("quotation.searchCustomerPlaceholder")}
+            autoComplete="off"
+            aria-expanded={customerOpen}
+            aria-controls="quotation-customer-list"
+          />
+          {customerOpen ? (
+            <div className="supplier-combobox-menu" id="quotation-customer-list" role="listbox">
+              {filteredCustomers.length ? (
+                filteredCustomers.map((customer) => (
+                  <button
+                    key={customer.id}
+                    type="button"
+                    className={
+                      customer.companyName === form.customer_name
+                        ? "supplier-combobox-option active"
+                        : "supplier-combobox-option"
+                    }
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      onSelectCustomer(customer);
+                    }}
+                    role="option"
+                    aria-selected={customer.companyName === form.customer_name}
+                  >
+                    {customer.companyName}
+                  </button>
+                ))
+              ) : (
+                <div className="supplier-combobox-empty">
+                  {t("quotation.noCustomerFound")}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </label>
+
+      <label>
+        {t("quotation.shippingDateLabel")}
+        <input
+          type="date"
+          value={form.shipping_date}
+          onChange={(event) => onUpdateForm("shipping_date", event.target.value)}
+        />
+      </label>
+
       <div className="valid-until-field">
         <span className="required-label">{t("quotation.validUntilLabel")}</span>
         <div className="valid-until-days-row">
@@ -103,69 +157,25 @@ function QuotationFormDetailsSection({
         </p>
       </div>
 
-      <label className="supplier-combobox-field">
-        <span className="required-label">{t("quotation.customerLabel")}</span>
-        <div className="supplier-combobox">
-          <input
-            value={customerQuery}
-            onChange={(event) => onCustomerQueryChange(event.target.value)}
-            onFocus={onCustomerOpen}
-            onBlur={onCustomerClose}
-            placeholder={t("quotation.searchCustomerPlaceholder")}
-            autoComplete="off"
-            aria-expanded={customerOpen}
-            aria-controls="quotation-customer-list"
-          />
-          {customerOpen ? (
-            <div className="supplier-combobox-menu" id="quotation-customer-list" role="listbox">
-              {filteredCustomers.length ? (
-                filteredCustomers.map((customer) => (
-                  <button
-                    key={customer.id}
-                    type="button"
-                    className={
-                      customer.companyName === form.customer_name
-                        ? "supplier-combobox-option active"
-                        : "supplier-combobox-option"
-                    }
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                      onSelectCustomer(customer);
-                    }}
-                    role="option"
-                    aria-selected={customer.companyName === form.customer_name}
-                  >
-                    {customer.companyName}
-                  </button>
-                ))
-              ) : (
-                <div className="supplier-combobox-empty">
-                  {t("quotation.noCustomerFound")}
-                </div>
-              )}
-            </div>
-          ) : null}
-        </div>
-      </label>
-
-      <label>
-        {t("quotation.paymentTermLabel")}
-        <select
-          value={form.payment_term_type}
-          onChange={(event) => onPaymentTermTypeChange(event.target.value)}
-        >
-          <option value="">{t("quotation.paymentTermPlaceholder")}</option>
-          <option value="debit">{t("quotation.paymentTermDebit")}</option>
-          <option value="credit">{t("quotation.paymentTermCredit")}</option>
-        </select>
-      </label>
-
-      {form.payment_term_type === "credit" ? (
+      <div className="quotation-payment-valid-group">
         <label>
+          {t("quotation.paymentTermLabel")}
+          <select
+            value={form.payment_term_type}
+            onChange={(event) => onPaymentTermTypeChange(event.target.value)}
+          >
+            <option value="">{t("quotation.paymentTermPlaceholder")}</option>
+            <option value="debit">{t("quotation.paymentTermDebit")}</option>
+            <option value="credit">{t("quotation.paymentTermCredit")}</option>
+          </select>
+        </label>
+
+        <label style={{ visibility: form.payment_term_type === "credit" ? "visible" : "hidden" }}>
           {t("quotation.creditTermLabel")}
           <select
             value={form.payment_term_days}
             onChange={(event) => onPaymentTermDaysChange(event.target.value)}
+            tabIndex={form.payment_term_type === "credit" ? 0 : -1}
           >
             <option value="">{t("quotation.creditTermPlaceholder")}</option>
             <option value="30 days">{t("quotation.creditTerm30")}</option>
@@ -173,7 +183,7 @@ function QuotationFormDetailsSection({
             <option value="90 days">{t("quotation.creditTerm90")}</option>
           </select>
         </label>
-      ) : null}
+      </div>
 
       <label className="full-width">
         {t("quotation.noteLabel")}

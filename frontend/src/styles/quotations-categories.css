@@ -63,9 +63,16 @@
 }
 
 /* Valid Until Date field */
+.quotation-payment-valid-group {
+  display: grid;
+  gap: 12px;
+  align-self: start;
+}
+
 .valid-until-field {
   display: grid;
   gap: 8px;
+  align-self: start;
   color: var(--muted);
   font-size: 0.95rem;
   font-weight: 500;

@@ -381,6 +381,7 @@ export function useQuotationFormState({
         customer_name: form.customer_name,
         payment_term_type: form.payment_term_type,
         payment_term_days: form.payment_term_type === "credit" ? form.payment_term_days : "",
+        shipping_date: form.shipping_date || null,
         vat_mode: form.vat_mode,
         note: form.note,
         items: normalizedItems,
