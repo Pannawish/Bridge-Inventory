@@ -637,6 +637,8 @@ class Quotation(TimeStampedModel):
     )
     supplier_name = models.CharField(max_length=255, blank=True)
     shipping_date = models.DateField(blank=True, null=True)
+    payment_term_type = models.CharField(max_length=20, blank=True, default="")
+    payment_term_days = models.CharField(max_length=20, blank=True, default="")
     vat_mode = models.CharField(max_length=40, default="not_included")
     note = models.TextField(blank=True)
     total_before_vat = models.DecimalField(max_digits=14, decimal_places=2, default=0)
