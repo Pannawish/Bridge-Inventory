@@ -112,6 +112,20 @@ function QuotationDetailModal({
             <strong>{quotation.note || "—"}</strong>
           </div>
           <div>
+            <p className="detail-label">{t("quotation.detailShippingDate")}</p>
+            <strong>{quotation.shipping_date ? formatDate(quotation.shipping_date) : "—"}</strong>
+          </div>
+          <div>
+            <p className="detail-label">{t("quotation.detailPaymentTerm")}</p>
+            <strong>
+              {quotation.payment_term_type === "cash"
+                ? t("quotation.paymentTermDebit")
+                : quotation.payment_term_type === "credit"
+                  ? `${t("quotation.paymentTermCredit")}${quotation.payment_term_days ? ` — ${quotation.payment_term_days}` : ""}`
+                  : "—"}
+            </strong>
+          </div>
+          <div>
             <p className="detail-label">{t("quotation.detailPurchaseOrdersCreated")}</p>
             {(quotation.derived_purchase_links || []).length > 0 ? (
               <div className="doc-ref-chips">

@@ -61,6 +61,7 @@ export function buildSalesPrefillFromRows(quotation, rows, customers = []) {
     vat_mode: quotation.vat_mode || "not_included",
     payment_term_type: paymentTermType,
     payment_term_days: paymentTermDays,
+    shipping_date: quotation.shipping_date || "",
     note: "",
     items: rows.map(({ item, option }) => ({
       ...buildConversionItemBase(item),

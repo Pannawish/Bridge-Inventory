@@ -7,7 +7,6 @@ from django.db import migrations
 FIELD_MAP = [
     ("Purchase", "payment_term_type"),
     ("Sale", "payment_term_type"),
-    ("Quotation", "payment_term_type"),
     ("Customer", "term_type"),
     ("Supplier", "term_type"),
 ]
