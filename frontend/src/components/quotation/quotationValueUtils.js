@@ -90,6 +90,94 @@ export function computeAmount(item, priceKey = "sale_price") {
   return qty * price * getDiscountMultiplier(item);
 }
 
+/**
+ * Number of supplier sourcing options on a line that carry a usable (> 0) cost.
+ */
+export function countSupplierOptionsWithCost(item) {
+  return (item?.supplier_options || []).filter((option) => {
+    const cost = Number(option?.cost_price);
+    return Number.isFinite(cost) && cost > 0;
+  }).length;
+}
+
+/**
+ * Lowest usable supplier cost across a line's sourcing options, or null when no
+ * option has a cost yet. This is the cheapest price the middle-man can source at.
+ */
+export function getLowestSupplierCost(item) {
+  const costs = (item?.supplier_options || [])
+    .map((option) => Number(option?.cost_price))
+    .filter((cost) => Number.isFinite(cost) && cost > 0);
+
+  return costs.length ? Math.min(...costs) : null;
+}
+
+/**
+ * Flags the cheapest sourcing option so the user can pick it at a glance.
+ * Only meaningful when two or more options actually have a cost to compare.
+ */
+export function isLowestCostSupplierOption(item, option) {
+  if (countSupplierOptionsWithCost(item) < 2) {
+    return false;
+  }
+
+  const cost = Number(option?.cost_price);
+  return Number.isFinite(cost) && cost > 0 && cost === getLowestSupplierCost(item);
+}
+
+/**
+ * Per-unit margin of a quotation line: the discounted sale price minus the
+ * cheapest sourcing cost, plus that margin as a percentage of cost.
+ *
+ * Percentage uses cost as the base (markup over cost), matching how product
+ * price insights report margin elsewhere in the app. Both sale price and
+ * supplier cost are entered in the same line unit, so this stays consistent.
+ * Returns nulls when there is no cost to compare against or no sale price yet.
+ */
+export function computeQuotationLineMargin(item) {
+  const cost = getLowestSupplierCost(item);
+
+  if (cost === null || !hasValue(item?.sale_price)) {
+    return { cost, unitMargin: null, percent: null };
+  }
+
+  const salePrice = Number(item?.sale_price);
+  if (!Number.isFinite(salePrice)) {
+    return { cost, unitMargin: null, percent: null };
+  }
+
+  const netUnitPrice = salePrice * getDiscountMultiplier(item);
+  const unitMargin = netUnitPrice - cost;
+  const percent = cost > 0 ? (unitMargin / cost) * 100 : null;
+
+  return { cost, unitMargin, percent };
+}
+
+/**
+ * Suggested sale price that preserves this product's typical historical markup
+ * on the line's cheapest current sourcing cost:
+ *
+ *   suggested = lowestSupplierCost x (averageRecentSalePrice / averageUnitCost)
+ *
+ * Both historical averages must come from the same selected unit so the ratio
+ * (the typical markup) is unit-independent. Returns null when there is no
+ * sourcing cost yet or no usable price history to anchor the markup.
+ */
+export function computeSuggestedSalePrice(item, averageUnitCost, averageRecentSalePrice) {
+  const cost = getLowestSupplierCost(item);
+  if (cost === null) {
+    return null;
+  }
+
+  const avgCost = Number(averageUnitCost);
+  const avgSale = Number(averageRecentSalePrice);
+  if (!Number.isFinite(avgCost) || avgCost <= 0 || !Number.isFinite(avgSale) || avgSale <= 0) {
+    return null;
+  }
+
+  return cost * (avgSale / avgCost);
+}
+
 export function formatStockQuantity(value) {
   return formatNumber(value, null, {
     maximumFractionDigits: 6,

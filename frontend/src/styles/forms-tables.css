@@ -742,6 +742,76 @@ label textarea:focus,
   grid-area: sale;
 }
 
+.quotation-suggested-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-deep);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: help;
+}
+
+.quotation-line-margin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.quotation-line-margin-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.quotation-line-margin-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.quotation-line-margin-percent {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.quotation-line-margin-positive .quotation-line-margin-value,
+.quotation-line-margin-positive .quotation-line-margin-percent {
+  color: #0f5a3d;
+}
+
+.quotation-line-margin-negative .quotation-line-margin-value,
+.quotation-line-margin-negative .quotation-line-margin-percent {
+  color: #b42318;
+}
+
+.quotation-supplier-best-flag {
+  display: inline-flex;
+  align-items: center;
+  grid-column: 2;
+  justify-self: start;
+  align-self: start;
+  padding: 2px 8px;
+  border: 1px solid #b7e3c6;
+  border-radius: 999px;
+  background: #f0faf4;
+  color: #0f5a3d;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .quotation-item-suppliers {
   grid-area: suppliers;
   width: 100%;
@@ -756,21 +826,20 @@ label textarea:focus,
 }
 
 .quotation-supplier-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr 130px auto;
+  column-gap: 8px;
+  row-gap: 4px;
+  align-items: end;
 }
 
 .quotation-supplier-row .supplier-combobox-field {
-  flex: 1 1 220px;
   min-width: 0;
 }
 
 .quotation-supplier-cost {
   display: grid;
   gap: 7px;
-  flex: 0 0 130px;
   margin: 0;
   color: var(--muted);
   font-size: 0.82rem;

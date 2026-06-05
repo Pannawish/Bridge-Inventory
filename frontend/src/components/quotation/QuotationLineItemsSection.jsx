@@ -9,9 +9,21 @@ import {
 import { isProductActive } from "../products/productUtils";
 import {
   computeAmount,
+  computeQuotationLineMargin,
+  computeSuggestedSalePrice,
   findProductForItem,
+  isLowestCostSupplierOption,
   normalizeDiscounts,
 } from "./quotationUtils";
+
+function formatMarginPercent(value) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+    return "";
+  }
+
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(1)}%`;
+}
 
 function QuotationLineItemsSection({
   items,
@@ -57,6 +69,20 @@ function QuotationLineItemsSection({
         );
         const recentAverageSalePriceForSelectedUnit =
           getAverageRecentSalePriceForSelectedUnit(selectedProduct, item.unit);
+        const marginUnit = item.unit || getProductDefaultSalesUnit(selectedProduct);
+        const lineMargin = computeQuotationLineMargin(item);
+        const marginTone =
+          lineMargin.unitMargin === null
+            ? "neutral"
+            : lineMargin.unitMargin >= 0
+              ? "positive"
+              : "negative";
+        const marginPercentText = formatMarginPercent(lineMargin.percent);
+        const suggestedSalePrice = computeSuggestedSalePrice(
+          item,
+          averageCostForSelectedUnit,
+          recentAverageSalePriceForSelectedUnit
+        );
 
         return (
           <div className="line-item-row quotation-line-item-row" key={item.line_id}>
@@ -192,6 +218,33 @@ function QuotationLineItemsSection({
                   })}
                 </span>
               ) : null}
+              {suggestedSalePrice !== null ? (
+                <span
+                  className="quotation-suggested-price"
+                  title={t("quotation.suggestedPriceHint")}
+                >
+                  {t("quotation.suggestedPrice", {
+                    amount: fmt(suggestedSalePrice),
+                    unit: marginUnit,
+                  })}
+                </span>
+              ) : null}
+              {lineMargin.unitMargin !== null ? (
+                <div className={`quotation-line-margin quotation-line-margin-${marginTone}`}>
+                  <span className="quotation-line-margin-label">
+                    {t("quotation.lineMargin")}
+                  </span>
+                  <span className="quotation-line-margin-value">
+                    {t("quotation.marginValue", {
+                      amount: fmt(lineMargin.unitMargin),
+                      unit: marginUnit,
+                    })}
+                    {marginPercentText ? (
+                      <span className="quotation-line-margin-percent">{marginPercentText}</span>
+                    ) : null}
+                  </span>
+                </div>
+              ) : null}
             </label>
 
             <div className="purchase-item-field quotation-item-discounts">
@@ -289,6 +342,11 @@ function QuotationLineItemsSection({
                     >
                       {t("quotation.removeSupplierOption")}
                     </button>
+                    {isLowestCostSupplierOption(item, option) ? (
+                      <span className="quotation-supplier-best-flag">
+                        {t("quotation.lowestCost")}
+                      </span>
+                    ) : null}
                   </div>
                 ))}
                 <button
