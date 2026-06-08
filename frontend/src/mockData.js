@@ -1356,6 +1356,132 @@ function buildMockCashflow(billingNotes, paymentBatches) {
   };
 }
 
+// Look-back windows for the popular-products panel, 1 day … 3 years (max).
+const COVERAGE_POPULAR_WINDOWS = [
+  { key: "1d", label: "1D", days: 1 },
+  { key: "1w", label: "1W", days: 7 },
+  { key: "1m", label: "1M", days: 30 },
+  { key: "3m", label: "3M", days: 90 },
+  { key: "1y", label: "1Y", days: 365 },
+  { key: "3y", label: "3Y", days: 1095 },
+];
+
+// Order-coverage pipeline for offline/mock mode — mirrors the backend's
+// build_order_coverage_segment. Left: open customer demand split into On hand /
+// Delivering / Ordered-no-PO, sized by units and money. Right: popular sold
+// products by supplier across look-back windows.
+function buildMockOrderCoverage(stockReport, purchases, sales) {
+  // Supplier each product is mostly sourced from, from its recent purchases.
+  const supplierByProduct = new Map();
+  purchases.forEach((purchase) => {
+    (purchase.items || []).forEach((item) => {
+      if (item.product_id && purchase.supplier_name) {
+        supplierByProduct.set(item.product_id, purchase.supplier_name);
+      }
+    });
+  });
+
+  const states = {
+    ready: { units: 0, value: 0 },
+    incoming: { units: 0, value: 0 },
+    gap: { units: 0, value: 0 },
+  };
+
+  stockReport.forEach((row) => {
+    const demand = Number(row.pending_sales_units || 0);
+    if (demand <= 0) return;
+
+    const config = getProductConfig(row.product_id);
+    const pricePerUnit = Number(config.salePrice || row.unit_cost || 0);
+    const available = Math.max(0, Number(row.available_stock || 0));
+    const incoming = Math.max(0, Number(row.incoming_purchase_units || 0));
+
+    const ready = Math.min(demand, available);
+    const incomingCov = Math.min(demand - ready, incoming);
+    const gap = Math.max(0, demand - ready - incomingCov);
+
+    states.ready.units += ready;
+    states.ready.value += ready * pricePerUnit;
+    states.incoming.units += incomingCov;
+    states.incoming.value += incomingCov * pricePerUnit;
+    states.gap.units += gap;
+    states.gap.value += gap * pricePerUnit;
+  });
+
+  const totalUnits = states.ready.units + states.incoming.units + states.gap.units;
+  const totalValue = states.ready.value + states.incoming.value + states.gap.value;
+  const coveredUnits = states.ready.units + states.incoming.units;
+  const coveragePct = totalUnits > 0 ? Math.round((coveredUnits / totalUnits) * 100) : 0;
+
+  // Popular sold products per nested (ends-today) look-back window.
+  const earliestByWindow = COVERAGE_POPULAR_WINDOWS.map((w) => ({
+    ...w,
+    earliest: formatDate(addDays(TODAY, -(w.days - 1))),
+  }));
+  const buckets = new Map(COVERAGE_POPULAR_WINDOWS.map((w) => [w.key, new Map()]));
+
+  sales.forEach((sale) => {
+    const txn = sale.transaction_date;
+    if (!txn || ["cancelled", "returned"].includes(sale.status)) return;
+    (sale.items || []).forEach((item) => {
+      if (!item.product_id || !DASHBOARD_STOCK_DEDUCT_STATUSES.has(item.item_status)) return;
+      const qty = Number(item.base_quantity || 0);
+      const config = getProductConfig(item.product_id);
+      const amt = Number(item.amount || qty * Number(config.salePrice || 0));
+      const supplierName = supplierByProduct.get(item.product_id) || "";
+      const unit = item.base_unit || item.unit || "";
+      earliestByWindow.forEach((w) => {
+        if (txn < w.earliest) return;
+        const bucket = buckets.get(w.key);
+        let entry = bucket.get(item.product_id);
+        if (!entry) {
+          entry = {
+            product_id: item.product_id,
+            product_name: item.product_name || item.product_id,
+            unit,
+            units: 0,
+            value: 0,
+            suppliers: new Map(),
+          };
+          bucket.set(item.product_id, entry);
+        }
+        entry.units += qty;
+        entry.value += amt;
+        entry.suppliers.set(supplierName, (entry.suppliers.get(supplierName) || 0) + qty);
+      });
+    });
+  });
+
+  const popular = {};
+  COVERAGE_POPULAR_WINDOWS.forEach((w) => {
+    popular[w.key] = [...buckets.get(w.key).values()]
+      .sort((a, b) => b.units - a.units || b.value - a.value)
+      .slice(0, 5)
+      .map((entry) => ({
+        product_id: entry.product_id,
+        product_name: entry.product_name,
+        unit: entry.unit,
+        supplier_name:
+          [...entry.suppliers.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "",
+        units: money(entry.units),
+        value: money(entry.value),
+      }));
+  });
+
+  return {
+    today: formatDate(TODAY),
+    states: {
+      ready: { units: money(states.ready.units), value: money(states.ready.value) },
+      incoming: { units: money(states.incoming.units), value: money(states.incoming.value) },
+      gap: { units: money(states.gap.units), value: money(states.gap.value) },
+    },
+    total: { units: money(totalUnits), value: money(totalValue) },
+    coverage_pct: coveragePct,
+    windows: COVERAGE_POPULAR_WINDOWS.map((w) => ({ key: w.key, label: w.label, days: w.days })),
+    popular,
+  };
+}
+
 function buildDashboard(purchases, sales, billingNotes = [], paymentBatches = []) {
   const stockByProductId = new Map(products.map((product) => [product.id, 0]));
 
@@ -1475,6 +1601,7 @@ function buildDashboard(purchases, sales, billingNotes = [], paymentBatches = []
   return {
     overview: {
       cashflow: buildMockCashflow(billingNotes, paymentBatches),
+      order_coverage: buildMockOrderCoverage(stockReport, purchases, sales),
     },
     metrics: {
       total_products: products.length,

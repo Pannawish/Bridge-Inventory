@@ -1872,6 +1872,16 @@ def build_products_segment(period, today=None):
 
 
 CASHFLOW_FORECAST_WEEKS = 6
+ORDER_COVERAGE_POPULAR_LIMIT = 5
+# Look-back windows for the "popular products" panel, 1 day … 3 years (max).
+POPULAR_WINDOWS = (
+    {"key": "1d", "label": "1D", "days": 1},
+    {"key": "1w", "label": "1W", "days": 7},
+    {"key": "1m", "label": "1M", "days": 30},
+    {"key": "3m", "label": "3M", "days": 90},
+    {"key": "1y", "label": "1Y", "days": 365},
+    {"key": "3y", "label": "3Y", "days": 1095},
+)
 
 
 def build_cashflow_segment(period=None, today=None):
@@ -1960,12 +1970,211 @@ def build_cashflow_segment(period=None, today=None):
     }
 
 
+def _build_popular_products(today, windows, limit):
+    """Top-selling products per look-back window (1 day … 3 years) with the
+    supplier they were mostly sourced from. Sold lines are read once over the
+    widest window, then folded into every shorter window they also fall inside,
+    so the dashboard can switch windows client-side with no refetch."""
+    if not windows:
+        return {}
+
+    horizon_days = max(window["days"] for window in windows)
+    earliest = today - timedelta(days=horizon_days - 1)
+
+    buckets = {window["key"]: {} for window in windows}
+    lines = (
+        SaleItem.objects.filter(
+            item_status__in=SALE_STOCK_DEDUCTED_STATUSES,
+            product_id__isnull=False,
+            sale__transaction_date__gte=earliest,
+            sale__transaction_date__lte=today,
+        )
+        .exclude(sale__status__in=SALE_INACTIVE_TRANSACTION_STATUSES)
+        .values_list(
+            "product_id",
+            "product_name",
+            "supplier_name",
+            "base_unit",
+            "base_quantity",
+            "amount",
+            "sale__transaction_date",
+        )
+    )
+
+    for product_id, product_name, supplier_name, base_unit, base_qty, amount, txn_date in lines:
+        if not txn_date:
+            continue
+        age = (today - txn_date).days
+        qty = base_qty or Decimal("0")
+        amt = amount or Decimal("0")
+        name = supplier_name or ""
+        for window in windows:
+            if age > window["days"] - 1:
+                continue
+            entry = buckets[window["key"]].get(product_id)
+            if entry is None:
+                entry = {
+                    "product_id": product_id,
+                    "product_name": product_name,
+                    "unit": base_unit or "",
+                    "units": Decimal("0"),
+                    "value": Decimal("0"),
+                    "suppliers": {},
+                }
+                buckets[window["key"]][product_id] = entry
+            entry["units"] += qty
+            entry["value"] += amt
+            entry["suppliers"][name] = entry["suppliers"].get(name, Decimal("0")) + qty
+
+    popular = {}
+    for window in windows:
+        ranked = sorted(
+            buckets[window["key"]].values(),
+            key=lambda e: (e["units"], e["value"]),
+            reverse=True,
+        )[:limit]
+        popular[window["key"]] = [
+            {
+                "product_id": entry["product_id"],
+                "product_name": entry["product_name"],
+                "unit": entry["unit"],
+                "supplier_name": (
+                    max(entry["suppliers"].items(), key=lambda kv: kv[1])[0]
+                    if entry["suppliers"]
+                    else ""
+                ),
+                "units": as_number(entry["units"]),
+                "value": as_number(entry["value"]),
+            }
+            for entry in ranked
+        ]
+    return popular
+
+
+def build_order_coverage_segment(period=None, today=None):
+    """Order-coverage pipeline for the dashboard footer.
+
+    Splits open customer demand (pending sale-order lines) into three coverage
+    states for a sourcing middle-man: **Ready** (free stock on hand),
+    **Incoming** (covered by an open purchase order) and **Gap** (must raise a
+    PO). Demand is consumed greedily — oldest orders first — against per-product
+    free stock then the incoming-PO pool, so one line can split across states.
+    Sizes are tracked in both ``units`` (base quantity) and ``value`` (sale-line
+    amount). Also returns top-selling products per look-back window with their
+    main supplier.
+
+    Open demand mirrors the ``pending_sales_units`` definition in
+    :func:`build_stock_report`. ``period`` is accepted for a uniform
+    segment-builder signature but ignored — this view is point-in-time.
+    """
+    today = today or timezone.localdate()
+
+    open_lines = list(
+        SaleItem.objects.filter(
+            item_status=SaleItem.ITEM_PENDING,
+            product_id__isnull=False,
+        )
+        .exclude(sale__status__in=SALE_INACTIVE_TRANSACTION_STATUSES)
+        .select_related("sale", "product")
+        .order_by("sale__transaction_date", "sale__created_at", "id")
+    )
+
+    product_ids = {item.product_id for item in open_lines}
+
+    # Per-product supply pools, consumed as demand is classified.
+    available_by_product = get_available_stock_by_product_id(
+        product_ids=product_ids or None
+    )
+    incoming_by_product = {
+        row["product_id"]: row["total"] or Decimal("0")
+        for row in (
+            PurchaseItem.objects.filter(
+                item_status=PurchaseItem.ITEM_PENDING,
+                product_id__in=product_ids,
+            )
+            .values("product_id")
+            .annotate(total=Sum("base_quantity"))
+        )
+    }
+    states = {
+        "ready": {"units": Decimal("0"), "value": Decimal("0")},
+        "incoming": {"units": Decimal("0"), "value": Decimal("0")},
+        "gap": {"units": Decimal("0"), "value": Decimal("0")},
+    }
+
+    for item in open_lines:
+        product_id = item.product_id
+        demand = item.base_quantity or Decimal("0")
+        if demand <= 0:
+            continue
+
+        amount = item.amount or Decimal("0")
+        value_per_unit = amount / demand
+
+        # On hand: cover from free stock on hand.
+        free = max(Decimal("0"), available_by_product.get(product_id, Decimal("0")))
+        ready_units = min(demand, free)
+        if ready_units > 0:
+            available_by_product[product_id] = free - ready_units
+            states["ready"]["units"] += ready_units
+            states["ready"]["value"] += ready_units * value_per_unit
+
+        remaining = demand - ready_units
+
+        # Delivering: cover the rest from open purchase orders on the way.
+        incoming_units = Decimal("0")
+        if remaining > 0:
+            pool = max(Decimal("0"), incoming_by_product.get(product_id, Decimal("0")))
+            incoming_units = min(remaining, pool)
+            if incoming_units > 0:
+                incoming_by_product[product_id] = pool - incoming_units
+                states["incoming"]["units"] += incoming_units
+                states["incoming"]["value"] += incoming_units * value_per_unit
+
+        remaining -= incoming_units
+
+        # Gap: ordered, no stock and no PO.
+        if remaining > 0:
+            states["gap"]["units"] += remaining
+            states["gap"]["value"] += remaining * value_per_unit
+
+    total_units = sum((s["units"] for s in states.values()), Decimal("0"))
+    total_value = sum((s["value"] for s in states.values()), Decimal("0"))
+    covered_units = states["ready"]["units"] + states["incoming"]["units"]
+    coverage_pct = (
+        int((covered_units / total_units * Decimal("100")).to_integral_value(ROUND_HALF_UP))
+        if total_units > 0
+        else 0
+    )
+
+    return {
+        "today": today.isoformat(),
+        "states": {
+            name: {
+                "units": as_number(values["units"]),
+                "value": as_number(values["value"]),
+            }
+            for name, values in states.items()
+        },
+        "total": {
+            "units": as_number(total_units),
+            "value": as_number(total_value),
+        },
+        "coverage_pct": coverage_pct,
+        "windows": [dict(window) for window in POPULAR_WINDOWS],
+        "popular": _build_popular_products(
+            today, POPULAR_WINDOWS, ORDER_COVERAGE_POPULAR_LIMIT
+        ),
+    }
+
+
 def build_dashboard_segment(segment, period, today=None):
     builders = {
         "finance": build_finance_segment,
         "trend": build_trend_segment,
         "products": build_products_segment,
         "cashflow": build_cashflow_segment,
+        "order_coverage": build_order_coverage_segment,
     }
     builder = builders.get(segment)
     return builder(period, today) if builder else None
@@ -1985,6 +2194,7 @@ def build_dashboard_overview(period=DEFAULT_SEGMENT_PERIOD):
         "trend": build_trend_segment(DEFAULT_SEGMENT_PERIOD, today),
         "products": build_products_segment(DEFAULT_SEGMENT_PERIOD, today),
         "cashflow": build_cashflow_segment(today=today),
+        "order_coverage": build_order_coverage_segment(today=today),
     }
 
 

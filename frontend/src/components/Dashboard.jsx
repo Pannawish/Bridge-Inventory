@@ -326,63 +326,145 @@ function DeliveryPlanningWidget({ stockReport }) {
   );
 }
 
-// ── Cash-flow forecast (footer) ────────────────────────────────────────
-function CashflowForecastWidget({ cashflow }) {
+// ── Order coverage pipeline (footer) ───────────────────────────────────
+// Left: open customer demand split into On hand / Delivering / Ordered-no-PO,
+// sized by units or money. Right: popular sold products by supplier across a
+// selectable look-back window (1 day … 3 years).
+function OrderCoveragePipelineWidget({ coverage }) {
   const { t } = useLanguage();
-  const buckets = cashflow?.buckets || [];
-  const maxFlow = Math.max(
-    1,
-    ...buckets.map((b) => Math.max(num(b.ar_in), num(b.ap_out)))
-  );
+  const [measure, setMeasure] = useState("units"); // "units" | "money"
+  const [windowKey, setWindowKey] = useState("1m");
+  const byMoney = measure === "money";
+
+  const states = coverage?.states || null;
+  const totalUnits = num(coverage?.total?.units);
+  const total = byMoney ? num(coverage?.total?.value) : totalUnits;
+  const windows = Array.isArray(coverage?.windows) ? coverage.windows : [];
+  const activeWindow = windows.some((w) => w.key === windowKey)
+    ? windowKey
+    : windows[0]?.key;
+  const popular = coverage?.popular?.[activeWindow] || [];
+
+  const bands = [
+    { key: "ready", label: t("dashboard.coverage.ready") },
+    { key: "incoming", label: t("dashboard.coverage.incoming") },
+    { key: "gap", label: t("dashboard.coverage.gap") },
+  ];
+
+  const sizeOf = (state) => (byMoney ? num(state?.value) : num(state?.units));
+  const fmtState = (state) =>
+    byMoney ? formatCompact(state?.value) : `${formatUnits(state?.units)}`;
 
   return (
-    <section className="dash-card dash-cashflow">
+    <section className="dash-card dash-coverage">
       <header className="dash-card-head">
         <div>
-          <p className="dash-eyebrow">{t("dashboard.cashflow.eyebrow")}</p>
-          <h3>{t("dashboard.cashflow.title")}</h3>
+          <p className="dash-eyebrow">{t("dashboard.coverage.eyebrow")}</p>
+          <h3>{t("dashboard.coverage.title")}</h3>
         </div>
-        <div className="dash-cashflow-legend">
-          <span><i className="dash-dot flow-in" /> {t("dashboard.cashflow.moneyIn")}</span>
-          <span><i className="dash-dot flow-out" /> {t("dashboard.cashflow.moneyOut")}</span>
+        <div className="dash-cov-toggle" role="group" aria-label={t("dashboard.coverage.title")}>
+          <button
+            type="button"
+            className={`dash-cov-toggle-btn${!byMoney ? " is-active" : ""}`}
+            onClick={() => setMeasure("units")}
+          >
+            {t("dashboard.coverage.byUnits")}
+          </button>
+          <button
+            type="button"
+            className={`dash-cov-toggle-btn${byMoney ? " is-active" : ""}`}
+            onClick={() => setMeasure("money")}
+          >
+            {t("dashboard.coverage.byMoney")}
+          </button>
         </div>
       </header>
 
-      {buckets.length === 0 ? (
-        <p className="dash-empty">{t("dashboard.cashflow.empty")}</p>
+      {totalUnits <= 0 ? (
+        <p className="dash-empty">{t("dashboard.coverage.empty")}</p>
       ) : (
-        <div className="dash-cf-plot">
-          {buckets.map((bucket) => {
-            const inPct = (num(bucket.ar_in) / maxFlow) * 100;
-            const outPct = (num(bucket.ap_out) / maxFlow) * 100;
-            const net = num(bucket.net);
-            return (
-              <div className={`dash-cf-col${bucket.is_overdue ? " is-overdue" : ""}`} key={bucket.key}>
-                <div className="dash-cf-up">
+        <div className="dash-cov-body">
+          <div className="dash-cov-main">
+            <div className="dash-cov-headline">
+              <strong>{num(coverage?.coverage_pct)}%</strong>
+              <span>{t("dashboard.coverage.fulfillable")}</span>
+            </div>
+            <div
+              className="dash-segbar dash-cov-bar"
+              role="img"
+              aria-label={t("dashboard.coverage.title")}
+            >
+              {bands.map((band) => {
+                const state = states?.[band.key];
+                const pct = total > 0 ? (sizeOf(state) / total) * 100 : 0;
+                if (pct <= 0) return null;
+                return (
                   <span
-                    className="dash-cf-bar flow-in"
-                    style={{ height: `${inPct}%` }}
-                    title={`${t("dashboard.cashflow.moneyIn")} ${formatCompact(bucket.ar_in)}`}
+                    key={band.key}
+                    className={`dash-segbar-part seg-${band.key}`}
+                    style={{ width: `${pct}%` }}
+                    title={`${band.label}: ${fmtState(state)}`}
                   />
-                </div>
-                <div className="dash-cf-axis" />
-                <div className="dash-cf-down">
-                  <span
-                    className="dash-cf-bar flow-out"
-                    style={{ height: `${outPct}%` }}
-                    title={`${t("dashboard.cashflow.moneyOut")} ${formatCompact(bucket.ap_out)}`}
-                  />
-                </div>
-                <span className={`dash-cf-net ${net >= 0 ? "tone-positive" : "tone-danger"}`}>
-                  {net >= 0 ? "+" : "−"}
-                  {formatCompact(Math.abs(net)).replace("฿", "")}
-                </span>
-                <span className={`dash-cf-label${bucket.is_overdue ? " is-overdue" : ""}`}>
-                  {bucket.is_overdue ? t("dashboard.cashflow.overdue") : bucket.label}
-                </span>
+                );
+              })}
+            </div>
+            <ul className="dash-cov-legend">
+              {bands.map((band) => (
+                <li className="dash-cov-legend-item" key={band.key}>
+                  <span className={`dash-dot seg-${band.key}`} />
+                  <span className="dash-cov-legend-label">{band.label}</span>
+                  <span className="dash-cov-legend-value">{fmtState(states?.[band.key])}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="dash-pop">
+            <div className="dash-pop-head">
+              <p className="dash-pop-title">{t("dashboard.coverage.popular")}</p>
+              <div
+                className="dash-pop-windows"
+                role="group"
+                aria-label={t("dashboard.coverage.popular")}
+              >
+                {windows.map((w) => (
+                  <button
+                    key={w.key}
+                    type="button"
+                    className={`dash-pop-window-btn${w.key === activeWindow ? " is-active" : ""}`}
+                    onClick={() => setWindowKey(w.key)}
+                  >
+                    {w.label}
+                  </button>
+                ))}
               </div>
-            );
-          })}
+            </div>
+            {popular.length === 0 ? (
+              <p className="dash-pop-empty">{t("dashboard.coverage.popularEmpty")}</p>
+            ) : (
+              <ul className="dash-pop-list">
+                {popular.map((item, index) => (
+                  <li className="dash-pop-row" key={item.product_id || index}>
+                    <span className="dash-pop-rank">{index + 1}</span>
+                    <span className="dash-pop-name" title={item.product_name}>
+                      {item.product_name || "—"}
+                    </span>
+                    <span className="dash-pop-metric">
+                      {byMoney
+                        ? formatCompact(item.value)
+                        : `${formatUnits(item.units)} ${item.unit || ""}`}
+                    </span>
+                    <span
+                      className="dash-pop-supplier"
+                      title={item.supplier_name || t("dashboard.coverage.noSupplier")}
+                    >
+                      {item.supplier_name || t("dashboard.coverage.noSupplier")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
     </section>
@@ -395,6 +477,7 @@ function Dashboard({ dashboard }) {
     [dashboard]
   );
   const cashflow = dashboard?.overview?.cashflow || null;
+  const coverage = dashboard?.overview?.order_coverage || null;
 
   const reorderItems = useMemo(() => {
     return stockReport
@@ -436,7 +519,7 @@ function Dashboard({ dashboard }) {
         <StockCyclingWidget stockReport={stockReport} />
         <DeliveryPlanningWidget stockReport={stockReport} />
       </div>
-      <CashflowForecastWidget cashflow={cashflow} />
+      <OrderCoveragePipelineWidget coverage={coverage} />
     </div>
   );
 }
