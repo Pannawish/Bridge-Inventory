@@ -1,4 +1,5 @@
 import { useLanguage } from "../../i18n/LanguageContext";
+import { printTransactionDocument } from "../documentRefs/printTransactionDocument";
 import TransactionDetailFields from "./TransactionDetailFields";
 import TransactionDetailItemsSection from "./TransactionDetailItemsSection";
 import TransactionDetailSummary from "./TransactionDetailSummary";
@@ -78,6 +79,20 @@ function TransactionDetailModal({
                 {t("transactionTable.saveSaleUpdates")}
               </button>
             ) : null}
+            <button
+              className="secondary-button table-action-button"
+              type="button"
+              onClick={() =>
+                printTransactionDocument({
+                  docType: type,
+                  doc: selectedRow,
+                  referenceNo: selectedRow.reference_no,
+                  t,
+                })
+              }
+            >
+              {t("common.print")}
+            </button>
             <button
               className="secondary-button table-action-button"
               type="button"

@@ -3,6 +3,7 @@ import { formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import DocumentRefChip from "../DocumentRefChip";
 import DocumentRefModal from "../DocumentRefModal";
+import { printTransactionDocument } from "../documentRefs/printTransactionDocument";
 import CreditNoteStatusPill from "./CreditNoteStatusPill";
 import {
   CREDIT_NOTE_STATUS_LABEL_KEYS,
@@ -59,6 +60,20 @@ function CreditNoteDetailModal({
           </div>
           <div className="section-heading-actions">
             <CreditNoteStatusPill status={draft.status} />
+            <button
+              type="button"
+              className="secondary-button table-action-button"
+              onClick={() =>
+                printTransactionDocument({
+                  docType: "credit-note",
+                  doc: draft,
+                  referenceNo: draft.reference_no,
+                  t,
+                })
+              }
+            >
+              {t("common.print")}
+            </button>
             <button
               type="button"
               className="icon-button subtle"

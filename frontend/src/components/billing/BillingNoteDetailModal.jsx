@@ -2,6 +2,7 @@ import { formatDate, formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import DocumentRefChip from "../DocumentRefChip";
 import DocumentRefModal from "../DocumentRefModal";
+import { printTransactionDocument } from "../documentRefs/printTransactionDocument";
 import BillingNoteStatusPill from "./BillingNoteStatusPill";
 import useBillingNoteDetailState from "./useBillingNoteDetailState";
 
@@ -45,6 +46,20 @@ function BillingNoteDetailModal({
           </div>
           <div className="section-heading-actions">
             <BillingNoteStatusPill status={draft.status} />
+            <button
+              type="button"
+              className="secondary-button table-action-button"
+              onClick={() =>
+                printTransactionDocument({
+                  docType: "billing-note",
+                  doc: draft,
+                  referenceNo: draft.reference_no,
+                  t,
+                })
+              }
+            >
+              {t("common.print")}
+            </button>
             <button
               type="button"
               className="icon-button subtle"

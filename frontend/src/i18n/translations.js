@@ -100,6 +100,7 @@ export const translations = {
       edit: "Edit",
       delete: "Delete",
       close: "Close",
+      print: "Print",
       search: "Search",
       filter: "Filter",
       reset: "Reset",
@@ -471,6 +472,7 @@ export const translations = {
     documentRef: {
       open: "Open {label}",
       back: "← Back",
+      printedAt: "Printed at",
       loading: "Loading…",
       failed: "Failed to load document.",
       quotation: "Quotation",
@@ -1892,6 +1894,7 @@ export const translations = {
       edit: "แก้ไข",
       delete: "ลบ",
       close: "ปิด",
+      print: "พิมพ์",
       search: "ค้นหา",
       filter: "ตัวกรอง",
       reset: "รีเซ็ต",
@@ -2262,6 +2265,7 @@ export const translations = {
     documentRef: {
       open: "เปิด {label}",
       back: "← ย้อนกลับ",
+      printedAt: "พิมพ์เมื่อ",
       loading: "กำลังโหลด…",
       failed: "โหลดเอกสารไม่สำเร็จ",
       quotation: "ใบเสนอราคา",

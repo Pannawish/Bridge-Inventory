@@ -3,6 +3,7 @@ import { useLanguage } from "../../i18n/LanguageContext";
 import DocumentRefChip from "../DocumentRefChip";
 import DocumentRefModal from "../DocumentRefModal";
 import PaymentLineAmount from "../PaymentLineAmount";
+import { printTransactionDocument } from "../documentRefs/printTransactionDocument";
 import PaymentBatchStatusPill from "./PaymentBatchStatusPill";
 import usePaymentBatchDetailState from "./usePaymentBatchDetailState";
 
@@ -44,6 +45,20 @@ function PaymentBatchDetailModal({
           </div>
           <div className="section-heading-actions">
             <PaymentBatchStatusPill status={draft.status} />
+            <button
+              type="button"
+              className="secondary-button table-action-button"
+              onClick={() =>
+                printTransactionDocument({
+                  docType: "payment-batch",
+                  doc: draft,
+                  referenceNo: draft.reference_no,
+                  t,
+                })
+              }
+            >
+              {t("common.print")}
+            </button>
             <button
               type="button"
               className="icon-button subtle"

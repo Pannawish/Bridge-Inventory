@@ -2,14 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../i18n/LanguageContext";
 import DocumentRefBody from "./documentRefs/DocumentRefBody";
 import { buildDocConfig } from "./documentRefs/documentRefConfig";
+import { printTransactionDocument } from "./documentRefs/printTransactionDocument";
 
 function DocumentRefModal({ docType, docId, referenceNo, onClose }) {
   const { t } = useLanguage();
   const [stack, setStack] = useState([{ docType, docId, referenceNo }]);
+  const [loadedDoc, setLoadedDoc] = useState(null);
 
   // A fresh open (props change) resets the drill-down stack.
   useEffect(() => {
     setStack([{ docType, docId, referenceNo }]);
+    setLoadedDoc(null);
   }, [docType, docId, referenceNo]);
 
   const entry = stack[stack.length - 1];
@@ -52,6 +55,22 @@ function DocumentRefModal({ docType, docId, referenceNo, onClose }) {
                 {t("documentRef.back")}
               </button>
             )}
+            {loadedDoc ? (
+              <button
+                type="button"
+                className="secondary-button table-action-button"
+                onClick={() =>
+                  printTransactionDocument({
+                    docType: entry.docType,
+                    doc: loadedDoc,
+                    referenceNo: entry.referenceNo,
+                    t,
+                  })
+                }
+              >
+                {t("common.print")}
+              </button>
+            ) : null}
             <button
               type="button"
               className="secondary-button table-action-button"
@@ -62,7 +81,7 @@ function DocumentRefModal({ docType, docId, referenceNo, onClose }) {
           </div>
         </div>
 
-        <DocumentRefBody entry={entry} onOpenRef={openRef} />
+        <DocumentRefBody entry={entry} onOpenRef={openRef} onLoadedDoc={setLoadedDoc} />
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import DocumentRefChip from "../DocumentRefChip";
+import { printTransactionDocument } from "../documentRefs/printTransactionDocument";
 import { formatDate, formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import {
@@ -57,6 +58,20 @@ function QuotationDetailModal({
           <div className="transaction-detail-actions">
             <button className="edit-button table-action-button" type="button" onClick={onEdit}>
               {t("quotation.editButton")}
+            </button>
+            <button
+              className="secondary-button table-action-button"
+              type="button"
+              onClick={() =>
+                printTransactionDocument({
+                  docType: "quotation",
+                  doc: quotation,
+                  referenceNo: quotation.reference_no,
+                  t,
+                })
+              }
+            >
+              {t("common.print")}
             </button>
             <button
               className="table-action-button"
