@@ -150,6 +150,72 @@ def resolve_customer(customer_id=None, customer_name=""):
     return None
 
 
+def get_selected_list_value(values, index=0):
+    cleaned_values = [
+        str(value).strip()
+        for value in (values or [])
+        if str(value or "").strip()
+    ]
+    if not cleaned_values:
+        return ""
+
+    try:
+        selected_index = int(index)
+    except (TypeError, ValueError):
+        selected_index = 0
+
+    if 0 <= selected_index < len(cleaned_values):
+        return cleaned_values[selected_index]
+
+    return cleaned_values[0]
+
+
+def build_business_partner_print_profile(partner, fallback_name="", include_procurement=False):
+    if partner is None:
+        return {
+            "company_name": str(fallback_name or "").strip(),
+            "taxpayer_id": "",
+            "branch": "",
+            "location": "",
+            "shipping_address": "",
+            "email": "",
+            "tel": "",
+            "procurement_name": "",
+            "procurement_tel": "",
+        }
+
+    return {
+        "company_name": partner.company_name or str(fallback_name or "").strip(),
+        "taxpayer_id": partner.taxpayer_id or "",
+        "branch": get_selected_list_value(
+            partner.branches,
+            getattr(partner, "selected_branch_index", 0),
+        ),
+        "location": get_selected_list_value(
+            partner.locations,
+            getattr(partner, "selected_location_index", 0),
+        ),
+        "shipping_address": get_selected_list_value(
+            partner.shipping_addresses,
+            getattr(partner, "selected_shipping_address_index", 0),
+        ),
+        "email": get_selected_list_value(
+            partner.emails,
+            getattr(partner, "selected_email_index", 0),
+        ),
+        "tel": get_selected_list_value(
+            partner.tels,
+            getattr(partner, "selected_tel_index", 0),
+        ),
+        "procurement_name": (
+            getattr(partner, "procurement_name", "") if include_procurement else ""
+        ),
+        "procurement_tel": (
+            getattr(partner, "procurement_tel", "") if include_procurement else ""
+        ),
+    }
+
+
 def strip_existing_item_id(item):
     item.pop("id", None)
     return item
@@ -737,6 +803,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
     )
     source_quotation_reference_no = serializers.SerializerMethodField()
     payment_batch_links = serializers.SerializerMethodField()
+    supplier_profile = serializers.SerializerMethodField()
 
     class Meta:
         model = Purchase
@@ -768,6 +835,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "source_quotation_id",
             "source_quotation_reference_no",
             "payment_batch_links",
+            "supplier_profile",
         ]
         extra_kwargs = {
             "id": {"required": False},
@@ -822,6 +890,13 @@ class PurchaseSerializer(serializers.ModelSerializer):
                 seen.add(batch.id)
                 links.append({"id": batch.id, "reference_no": batch.reference_no or ""})
         return links
+
+    def get_supplier_profile(self, purchase):
+        return build_business_partner_print_profile(
+            purchase.supplier,
+            fallback_name=purchase.supplier_name,
+            include_procurement=True,
+        )
 
     def validate_bill_discount(self, value):
         return validate_percentage_discount(value, "Bill discount")
@@ -1146,6 +1221,7 @@ class SaleSerializer(serializers.ModelSerializer):
     source_quotation_reference_no = serializers.SerializerMethodField()
     billing_note_links = serializers.SerializerMethodField()
     credit_note_links = serializers.SerializerMethodField()
+    customer_profile = serializers.SerializerMethodField()
 
     class Meta:
         model = Sale
@@ -1177,6 +1253,7 @@ class SaleSerializer(serializers.ModelSerializer):
             "source_quotation_reference_no",
             "billing_note_links",
             "credit_note_links",
+            "customer_profile",
         ]
         extra_kwargs = {
             "id": {"required": False},
@@ -1237,6 +1314,12 @@ class SaleSerializer(serializers.ModelSerializer):
             for cn in sale.credit_notes.all()
             if cn.status != "cancelled"
         ]
+
+    def get_customer_profile(self, sale):
+        return build_business_partner_print_profile(
+            sale.customer,
+            fallback_name=sale.customer_name,
+        )
 
     def _add_documents(self, sale, documents):
         for document in documents:
@@ -1421,6 +1504,8 @@ class QuotationSerializer(serializers.ModelSerializer):
     supplier_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     derived_purchase_links = serializers.SerializerMethodField()
     derived_sale_links = serializers.SerializerMethodField()
+    customer_profile = serializers.SerializerMethodField()
+    supplier_profile = serializers.SerializerMethodField()
 
     class Meta:
         model = Quotation
@@ -1446,6 +1531,8 @@ class QuotationSerializer(serializers.ModelSerializer):
             "grand_total",
             "derived_purchase_links",
             "derived_sale_links",
+            "customer_profile",
+            "supplier_profile",
         ]
         extra_kwargs = {
             "id": {"required": False},
@@ -1639,6 +1726,19 @@ class QuotationSerializer(serializers.ModelSerializer):
             {"id": s.id, "reference_no": s.reference_no or ""}
             for s in quotation.derived_sales.all()
         ]
+
+    def get_customer_profile(self, quotation):
+        return build_business_partner_print_profile(
+            quotation.customer,
+            fallback_name=quotation.customer_name,
+        )
+
+    def get_supplier_profile(self, quotation):
+        return build_business_partner_print_profile(
+            quotation.supplier,
+            fallback_name=quotation.supplier_name,
+            include_procurement=True,
+        )
 
     def validate(self, attrs):
         customer_id_value = attrs.pop("customer_id", None)
@@ -1892,6 +1992,7 @@ class BillingNoteSerializer(serializers.ModelSerializer):
     customer_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     credit_notes = BillingNoteCreditSummarySerializer(many=True, read_only=True)
     net_amount = serializers.SerializerMethodField()
+    customer_profile = serializers.SerializerMethodField()
 
     class Meta:
         model = BillingNote
@@ -1910,6 +2011,7 @@ class BillingNoteSerializer(serializers.ModelSerializer):
             "lines",
             "credit_notes",
             "net_amount",
+            "customer_profile",
             "created_at",
             "updated_at",
         ]
@@ -1936,6 +2038,12 @@ class BillingNoteSerializer(serializers.ModelSerializer):
             Decimal("0"),
         )
         return billing_note.total_amount - credits
+
+    def get_customer_profile(self, billing_note):
+        return build_business_partner_print_profile(
+            billing_note.customer,
+            fallback_name=billing_note.customer_name,
+        )
 
     def validate(self, attrs):
         customer_id_value = attrs.pop("customer_id", None)
@@ -2165,6 +2273,7 @@ class PaymentBatchLineSerializer(serializers.ModelSerializer):
 class PaymentBatchSerializer(serializers.ModelSerializer):
     lines = PaymentBatchLineSerializer(many=True, required=False)
     supplier_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    supplier_profile = serializers.SerializerMethodField()
 
     class Meta:
         model = PaymentBatch
@@ -2181,6 +2290,7 @@ class PaymentBatchSerializer(serializers.ModelSerializer):
             "note",
             "total_amount",
             "lines",
+            "supplier_profile",
             "created_at",
             "updated_at",
         ]
@@ -2196,6 +2306,13 @@ class PaymentBatchSerializer(serializers.ModelSerializer):
             "created_at": {"read_only": True},
             "updated_at": {"read_only": True},
         }
+
+    def get_supplier_profile(self, payment_batch):
+        return build_business_partner_print_profile(
+            payment_batch.supplier,
+            fallback_name=payment_batch.supplier_name,
+            include_procurement=True,
+        )
 
     def validate(self, attrs):
         supplier_id_value = attrs.pop("supplier_id", None)
@@ -2388,6 +2505,7 @@ class CreditNoteSerializer(serializers.ModelSerializer):
     customer_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     sale_reference_no = serializers.CharField(read_only=True)
     billing_note_reference_no = serializers.SerializerMethodField()
+    customer_profile = serializers.SerializerMethodField()
 
     class Meta:
         model = CreditNote
@@ -2405,6 +2523,7 @@ class CreditNoteSerializer(serializers.ModelSerializer):
             "note",
             "total_amount",
             "lines",
+            "customer_profile",
             "created_at",
             "updated_at",
         ]
@@ -2423,6 +2542,12 @@ class CreditNoteSerializer(serializers.ModelSerializer):
         if not credit_note.billing_note_id:
             return ""
         return credit_note.billing_note.reference_no
+
+    def get_customer_profile(self, credit_note):
+        return build_business_partner_print_profile(
+            credit_note.customer,
+            fallback_name=credit_note.customer_name,
+        )
 
     def _sale_matches_customer(self, sale, customer, customer_name):
         if customer and sale.customer_id:

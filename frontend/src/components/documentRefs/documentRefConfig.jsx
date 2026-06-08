@@ -92,6 +92,54 @@ function quotationLink(id, referenceNo) {
   return id ? [{ id, reference_no: referenceNo || "" }] : [];
 }
 
+function buildPartySummary(profile, t, { includeProcurement = false } = {}) {
+  if (!profile) {
+    return "—";
+  }
+
+  const lines = [];
+
+  if (profile.company_name) {
+    lines.push(profile.company_name);
+  }
+  if (profile.taxpayer_id) {
+    lines.push(`${t("documentRef.taxId")}: ${profile.taxpayer_id}`);
+  }
+  if (profile.branch) {
+    lines.push(`${t("documentRef.branch")}: ${profile.branch}`);
+  }
+
+  const address = profile.location || profile.shipping_address;
+  if (address) {
+    lines.push(`${t("documentRef.address")}: ${address}`);
+  }
+
+  if (includeProcurement && (profile.procurement_name || profile.procurement_tel)) {
+    const contactBits = [profile.procurement_name, profile.procurement_tel].filter(Boolean);
+    lines.push(`${t("documentRef.contact")}: ${contactBits.join(" · ")}`);
+  } else if (profile.tel) {
+    lines.push(`${t("documentRef.phone")}: ${profile.tel}`);
+  }
+
+  if (profile.email) {
+    lines.push(`${t("documentRef.email")}: ${profile.email}`);
+  }
+
+  return lines.length ? lines.join("\n") : "—";
+}
+
+function getPrintablePurchaseItems(doc) {
+  const activeItems = (doc.items || []).filter((item) => item.item_status !== "cancelled");
+  return activeItems.length ? activeItems : doc.items || [];
+}
+
+function getPrintableSaleItems(doc) {
+  const activeItems = (doc.items || []).filter(
+    (item) => !["cancelled", "returned"].includes(item.item_status)
+  );
+  return activeItems.length ? activeItems : doc.items || [];
+}
+
 function buildPurchasePayableTotals(doc, t) {
   const grand = Number(doc.grand_total) || 0;
   const payable = Number(doc.payable_total);
@@ -187,6 +235,44 @@ export function buildDocConfig(t) {
           links: doc.derived_sale_links || [],
         },
       ],
+      printHeader: (doc) => [
+        {
+          label: t("documentRef.customer"),
+          value: buildPartySummary(doc.customer_profile, t),
+          fullWidth: true,
+        },
+        { label: t("documentRef.dateLabel"), value: formatDate(doc.quotation_date) },
+        { label: t("documentRef.validUntil"), value: formatDate(doc.valid_until_date) },
+        { label: t("documentRef.shippingDate"), value: formatDate(doc.shipping_date) },
+        {
+          label: t("documentRef.colPaymentTerm"),
+          value: paymentTerm(doc.payment_term_type, doc.payment_term_days),
+        },
+        { label: t("documentRef.noteLabel"), value: doc.note || "—", fullWidth: true },
+      ],
+      printItems: (doc) => ({
+        columns: [
+          "#",
+          t("documentRef.colProduct"),
+          t("documentRef.colSKU"),
+          t("documentRef.colQty"),
+          t("documentRef.colUnit"),
+          t("documentRef.colSalePrice"),
+          t("documentRef.colDiscounts"),
+          t("documentRef.colAmount"),
+        ],
+        rows: (doc.items || []).map((item, index) => [
+          index + 1,
+          item.product_name || "—",
+          item.sku || "—",
+          item.quantity,
+          item.unit || "—",
+          fmt(item.sale_price),
+          renderDiscounts(item.discounts),
+          fmt(item.sale_amount),
+        ]),
+      }),
+      printRefs: () => [],
     },
     purchase: {
       label: t("documentRef.purchase"),
@@ -250,6 +336,45 @@ export function buildDocConfig(t) {
           links: doc.payment_batch_links || [],
         },
       ],
+      printHeader: (doc) => [
+        {
+          label: t("documentRef.supplier"),
+          value: buildPartySummary(doc.supplier_profile, t, { includeProcurement: true }),
+          fullWidth: true,
+        },
+        { label: t("documentRef.dateLabel"), value: formatDate(doc.transaction_date) },
+        {
+          label: t("documentRef.colPaymentTerm"),
+          value: paymentTerm(doc.payment_term_type, doc.payment_term_days),
+        },
+        { label: t("documentRef.colPaymentDue"), value: formatDate(doc.payment_date) },
+        { label: t("documentRef.noteLabel"), value: doc.note || "—", fullWidth: true },
+      ],
+      printItems: (doc) => ({
+        columns: [
+          "#",
+          t("documentRef.colProduct"),
+          t("documentRef.colSKU"),
+          t("documentRef.colQty"),
+          t("documentRef.colUnit"),
+          t("documentRef.colExpected"),
+          t("documentRef.colUnitCost"),
+          t("documentRef.colDiscounts"),
+          t("documentRef.colAmount"),
+        ],
+        rows: getPrintablePurchaseItems(doc).map((item, index) => [
+          index + 1,
+          item.product_name || "—",
+          item.sku || "—",
+          item.quantity,
+          item.unit || "—",
+          formatDate(item.expected_delivery_date),
+          fmt(item.unit_cost),
+          renderDiscounts(item.discounts),
+          fmt(item.amount),
+        ]),
+      }),
+      printRefs: () => [],
     },
     sale: {
       label: t("documentRef.sale"),
@@ -319,6 +444,44 @@ export function buildDocConfig(t) {
           links: doc.credit_note_links || [],
         },
       ],
+      printHeader: (doc) => [
+        {
+          label: t("documentRef.customer"),
+          value: buildPartySummary(doc.customer_profile, t),
+          fullWidth: true,
+        },
+        { label: t("documentRef.dateLabel"), value: formatDate(doc.transaction_date) },
+        { label: t("documentRef.customerPORef"), value: doc.customer_po_reference || "—" },
+        {
+          label: t("documentRef.colPaymentTerm"),
+          value: paymentTerm(doc.payment_term_type, doc.payment_term_days),
+        },
+        { label: t("documentRef.colPaymentDue"), value: formatDate(doc.payment_date) },
+        { label: t("documentRef.noteLabel"), value: doc.note || "—", fullWidth: true },
+      ],
+      printItems: (doc) => ({
+        columns: [
+          "#",
+          t("documentRef.colProduct"),
+          t("documentRef.colSKU"),
+          t("documentRef.colQty"),
+          t("documentRef.colUnit"),
+          t("documentRef.colUnitPrice"),
+          t("documentRef.colDiscounts"),
+          t("documentRef.colAmount"),
+        ],
+        rows: getPrintableSaleItems(doc).map((item, index) => [
+          index + 1,
+          item.product_name || "—",
+          item.sku || "—",
+          item.quantity,
+          item.unit || "—",
+          fmt(item.unit_price),
+          renderDiscounts(item.discounts),
+          fmt(item.amount),
+        ]),
+      }),
+      printRefs: () => [],
     },
     "billing-note": {
       label: t("documentRef.billingNote"),
@@ -376,6 +539,45 @@ export function buildDocConfig(t) {
           })),
         },
       ],
+      printHeader: (doc) => [
+        {
+          label: t("documentRef.customer"),
+          value: buildPartySummary(doc.customer_profile, t),
+          fullWidth: true,
+        },
+        { label: t("documentRef.dateLabel"), value: formatDate(doc.billing_note_date) },
+        { label: t("documentRef.expectedPayment"), value: formatDate(doc.expected_payment_date) },
+        { label: t("documentRef.noteLabel"), value: doc.note || "—", fullWidth: true },
+      ],
+      printItems: (doc) => ({
+        columns: [
+          "#",
+          t("documentRef.colReference"),
+          t("documentRef.colSaleDate"),
+          t("documentRef.colPaymentDue"),
+          t("documentRef.colAmount"),
+        ],
+        rows: (doc.lines || []).map((line, index) => [
+          index + 1,
+          line.sale_reference_no || line.sale || "—",
+          formatDate(line.sale_transaction_date),
+          formatDate(line.sale_payment_date),
+          fmt(line.amount),
+        ]),
+      }),
+      printRefs: (doc) =>
+        (doc.credit_notes || []).length > 0
+          ? [
+              {
+                label: t("documentRef.creditNotes"),
+                docType: "credit-note",
+                links: (doc.credit_notes || []).map((cn) => ({
+                  id: cn.id,
+                  reference_no: cn.reference_no || "",
+                })),
+              },
+            ]
+          : [],
     },
     "payment-batch": {
       label: t("documentRef.paymentBatch"),
@@ -422,6 +624,35 @@ export function buildDocConfig(t) {
           })),
         },
       ],
+      printHeader: (doc) => [
+        {
+          label: t("documentRef.supplier"),
+          value: buildPartySummary(doc.supplier_profile, t, { includeProcurement: true }),
+          fullWidth: true,
+        },
+        { label: t("documentRef.dateLabel"), value: formatDate(doc.batch_date) },
+        { label: t("documentRef.plannedPayment"), value: formatDate(doc.planned_payment_date) },
+        { label: t("documentRef.actualPayment"), value: formatDate(doc.actual_payment_date) },
+        { label: t("documentRef.bankReference"), value: doc.bank_reference || "—" },
+        { label: t("documentRef.noteLabel"), value: doc.note || "—", fullWidth: true },
+      ],
+      printItems: (doc) => ({
+        columns: [
+          "#",
+          t("documentRef.colReference"),
+          t("documentRef.colPODate"),
+          t("documentRef.colPaymentDue"),
+          t("documentRef.colAmount"),
+        ],
+        rows: (doc.lines || []).map((line, index) => [
+          index + 1,
+          line.purchase_reference_no || line.purchase || "—",
+          formatDate(line.purchase_transaction_date),
+          formatDate(line.purchase_payment_date),
+          fmt(line.amount),
+        ]),
+      }),
+      printRefs: () => [],
     },
     "credit-note": {
       label: t("documentRef.creditNote"),
@@ -465,6 +696,36 @@ export function buildDocConfig(t) {
             : [],
         },
       ],
+      printHeader: (doc) => [
+        {
+          label: t("documentRef.customer"),
+          value: buildPartySummary(doc.customer_profile, t),
+          fullWidth: true,
+        },
+        { label: t("documentRef.dateLabel"), value: formatDate(doc.credit_note_date) },
+        { label: t("documentRef.sourceSale"), value: doc.sale_reference_no || "—" },
+        { label: t("documentRef.billingNoteLabel"), value: doc.billing_note_reference_no || "—" },
+        { label: t("documentRef.noteLabel"), value: doc.note || "—", fullWidth: true },
+      ],
+      printItems: (doc) => ({
+        columns: [
+          "#",
+          t("documentRef.colProduct"),
+          t("documentRef.colSKU"),
+          t("documentRef.colQty"),
+          t("documentRef.colUnitPrice"),
+          t("documentRef.colAmount"),
+        ],
+        rows: (doc.lines || []).map((line, index) => [
+          index + 1,
+          line.product_name || "—",
+          line.sku || "—",
+          line.quantity,
+          fmt(line.unit_price),
+          fmt(line.amount),
+        ]),
+      }),
+      printRefs: () => [],
     },
   };
 }

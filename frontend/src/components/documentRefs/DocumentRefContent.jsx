@@ -12,14 +12,21 @@ function DocumentRefContent({
     return null;
   }
 
-  const itemTable = config.items(doc);
-  const totals = config.totals ? config.totals(doc) : [];
-  const refGroups = config.refs ? config.refs(doc) : [];
+  const headerBuilder =
+    printMode && config.printHeader ? config.printHeader : config.header;
+  const itemsBuilder = printMode && config.printItems ? config.printItems : config.items;
+  const totalsBuilder =
+    printMode && config.printTotals ? config.printTotals : config.totals;
+  const refsBuilder = printMode && config.printRefs ? config.printRefs : config.refs;
+  const headerFields = headerBuilder ? headerBuilder(doc) : [];
+  const itemTable = itemsBuilder ? itemsBuilder(doc) : { columns: [], rows: [] };
+  const totals = totalsBuilder ? totalsBuilder(doc) : [];
+  const refGroups = refsBuilder ? refsBuilder(doc) : [];
 
   return (
     <>
       <div className="detail-grid">
-        {config.header(doc).map((field) => (
+        {headerFields.map((field) => (
           <div key={field.label} className={field.fullWidth ? "full-width" : undefined}>
             <p className="detail-label">{field.label}</p>
             {field.status !== undefined ? (
