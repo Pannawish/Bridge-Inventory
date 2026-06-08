@@ -1,31 +1,17 @@
-import { useEffect, useRef, useState } from "react";
-import { api } from "../api";
-import { formatMoney as fmt, formatNumber as formatLocaleNumber } from "../format";
+import { useMemo, useState } from "react";
+import { formatNumber as formatLocaleNumber } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
 
-const FALLBACK_PERIOD_OPTIONS = [
-  { value: "1d", label: "Today" },
-  { value: "2d", label: "Last 2 days" },
-  { value: "5d", label: "Last 5 days" },
-  { value: "1w", label: "Last week" },
-  { value: "2w", label: "Last 2 weeks" },
-  { value: "1m", label: "Last month" },
-  { value: "3m", label: "Last 3 months" },
-  { value: "6m", label: "Last 6 months" },
-  { value: "1y", label: "Last year" },
-];
-const DEFAULT_PERIOD = "1m";
+// A product is treated as a "high-cycle" mover when it reorders, on average,
+// at least this often. Slower-but-repeat items fall into "healthy long-cycle"
+// so a wholesaler's every-6-months lines are never mistaken for dead stock.
+const HIGH_CYCLE_MAX_INTERVAL_DAYS = 60;
+const REORDER_PAGE_SIZE = 4;
+const DISPATCH_LIMIT = 5;
+const CYCLE_EXAMPLES = 2;
 
-function formatCurrency(value) {
-  return fmt(value);
-}
-
-function formatNumber(value) {
-  if (value === null || value === undefined) {
-    return "-";
-  }
-
-  return formatLocaleNumber(value);
+function num(value) {
+  return Number(value || 0);
 }
 
 function formatCompact(value) {
@@ -41,325 +27,416 @@ function formatCompact(value) {
   return `${sign}฿${abs.toFixed(0)}`;
 }
 
-function useDashboardSegment(segment, initialData, defaultPeriod) {
-  const [period, setPeriod] = useState(initialData?.period || defaultPeriod);
-  const [data, setData] = useState(initialData || null);
-  const [loading, setLoading] = useState(false);
-  const isFirstRun = useRef(true);
-
-  useEffect(() => {
-    if (isFirstRun.current) {
-      isFirstRun.current = false;
-      if (initialData && initialData.period === period) {
-        return undefined;
-      }
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    api
-      .getDashboardSegment({ segment, period })
-      .then((result) => {
-        if (!cancelled) {
-          setData(result);
-        }
-      })
-      .catch(() => {
-        // Keep the last successful data (e.g. offline / mock mode).
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segment, period]);
-
-  return { period, setPeriod, data, loading };
+function formatUnits(value) {
+  const n = Number(value || 0);
+  return formatLocaleNumber(Math.abs(n) >= 100 ? Math.round(n) : n, null, {
+    maximumFractionDigits: 1,
+  });
 }
 
-function PeriodSelect({ id, value, options, onChange }) {
+function daysBetween(startIso, endIso) {
+  if (!startIso || !endIso) return 0;
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+  return Math.max(0, Math.round((end - start) / 86_400_000));
+}
+
+// Classify how a product moves through stock from its lifetime order history.
+// Returns null for items that have never cycled (so they stay out of the mix).
+function classifyCycle(row) {
+  const cycles = num(row.cycle_count);
+  if (cycles <= 0) return null;
+  if (cycles === 1) return { klass: "oneOff", cyclesPerYear: null };
+
+  const spanDays = daysBetween(row.first_sale_date, row.last_sale_date);
+  const avgInterval = spanDays / (cycles - 1);
+  const cyclesPerYear = avgInterval > 0 ? 365 / avgInterval : null;
+  const klass = avgInterval <= HIGH_CYCLE_MAX_INTERVAL_DAYS ? "high" : "long";
+  return { klass, cyclesPerYear };
+}
+
+function reorderTone(row) {
+  if (row._isCritical) return "danger";
+  if (row._days == null) return "accent";
+  if (row._days <= 3) return "danger";
+  if (row._days <= 7) return "warning";
+  return "accent";
+}
+
+// ── KPI ribbon ─────────────────────────────────────────────────────────
+function KpiRibbon({ metrics, cashflow }) {
   const { t } = useLanguage();
-  return (
-    <label className="dashboard-period" htmlFor={id}>
-      <span className="dashboard-period-label">{t("common.period")}</span>
-      <select
-        id={id}
-        className="dashboard-period-select"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {t(`dashboard.periods.${option.value}`)}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
+  const net = num(cashflow?.net_open);
+  const lowStock = num(metrics?.low_stock_count);
 
-function DashboardKpi({ label, value, helper, tone = "neutral" }) {
-  return (
-    <article className={`dashboard-kpi-card ${tone}`}>
-      <p>{label}</p>
-      <strong>{value}</strong>
-      <span>{helper}</span>
-    </article>
-  );
-}
-
-function FinanceBox({ data, metrics, period, options, onPeriodChange, loading }) {
-  const { t } = useLanguage();
-  const ar = data?.ar || {};
-  const ap = data?.ap || {};
-  const netPosition = Number(data?.net_position || 0);
-  const grossMargin = Number(data?.gross_margin || 0);
-  const totalInventoryValue = Number(metrics?.total_stock_value || 0);
+  const items = [
+    { key: "inventory", label: t("dashboard.ribbon.inventory"), value: formatCompact(metrics?.total_stock_value) },
+    { key: "ar", label: t("dashboard.ribbon.arOpen"), value: formatCompact(cashflow?.ar_total_open), tone: "positive" },
+    { key: "ap", label: t("dashboard.ribbon.apOpen"), value: formatCompact(cashflow?.ap_total_open), tone: "accent" },
+    { key: "net", label: t("dashboard.ribbon.net"), value: formatCompact(net), tone: net >= 0 ? "positive" : "danger" },
+    { key: "skus", label: t("dashboard.ribbon.skus"), value: formatLocaleNumber(metrics?.total_products) },
+    {
+      key: "low",
+      label: t("dashboard.ribbon.lowStock"),
+      value: formatLocaleNumber(lowStock),
+      tone: lowStock > 0 ? "warning" : "neutral",
+    },
+  ];
 
   return (
-    <section className={`section-card dashboard-finance-card${loading ? " is-refreshing" : ""}`}>
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">{t("dashboard.financeEyebrow")}</p>
-          <h3>{t("dashboard.financeTitle")}</h3>
+    <div className="dash-ribbon">
+      {items.map((item) => (
+        <div className={`dash-ribbon-cell tone-${item.tone || "neutral"}`} key={item.key}>
+          <span className="dash-ribbon-label">{item.label}</span>
+          <strong className="dash-ribbon-value">{item.value}</strong>
         </div>
-        <PeriodSelect
-          id="finance-period"
-          value={period}
-          options={options}
-          onChange={onPeriodChange}
-        />
-      </div>
+      ))}
+    </div>
+  );
+}
 
-      <div className="dashboard-finance-kpis">
-        <DashboardKpi
-          label={t("dashboard.arLabel")}
-          value={formatCurrency(ar.outstanding)}
-          helper={t("dashboard.overdue", { amount: formatCurrency(ar.overdue) })}
-          tone={Number(ar.overdue || 0) > 0 ? "warning" : "neutral"}
-        />
-        <DashboardKpi
-          label={t("dashboard.apLabel")}
-          value={formatCurrency(ap.outstanding)}
-          helper={t("dashboard.overdue", { amount: formatCurrency(ap.overdue) })}
-          tone={Number(ap.overdue || 0) > 0 ? "warning" : "neutral"}
-        />
-        <DashboardKpi
-          label={t("dashboard.netPosition")}
-          value={formatCurrency(netPosition)}
-          helper={t("dashboard.netHelper")}
-          tone={netPosition >= 0 ? "positive" : "danger"}
-        />
-        <DashboardKpi
-          label={t("dashboard.inventoryValue")}
-          value={formatCurrency(totalInventoryValue)}
-          helper={t("dashboard.inventoryValueHelper")}
-        />
-        <DashboardKpi
-          label={t("dashboard.sales")}
-          value={formatCurrency(data?.sales_total)}
-          helper={t("dashboard.salesCount", { count: formatNumber(data?.sales_count) })}
-        />
-        <DashboardKpi
-          label={t("dashboard.purchases")}
-          value={formatCurrency(data?.purchase_total)}
-          helper={t("dashboard.purchaseCount", { count: formatNumber(data?.purchase_count) })}
-        />
-        <DashboardKpi
-          label={t("dashboard.grossMargin")}
-          value={formatCurrency(grossMargin)}
-          helper={t("dashboard.marginOfSales", { pct: formatNumber(data?.margin_pct) })}
-          tone={grossMargin < 0 ? "danger" : "positive"}
-        />
+// ── Urgent reorder (hero) ──────────────────────────────────────────────
+function UrgentReorderWidget({ rows }) {
+  const { t } = useLanguage();
+  const [page, setPage] = useState(0);
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / REORDER_PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const start = safePage * REORDER_PAGE_SIZE;
+  const visible = rows.slice(start, start + REORDER_PAGE_SIZE);
+
+  return (
+    <section className="dash-card dash-reorder">
+      <header className="dash-card-head">
+        <div>
+          <p className="dash-eyebrow">{t("dashboard.reorder.eyebrow")}</p>
+          <h3>{t("dashboard.reorder.title")}</h3>
+        </div>
+        {rows.length > REORDER_PAGE_SIZE ? (
+          <div className="dash-pager">
+            <button
+              type="button"
+              className="dash-pager-btn"
+              aria-label={t("dashboard.reorder.prev")}
+              onClick={() => setPage(Math.max(0, safePage - 1))}
+              disabled={safePage === 0}
+            >
+              ◀
+            </button>
+            <span className="dash-pager-label">{`${safePage + 1}/${pageCount}`}</span>
+            <button
+              type="button"
+              className="dash-pager-btn"
+              aria-label={t("dashboard.reorder.next")}
+              onClick={() => setPage(Math.min(pageCount - 1, safePage + 1))}
+              disabled={safePage >= pageCount - 1}
+            >
+              ▶
+            </button>
+          </div>
+        ) : null}
+      </header>
+
+      {rows.length === 0 ? (
+        <p className="dash-empty">{t("dashboard.reorder.empty")}</p>
+      ) : (
+        <ol className="dash-reorder-list">
+          {visible.map((row, index) => {
+            const tone = reorderTone(row);
+            const fill = row._reorder > 0 ? Math.min(100, (row._available / row._reorder) * 100) : 0;
+            const badge = row._isCritical
+              ? t("dashboard.reorder.out")
+              : row._days == null
+                ? "—"
+                : t("dashboard.reorder.days", { n: formatLocaleNumber(row._days) });
+            return (
+              <li className="dash-reorder-row" key={row.product_id || index}>
+                <span className="dash-reorder-rank">{start + index + 1}</span>
+                <div className="dash-reorder-main">
+                  <div className="dash-reorder-toprow">
+                    <span className="dash-reorder-name" title={row.product_name}>
+                      {row.product_name || "—"}
+                    </span>
+                    <span className={`dash-badge tone-${tone}`}>{badge}</span>
+                  </div>
+                  <div className="dash-reorder-track">
+                    <span className={`dash-reorder-fill tone-${tone}`} style={{ width: `${fill}%` }} />
+                  </div>
+                  <div className="dash-reorder-meta">
+                    <span className="dash-reorder-stock">
+                      {formatUnits(row._available)}/{formatUnits(row._reorder)} {row.unit || ""}
+                    </span>
+                    {num(row.recommended_restock) > 0 ? (
+                      <span className="dash-reorder-restock">
+                        +{formatUnits(row.recommended_restock)} {row.unit || ""}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
+  );
+}
+
+// ── Stock cycling segmentation ─────────────────────────────────────────
+function StockCyclingWidget({ stockReport }) {
+  const { t } = useLanguage();
+
+  const mix = useMemo(() => {
+    const buckets = {
+      high: { count: 0, examples: [] },
+      long: { count: 0, examples: [] },
+      oneOff: { count: 0, examples: [] },
+    };
+    const tagged = [];
+    stockReport.forEach((row) => {
+      const result = classifyCycle(row);
+      if (!result) return;
+      tagged.push({ row, ...result });
+      buckets[result.klass].count += 1;
+    });
+    // Fill each band's example names with its strongest movers (by lifetime units).
+    Object.keys(buckets).forEach((klass) => {
+      buckets[klass].examples = tagged
+        .filter((entry) => entry.klass === klass)
+        .sort((a, b) => num(b.row.sales_history_units) - num(a.row.sales_history_units))
+        .slice(0, CYCLE_EXAMPLES)
+        .map((entry) => entry.row.product_name)
+        .filter(Boolean);
+    });
+    return { buckets, total: tagged.length };
+  }, [stockReport]);
+
+  const bands = [
+    { klass: "high", label: t("dashboard.cycling.high") },
+    { klass: "long", label: t("dashboard.cycling.long") },
+    { klass: "oneOff", label: t("dashboard.cycling.oneOff") },
+  ];
+
+  return (
+    <section className="dash-card dash-cycling">
+      <header className="dash-card-head">
+        <div>
+          <p className="dash-eyebrow">{t("dashboard.cycling.eyebrow")}</p>
+          <h3>{t("dashboard.cycling.title")}</h3>
+        </div>
+      </header>
+
+      {mix.total === 0 ? (
+        <p className="dash-empty">{t("dashboard.cycling.empty")}</p>
+      ) : (
+        <>
+          <div className="dash-segbar" role="img" aria-label={t("dashboard.cycling.title")}>
+            {bands.map((band) => {
+              const pct = (mix.buckets[band.klass].count / mix.total) * 100;
+              if (pct <= 0) return null;
+              return (
+                <span
+                  key={band.klass}
+                  className={`dash-segbar-part seg-${band.klass}`}
+                  style={{ width: `${pct}%` }}
+                  title={`${band.label}: ${mix.buckets[band.klass].count}`}
+                />
+              );
+            })}
+          </div>
+          <ul className="dash-cycling-legend">
+            {bands.map((band) => (
+              <li className="dash-cycling-row" key={band.klass}>
+                <span className={`dash-dot seg-${band.klass}`} />
+                <span className="dash-cycling-label">{band.label}</span>
+                <span className="dash-cycling-count">{mix.buckets[band.klass].count}</span>
+                <span className="dash-cycling-examples" title={mix.buckets[band.klass].examples.join(", ")}>
+                  {mix.buckets[band.klass].examples.join(", ") || "—"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+  );
+}
+
+// ── Delivery planning (dispatch + alerts) ──────────────────────────────
+function DeliveryPlanningWidget({ stockReport }) {
+  const { t } = useLanguage();
+
+  const { dispatch, maxPending, delayedSkus, delayedUnits } = useMemo(() => {
+    const pendingRows = stockReport
+      .filter((row) => num(row.pending_sales_units) > 0)
+      .sort((a, b) => num(b.pending_sales_units) - num(a.pending_sales_units));
+    const delayed = stockReport.filter((row) => num(row.delayed_purchase_units) > 0);
+    return {
+      dispatch: pendingRows.slice(0, DISPATCH_LIMIT),
+      maxPending: pendingRows.length ? num(pendingRows[0].pending_sales_units) : 0,
+      delayedSkus: delayed.length,
+      delayedUnits: delayed.reduce((total, row) => total + num(row.delayed_purchase_units), 0),
+    };
+  }, [stockReport]);
+
+  return (
+    <section className="dash-card dash-dispatch">
+      <header className="dash-card-head">
+        <div>
+          <p className="dash-eyebrow">{t("dashboard.dispatch.eyebrow")}</p>
+          <h3>{t("dashboard.dispatch.title")}</h3>
+        </div>
+      </header>
+
+      {dispatch.length === 0 ? (
+        <p className="dash-empty">{t("dashboard.dispatch.empty")}</p>
+      ) : (
+        <ul className="dash-dispatch-list">
+          {dispatch.map((row, index) => {
+            const pending = num(row.pending_sales_units);
+            const fill = maxPending > 0 ? (pending / maxPending) * 100 : 0;
+            return (
+              <li className="dash-dispatch-row" key={row.product_id || index}>
+                <span className="dash-dispatch-name" title={row.product_name}>
+                  {row.product_name || "—"}
+                </span>
+                <span className="dash-dispatch-track">
+                  <span className="dash-dispatch-fill" style={{ width: `${fill}%` }} />
+                </span>
+                <span className="dash-dispatch-qty">
+                  {formatUnits(pending)} {row.unit || ""}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <div className={`dash-dispatch-alert ${delayedSkus > 0 ? "is-alert" : "is-clear"}`}>
+        {delayedSkus > 0 ? (
+          <span>
+            ⚠ {t("dashboard.dispatch.delayed", { skus: formatLocaleNumber(delayedSkus), units: formatUnits(delayedUnits) })}
+          </span>
+        ) : (
+          <span>✓ {t("dashboard.dispatch.noDelays")}</span>
+        )}
       </div>
     </section>
   );
 }
 
-function TrendBox({ data, period, options, onPeriodChange, loading }) {
+// ── Cash-flow forecast (footer) ────────────────────────────────────────
+function CashflowForecastWidget({ cashflow }) {
   const { t } = useLanguage();
-  const series = data?.trend || [];
-  const max = Math.max(
+  const buckets = cashflow?.buckets || [];
+  const maxFlow = Math.max(
     1,
-    ...series.flatMap((point) => [point.sales || 0, point.purchases || 0])
+    ...buckets.map((b) => Math.max(num(b.ar_in), num(b.ap_out)))
   );
-  const showValues = series.length > 0 && series.length <= 8;
-  const ticks = [1, 0.75, 0.5, 0.25, 0].map((ratio) => ({
-    ratio,
-    value: max * ratio,
-  }));
-  const pct = (value) => `${((Number(value) || 0) / max) * 100}%`;
 
   return (
-    <article className={`section-card dashboard-trend-card${loading ? " is-refreshing" : ""}`}>
-      <div className="section-heading">
+    <section className="dash-card dash-cashflow">
+      <header className="dash-card-head">
         <div>
-          <p className="eyebrow">{t("dashboard.trendEyebrow")}</p>
-          <h3>{t("dashboard.trendTitle")}</h3>
+          <p className="dash-eyebrow">{t("dashboard.cashflow.eyebrow")}</p>
+          <h3>{t("dashboard.cashflow.title")}</h3>
         </div>
-        <PeriodSelect
-          id="trend-period"
-          value={period}
-          options={options}
-          onChange={onPeriodChange}
-        />
-      </div>
-      {series.length === 0 ? (
-        <p className="empty-copy">{t("dashboard.noTransactions")}</p>
-      ) : (
-        <>
-          <div className="dashboard-trend-plot">
-            <div className="dashboard-trend-axis" aria-hidden="true">
-              {ticks.map((tick) => (
-                <span key={tick.ratio}>{formatCompact(tick.value)}</span>
-              ))}
-            </div>
-            <div className="dashboard-trend-main">
-              <div className="dashboard-trend-graph">
-                <div className="dashboard-trend-gridlines" aria-hidden="true">
-                  {ticks.map((tick) => (
-                    <span key={tick.ratio} />
-                  ))}
-                </div>
-                <div className="dashboard-trend-cols">
-                  {series.map((point) => (
-                    <div className="dashboard-trend-bars" key={point.key}>
-                      <div
-                        className="dashboard-trend-bar sales"
-                        style={{ height: pct(point.sales) }}
-                        title={`Sales ${formatCurrency(point.sales)}`}
-                      >
-                        {showValues && point.sales > 0 ? (
-                          <span className="dashboard-trend-bar-value">
-                            {formatCompact(point.sales)}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div
-                        className="dashboard-trend-bar purchases"
-                        style={{ height: pct(point.purchases) }}
-                        title={`Purchases ${formatCurrency(point.purchases)}`}
-                      >
-                        {showValues && point.purchases > 0 ? (
-                          <span className="dashboard-trend-bar-value">
-                            {formatCompact(point.purchases)}
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="dashboard-trend-xaxis" aria-hidden="true">
-                {series.map((point) => (
-                  <span className="dashboard-trend-xlabel" key={point.key}>
-                    {point.label}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="dashboard-trend-legend">
-            <span>
-              <i className="dashboard-trend-dot sales" /> {t("dashboard.sales")}
-            </span>
-            <span>
-              <i className="dashboard-trend-dot purchases" /> {t("dashboard.purchases")}
-            </span>
-          </div>
-        </>
-      )}
-    </article>
-  );
-}
-
-function TopProductsBox({ data, period, options, onPeriodChange, loading }) {
-  const { t } = useLanguage();
-  const rows = data?.top_products || [];
-
-  return (
-    <article className={`section-card dashboard-toplist${loading ? " is-refreshing" : ""}`}>
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">{t("dashboard.topEyebrow")}</p>
-          <h3>{t("dashboard.topTitle")}</h3>
+        <div className="dash-cashflow-legend">
+          <span><i className="dash-dot flow-in" /> {t("dashboard.cashflow.moneyIn")}</span>
+          <span><i className="dash-dot flow-out" /> {t("dashboard.cashflow.moneyOut")}</span>
         </div>
-        <PeriodSelect
-          id="products-period"
-          value={period}
-          options={options}
-          onChange={onPeriodChange}
-        />
-      </div>
-      {rows.length === 0 ? (
-        <p className="empty-copy">{t("dashboard.noSales")}</p>
+      </header>
+
+      {buckets.length === 0 ? (
+        <p className="dash-empty">{t("dashboard.cashflow.empty")}</p>
       ) : (
-        <ol className="dashboard-toplist-rows">
-          {rows.map((row, index) => (
-            <li className="dashboard-toplist-row" key={row.product_id || index}>
-              <span className="dashboard-toplist-rank">{index + 1}</span>
-              <span className="dashboard-toplist-name" title={row.product_name}>
-                {row.product_name || "—"}
-              </span>
-              <span className="dashboard-toplist-value">
-                {formatCurrency(row.revenue)}
-                <small className={Number(row.margin) < 0 ? "tone-danger" : "tone-positive"}>
-                  {t("dashboard.sold", {
-                    units: formatNumber(row.units),
-                    margin: formatCurrency(row.margin),
-                  })}
-                </small>
-              </span>
-            </li>
-          ))}
-        </ol>
+        <div className="dash-cf-plot">
+          {buckets.map((bucket) => {
+            const inPct = (num(bucket.ar_in) / maxFlow) * 100;
+            const outPct = (num(bucket.ap_out) / maxFlow) * 100;
+            const net = num(bucket.net);
+            return (
+              <div className={`dash-cf-col${bucket.is_overdue ? " is-overdue" : ""}`} key={bucket.key}>
+                <div className="dash-cf-up">
+                  <span
+                    className="dash-cf-bar flow-in"
+                    style={{ height: `${inPct}%` }}
+                    title={`${t("dashboard.cashflow.moneyIn")} ${formatCompact(bucket.ar_in)}`}
+                  />
+                </div>
+                <div className="dash-cf-axis" />
+                <div className="dash-cf-down">
+                  <span
+                    className="dash-cf-bar flow-out"
+                    style={{ height: `${outPct}%` }}
+                    title={`${t("dashboard.cashflow.moneyOut")} ${formatCompact(bucket.ap_out)}`}
+                  />
+                </div>
+                <span className={`dash-cf-net ${net >= 0 ? "tone-positive" : "tone-danger"}`}>
+                  {net >= 0 ? "+" : "−"}
+                  {formatCompact(Math.abs(net)).replace("฿", "")}
+                </span>
+                <span className={`dash-cf-label${bucket.is_overdue ? " is-overdue" : ""}`}>
+                  {bucket.is_overdue ? t("dashboard.cashflow.overdue") : bucket.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       )}
-    </article>
+    </section>
   );
 }
 
 function Dashboard({ dashboard }) {
-  const overview = dashboard?.overview || {};
-  const periodOptions = overview.period_options?.length
-    ? overview.period_options
-    : FALLBACK_PERIOD_OPTIONS;
-  const defaultPeriod = overview.default_period || DEFAULT_PERIOD;
+  const stockReport = useMemo(
+    () => (Array.isArray(dashboard?.stock_report) ? dashboard.stock_report : []),
+    [dashboard]
+  );
+  const cashflow = dashboard?.overview?.cashflow || null;
 
-  const finance = useDashboardSegment("finance", overview.finance, defaultPeriod);
-  const trend = useDashboardSegment("trend", overview.trend, defaultPeriod);
-  const products = useDashboardSegment("products", overview.products, defaultPeriod);
+  const reorderItems = useMemo(() => {
+    return stockReport
+      .map((row) => {
+        const available = num(row.available_stock ?? row.current_stock);
+        const reorder = num(row.reorder_level);
+        const oversold = num(row.oversold_units);
+        const days =
+          row.days_until_stockout === null || row.days_until_stockout === undefined
+            ? null
+            : Number(row.days_until_stockout);
+        const isCritical = oversold > 0 || available <= 0;
+        return {
+          ...row,
+          _available: available,
+          _reorder: reorder,
+          _oversold: oversold,
+          _days: days,
+          _isCritical: isCritical,
+          _needsReorder: isCritical || (reorder > 0 && available <= reorder),
+        };
+      })
+      .filter((row) => row._needsReorder)
+      .sort((a, b) => {
+        const critDiff = (a._isCritical ? 0 : 1) - (b._isCritical ? 0 : 1);
+        if (critDiff !== 0) return critDiff;
+        const aDays = a._days == null ? Infinity : a._days;
+        const bDays = b._days == null ? Infinity : b._days;
+        if (aDays !== bDays) return aDays - bDays;
+        return num(b.recommended_restock) - num(a.recommended_restock);
+      });
+  }, [stockReport]);
 
   return (
-    <div className="stack-layout dashboard-page">
-      <FinanceBox
-        data={finance.data}
-        metrics={dashboard?.metrics}
-        period={finance.period}
-        options={periodOptions}
-        onPeriodChange={finance.setPeriod}
-        loading={finance.loading}
-      />
-      <section className="dashboard-finance-grid">
-        <TrendBox
-          data={trend.data}
-          period={trend.period}
-          options={periodOptions}
-          onPeriodChange={trend.setPeriod}
-          loading={trend.loading}
-        />
-        <TopProductsBox
-          data={products.data}
-          period={products.period}
-          options={periodOptions}
-          onPeriodChange={products.setPeriod}
-          loading={products.loading}
-        />
-      </section>
+    <div className="dashboard-page">
+      <KpiRibbon metrics={dashboard?.metrics} cashflow={cashflow} />
+      <div className="dash-grid">
+        <UrgentReorderWidget rows={reorderItems} />
+        <StockCyclingWidget stockReport={stockReport} />
+        <DeliveryPlanningWidget stockReport={stockReport} />
+      </div>
+      <CashflowForecastWidget cashflow={cashflow} />
     </div>
   );
 }

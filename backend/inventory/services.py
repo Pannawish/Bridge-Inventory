@@ -1102,6 +1102,10 @@ def create_empty_stock_row(product):
         "oversold_units": Decimal("0"),
         "sales_history_units": Decimal("0"),
         "sales_history_dates": [],
+        # Distinct sale orders this product has appeared in (deducted statuses),
+        # used by the dashboard to classify how a product cycles through stock:
+        # one-off custom sourcing vs. reliable long-cycle vs. fast high-cycle.
+        "sales_order_ids": set(),
         "pending_purchase_units": Decimal("0"),
         "delayed_purchase_units": Decimal("0"),
         "lead_time_sample_days": Decimal("0"),
@@ -1208,6 +1212,7 @@ def build_stock_report():
             row["allocated_sales_units"] += quantity
             row["committed_sales_value"] += item.amount or Decimal("0")
             row["sales_history_units"] += quantity
+            row["sales_order_ids"].add(item.sale_id)
             if item.sale.transaction_date:
                 row["sales_history_dates"].append(item.sale.transaction_date)
         elif item.item_status == SaleItem.ITEM_PENDING:
@@ -1229,6 +1234,10 @@ def build_stock_report():
             else None
         )
         sales_history_days = compute_date_span_days(row["sales_history_dates"])
+        cycle_count = len(row["sales_order_ids"])
+        sale_dates = [d for d in row["sales_history_dates"] if d]
+        first_sale_date = min(sale_dates) if sale_dates else None
+        last_sale_date = max(sale_dates) if sale_dates else None
         average_daily_demand = (
             row["sales_history_units"] / Decimal(sales_history_days)
             if row["sales_history_units"] > 0 and sales_history_days > 0
@@ -1282,6 +1291,9 @@ def build_stock_report():
                 "pending_sales_units": as_number(row["pending_sales_units"]),
                 "oversold_units": as_number(oversold_units),
                 "sales_history_units": as_number(row["sales_history_units"]),
+                "cycle_count": cycle_count,
+                "first_sale_date": first_sale_date.isoformat() if first_sale_date else None,
+                "last_sale_date": last_sale_date.isoformat() if last_sale_date else None,
                 "pending_purchase_units": as_number(row["pending_purchase_units"]),
                 "delayed_purchase_units": as_number(row["delayed_purchase_units"]),
                 "incoming_purchase_units": as_number(
@@ -1859,11 +1871,101 @@ def build_products_segment(period, today=None):
     }
 
 
+CASHFLOW_FORECAST_WEEKS = 6
+
+
+def build_cashflow_segment(period=None, today=None):
+    """Forward-looking cash forecast for the dashboard footer.
+
+    Buckets open receivables (money in, by ``expected_payment_date``) and open
+    payables (money out, by ``planned_payment_date``) into an Overdue bucket
+    plus the next ``CASHFLOW_FORECAST_WEEKS`` weekly windows, so a middle-man
+    trader can spot the weeks where cash dips before it bites. Also returns
+    point-in-time open balances consumed by the dashboard KPI ribbon.
+
+    Open AR/AP mirror the definitions used by :func:`build_finance_segment`.
+    ``period`` is accepted for a uniform segment-builder signature but ignored —
+    this view is horizon-based, not a rolling window.
+    """
+    today = today or timezone.localdate()
+
+    open_billing = BillingNote.objects.exclude(
+        status__in=(BillingNote.STATUS_FULLY_RECEIVED, BillingNote.STATUS_CANCELLED)
+    )
+    open_payment = PaymentBatch.objects.exclude(
+        status__in=(PaymentBatch.STATUS_PAID, PaymentBatch.STATUS_CANCELLED)
+    )
+
+    ar_total_open = open_billing.aggregate(total=Sum("total_amount"))["total"] or Decimal("0")
+    ap_total_open = open_payment.aggregate(total=Sum("total_amount"))["total"] or Decimal("0")
+
+    ar_by_date = {
+        row["expected_payment_date"]: row["total"] or Decimal("0")
+        for row in open_billing.filter(expected_payment_date__isnull=False)
+        .values("expected_payment_date")
+        .annotate(total=Sum("total_amount"))
+    }
+    ap_by_date = {
+        row["planned_payment_date"]: row["total"] or Decimal("0")
+        for row in open_payment.filter(planned_payment_date__isnull=False)
+        .values("planned_payment_date")
+        .annotate(total=Sum("total_amount"))
+    }
+
+    def _sum_due(by_date, start, end):
+        total = Decimal("0")
+        for due_date, amount in by_date.items():
+            if (start is None or due_date >= start) and due_date <= end:
+                total += amount
+        return total
+
+    # Overdue bucket: everything due before today (however far back).
+    overdue_ar = _sum_due(ar_by_date, None, today - timedelta(days=1))
+    overdue_ap = _sum_due(ap_by_date, None, today - timedelta(days=1))
+    buckets = [
+        {
+            "key": "overdue",
+            "label": "Overdue",
+            "is_overdue": True,
+            "ar_in": as_number(overdue_ar),
+            "ap_out": as_number(overdue_ap),
+            "net": as_number(overdue_ar - overdue_ap),
+        }
+    ]
+    for week in range(CASHFLOW_FORECAST_WEEKS):
+        start = today + timedelta(days=7 * week)
+        end = start + timedelta(days=6)
+        ar_in = _sum_due(ar_by_date, start, end)
+        ap_out = _sum_due(ap_by_date, start, end)
+        buckets.append(
+            {
+                "key": start.isoformat(),
+                "label": f"{start.day}/{start.month}",
+                "is_overdue": False,
+                "ar_in": as_number(ar_in),
+                "ap_out": as_number(ap_out),
+                "net": as_number(ar_in - ap_out),
+            }
+        )
+
+    return {
+        "today": today.isoformat(),
+        "horizon_weeks": CASHFLOW_FORECAST_WEEKS,
+        "buckets": buckets,
+        "ar_total_open": as_number(ar_total_open),
+        "ap_total_open": as_number(ap_total_open),
+        "net_open": as_number(ar_total_open - ap_total_open),
+        "overdue_ar": as_number(overdue_ar),
+        "overdue_ap": as_number(overdue_ap),
+    }
+
+
 def build_dashboard_segment(segment, period, today=None):
     builders = {
         "finance": build_finance_segment,
         "trend": build_trend_segment,
         "products": build_products_segment,
+        "cashflow": build_cashflow_segment,
     }
     builder = builders.get(segment)
     return builder(period, today) if builder else None
@@ -1882,6 +1984,7 @@ def build_dashboard_overview(period=DEFAULT_SEGMENT_PERIOD):
         "finance": build_finance_segment(DEFAULT_SEGMENT_PERIOD, today),
         "trend": build_trend_segment(DEFAULT_SEGMENT_PERIOD, today),
         "products": build_products_segment(DEFAULT_SEGMENT_PERIOD, today),
+        "cashflow": build_cashflow_segment(today=today),
     }
 
 

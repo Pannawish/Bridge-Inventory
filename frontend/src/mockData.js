@@ -1291,7 +1291,72 @@ function buildPaymentBatchSummary(paymentBatches) {
   return { outstanding, overdue, paid };
 }
 
-function buildDashboard(purchases, sales) {
+function buildMockCashflow(billingNotes, paymentBatches) {
+  const HORIZON_WEEKS = 6;
+  const openAR = billingNotes.filter(
+    (note) => !["fully_received", "cancelled"].includes(note.status)
+  );
+  const openAP = paymentBatches.filter(
+    (batch) => !["paid", "cancelled"].includes(batch.status)
+  );
+  const arTotal = money(sum(openAR.map((note) => note.total_amount)));
+  const apTotal = money(sum(openAP.map((batch) => batch.total_amount)));
+
+  const bucketSum = (items, dateKey, start, end) =>
+    money(
+      sum(
+        items
+          .filter((item) => {
+            const due = item[dateKey];
+            if (!due) return false;
+            if (start && due < start) return false;
+            return due <= end;
+          })
+          .map((item) => item.total_amount)
+      )
+    );
+
+  const yesterday = formatDate(addDays(TODAY, -1));
+  const overdueAr = bucketSum(openAR, "expected_payment_date", null, yesterday);
+  const overdueAp = bucketSum(openAP, "planned_payment_date", null, yesterday);
+  const buckets = [
+    {
+      key: "overdue",
+      label: "Overdue",
+      is_overdue: true,
+      ar_in: overdueAr,
+      ap_out: overdueAp,
+      net: money(overdueAr - overdueAp),
+    },
+  ];
+  for (let week = 0; week < HORIZON_WEEKS; week += 1) {
+    const start = addDays(TODAY, 7 * week);
+    const end = addDays(TODAY, 7 * week + 6);
+    const arIn = bucketSum(openAR, "expected_payment_date", formatDate(start), formatDate(end));
+    const apOut = bucketSum(openAP, "planned_payment_date", formatDate(start), formatDate(end));
+    buckets.push({
+      key: formatDate(start),
+      label: `${start.getUTCDate()}/${start.getUTCMonth() + 1}`,
+      is_overdue: false,
+      ar_in: arIn,
+      ap_out: apOut,
+      net: money(arIn - apOut),
+    });
+  }
+
+  return {
+    today: formatDate(TODAY),
+    horizon_weeks: HORIZON_WEEKS,
+    buckets,
+    ar_total_open: arTotal,
+    ap_total_open: apTotal,
+    net_open: money(arTotal - apTotal),
+    overdue_ar: overdueAr,
+    overdue_ap: overdueAp,
+  };
+}
+
+function buildDashboard(purchases, sales, billingNotes = [], paymentBatches = []) {
   const stockByProductId = new Map(products.map((product) => [product.id, 0]));
 
   purchases.forEach((purchase) => {
@@ -1319,9 +1384,52 @@ function buildDashboard(purchases, sales) {
     });
   });
 
+  // Per-product order history → drives the dashboard's stock-cycling and
+  // delivery-planning widgets in offline/mock mode (mirrors the backend's
+  // build_stock_report fields).
+  const salesAgg = new Map();
+  sales.forEach((sale) => {
+    (sale.items || []).forEach((item) => {
+      if (!item.product_id) return;
+      let agg = salesAgg.get(item.product_id);
+      if (!agg) {
+        agg = { orderIds: new Set(), dates: [], pendingUnits: 0, soldUnits: 0 };
+        salesAgg.set(item.product_id, agg);
+      }
+      if (DASHBOARD_STOCK_DEDUCT_STATUSES.has(item.item_status)) {
+        agg.orderIds.add(sale.id);
+        if (sale.transaction_date) agg.dates.push(sale.transaction_date);
+        agg.soldUnits += Number(item.base_quantity || 0);
+      } else if (item.item_status === "pending") {
+        agg.pendingUnits += Number(item.base_quantity || 0);
+      }
+    });
+  });
+
+  const todayStr = formatDate(TODAY);
+  const purchaseAgg = new Map();
+  purchases.forEach((purchase) => {
+    (purchase.items || []).forEach((item) => {
+      if (!item.product_id || item.item_status !== "pending") return;
+      let agg = purchaseAgg.get(item.product_id);
+      if (!agg) {
+        agg = { incoming: 0, delayed: 0 };
+        purchaseAgg.set(item.product_id, agg);
+      }
+      const qty = Number(item.base_quantity || 0);
+      agg.incoming += qty;
+      if (item.expected_delivery_date && item.expected_delivery_date < todayStr) {
+        agg.delayed += qty;
+      }
+    });
+  });
+
   const stockReport = products.map((product) => {
     const config = getProductConfig(product.id);
     const currentStock = Number(stockByProductId.get(product.id) || 0);
+    const sAgg = salesAgg.get(product.id);
+    const pAgg = purchaseAgg.get(product.id);
+    const saleDates = sAgg ? [...sAgg.dates].sort() : [];
     const weeklyDemand = Number(config.weeklyDemand || 0);
     const daysUntilStockout = weeklyDemand > 0 ? Math.round((currentStock / weeklyDemand) * 7) : 0;
     const recommendedRestock =
@@ -1336,10 +1444,20 @@ function buildDashboard(purchases, sales) {
       category: product.category,
       unit_cost: config.baseCost,
       current_stock: currentStock,
+      available_stock: currentStock,
+      oversold_units: 0,
       predicted_7_day_demand: weeklyDemand,
       days_until_stockout: currentStock <= 0 ? 0 : daysUntilStockout,
       recommended_restock: Math.max(0, Math.round(recommendedRestock)),
       reorder_level: config.reorderLevel,
+      unit: product.stock_base_unit || product.base_unit || "pcs",
+      pending_sales_units: money(sAgg ? sAgg.pendingUnits : 0),
+      incoming_purchase_units: money(pAgg ? pAgg.incoming : 0),
+      delayed_purchase_units: money(pAgg ? pAgg.delayed : 0),
+      sales_history_units: money(sAgg ? sAgg.soldUnits : 0),
+      cycle_count: sAgg ? sAgg.orderIds.size : 0,
+      first_sale_date: saleDates[0] || null,
+      last_sale_date: saleDates[saleDates.length - 1] || null,
     };
   });
 
@@ -1355,6 +1473,9 @@ function buildDashboard(purchases, sales) {
     }));
 
   return {
+    overview: {
+      cashflow: buildMockCashflow(billingNotes, paymentBatches),
+    },
     metrics: {
       total_products: products.length,
       total_stock_units: money(sum(stockReport.map((item) => item.current_stock))),
@@ -1387,7 +1508,7 @@ function buildMockDataset() {
   attachSourceQuotationLinks(quotations, purchases, sales);
   attachFinancialLinks(purchases, sales, billingNotes, paymentBatches, creditNotes);
 
-  const dashboard = buildDashboard(purchases, sales);
+  const dashboard = buildDashboard(purchases, sales, billingNotes, paymentBatches);
   const eligibleBillingNoteSales = buildEligibleBillingNoteSales(sales, billingNotes);
   const eligiblePaymentBatchPurchases = buildEligiblePaymentBatchPurchases(
     purchases,

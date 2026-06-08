@@ -1,7 +1,489 @@
+/* ════════════════════════════════════════════════════════════════════
+   Operational control-tower dashboard — single viewport, no scroll.
+   The page fills the main-panel content box (flex:1) and lays its three
+   zones out on a grid: KPI ribbon · operational widgets · cash forecast.
+   ════════════════════════════════════════════════════════════════════ */
 .dashboard-page {
-  gap: 18px;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: min(100%, 1360px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) 176px;
+  gap: 12px;
+  overflow: hidden;
 }
 
+.dash-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 13px 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.dash-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.dash-card-head h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.02rem;
+  line-height: 1.12;
+}
+
+.dash-eyebrow {
+  margin: 0 0 2px;
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.dash-empty {
+  margin: auto 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+/* Tone helpers shared by bars, badges, dots ─────────────────────────── */
+.tone-danger { color: var(--danger); }
+.tone-positive { color: var(--success); }
+.dash-reorder-fill.tone-danger,
+.dash-badge.tone-danger { background: var(--danger); }
+.dash-reorder-fill.tone-warning,
+.dash-badge.tone-warning { background: var(--warning); }
+.dash-reorder-fill.tone-accent,
+.dash-badge.tone-accent { background: var(--accent); }
+
+/* ── KPI ribbon ─────────────────────────────────────────────────────── */
+.dash-ribbon {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dash-ribbon-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: 12px;
+}
+
+.dash-ribbon-label {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-ribbon-value {
+  color: var(--text);
+  font-size: 1.16rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.dash-ribbon-cell.tone-positive { border-left-color: var(--success); }
+.dash-ribbon-cell.tone-accent { border-left-color: var(--accent); }
+.dash-ribbon-cell.tone-warning { border-left-color: var(--warning); }
+.dash-ribbon-cell.tone-danger { border-left-color: var(--danger); }
+.dash-ribbon-cell.tone-warning .dash-ribbon-value { color: #9a7b16; }
+.dash-ribbon-cell.tone-danger .dash-ribbon-value { color: var(--danger); }
+
+/* ── Operational widget row ─────────────────────────────────────────── */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 12px;
+  min-height: 0;
+}
+
+/* Pager (reorder) */
+.dash-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash-pager-btn {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--accent);
+  font-size: 0.6rem;
+  cursor: pointer;
+}
+
+.dash-pager-btn:disabled {
+  color: var(--muted);
+  opacity: 0.45;
+  cursor: default;
+}
+
+.dash-pager-label {
+  min-width: 30px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Urgent reorder list */
+.dash-reorder-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-reorder-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.dash-reorder-rank {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.dash-reorder-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dash-reorder-toprow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dash-reorder-name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-badge {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.dash-reorder-track {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--panel-muted);
+  overflow: hidden;
+}
+
+.dash-reorder-fill {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: 999px;
+}
+
+.dash-reorder-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.dash-reorder-restock {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ── Stock cycling segmentation ─────────────────────────────────────── */
+.dash-segbar {
+  display: flex;
+  height: 14px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  background: var(--panel-muted);
+  overflow: hidden;
+}
+
+.dash-segbar-part { height: 100%; }
+
+.seg-high { background: var(--accent); }
+.seg-long { background: var(--success); }
+.seg-oneOff { background: var(--warning); }
+
+.dash-dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.dash-cycling-legend {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 8px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-cycling-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-cycling-label {
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dash-cycling-count {
+  min-width: 22px;
+  color: var(--text);
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.dash-cycling-examples {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.71rem;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Delivery planning (dispatch + alerts) ──────────────────────────── */
+.dash-dispatch-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-dispatch-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-dispatch-name {
+  flex: 0 0 38%;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.81rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-dispatch-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--panel-muted);
+  overflow: hidden;
+}
+
+.dash-dispatch-fill {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.dash-dispatch-qty {
+  flex-shrink: 0;
+  color: var(--text);
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dash-dispatch-alert {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.dash-dispatch-alert.is-alert {
+  border: 1px solid #f1dfaa;
+  background: #fffdf5;
+  color: #9a7b16;
+}
+
+.dash-dispatch-alert.is-clear {
+  border: 1px solid #ccebdd;
+  background: #f8fffb;
+  color: var(--success);
+}
+
+/* ── Cash-flow forecast (footer) ────────────────────────────────────── */
+.dash-cashflow-legend {
+  display: flex;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.dash-cashflow-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dash-dot.flow-in { background: var(--success); }
+.dash-dot.flow-out { background: var(--accent); }
+
+.dash-cf-plot {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.dash-cf-col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.dash-cf-col.is-overdue {
+  background: #fff6f4;
+  border-radius: 8px;
+}
+
+.dash-cf-up,
+.dash-cf-down {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  justify-content: center;
+  min-height: 0;
+}
+
+.dash-cf-up { align-items: flex-end; }
+.dash-cf-down { align-items: flex-start; }
+
+.dash-cf-axis {
+  width: 100%;
+  height: 1px;
+  background: var(--line-strong);
+}
+
+.dash-cf-bar {
+  width: 58%;
+  max-width: 26px;
+  min-height: 2px;
+}
+
+.dash-cf-bar.flow-in {
+  background: var(--success);
+  border-radius: 4px 4px 0 0;
+}
+
+.dash-cf-bar.flow-out {
+  background: var(--accent);
+  border-radius: 0 0 4px 4px;
+}
+
+.dash-cf-net {
+  margin-top: 4px;
+  color: var(--success);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.dash-cf-net.tone-danger { color: var(--danger); }
+
+.dash-cf-label {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dash-cf-label.is-overdue,
+.dash-cf-col.is-overdue .dash-cf-net {
+  color: var(--danger);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Shared KPI-card styles — still consumed by the Inventory, Billing,
+   Payment and Credit directory sections, so they must remain here.
+   ════════════════════════════════════════════════════════════════════ */
 .dashboard-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -56,272 +538,9 @@
   background: #fff8f9;
 }
 
-.dashboard-page .section-card {
-  border-color: var(--line);
-  border-radius: 14px;
-  box-shadow: var(--shadow-soft);
+/* Tighten the control-tower grid on shorter laptops so it never scrolls. */
+@media (max-height: 780px) {
+  .dashboard-page { grid-template-rows: auto minmax(0, 1fr) 160px; gap: 10px; }
+  .dash-ribbon-value { font-size: 1.05rem; }
+  .dash-card-head h3 { font-size: 0.96rem; }
 }
-
-.dashboard-page .section-heading {
-  align-items: flex-start;
-  margin-bottom: 16px;
-}
-
-.dashboard-page .section-heading h3 {
-  font-size: 1.35rem;
-  line-height: 1.15;
-  letter-spacing: 0;
-}
-
-/* ── Money & Cost overview ─────────────────────────────── */
-.dashboard-period {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.dashboard-period-label {
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.dashboard-period-select {
-  padding: 8px 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.dashboard-finance-kpis {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(186px, 1fr));
-  gap: 14px;
-}
-
-.dashboard-finance-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 18px;
-  align-items: stretch;
-}
-
-/* A box dims briefly while it refetches its own period segment. */
-.is-refreshing {
-  opacity: 0.55;
-  transition: opacity 0.15s ease;
-  pointer-events: none;
-}
-
-/* Trend chart */
-.dashboard-trend-plot {
-  display: flex;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.dashboard-trend-axis {
-  display: flex;
-  flex: 0 0 auto;
-  flex-direction: column;
-  justify-content: space-between;
-  min-width: 46px;
-  height: 190px;
-  text-align: right;
-  color: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.dashboard-trend-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.dashboard-trend-graph {
-  position: relative;
-  height: 190px;
-}
-
-.dashboard-trend-gridlines {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  pointer-events: none;
-}
-
-.dashboard-trend-gridlines span {
-  display: block;
-  height: 0;
-  border-top: 1px dashed #e7ecf5;
-}
-
-.dashboard-trend-cols {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  height: 100%;
-}
-
-.dashboard-trend-bars {
-  display: flex;
-  flex: 1;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 5px;
-  min-width: 0;
-  height: 100%;
-}
-
-.dashboard-trend-bar {
-  position: relative;
-  width: 18px;
-  max-width: 42%;
-  min-height: 2px;
-  border-radius: 5px 5px 0 0;
-  transition: height 0.2s ease;
-}
-
-.dashboard-trend-bar.sales {
-  background: #19be6b;
-}
-
-.dashboard-trend-bar.purchases {
-  background: #2d8cf0;
-}
-
-.dashboard-trend-bar-value {
-  position: absolute;
-  top: -15px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: var(--text);
-  font-size: 0.6rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.dashboard-trend-xaxis {
-  display: flex;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.dashboard-trend-xlabel {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dashboard-trend-legend {
-  display: flex;
-  gap: 18px;
-  margin-top: 12px;
-}
-
-.dashboard-trend-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.dashboard-trend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-}
-
-.dashboard-trend-dot.sales {
-  background: #19be6b;
-}
-
-.dashboard-trend-dot.purchases {
-  background: #2d8cf0;
-}
-
-/* Top lists */
-.dashboard-toplist-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.dashboard-toplist-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 8px;
-  border-radius: 10px;
-}
-
-.dashboard-toplist-row:nth-child(odd) {
-  background: var(--panel-muted, #f7f9fc);
-}
-
-.dashboard-toplist-rank {
-  display: inline-grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 14%, #fff);
-  color: var(--accent);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.dashboard-toplist-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text);
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dashboard-toplist-value {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  color: var(--text);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.dashboard-toplist-value small {
-  color: var(--muted);
-  font-size: 0.74rem;
-  font-weight: 600;
-}
-
-.dashboard-toplist-value small.tone-danger {
-  color: #b42318;
-}
-
-.dashboard-toplist-value small.tone-positive {
-  color: #1f9d57;
-}
-
