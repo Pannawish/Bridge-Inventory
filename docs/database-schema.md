@@ -68,10 +68,11 @@ Represents the supplier vendor profile cards (inherits from `BusinessPartner`).
 *   `procurement_name` (CharField, 255): Primary purchase agent contact name.
 *   `procurement_tel` (CharField, 80): Agent direct contact number.
 *   `taxpayer_id` (CharField, 64): Legal corporate Tax ID for invoice filing.
-*   `locations` (JSONField): Collection of physical addresses.
-*   `emails` (JSONField): Registry of email contacts.
-*   `tels` (JSONField): Phone contact arrays.
+*   `locations` / `emails` / `tels` / `branches` / `shipping_addresses` (JSONField): Multi-value partner profile lists.
+*   `selected_location_index` / `selected_email_index` / `selected_tel_index` / `selected_branch_index` / `selected_shipping_address_index` (PositiveIntegerField): Preferred print/display selections.
+*   `remark` (TextField): Internal notes.
 *   `term_type` (CharField, 20): Default payment term keyword — `"credit"` or `"cash"` (displayed as "Cash" / "เงินสด").
+*   `billing_note_date` (CharField, 40): Default customer-facing billing date preference string shared through the partner base model.
 *   *Indexes*: Indexed by `company_name` and `taxpayer_id` for fast directory searches.
 
 ---
@@ -81,9 +82,11 @@ Organizes corporate client registries (inherits from `BusinessPartner`).
 *   `id` (CharField, 80, PK): Prefixed UUID string (`customer-xxxxxxxxxxxx`).
 *   `company_name` (CharField, 255): Client corporate trade name.
 *   `taxpayer_id` (CharField, 64): Corporate Tax ID for invoicing audits.
-*   `locations` (JSONField): Shipping/billing location registries.
-*   `emails` / `tels` (JSONField): Contact registries.
+*   `locations` / `emails` / `tels` / `branches` / `shipping_addresses` (JSONField): Billing, shipping, and contact registries.
+*   `selected_location_index` / `selected_email_index` / `selected_tel_index` / `selected_branch_index` / `selected_shipping_address_index` (PositiveIntegerField): Preferred print/display selections.
+*   `remark` (TextField): Internal notes.
 *   `term_type` (CharField, 20): Payment credit rules.
+*   `billing_note_date` (CharField, 40): Default billing-note timing preference string.
 *   *Indexes*: Indexed by `company_name` and `taxpayer_id`.
 
 ---
@@ -93,11 +96,13 @@ Core catalog listing for inventory records.
 *   `id` (CharField, 80, PK): Prefixed UUID string (`product-xxxxxxxxxxxx`).
 *   `product_display_id` (PositiveIntegerField): Readable product sequential ID (defaults from `1001`).
 *   `sku` (CharField, 80, Unique): Product stock keeping unit.
+*   `previous_skus` / `sub_names` (JSONField): Alternate SKU history and sub-name aliases.
 *   `product_name` (CharField, 255): Primary product display title.
 *   `stock_base_unit` (CharField, 40, default "pcs"): Smallest indivisible warehouse unit.
 *   `default_purchase_unit` / `default_sales_unit` (CharField, 40): Standard operational units.
 *   `category` (ForeignKey, `Category`, `on_delete=models.SET_NULL`, nullable): Category classification.
 *   `category_name` (CharField, 255): Denormalized category snapshot for fast list rendering.
+*   `detail` (TextField): Product description / remarks.
 *   `reorder_level` (DecimalField, 12,3): Stock reorder threshold.
 *   `is_active` (BooleanField, default True): Set to False to disable the product without breaking history.
 *   *Indexes*: Composited index on `[product_display_id, product_name]`, `[is_active, product_name]`, and independent indices on product search strings.
@@ -113,13 +118,16 @@ Core catalog listing for inventory records.
     *   `product` (ForeignKey, `Product`, `on_delete=models.CASCADE`): Product context.
     *   `unit` (CharField, 40): Operational package unit (e.g. *box*).
     *   `factor_to_base` (DecimalField, 12,6): Conversion multiplier (`1 box = 12 pcs`).
+    *   `allow_purchase` / `allow_sale` (BooleanField): Whether the unit is selectable for purchasing or selling flows.
     *   *Constraints*: Unique composite constraint on `(product, unit)`.
 *   **ProductSupplier (`ProductSupplier`)**:
     *   `product` (ForeignKey, `Product`, `on_delete=models.CASCADE`)
     *   `supplier` (ForeignKey, `Supplier`, `on_delete=models.CASCADE`)
     *   `supplier_sku` (CharField, 80): Vendor SKU reference.
+    *   `default_purchase_unit` (CharField, 40): Preferred purchasing unit for that supplier.
     *   `default_unit_cost` (DecimalField, 14,2): Pre-negotiated catalog cost.
-    *   `is_preferred` (BooleanField): Preferred sourcing toggle.
+    *   `lead_time_days` / `min_order_qty` (numeric fields): Supplier lead time and minimum-order defaults.
+    *   `is_preferred` / `is_active` (BooleanField): Preferred sourcing toggle and active-state flag.
 
 ---
 
@@ -131,11 +139,15 @@ Represents inbound PO documents.
 *   `reference_no` (CharField, 80): Human-readable PO transaction reference.
 *   `supplier` (ForeignKey, `Supplier`, `on_delete=models.SET_NULL`, nullable): Vendor key.
 *   `supplier_name` (CharField, 255): **Supplier name snapshot** (audit-safe).
+*   `supplier_tax_invoice` (CharField, 120): Supplier invoice / tax invoice reference.
 *   `status` (CharField): Document status (`draft`, `ordered`, `partially_received`, `received`, `cancelled`).
 *   `transaction_date` (DateField): PO calendar date.
-*   `vat_mode` (CharField): VAT mode (`included`, `not_included`, `no_tax`).
+*   `payment_term_type` / `payment_term_days` / `payment_date`: Operational payment-term snapshot fields.
+*   `note` / `document`: Internal notes and optional legacy single-file attachment.
+*   `vat_mode` (CharField): VAT mode (`included`, `not_included`, `none`).
+*   `bill_discount` / `total_before_vat` / `vat_amount` / `grand_total` (DecimalField): Financial totals.
 *   `payable_total` (DecimalField, 14,2): Server-calculated total excluding cancelled lines.
-*   `grand_total` (DecimalField, 14,2): Historical immutable total including all lines.
+*   `source_quotation` (ForeignKey, nullable): Optional quotation source link for converted purchases.
 
 ---
 
@@ -144,11 +156,12 @@ Lines items inside a Purchase Order.
 *   `purchase` (ForeignKey, `Purchase`, `on_delete=models.CASCADE`): Parent PO.
 *   `product` (ForeignKey, `Product`, `on_delete=models.SET_NULL`, nullable)
 *   `product_name` (CharField, 255) / `sku` (CharField, 80): **Immutable audit snapshots**.
+*   `expected_delivery_date` / `lead_time_days`: Receiving-planning fields.
 *   `item_status` (CharField): `pending`, `received`, `cancelled`.
 *   `received_date` (DateField, nullable): Shelving timestamp (defines FIFO allocation date).
-*   `quantity` / `unit` (CharField): Package measurements.
+*   `quantity` / `unit` / `base_unit` / `conversion_factor`: Package measurements and conversion snapshot.
 *   `base_quantity` (DecimalField, 14,3): **Normalized base quantity** derived from conversions.
-*   `unit_cost` / `amount` (DecimalField): Cost logs.
+*   `unit_cost` / `discounts` / `amount` (DecimalField + JSONField): Cost logs and stacked discounts.
 
 ---
 
@@ -158,9 +171,12 @@ Represents customer invoices and sales orders.
 *   `reference_no` (CharField, 80): Invoicing serial number.
 *   `customer` (ForeignKey, `Customer`, `on_delete=models.SET_NULL`, nullable): Buyer key.
 *   `customer_name` (CharField, 255): **Customer name snapshot** (audit-safe).
+*   `customer_po_reference` (CharField, 120): Customer PO / external reference.
 *   `status` (CharField): `draft`, `partially_packed`, `packed`, `partially_shipped`, `shipped`, `partially_delivered`, `delivered`, `cancelled`, `returned`.
-*   `transaction_date` (DateField)
-*   `grand_total` / `vat_amount` / `total_before_vat` (DecimalField, 14,2): Invoice sums.
+*   `payment_term_type` / `payment_term_days` / `payment_date`: Operational payment-term snapshot fields.
+*   `transaction_date` / `note` / `document`: Sales date, notes, and optional legacy single-file attachment.
+*   `vat_mode` / `bill_discount` / `total_before_vat` / `vat_amount` / `grand_total` (financial fields).
+*   `source_quotation` (ForeignKey, nullable): Optional quotation source link for converted sales.
 
 ---
 
@@ -169,8 +185,11 @@ Line items inside a Sales Order.
 *   `sale` (ForeignKey, `Sale`, `on_delete=models.CASCADE`): Parent invoice.
 *   `product` (ForeignKey, `Product`, `on_delete=models.SET_NULL`, nullable)
 *   `product_name` / `sku`: **Audit snapshots**.
+*   `supplier` / `supplier_name`: Optional supplier snapshot derived from the chosen FIFO layer.
+*   `unit_cost` (DecimalField): Stored COGS snapshot.
 *   `item_status` (CharField): `pending`, `packed`, `shipped`, `delivered`, `cancelled`, `returned`.
-*   `quantity` / `base_quantity` / `unit_price` / `amount` (DecimalField).
+*   `unit` / `base_unit` / `conversion_factor` / `quantity` / `base_quantity`: Sales-unit snapshot and normalized quantities.
+*   `unit_price` / `discounts` / `amount` (DecimalField + JSONField): Selling price, stacked discounts, and line amount.
 *   `shipped_date` / `delivered_date` (DateField): Logistical timestamps.
 
 ---
@@ -179,6 +198,7 @@ Line items inside a Sales Order.
 The core transactional link mapping sales lines to specific received purchase FIFO layers.
 *   `sale_item` (ForeignKey, `SaleItem`, `on_delete=models.CASCADE`): Consumer.
 *   `purchase_item` (ForeignKey, `PurchaseItem`, `on_delete=models.PROTECT`): Sourcing layer.
+*   `supplier` / `supplier_name` / `product` / `product_name` / `sku`: Snapshots retained on the allocation row for traceability.
 *   `quantity` / `base_quantity` (DecimalField, 14,3): Allocated quantities.
 *   `base_unit_cost` (DecimalField, 14,6): Unit cost of the matching purchase layer.
 *   `total_cost` (DecimalField, 14,2): Total COGS of this allocated layer (`base_quantity * base_unit_cost`).
@@ -188,16 +208,21 @@ The core transactional link mapping sales lines to specific received purchase FI
 ### 3.6 Quotation (`Quotation`)
 Commercial client quote records.
 *   `id` (CharField, 80, PK): Prefixed UUID (`quotation-xxxxxxxxxxxx`).
-*   `valid_until_date` (DateField, nullable): Expiration calculation timestamp.
-*   `customer` / `customer_name`: Relational key and audit name snapshot.
-*   `grand_total` / `vat_amount` (DecimalField): Estimated totals.
+*   `reference_no` / `quotation_date`: Human-readable quote reference and issue date.
+*   `valid_until_date` / `valid_until_days` / `valid_until_day_type`: Expiration date plus stored validity-calculation inputs.
+*   `customer` / `customer_name` and `supplier` / `supplier_name`: Relational keys and audit name snapshots.
+*   `shipping_date`: Requested shipment / delivery date.
+*   `payment_term_type` / `payment_term_days`: Commercial payment-term snapshot fields.
+*   `vat_mode` / `note` / `total_before_vat` / `vat_amount` / `grand_total`: Quote financial and note fields.
 *   **QuotationItem (`QuotationItem`)**:
     *   `quotation` (ForeignKey, `Quotation`, `on_delete=models.CASCADE`): Parent quote.
-    *   `base_quantity` / `sale_price` / `cost_price` (DecimalField).
+    *   `product` / `product_name` / `sku`: Relational link and audit snapshots.
+    *   `position` / `unit` / `base_unit` / `conversion_factor` / `quantity` / `base_quantity`: Ordered line layout and quantity normalization fields.
+    *   `sale_price` / `cost_price` / `discounts` (DecimalField + JSONField): Selling price, optional cost, and stacked discounts.
 *   **QuotationItemSupplier (`QuotationItemSupplier`)**:
     *   `quotation_item` (ForeignKey, `QuotationItem`, `on_delete=models.CASCADE`)
     *   `supplier` (ForeignKey, `Supplier`, `on_delete=models.SET_NULL`, nullable): Sourcing option key.
-    *   `cost_price` (DecimalField): Quoted vendor procurement cost.
+    *   `supplier_name` / `cost_price` / `position` / `note`: Supplier snapshot, quoted vendor procurement cost, display order, and sourcing notes.
 
 ---
 
@@ -210,12 +235,13 @@ Customer collections receivables invoice groups.
 *   `status` (CharField): `draft`, `issued`, `partially_received`, `fully_received`, `cancelled`.
 *   `billing_note_date` / `expected_payment_date` / `actual_payment_date` (DateField).
 *   `bank_reference` (CharField, 120): Logged bank transfer ID.
-*   `total_amount` (DecimalField): Total collections value.
+*   `note` / `total_amount` (TextField + DecimalField): Internal note and total collections value.
 *   **BillingNoteLine (`BillingNoteLine`)**:
     *   `billing_note` (ForeignKey, `BillingNote`, `on_delete=models.CASCADE`): Parent.
     *   `sale` (ForeignKey, `Sale`, `on_delete=models.PROTECT`): Sales invoice billed.
     *   `received` (BooleanField, default False): Live payment marker for this line.
     *   `received_date` (DateField): Actual payment arrival timestamp.
+    *   `amount` (DecimalField): Amount billed from that sale into the note.
 
 ---
 
@@ -226,12 +252,13 @@ Supplier payable disbursements groups.
 *   `status` (CharField): `draft`, `scheduled`, `partially_paid`, `paid`, `cancelled`.
 *   `batch_date` / `planned_payment_date` / `actual_payment_date` (DateField).
 *   `bank_reference` (CharField): Bank transfer serial logs.
-*   `total_amount` (DecimalField): Total payable value.
+*   `note` / `total_amount` (TextField + DecimalField): Internal note and total payable value.
 *   **PaymentBatchLine (`PaymentBatchLine`)**:
     *   `payment_batch` (ForeignKey, `PaymentBatch`, `on_delete=models.CASCADE`): Parent.
     *   `purchase` (ForeignKey, `Purchase`, `on_delete=models.PROTECT`): PO settled.
     *   `paid` (BooleanField, default False): Payment clearance marker for this line.
     *   `paid_date` (DateField).
+    *   `amount` (DecimalField): Amount settled from that purchase into the batch.
 
 ---
 
@@ -240,10 +267,11 @@ Customer account valuation reduction adjustments.
 *   `id` (CharField, 80, PK): Prefixed UUID (`credit-note-xxxxxxxxxxxx`).
 *   `customer` / `customer_name`: Relational buyer and name snapshot.
 *   `sale` (ForeignKey, `Sale`, `on_delete=models.PROTECT`): Sourced invoice.
+*   `sale_reference_no` (CharField, 80): Snapshot of the source sale reference.
 *   `billing_note` (ForeignKey, `BillingNote`, `on_delete=models.SET_NULL`, nullable): Associated BN.
 *   `credit_note_date` (DateField).
 *   `status` (CharField): `issued`, `cancelled`.
-*   `total_amount` (DecimalField): Credit value.
+*   `note` / `total_amount` (TextField + DecimalField): Internal note and credit value.
 *   **CreditNoteLine (`CreditNoteLine`)**:
     *   `credit_note` (ForeignKey, `CreditNote`, `on_delete=models.CASCADE`): Parent.
     *   `sale_item` (ForeignKey, `SaleItem`, `on_delete=models.SET_NULL`, nullable): Sourced sales item line.

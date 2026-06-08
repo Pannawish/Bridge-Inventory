@@ -293,7 +293,7 @@ Billing Notes collect customer receivables (AR) for completed shipments.
 1. Navigate to **Billing Notes** and click **New Billing Note**.
 2. Select the **Customer**.
 3. **Select Eligible Sales**: Choose from the list of sales orders that are ready to bill.
-   - *A sales order is eligible once it is partially packed/shipped/delivered and is not already linked to another active billing note.*
+   - *A sales order is eligible once it is shipped, partially delivered, or delivered, and is not already linked to another active billing note.*
 4. Review customer billing parameters, due dates, and totals.
 5. Click **Save Billing Note** (saves as `issued`).
 6. When the payment arrives, click **Receive Payment**, enter the actual bank reference, and mark lines as fully received.
@@ -346,6 +346,19 @@ Credit Notes record value reductions for returned or cancelled sales.
 </p>
 
 *Credit note setup panel from cancelled/returned goods.*
+
+---
+
+### 8.7 Printing Business Documents
+Saved quotations, purchase orders, sales invoices, billing notes, payment batches, and credit notes can be printed in business-facing layouts.
+1. Open the saved transaction from its history or detail modal.
+2. Click **Print**.
+3. A new browser tab opens with the printable document layout.
+4. Use your browser's **Print** action in that tab to print or save as PDF.
+
+> [!TIP]
+> **What Gets Printed:**  
+> Printed sales and quotations show customer-facing information. Printed purchases and payment batches show supplier-facing information. The print layout uses the saved transaction snapshot, so later edits to partner master data do not rewrite past documents.
 
 ---
 

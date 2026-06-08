@@ -37,7 +37,8 @@ Want to explore the user interface without running any local databases?
 | **Quotations** | Customer billing quotes with unit-aware quantities, live stock-sufficiency indicators, and one-click conversion into sales orders or purchase lines. |
 | **Purchases** | Detailed PO setups, partial/full receiving updates, expected arrival schedules, supplier tax invoice tracking, base quantity normalization, and cost snapshotting. |
 | **Sales** | Stock-aware sales validation, live delivery trackers, cancelled/returned flows, average cost references, and automatic/manual FIFO purchase layer allocation. |
-| **Finance (BN / PB / CN)** | Billing Notes for receivables, Payment Batches for payables, and Credit Notes for cancelled/returned goods, with server-validated transaction eligibility checks. |
+| **Finance (BN / PB / CN)** | Billing Notes for receivables, Payment Batches for payables, and Credit Notes for cancelled/returned goods, with server-validated transaction eligibility checks and net-of-credit billing summaries. |
+| **Business Documents** | Printable quotation, purchase order, sales invoice, billing note, payment batch, and credit note layouts generated from shared transaction document configs. |
 | **AI Assistant** | OpenAI-powered bilingual natural language query assistant for checking low stocks, recent orders, product value, and margins. |
 
 ---

@@ -35,6 +35,7 @@ Important data rules:
 - Products do not store mutable stock as a source of truth. Available stock is derived from received purchase items minus stock-deducted sale items.
 - Historical transaction snapshots such as `supplier_name`, `customer_name`, `product_name`, `sku`, prices, and totals are intentionally preserved on transaction rows.
 - Quotation lines are stored in `QuotationItem`. The quotation API still exposes an `items` array for frontend compatibility, but that array is serialized from normalized quotation line tables.
+- Transaction detail serializers also expose business-partner print profile fields such as `supplier_profile` and `customer_profile` for printable customer/supplier-facing document layouts.
 
 ## Project Layout
 

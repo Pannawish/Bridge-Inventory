@@ -51,7 +51,8 @@ graph LR
 > *   **Preserve Workflows**: Never alter active purchase, sales, quotation, or finance statuses and calculations unless the ticket explicitly requires a behavior rewrite.
 > *   **Backend is Authoritative**: Frontend checks exist purely to aid user experience. Stock sufficiency, document eligibility, and transaction transitions are strictly validated backend-side.
 > *   **Keep mock-data fallbacks intact**: Do not remove offline/mock-data fallback systems casually. They support frontend-only demo deployments.
->   **Maintain i18n support**: All user-facing labels must be registered in the Thai and English sections of `frontend/src/i18n/translations.js` and rendered via the `t()` helper.
+> *   **Maintain i18n support**: All user-facing labels must be registered in the Thai and English sections of `frontend/src/i18n/translations.js` and rendered via the `t()` helper.
+> *   **Preserve Shared Document Rendering**: Transaction document viewing and printing flow through `frontend/src/components/documentRefs/`. Extend that shared layer before adding one-off print markup in individual screens.
 > *   **Adhere to UI Standards**: Keep the square, compact system UI (4px border-radius, constrained border outlines, tight spacing) intact. No oversized decorative or card marketing sections are allowed.
 
 ---
@@ -95,23 +96,28 @@ When expanding pages, split components using this exact structured pattern:
 
 Keep components highly modular. Focus refactoring efforts on these priority areas:
 
-### Priority 1: High-Complexity Orchestration Hooks
-Several orchestration hooks are currently acting as central logic hubs, risking becoming monoliths:
+### Priority 1: Remaining Page-Level And Hook Splits
+The next maintainability pressure points are the remaining page-level shell and the largest orchestration hooks:
+*   `frontend/src/components/Dashboard.jsx`
 *   `frontend/src/app/useAppState.js`
 *   `frontend/src/components/sales/useSalesFormState.js` / `useSalesEditFormState.js`
 *   `frontend/src/components/purchases/usePurchaseFormState.js` / `usePurchaseEditFormState.js`
+*   `frontend/src/components/products/useProductsPageState.js`
+*   `frontend/src/components/categories/useCategoryPageState.js`
 *   `frontend/src/components/quotation/useQuotationFormState.js`
 
-*   **Direction**: Extract repeated line-item calculations, draft builders, and status check matrices into local helper modules. Maintain hooks strictly as workflow coordinators.
+*   **Direction**: Continue pulling formatting rules, payload builders, validation helpers, and directory-refresh logic into named helpers or shared hooks. Keep page components as composition shells and keep the hooks focused on orchestration.
 
 ### Priority 2: Complex Section and Directory Components
 Table rows and directories are likely to accumulate UI conditions and conditional styling over time:
 *   `frontend/src/components/transactions/TransactionDetailItemsSection.jsx`
 *   `frontend/src/components/quotation/QuotationDirectorySection.jsx`
 *   `frontend/src/components/sales/SalesLineItemsSection.jsx`
+*   `frontend/src/components/credits/CreditNoteDirectorySection.jsx`
 *   `frontend/src/components/payments/CreatePaymentBatchModal.jsx`
+*   `frontend/src/components/payments/PaymentBatchDirectorySection.jsx`
 
-*   **Direction**: Extract row renderers, action bars, or filter groups only when files exceed readability limits. Avoid premature extraction if files remain small and coherent.
+*   **Direction**: Extract row renderers, action bars, detail subsections, or filter groups only when files exceed readability limits. Avoid premature extraction if files remain small and coherent.
 
 ---
 

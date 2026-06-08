@@ -229,7 +229,7 @@ Billing Notes organize completed customer shipments for collections tracking.
 ### 7.1 Invoice Eligibility Rules
 A sales order is eligible for inclusion in a new Billing Note only if all of the following conditions are met:
 1.  The sales order belongs to the target customer.
-2.  The sales order is in an eligible document status: `partially_packed`, `packed`, `partially_shipped`, `shipped`, `partially_delivered`, or `delivered`.
+2.  The sales order is in an eligible document status: `shipped`, `partially_delivered`, or `delivered`.
 3.  The sales order is not already linked to another active (non-cancelled) Billing Note.
 4.  If a Billing Note is `cancelled`, all associated sales orders are instantly released and become eligible for billing notes again.
 
@@ -317,8 +317,9 @@ $$\text{Document Tax (VAT 7\%)} = \text{Document Discounted Subtotal} \times 0.0
 $$\text{Document Grand Total} = \text{Document Discounted Subtotal} + \text{Document Tax}$$
 
 ### 10.2 Tax Rules
-*   **`no_tax`**: Tax is set to `0.00`. Grand Total equals the Discounted Subtotal.
-*   **`vat` (7%)**: Tax is calculated at exactly 7% of the Discounted Subtotal. Grand Total is the sum of the Discounted Subtotal plus Tax.
+*   **`included`**: Line amounts already include VAT. The backend backs VAT out of the discounted subtotal, stores the tax portion in `vat_amount`, and keeps `grand_total` equal to the already VAT-inclusive value.
+*   **`not_included`**: VAT is calculated at exactly 7% of the discounted subtotal and added on top to produce `grand_total`.
+*   **`none`**: Tax is set to `0.00`. `grand_total` equals the discounted subtotal.
 
 ---
 

@@ -66,7 +66,10 @@ backend/
 │   │   ├── 0019_quotation_valid_until_days_type.py
 │   │   ├── 0020_alter_sale_status_alter_saleitem_item_status.py
 │   │   ├── 0021_purchase_payable_total.py
-│   │   └── 0022_productsupplier_saleitemallocation.py
+│   │   ├── 0022_productsupplier_saleitemallocation.py
+│   │   ├── 0023_add_shipping_date_to_quotation.py
+│   │   ├── 0024_rename_debit_term_to_cash.py
+│   │   └── 0025_add_payment_term_to_quotation.py
 │   ├── auth_views.py
 │   ├── models.py
 │   ├── pagination.py
@@ -184,7 +187,10 @@ frontend/
 │   │   │   └── useCustomerPageState.js
 │   │   ├── documentRefs/
 │   │   │   ├── DocumentRefBody.jsx
-│   │   │   └── documentRefConfig.jsx
+│   │   │   ├── DocumentRefContent.jsx
+│   │   │   ├── PrintableTransactionDocument.jsx
+│   │   │   ├── documentRefConfig.jsx
+│   │   │   └── printTransactionDocument.jsx
 │   │   ├── inventory/
 │   │   │   ├── InventoryDirectorySection.jsx
 │   │   │   ├── InventoryOverviewSection.jsx
@@ -199,11 +205,15 @@ frontend/
 │   │   │   ├── paymentBatchDetailHelpers.js
 │   │   │   ├── paymentBatchUtils.js
 │   │   │   └── usePaymentBatchDetailState.js
+│   │   ├── partners/
+│   │   │   ├── PartnerDirectorySection.jsx
+│   │   │   └── PartnerPageShell.jsx
 │   │   ├── products/
 │   │   │   ├── ProductDetailModal.jsx
 │   │   │   ├── ProductDirectorySection.jsx
 │   │   │   ├── ProductEditorModal.jsx
 │   │   │   ├── ProductHistoryProfilePanel.jsx
+│   │   │   ├── ProductPriceInsightsSection.jsx
 │   │   │   ├── ProductHistoryTableSection.jsx
 │   │   │   ├── ProductIdentityFields.jsx
 │   │   │   ├── ProductMediaFields.jsx
@@ -213,6 +223,7 @@ frontend/
 │   │   │   ├── defaultProducts.js
 │   │   │   ├── productEditorHelpers.js
 │   │   │   ├── productHistoryHelpers.js
+│   │   │   ├── productPriceInsights.js
 │   │   │   ├── productUtils.js
 │   │   │   ├── productsPageHelpers.js
 │   │   │   └── useProductsPageState.js
@@ -279,6 +290,7 @@ frontend/
 │   │       ├── TransactionDetailFields.jsx
 │   │       ├── TransactionDetailItemsSection.jsx
 │   │       ├── TransactionDetailModal.jsx
+│   │       ├── TransactionDocumentsPanel.jsx
 │   │       ├── TransactionDetailSummary.jsx
 │   │       ├── TransactionTableDirectorySection.jsx
 │   │       └── transactionTableUtils.js
@@ -324,6 +336,7 @@ frontend/
 
 - `src/app/` contains app shell composition, tab routing, and top-level app state orchestration
 - `src/components/` contains page components plus domain-focused subfolders
+- `src/components/documentRefs/` centralizes saved-document viewing plus printable business-document rendering
 - `src/hooks/` contains shared data loading, actions, directory filters, and UI state hooks
 - `src/i18n/` contains bilingual translation support
 - `src/styles/` contains split CSS domains after the stylesheet refactor
