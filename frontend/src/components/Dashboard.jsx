@@ -6,8 +6,9 @@ import { useLanguage } from "../i18n/LanguageContext";
 // at least this often. Slower-but-repeat items fall into "healthy long-cycle"
 // so a wholesaler's every-6-months lines are never mistaken for dead stock.
 const HIGH_CYCLE_MAX_INTERVAL_DAYS = 60;
-const REORDER_PAGE_SIZE = 4;
+const REORDER_PAGE_SIZE = 5;
 const DISPATCH_LIMIT = 5;
+const FORECAST_HORIZON_DAYS = 30;
 const CLOSED_SALE_STATUSES = new Set(["delivered", "cancelled", "returned"]);
 const SALE_STATUS_TONE = {
   draft: "neutral",
@@ -140,6 +141,46 @@ function DashModal({ eyebrow, title, onClose, headerAction, children }) {
   );
 }
 
+// Burn-down forecast: stock declining from today at average daily demand,
+// the reorder level as a red threshold line, and a marker at the stock-out
+// point. Built entirely from stock_report fields — no backend series needed.
+function ReorderSparkline({ available, reorder, dailyDemand, tone }) {
+  const W = 100;
+  const H = 22;
+  const pad = 2.5;
+  const horizon = FORECAST_HORIZON_DAYS;
+  const yMax = Math.max(available, reorder, 1) * 1.18;
+  const px = (d) => pad + (Math.min(d, horizon) / horizon) * (W - pad * 2);
+  const py = (v) => H - pad - (Math.max(0, v) / yMax) * (H - pad * 2);
+
+  const daysToZero = dailyDemand > 0 ? available / dailyDemand : Infinity;
+  const pts = [[px(0), py(available)]];
+  if (daysToZero <= horizon) {
+    pts.push([px(daysToZero), py(0)], [px(horizon), py(0)]);
+  } else {
+    pts.push([px(horizon), py(available - dailyDemand * horizon)]);
+  }
+  const line = pts.map((p) => p.join(",")).join(" ");
+  const area = `${line} ${px(horizon)},${py(0)} ${px(0)},${py(0)}`;
+  const reorderY = py(reorder);
+  const stockoutX = daysToZero <= horizon ? px(daysToZero) : null;
+
+  return (
+    <svg className="dash-spark" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+      <polygon className={`dash-spark-area tone-${tone}`} points={area} />
+      <line className="dash-spark-reorder" x1={pad} y1={reorderY} x2={W - pad} y2={reorderY} />
+      <polyline
+        className={`dash-spark-line tone-${tone}`}
+        points={line}
+        vectorEffect="non-scaling-stroke"
+      />
+      {stockoutX != null ? (
+        <circle className="dash-spark-dot" cx={stockoutX} cy={py(0)} r="1.7" />
+      ) : null}
+    </svg>
+  );
+}
+
 // ── KPI ribbon ─────────────────────────────────────────────────────────
 function KpiRibbon({ metrics, cashflow }) {
   const { t } = useLanguage();
@@ -220,38 +261,35 @@ function UrgentReorderWidget({ rows, onOrder }) {
         <ol className="dash-reorder-list">
           {visible.map((row, index) => {
             const tone = reorderTone(row);
-            const fill = row._reorder > 0 ? Math.min(100, (row._available / row._reorder) * 100) : 0;
             const restock = num(row.recommended_restock);
-            const emergency = row._isCritical
-              ? t("dashboard.reorder.out")
-              : row._days != null
-                ? t("dashboard.reorder.days", { n: formatLocaleNumber(row._days) })
-                : t("dashboard.reorder.low");
+            const dailyDemand = num(row.average_daily_demand) || num(row.predicted_7_day_demand) / 7;
+            const severity = row._isCritical ? t("dashboard.reorder.out") : t("dashboard.reorder.low");
+            const eta = row._days != null ? t("dashboard.reorder.days", { n: formatLocaleNumber(row._days) }) : "—";
             return (
               <li className="dash-reorder-row" key={row.product_id || index}>
-                <span className={`dash-emergency tone-${tone}`} title={emergency}>{emergency}</span>
-                <div className="dash-reorder-main">
+                <div className="dash-reorder-head">
+                  <span className={`dash-emergency tone-${tone}`}>{severity}</span>
                   <span className="dash-reorder-name" title={row.product_name}>
                     {row.product_name || "—"}
                   </span>
-                  <div
-                    className="dash-reorder-track"
-                    title={`${formatUnits(row._available)} / ${formatUnits(row._reorder)} ${row.unit || ""}`}
-                  >
-                    <span className={`dash-reorder-fill tone-${tone}`} style={{ width: `${fill}%` }} />
-                  </div>
+                  {restock > 0 ? (
+                    <button type="button" className="dash-order-btn" onClick={() => onOrder?.(row)}>
+                      {t("dashboard.reorder.order", { qty: `${formatUnits(restock)} ${row.unit || ""}` })}
+                    </button>
+                  ) : null}
                 </div>
-                {restock > 0 ? (
-                  <button
-                    type="button"
-                    className="dash-order-btn"
-                    onClick={() => onOrder?.(row)}
-                  >
-                    {t("dashboard.reorder.order", { qty: `${formatUnits(restock)} ${row.unit || ""}` })}
-                  </button>
-                ) : (
-                  <span className="dash-order-btn is-ghost">—</span>
-                )}
+                <div
+                  className="dash-reorder-chart"
+                  title={`${formatUnits(row._available)} / ${formatUnits(row._reorder)} ${row.unit || ""}`}
+                >
+                  <ReorderSparkline
+                    available={row._available}
+                    reorder={row._reorder}
+                    dailyDemand={dailyDemand}
+                    tone={tone}
+                  />
+                  <span className={`dash-reorder-eta tone-${tone}`}>{eta}</span>
+                </div>
               </li>
             );
           })}
