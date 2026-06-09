@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SalesForm from "./SalesForm";
 import SalesEditForm from "./sales/SalesEditForm";
 import SalesHistoryDirectorySection from "./sales/SalesHistoryDirectorySection";
@@ -23,10 +23,26 @@ function SalesHistoryPage({
   onSaleUpdate,
   onSaleDelete,
   onWarning,
+  focusSaleId = null,
+  onIntentConsumed,
 }) {
   const { t } = useLanguage();
   const [editingSale, setEditingSale] = useState(null);
   const [showNewSaleForm, setShowNewSaleForm] = useState(false);
+
+  // Deep-link from the dashboard's Delivery Planning widget: open the targeted
+  // sales order straight into its editor, then clear the one-shot intent.
+  useEffect(() => {
+    if (!focusSaleId) {
+      return;
+    }
+    const target = (allSales || []).find((sale) => sale.id === focusSaleId);
+    if (target) {
+      setShowNewSaleForm(false);
+      setEditingSale(target);
+    }
+    onIntentConsumed?.();
+  }, [focusSaleId, allSales]);
   const {
     searchTerm,
     setSearchTerm,

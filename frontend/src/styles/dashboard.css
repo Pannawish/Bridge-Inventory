@@ -165,54 +165,41 @@
 
 .dash-reorder-row {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
+  align-items: center;
+  gap: 9px;
 }
 
-.dash-reorder-rank {
-  display: grid;
-  place-items: center;
+.dash-emergency {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 0.74rem;
-  font-weight: 700;
+  width: 44px;
+  padding: 3px 0;
+  border-radius: 7px;
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.02em;
 }
+
+.dash-emergency.tone-danger { background: var(--danger); }
+.dash-emergency.tone-warning { background: var(--warning); color: #7a5e08; }
+.dash-emergency.tone-accent { background: var(--accent); }
 
 .dash-reorder-main {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
-}
-
-.dash-reorder-toprow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
 }
 
 .dash-reorder-name {
   overflow: hidden;
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.dash-badge {
-  flex-shrink: 0;
-  padding: 1px 8px;
-  border-radius: 999px;
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 700;
 }
 
 .dash-reorder-track {
@@ -229,19 +216,26 @@
   border-radius: 999px;
 }
 
-.dash-reorder-meta {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  color: var(--muted);
+.dash-order-btn {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
   font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
-.dash-reorder-restock {
-  flex-shrink: 0;
-  color: var(--accent);
-  font-weight: 700;
+.dash-order-btn:hover { filter: brightness(1.06); }
+
+.dash-order-btn.is-ghost {
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  cursor: default;
 }
 
 /* ── Stock cycling segmentation ─────────────────────────────────────── */
@@ -255,6 +249,10 @@
 }
 
 .dash-segbar-part { height: 100%; }
+
+button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
+.dash-segbar-part.is-clickable { cursor: pointer; transition: filter 0.12s ease; }
+.dash-segbar-part.is-clickable:hover { filter: brightness(1.08); }
 
 .seg-high { background: var(--accent); }
 .seg-long { background: var(--success); }
@@ -285,9 +283,23 @@
 
 .dash-cycling-row {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 8px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
 }
+
+.dash-cycling-row:hover:not(:disabled) {
+  border-color: var(--line);
+  background: var(--panel-muted);
+}
+
+.dash-cycling-row:disabled { cursor: default; opacity: 0.55; }
 
 .dash-cycling-label {
   color: var(--text);
@@ -296,96 +308,119 @@
   white-space: nowrap;
 }
 
-.dash-cycling-count {
-  min-width: 22px;
-  color: var(--text);
-  font-size: 0.98rem;
-  font-weight: 800;
-}
-
-.dash-cycling-examples {
+.dash-cycling-def {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.71rem;
+  font-size: 0.68rem;
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* ── Delivery planning (dispatch + alerts) ──────────────────────────── */
-.dash-dispatch-list {
+.dash-cycling-count {
+  min-width: 20px;
+  color: var(--text);
+  font-size: 0.96rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+.dash-cycling-chev { color: var(--muted); font-size: 0.9rem; font-weight: 700; }
+
+/* ── Delivery planning (per-order, deep-linked) ─────────────────────── */
+.dash-do-list {
   display: flex;
   flex: 1;
   flex-direction: column;
-  justify-content: center;
-  gap: 9px;
+  gap: 6px;
   min-height: 0;
   margin: 0;
   padding: 0;
   list-style: none;
+  overflow: hidden;
 }
 
-.dash-dispatch-row {
+.dash-do-row {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
 }
 
-.dash-dispatch-name {
-  flex: 0 0 38%;
+.dash-do-row:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dash-do-ref {
+  flex-shrink: 0;
+  max-width: 32%;
+  overflow: hidden;
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-do-cust {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   color: var(--text);
-  font-size: 0.81rem;
+  font-size: 0.78rem;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.dash-dispatch-track {
-  flex: 1;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--panel-muted);
-  overflow: hidden;
-}
-
-.dash-dispatch-fill {
-  display: block;
-  height: 100%;
-  min-width: 3px;
-  border-radius: 999px;
-  background: var(--accent);
-}
-
-.dash-dispatch-qty {
+.dash-status-chip {
   flex-shrink: 0;
-  color: var(--text);
-  font-size: 0.74rem;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.64rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
-.dash-dispatch-alert {
-  margin-top: 10px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  font-size: 0.76rem;
-  font-weight: 600;
-}
+.dash-status-chip.tone-neutral { background: var(--panel-muted); color: var(--muted); }
+.dash-status-chip.tone-warning { background: #fff7e6; color: #9a7b16; }
+.dash-status-chip.tone-accent { background: var(--accent-soft); color: var(--accent); }
 
-.dash-dispatch-alert.is-alert {
+.dash-do-go { flex-shrink: 0; color: var(--muted); font-weight: 700; }
+
+.dash-delayed-chip {
+  flex-shrink: 0;
+  padding: 2px 9px;
+  border-radius: 999px;
   border: 1px solid #f1dfaa;
   background: #fffdf5;
   color: #9a7b16;
+  font-size: 0.7rem;
+  font-weight: 700;
 }
 
-.dash-dispatch-alert.is-clear {
-  border: 1px solid #ccebdd;
-  background: #f8fffb;
-  color: var(--success);
+.dash-viewall {
+  margin-top: 6px;
+  padding: 5px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
 }
+
+.dash-viewall:hover { background: var(--accent-soft); }
 
 /* ── Order coverage pipeline (footer) ───────────────────────────────── */
 .dash-cov-toggle {
@@ -449,8 +484,8 @@
 }
 
 .dash-cov-bar {
-  height: 18px;
-  margin: 0 0 10px;
+  height: 11px;
+  margin: 0 0 9px;
 }
 
 .dash-cov-legend {
@@ -594,6 +629,81 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+/* Clickable coverage legend (opens the segment modal). */
+.dash-cov-legend-item.is-clickable {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Popular-product per-row quick actions — revealed on hover/focus. */
+.dash-pop-row { position: relative; }
+
+.dash-pop-actions {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  display: none;
+  gap: 3px;
+  padding-left: 14px;
+  transform: translateY(-50%);
+  background: linear-gradient(to right, transparent, #fff 26%);
+}
+
+.dash-pop-row:hover .dash-pop-actions,
+.dash-pop-row:focus-within .dash-pop-actions {
+  display: flex;
+}
+
+.dash-pop-actions button {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.74rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dash-pop-actions button:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+/* ── Drill-down modals (reuse the global modal-backdrop/detail-modal) ── */
+.dash-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 94vw);
+  max-height: 80vh;
+}
+
+.dash-modal-body {
+  margin-top: 10px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.dash-modal-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dash-modal-table tr.is-clickable { cursor: pointer; }
+.dash-modal-table tr.is-clickable:hover { background: var(--accent-soft); }
+
+.dash-modal-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.82rem;
+}
+
+.dmt-name { color: var(--text); font-weight: 600; }
+.dmt-sku,
+.dmt-supplier { color: var(--muted); font-size: 0.76rem; }
+.dmt-metric { color: var(--accent); font-weight: 700; white-space: nowrap; }
+.dmt-go { width: 18px; color: var(--muted); text-align: right; }
 
 /* ════════════════════════════════════════════════════════════════════
    Shared KPI-card styles — still consumed by the Inventory, Billing,

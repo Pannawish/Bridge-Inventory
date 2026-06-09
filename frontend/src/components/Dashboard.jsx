@@ -8,7 +8,15 @@ import { useLanguage } from "../i18n/LanguageContext";
 const HIGH_CYCLE_MAX_INTERVAL_DAYS = 60;
 const REORDER_PAGE_SIZE = 4;
 const DISPATCH_LIMIT = 5;
-const CYCLE_EXAMPLES = 2;
+const CLOSED_SALE_STATUSES = new Set(["delivered", "cancelled", "returned"]);
+const SALE_STATUS_TONE = {
+  draft: "neutral",
+  partially_packed: "warning",
+  packed: "warning",
+  partially_shipped: "accent",
+  shipped: "accent",
+  partially_delivered: "accent",
+};
 
 function num(value) {
   return Number(value || 0);
@@ -64,6 +72,74 @@ function reorderTone(row) {
   return "accent";
 }
 
+// Build the items a Purchase-Order prefill expects (consumed by
+// createInitialItems in purchaseFormUtils).
+function toPrefillItem(src, quantity, unitCost) {
+  return {
+    product_id: src.product_id,
+    product_name: src.product_name,
+    sku: src.sku || "",
+    unit: src.unit || "",
+    quantity: quantity > 0 ? quantity : 1,
+    unit_cost: unitCost ?? src.unit_cost ?? src.average_unit_cost ?? "",
+  };
+}
+
+// Split open customer demand per product into On hand / Delivering / Gap —
+// the same math as the coverage bar, but kept per-row so each segment can list
+// its products in a modal.
+function buildCoverageSegments(stockReport) {
+  const segments = { ready: [], incoming: [], gap: [] };
+  stockReport.forEach((row) => {
+    const demand = num(row.pending_sales_units);
+    if (demand <= 0) return;
+    const available = Math.max(0, num(row.available_stock ?? row.current_stock));
+    const incoming = Math.max(0, num(row.incoming_purchase_units));
+    const ready = Math.min(demand, available);
+    const incomingCov = Math.min(demand - ready, incoming);
+    const gap = Math.max(0, demand - ready - incomingCov);
+    if (ready > 0) segments.ready.push({ row, qty: ready });
+    if (incomingCov > 0) segments.incoming.push({ row, qty: incomingCov });
+    if (gap > 0) segments.gap.push({ row, qty: gap });
+  });
+  Object.values(segments).forEach((list) => list.sort((a, b) => b.qty - a.qty));
+  return segments;
+}
+
+// ── Reusable modal shell (same chrome as DocumentRefModal) ─────────────
+function DashModal({ eyebrow, title, onClose, headerAction, children }) {
+  const { t } = useLanguage();
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <div
+        className="detail-modal section-card dash-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="section-heading">
+          <div>
+            {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
+            <h3>{title}</h3>
+          </div>
+          <div className="transaction-detail-actions">
+            {headerAction}
+            <button
+              type="button"
+              className="secondary-button table-action-button"
+              onClick={onClose}
+            >
+              {t("common.close")}
+            </button>
+          </div>
+        </div>
+        <div className="dash-modal-body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 // ── KPI ribbon ─────────────────────────────────────────────────────────
 function KpiRibbon({ metrics, cashflow }) {
   const { t } = useLanguage();
@@ -97,7 +173,7 @@ function KpiRibbon({ metrics, cashflow }) {
 }
 
 // ── Urgent reorder (hero) ──────────────────────────────────────────────
-function UrgentReorderWidget({ rows }) {
+function UrgentReorderWidget({ rows, onOrder }) {
   const { t } = useLanguage();
   const [page, setPage] = useState(0);
 
@@ -145,35 +221,37 @@ function UrgentReorderWidget({ rows }) {
           {visible.map((row, index) => {
             const tone = reorderTone(row);
             const fill = row._reorder > 0 ? Math.min(100, (row._available / row._reorder) * 100) : 0;
-            const badge = row._isCritical
+            const restock = num(row.recommended_restock);
+            const emergency = row._isCritical
               ? t("dashboard.reorder.out")
-              : row._days == null
-                ? "—"
-                : t("dashboard.reorder.days", { n: formatLocaleNumber(row._days) });
+              : row._days != null
+                ? t("dashboard.reorder.days", { n: formatLocaleNumber(row._days) })
+                : t("dashboard.reorder.low");
             return (
               <li className="dash-reorder-row" key={row.product_id || index}>
-                <span className="dash-reorder-rank">{start + index + 1}</span>
+                <span className={`dash-emergency tone-${tone}`} title={emergency}>{emergency}</span>
                 <div className="dash-reorder-main">
-                  <div className="dash-reorder-toprow">
-                    <span className="dash-reorder-name" title={row.product_name}>
-                      {row.product_name || "—"}
-                    </span>
-                    <span className={`dash-badge tone-${tone}`}>{badge}</span>
-                  </div>
-                  <div className="dash-reorder-track">
+                  <span className="dash-reorder-name" title={row.product_name}>
+                    {row.product_name || "—"}
+                  </span>
+                  <div
+                    className="dash-reorder-track"
+                    title={`${formatUnits(row._available)} / ${formatUnits(row._reorder)} ${row.unit || ""}`}
+                  >
                     <span className={`dash-reorder-fill tone-${tone}`} style={{ width: `${fill}%` }} />
                   </div>
-                  <div className="dash-reorder-meta">
-                    <span className="dash-reorder-stock">
-                      {formatUnits(row._available)}/{formatUnits(row._reorder)} {row.unit || ""}
-                    </span>
-                    {num(row.recommended_restock) > 0 ? (
-                      <span className="dash-reorder-restock">
-                        +{formatUnits(row.recommended_restock)} {row.unit || ""}
-                      </span>
-                    ) : null}
-                  </div>
                 </div>
+                {restock > 0 ? (
+                  <button
+                    type="button"
+                    className="dash-order-btn"
+                    onClick={() => onOrder?.(row)}
+                  >
+                    {t("dashboard.reorder.order", { qty: `${formatUnits(restock)} ${row.unit || ""}` })}
+                  </button>
+                ) : (
+                  <span className="dash-order-btn is-ghost">—</span>
+                )}
               </li>
             );
           })}
@@ -184,39 +262,15 @@ function UrgentReorderWidget({ rows }) {
 }
 
 // ── Stock cycling segmentation ─────────────────────────────────────────
-function StockCyclingWidget({ stockReport }) {
+function StockCyclingWidget({ tagged, onOpenBand }) {
   const { t } = useLanguage();
 
-  const mix = useMemo(() => {
-    const buckets = {
-      high: { count: 0, examples: [] },
-      long: { count: 0, examples: [] },
-      oneOff: { count: 0, examples: [] },
-    };
-    const tagged = [];
-    stockReport.forEach((row) => {
-      const result = classifyCycle(row);
-      if (!result) return;
-      tagged.push({ row, ...result });
-      buckets[result.klass].count += 1;
-    });
-    // Fill each band's example names with its strongest movers (by lifetime units).
-    Object.keys(buckets).forEach((klass) => {
-      buckets[klass].examples = tagged
-        .filter((entry) => entry.klass === klass)
-        .sort((a, b) => num(b.row.sales_history_units) - num(a.row.sales_history_units))
-        .slice(0, CYCLE_EXAMPLES)
-        .map((entry) => entry.row.product_name)
-        .filter(Boolean);
-    });
-    return { buckets, total: tagged.length };
-  }, [stockReport]);
-
   const bands = [
-    { klass: "high", label: t("dashboard.cycling.high") },
-    { klass: "long", label: t("dashboard.cycling.long") },
-    { klass: "oneOff", label: t("dashboard.cycling.oneOff") },
+    { klass: "high", label: t("dashboard.cycling.high"), def: t("dashboard.cycling.highDef") },
+    { klass: "long", label: t("dashboard.cycling.long"), def: t("dashboard.cycling.longDef") },
+    { klass: "oneOff", label: t("dashboard.cycling.oneOff"), def: t("dashboard.cycling.oneOffDef") },
   ];
+  const total = tagged.high.length + tagged.long.length + tagged.oneOff.length;
 
   return (
     <section className="dash-card dash-cycling">
@@ -227,33 +281,43 @@ function StockCyclingWidget({ stockReport }) {
         </div>
       </header>
 
-      {mix.total === 0 ? (
+      {total === 0 ? (
         <p className="dash-empty">{t("dashboard.cycling.empty")}</p>
       ) : (
         <>
           <div className="dash-segbar" role="img" aria-label={t("dashboard.cycling.title")}>
             {bands.map((band) => {
-              const pct = (mix.buckets[band.klass].count / mix.total) * 100;
+              const pct = (tagged[band.klass].length / total) * 100;
               if (pct <= 0) return null;
               return (
-                <span
+                <button
                   key={band.klass}
-                  className={`dash-segbar-part seg-${band.klass}`}
+                  type="button"
+                  className={`dash-segbar-part seg-${band.klass} is-clickable`}
                   style={{ width: `${pct}%` }}
-                  title={`${band.label}: ${mix.buckets[band.klass].count}`}
+                  title={`${band.label}: ${tagged[band.klass].length}`}
+                  onClick={() => onOpenBand(band.klass)}
+                  aria-label={`${band.label} ${tagged[band.klass].length}`}
                 />
               );
             })}
           </div>
           <ul className="dash-cycling-legend">
             {bands.map((band) => (
-              <li className="dash-cycling-row" key={band.klass}>
-                <span className={`dash-dot seg-${band.klass}`} />
-                <span className="dash-cycling-label">{band.label}</span>
-                <span className="dash-cycling-count">{mix.buckets[band.klass].count}</span>
-                <span className="dash-cycling-examples" title={mix.buckets[band.klass].examples.join(", ")}>
-                  {mix.buckets[band.klass].examples.join(", ") || "—"}
-                </span>
+              <li key={band.klass}>
+                <button
+                  type="button"
+                  className="dash-cycling-row is-clickable"
+                  onClick={() => onOpenBand(band.klass)}
+                  disabled={tagged[band.klass].length === 0}
+                  title={band.def}
+                >
+                  <span className={`dash-dot seg-${band.klass}`} />
+                  <span className="dash-cycling-label">{band.label}</span>
+                  <span className="dash-cycling-def">{band.def}</span>
+                  <span className="dash-cycling-count">{tagged[band.klass].length}</span>
+                  <span className="dash-cycling-chev">›</span>
+                </button>
               </li>
             ))}
           </ul>
@@ -263,22 +327,9 @@ function StockCyclingWidget({ stockReport }) {
   );
 }
 
-// ── Delivery planning (dispatch + alerts) ──────────────────────────────
-function DeliveryPlanningWidget({ stockReport }) {
+// ── Delivery planning (per-order, deep-linked) ─────────────────────────
+function DeliveryPlanningWidget({ orders, totalOpen, delayedSkus, onOpenSale, onViewAll }) {
   const { t } = useLanguage();
-
-  const { dispatch, maxPending, delayedSkus, delayedUnits } = useMemo(() => {
-    const pendingRows = stockReport
-      .filter((row) => num(row.pending_sales_units) > 0)
-      .sort((a, b) => num(b.pending_sales_units) - num(a.pending_sales_units));
-    const delayed = stockReport.filter((row) => num(row.delayed_purchase_units) > 0);
-    return {
-      dispatch: pendingRows.slice(0, DISPATCH_LIMIT),
-      maxPending: pendingRows.length ? num(pendingRows[0].pending_sales_units) : 0,
-      delayedSkus: delayed.length,
-      delayedUnits: delayed.reduce((total, row) => total + num(row.delayed_purchase_units), 0),
-    };
-  }, [stockReport]);
 
   return (
     <section className="dash-card dash-dispatch">
@@ -287,52 +338,55 @@ function DeliveryPlanningWidget({ stockReport }) {
           <p className="dash-eyebrow">{t("dashboard.dispatch.eyebrow")}</p>
           <h3>{t("dashboard.dispatch.title")}</h3>
         </div>
+        {delayedSkus > 0 ? (
+          <span className="dash-delayed-chip" title={t("dashboard.dispatch.delayedInbound", { n: formatLocaleNumber(delayedSkus) })}>
+            ⚠ {formatLocaleNumber(delayedSkus)}
+          </span>
+        ) : null}
       </header>
 
-      {dispatch.length === 0 ? (
+      {orders.length === 0 ? (
         <p className="dash-empty">{t("dashboard.dispatch.empty")}</p>
       ) : (
-        <ul className="dash-dispatch-list">
-          {dispatch.map((row, index) => {
-            const pending = num(row.pending_sales_units);
-            const fill = maxPending > 0 ? (pending / maxPending) * 100 : 0;
+        <ul className="dash-do-list">
+          {orders.map((sale) => {
+            const tone = SALE_STATUS_TONE[sale.status] || "neutral";
             return (
-              <li className="dash-dispatch-row" key={row.product_id || index}>
-                <span className="dash-dispatch-name" title={row.product_name}>
-                  {row.product_name || "—"}
-                </span>
-                <span className="dash-dispatch-track">
-                  <span className="dash-dispatch-fill" style={{ width: `${fill}%` }} />
-                </span>
-                <span className="dash-dispatch-qty">
-                  {formatUnits(pending)} {row.unit || ""}
-                </span>
+              <li key={sale.id}>
+                <button
+                  type="button"
+                  className="dash-do-row"
+                  onClick={() => onOpenSale(sale.id)}
+                  title={t("dashboard.dispatch.openOrder")}
+                >
+                  <span className="dash-do-ref">{sale.reference_no || sale.id}</span>
+                  <span className="dash-do-cust" title={sale.customer_name}>
+                    {sale.customer_name || "—"}
+                  </span>
+                  <span className={`dash-status-chip tone-${tone}`}>
+                    {t(`dashboard.dispatch.status.${sale.status}`)}
+                  </span>
+                  <span className="dash-do-go" aria-hidden="true">→</span>
+                </button>
               </li>
             );
           })}
         </ul>
       )}
 
-      <div className={`dash-dispatch-alert ${delayedSkus > 0 ? "is-alert" : "is-clear"}`}>
-        {delayedSkus > 0 ? (
-          <span>
-            ⚠ {t("dashboard.dispatch.delayed", { skus: formatLocaleNumber(delayedSkus), units: formatUnits(delayedUnits) })}
-          </span>
-        ) : (
-          <span>✓ {t("dashboard.dispatch.noDelays")}</span>
-        )}
-      </div>
+      {totalOpen > orders.length ? (
+        <button type="button" className="dash-viewall" onClick={onViewAll}>
+          {t("dashboard.dispatch.viewAll", { n: formatLocaleNumber(totalOpen) })} →
+        </button>
+      ) : null}
     </section>
   );
 }
 
-// ── Order coverage pipeline (footer) ───────────────────────────────────
-// Left: open customer demand split into On hand / Delivering / Ordered-no-PO,
-// sized by units or money. Right: popular sold products by supplier across a
-// selectable look-back window (1 day … 3 years).
-function OrderCoveragePipelineWidget({ coverage }) {
+// ── Order coverage pipeline + popular products (footer) ────────────────
+function OrderCoveragePipelineWidget({ coverage, onOpenSegment, onPopAction }) {
   const { t } = useLanguage();
-  const [measure, setMeasure] = useState("units"); // "units" | "money"
+  const [measure, setMeasure] = useState("units");
   const [windowKey, setWindowKey] = useState("1m");
   const byMoney = measure === "money";
 
@@ -340,9 +394,7 @@ function OrderCoveragePipelineWidget({ coverage }) {
   const totalUnits = num(coverage?.total?.units);
   const total = byMoney ? num(coverage?.total?.value) : totalUnits;
   const windows = Array.isArray(coverage?.windows) ? coverage.windows : [];
-  const activeWindow = windows.some((w) => w.key === windowKey)
-    ? windowKey
-    : windows[0]?.key;
+  const activeWindow = windows.some((w) => w.key === windowKey) ? windowKey : windows[0]?.key;
   const popular = coverage?.popular?.[activeWindow] || [];
 
   const bands = [
@@ -352,8 +404,7 @@ function OrderCoveragePipelineWidget({ coverage }) {
   ];
 
   const sizeOf = (state) => (byMoney ? num(state?.value) : num(state?.units));
-  const fmtState = (state) =>
-    byMoney ? formatCompact(state?.value) : `${formatUnits(state?.units)}`;
+  const fmtState = (state) => (byMoney ? formatCompact(state?.value) : `${formatUnits(state?.units)}`);
 
   return (
     <section className="dash-card dash-coverage">
@@ -389,31 +440,36 @@ function OrderCoveragePipelineWidget({ coverage }) {
               <strong>{num(coverage?.coverage_pct)}%</strong>
               <span>{t("dashboard.coverage.fulfillable")}</span>
             </div>
-            <div
-              className="dash-segbar dash-cov-bar"
-              role="img"
-              aria-label={t("dashboard.coverage.title")}
-            >
+            <div className="dash-segbar dash-cov-bar" role="group" aria-label={t("dashboard.coverage.title")}>
               {bands.map((band) => {
                 const state = states?.[band.key];
                 const pct = total > 0 ? (sizeOf(state) / total) * 100 : 0;
                 if (pct <= 0) return null;
                 return (
-                  <span
+                  <button
                     key={band.key}
-                    className={`dash-segbar-part seg-${band.key}`}
+                    type="button"
+                    className={`dash-segbar-part seg-${band.key} is-clickable`}
                     style={{ width: `${pct}%` }}
                     title={`${band.label}: ${fmtState(state)}`}
+                    onClick={() => onOpenSegment(band.key)}
+                    aria-label={`${band.label} ${fmtState(state)}`}
                   />
                 );
               })}
             </div>
             <ul className="dash-cov-legend">
               {bands.map((band) => (
-                <li className="dash-cov-legend-item" key={band.key}>
-                  <span className={`dash-dot seg-${band.key}`} />
-                  <span className="dash-cov-legend-label">{band.label}</span>
-                  <span className="dash-cov-legend-value">{fmtState(states?.[band.key])}</span>
+                <li key={band.key}>
+                  <button
+                    type="button"
+                    className="dash-cov-legend-item is-clickable"
+                    onClick={() => onOpenSegment(band.key)}
+                  >
+                    <span className={`dash-dot seg-${band.key}`} />
+                    <span className="dash-cov-legend-label">{band.label}</span>
+                    <span className="dash-cov-legend-value">{fmtState(states?.[band.key])}</span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -422,11 +478,7 @@ function OrderCoveragePipelineWidget({ coverage }) {
           <div className="dash-pop">
             <div className="dash-pop-head">
               <p className="dash-pop-title">{t("dashboard.coverage.popular")}</p>
-              <div
-                className="dash-pop-windows"
-                role="group"
-                aria-label={t("dashboard.coverage.popular")}
-              >
+              <div className="dash-pop-windows" role="group" aria-label={t("dashboard.coverage.popular")}>
                 {windows.map((w) => (
                   <button
                     key={w.key}
@@ -450,15 +502,16 @@ function OrderCoveragePipelineWidget({ coverage }) {
                       {item.product_name || "—"}
                     </span>
                     <span className="dash-pop-metric">
-                      {byMoney
-                        ? formatCompact(item.value)
-                        : `${formatUnits(item.units)} ${item.unit || ""}`}
+                      {byMoney ? formatCompact(item.value) : `${formatUnits(item.units)} ${item.unit || ""}`}
                     </span>
-                    <span
-                      className="dash-pop-supplier"
-                      title={item.supplier_name || t("dashboard.coverage.noSupplier")}
-                    >
+                    <span className="dash-pop-supplier" title={item.supplier_name || t("dashboard.coverage.noSupplier")}>
                       {item.supplier_name || t("dashboard.coverage.noSupplier")}
+                    </span>
+                    <span className="dash-pop-actions">
+                      <button type="button" title={t("dashboard.coverage.actQuote")} onClick={() => onPopAction("quote", item)}>📝</button>
+                      <button type="button" title={t("dashboard.coverage.actPo")} onClick={() => onPopAction("po", item)}>🛒</button>
+                      <button type="button" title={t("dashboard.coverage.actProduct")} onClick={() => onPopAction("product", item)}>📦</button>
+                      <button type="button" title={t("dashboard.coverage.actSupplier")} onClick={() => onPopAction("supplier", item)}>🏭</button>
                     </span>
                   </li>
                 ))}
@@ -471,7 +524,72 @@ function OrderCoveragePipelineWidget({ coverage }) {
   );
 }
 
-function Dashboard({ dashboard }) {
+// ── Drill-down modals ──────────────────────────────────────────────────
+function CyclingModal({ band, label, items, onClose, onOpenProduct }) {
+  const { t } = useLanguage();
+  return (
+    <DashModal eyebrow={t("dashboard.cycling.eyebrow")} title={`${label} · ${items.length}`} onClose={onClose}>
+      {items.length === 0 ? (
+        <p className="dash-empty">{t("dashboard.cycling.empty")}</p>
+      ) : (
+        <table className="dash-modal-table">
+          <tbody>
+            {items.map(({ row, cyclesPerYear }) => (
+              <tr key={row.product_id} onClick={() => onOpenProduct(row)} className="is-clickable">
+                <td className="dmt-name">{row.product_name}</td>
+                <td className="dmt-sku">{row.sku || ""}</td>
+                <td className="dmt-metric">
+                  {band === "oneOff"
+                    ? t("dashboard.cycling.oneOffTag")
+                    : cyclesPerYear
+                      ? t("dashboard.cycling.perYear", { n: formatLocaleNumber(Math.round(cyclesPerYear)) })
+                      : "—"}
+                </td>
+                <td className="dmt-go" aria-hidden="true">→</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </DashModal>
+  );
+}
+
+function CoverageModal({ segKey, label, items, onClose, onOpenProduct, onGeneratePo }) {
+  const { t } = useLanguage();
+  const headerAction =
+    segKey === "gap" && items.length > 0 ? (
+      <button type="button" className="primary-button table-action-button" onClick={onGeneratePo}>
+        {t("dashboard.coverage.generatePo")}
+      </button>
+    ) : null;
+  return (
+    <DashModal eyebrow={t("dashboard.coverage.eyebrow")} title={`${label} · ${items.length}`} onClose={onClose} headerAction={headerAction}>
+      {items.length === 0 ? (
+        <p className="dash-empty">{t("dashboard.coverage.empty")}</p>
+      ) : (
+        <table className="dash-modal-table">
+          <tbody>
+            {items.map(({ row, qty }) => (
+              <tr key={row.product_id} onClick={() => onOpenProduct(row)} className="is-clickable">
+                <td className="dmt-name">{row.product_name}</td>
+                <td className="dmt-metric">{formatUnits(qty)} {row.unit || ""}</td>
+                <td className="dmt-supplier">{row.best_supplier_name || t("dashboard.coverage.noSupplier")}</td>
+                <td className="dmt-go" aria-hidden="true">→</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </DashModal>
+  );
+}
+
+function Dashboard({ dashboard, sales = [], onNavigate }) {
+  const { t } = useLanguage();
+  const [cyclingBand, setCyclingBand] = useState(null);
+  const [coverageSeg, setCoverageSeg] = useState(null);
+
   const stockReport = useMemo(
     () => (Array.isArray(dashboard?.stock_report) ? dashboard.stock_report : []),
     [dashboard]
@@ -511,15 +629,112 @@ function Dashboard({ dashboard }) {
       });
   }, [stockReport]);
 
+  // Stock-cycling: classify once, keep the rows so a band click can list them.
+  const cyclingTagged = useMemo(() => {
+    const tagged = { high: [], long: [], oneOff: [] };
+    stockReport.forEach((row) => {
+      const result = classifyCycle(row);
+      if (!result) return;
+      tagged[result.klass].push({ row, cyclesPerYear: result.cyclesPerYear });
+    });
+    Object.values(tagged).forEach((list) =>
+      list.sort((a, b) => num(b.row.sales_history_units) - num(a.row.sales_history_units))
+    );
+    return tagged;
+  }, [stockReport]);
+
+  // Delivery planning: open sales orders, oldest first, each deep-linkable.
+  const openOrders = useMemo(() => {
+    return (Array.isArray(sales) ? sales : [])
+      .filter((sale) => sale && !CLOSED_SALE_STATUSES.has(sale.status))
+      .sort((a, b) => String(a.transaction_date || "").localeCompare(String(b.transaction_date || "")));
+  }, [sales]);
+  const delayedSkus = useMemo(
+    () => stockReport.filter((row) => num(row.delayed_purchase_units) > 0).length,
+    [stockReport]
+  );
+
+  const coverageSegments = useMemo(() => buildCoverageSegments(stockReport), [stockReport]);
+
+  // ── deep-link / action helpers ──
+  const orderProducts = (items, supplierName) =>
+    onNavigate?.({ tab: "purchase-history", prefill: { supplier_name: supplierName || "", items } });
+  const openProduct = () => onNavigate?.({ tab: "products" });
+  const openSupplier = () => onNavigate?.({ tab: "suppliers" });
+
+  const handleReorder = (row) =>
+    orderProducts([toPrefillItem(row, num(row.recommended_restock), row.unit_cost)], row.best_supplier_name);
+
+  const handleGeneratePo = () => {
+    const items = coverageSegments.gap.map(({ row, qty }) => toPrefillItem(row, qty, row.unit_cost));
+    if (items.length > 0) orderProducts(items, "");
+    setCoverageSeg(null);
+  };
+
+  const handlePopAction = (type, item) => {
+    if (type === "po") orderProducts([toPrefillItem(item, num(item.units), "")], item.supplier_name);
+    else if (type === "quote") onNavigate?.({ tab: "quotations", openNew: true });
+    else if (type === "product") openProduct();
+    else if (type === "supplier") openSupplier();
+  };
+
+  const segLabels = {
+    ready: t("dashboard.coverage.ready"),
+    incoming: t("dashboard.coverage.incoming"),
+    gap: t("dashboard.coverage.gap"),
+  };
+  const bandLabels = {
+    high: t("dashboard.cycling.high"),
+    long: t("dashboard.cycling.long"),
+    oneOff: t("dashboard.cycling.oneOff"),
+  };
+
   return (
     <div className="dashboard-page">
       <KpiRibbon metrics={dashboard?.metrics} cashflow={cashflow} />
       <div className="dash-grid">
-        <UrgentReorderWidget rows={reorderItems} />
-        <StockCyclingWidget stockReport={stockReport} />
-        <DeliveryPlanningWidget stockReport={stockReport} />
+        <UrgentReorderWidget rows={reorderItems} onOrder={handleReorder} />
+        <StockCyclingWidget tagged={cyclingTagged} onOpenBand={setCyclingBand} />
+        <DeliveryPlanningWidget
+          orders={openOrders.slice(0, DISPATCH_LIMIT)}
+          totalOpen={openOrders.length}
+          delayedSkus={delayedSkus}
+          onOpenSale={(saleId) => onNavigate?.({ tab: "sales-history", focusId: saleId })}
+          onViewAll={() => onNavigate?.({ tab: "sales-history" })}
+        />
       </div>
-      <OrderCoveragePipelineWidget coverage={coverage} />
+      <OrderCoveragePipelineWidget
+        coverage={coverage}
+        onOpenSegment={setCoverageSeg}
+        onPopAction={handlePopAction}
+      />
+
+      {cyclingBand ? (
+        <CyclingModal
+          band={cyclingBand}
+          label={bandLabels[cyclingBand]}
+          items={cyclingTagged[cyclingBand]}
+          onClose={() => setCyclingBand(null)}
+          onOpenProduct={() => {
+            setCyclingBand(null);
+            openProduct();
+          }}
+        />
+      ) : null}
+
+      {coverageSeg ? (
+        <CoverageModal
+          segKey={coverageSeg}
+          label={segLabels[coverageSeg]}
+          items={coverageSegments[coverageSeg]}
+          onClose={() => setCoverageSeg(null)}
+          onOpenProduct={() => {
+            setCoverageSeg(null);
+            openProduct();
+          }}
+          onGeneratePo={handleGeneratePo}
+        />
+      ) : null}
     </div>
   );
 }

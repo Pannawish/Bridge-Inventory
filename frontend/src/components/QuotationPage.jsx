@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DocumentRefModal from "./DocumentRefModal";
 import QuotationFormCard from "./quotation/QuotationForm";
 import QuotationConversionFlow from "./quotation/QuotationConversionFlow";
@@ -27,11 +27,25 @@ function QuotationPage({
   onCreatePurchaseFromQuotation,
   onViewPurchases,
   onCreateSale,
+  openNewSignal = null,
+  onIntentConsumed,
 }) {
   const { t } = useLanguage();
   const [viewingQuotation, setViewingQuotation] = useState(null);
   const [editingQuotation, setEditingQuotation] = useState(null);
   const [showNewQuotationForm, setShowNewQuotationForm] = useState(false);
+
+  // Deep-link from the dashboard's Popular Products "Create quotation" action:
+  // jump straight into a new quotation form, then clear the one-shot intent.
+  useEffect(() => {
+    if (!openNewSignal) {
+      return;
+    }
+    setEditingQuotation(null);
+    setViewingQuotation(null);
+    setShowNewQuotationForm(true);
+    onIntentConsumed?.();
+  }, [openNewSignal]);
   const [conversion, setConversion] = useState(null);
   const [docRefModal, setDocRefModal] = useState(null);
   const {

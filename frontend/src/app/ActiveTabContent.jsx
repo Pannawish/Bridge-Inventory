@@ -16,6 +16,9 @@ import SettingsPage from "../components/SettingsPage";
 function ActiveTabContent({
   activeTab,
   dashboard,
+  dashboardIntent,
+  onDashboardNavigate,
+  onConsumeIntent,
   products,
   productRows,
   productPagination,
@@ -97,7 +100,17 @@ function ActiveTabContent({
   onViewPurchasesTab,
 }) {
   if (activeTab === "dashboard" && dashboard) {
-    return <Dashboard dashboard={dashboard} />;
+    return (
+      <Dashboard
+        dashboard={dashboard}
+        sales={sales}
+        purchases={purchases}
+        quotations={quotations}
+        products={products}
+        suppliers={suppliers}
+        onNavigate={onDashboardNavigate}
+      />
+    );
   }
 
   if (activeTab === "inventory") {
@@ -118,6 +131,8 @@ function ActiveTabContent({
         onPurchaseItemStatusChange={handlePurchaseItemStatusChange}
         onPurchaseUpdate={handlePurchaseUpdate}
         onPurchaseDelete={handlePurchaseDelete}
+        prefillDraft={dashboardIntent?.tab === "purchase-history" ? dashboardIntent.prefill : null}
+        onIntentConsumed={onConsumeIntent}
       />
     );
   }
@@ -137,6 +152,8 @@ function ActiveTabContent({
         onCreatePurchaseFromQuotation={handleQuotationPurchaseCreate}
         onViewPurchases={onViewPurchasesTab}
         onCreateSale={handleSalesCreateFromHistory}
+        openNewSignal={dashboardIntent?.tab === "quotations" ? dashboardIntent.openNew : null}
+        onIntentConsumed={onConsumeIntent}
       />
     );
   }
@@ -158,6 +175,8 @@ function ActiveTabContent({
         onSaleUpdate={handleSaleUpdate}
         onSaleDelete={handleSaleDelete}
         onWarning={showWarning}
+        focusSaleId={dashboardIntent?.tab === "sales-history" ? dashboardIntent.focusId : null}
+        onIntentConsumed={onConsumeIntent}
       />
     );
   }

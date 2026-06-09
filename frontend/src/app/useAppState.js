@@ -21,6 +21,9 @@ export function useAppState() {
   });
   const [notice, setNotice] = useState("");
   const [creditNotePrompt, setCreditNotePrompt] = useState(null);
+  // Deep-link intent set by the dashboard, consumed by the target tab's page
+  // (e.g. open a specific sale, or a new PO/quote prefilled with items).
+  const [dashboardIntent, setDashboardIntent] = useState(null);
   const {
     dashboard,
     products,
@@ -165,6 +168,17 @@ export function useAppState() {
     setSidebarOpen(false);
   }
 
+  // Dashboard → other-module deep link. Stores the intent and switches tabs;
+  // the destination page reads the intent and clears it via setDashboardIntent.
+  function navigateFromDashboard(intent) {
+    if (!intent || !intent.tab) {
+      return;
+    }
+    setDashboardIntent(intent);
+    setActiveTab(intent.tab);
+    setSidebarOpen(false);
+  }
+
   const {
     handleSupplierSave,
     handleSupplierDelete,
@@ -280,6 +294,9 @@ export function useAppState() {
     setNotice,
     creditNotePrompt,
     setCreditNotePrompt,
+    dashboardIntent,
+    setDashboardIntent,
+    navigateFromDashboard,
     dashboard,
     products,
     setProducts,

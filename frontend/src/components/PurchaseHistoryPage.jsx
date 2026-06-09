@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import PurchaseForm from "./PurchaseForm";
 import PurchaseEditForm from "./purchases/PurchaseEditForm";
 import PurchaseHistoryDirectorySection from "./purchases/PurchaseHistoryDirectorySection";
@@ -15,6 +16,8 @@ function PurchaseHistoryPage({
   onPurchaseItemStatusChange,
   onPurchaseUpdate,
   onPurchaseDelete,
+  prefillDraft = null,
+  onIntentConsumed,
 }) {
   const state = usePurchaseHistoryPageState({
     products,
@@ -30,6 +33,19 @@ function PurchaseHistoryPage({
     onPurchaseDelete,
   });
 
+  // Deep-link from the dashboard (Urgent Reorder / Order Coverage gap): open a
+  // new PO seeded with the chosen items, then clear the one-shot intent.
+  const [pendingPrefill, setPendingPrefill] = useState(null);
+  useEffect(() => {
+    if (!prefillDraft) {
+      return;
+    }
+    setPendingPrefill(prefillDraft);
+    state.setEditingPurchase(null);
+    state.setShowNewPurchaseForm(true);
+    onIntentConsumed?.();
+  }, [prefillDraft]);
+
   if (state.showNewPurchaseForm) {
     return (
       <div className="stack-layout">
@@ -37,8 +53,12 @@ function PurchaseHistoryPage({
           products={state.products}
           suppliers={state.suppliers}
           purchases={state.allPurchases}
+          prefill={pendingPrefill}
           onSubmit={state.handleCreatePurchase}
-          onCancel={() => state.setShowNewPurchaseForm(false)}
+          onCancel={() => {
+            state.setShowNewPurchaseForm(false);
+            setPendingPrefill(null);
+          }}
         />
       </div>
     );
@@ -115,6 +135,7 @@ function PurchaseHistoryPage({
       onDeletePurchase={state.handleDelete}
       onCreatePurchase={() => {
         state.setEditingPurchase(null);
+        setPendingPrefill(null);
         state.setShowNewPurchaseForm(true);
       }}
       onPageChange={state.handlePageChange}

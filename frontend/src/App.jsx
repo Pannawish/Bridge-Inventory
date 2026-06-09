@@ -53,6 +53,9 @@ function App() {
         <ActiveTabContent
           activeTab={state.activeTab}
           dashboard={state.dashboard}
+          dashboardIntent={state.dashboardIntent}
+          onDashboardNavigate={state.navigateFromDashboard}
+          onConsumeIntent={() => state.setDashboardIntent(null)}
           products={state.products}
           productRows={state.productRows}
           productPagination={state.productPagination}
