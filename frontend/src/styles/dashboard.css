@@ -1,15 +1,16 @@
 /* ════════════════════════════════════════════════════════════════════
    Operational control-tower dashboard — single viewport, no scroll.
-   The page fills the main-panel content box (flex:1) and lays its three
-   zones out on a grid: KPI ribbon · operational widgets · cash forecast.
+   The page fills the main-panel content box (flex:1) and lays its two
+   zones out on a grid: operational widgets · order-coverage footer.
+   (KPI figures now live on the Inventory page's control board.)
    ════════════════════════════════════════════════════════════════════ */
 .dashboard-page {
   flex: 1 1 auto;
   min-height: 0;
   width: min(100%, 1360px);
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) 176px;
-  gap: 12px;
+  grid-template-rows: minmax(0, 1fr) 200px;
+  gap: 14px;
   overflow: hidden;
 }
 
@@ -60,61 +61,12 @@
 /* Tone helpers shared by bars, badges, dots ─────────────────────────── */
 .tone-danger { color: var(--danger); }
 .tone-positive { color: var(--success); }
-.dash-reorder-fill.tone-danger,
-.dash-badge.tone-danger { background: var(--danger); }
-.dash-reorder-fill.tone-warning,
-.dash-badge.tone-warning { background: var(--warning); }
-.dash-reorder-fill.tone-accent,
-.dash-badge.tone-accent { background: var(--accent); }
-
-/* ── KPI ribbon ─────────────────────────────────────────────────────── */
-.dash-ribbon {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.dash-ribbon-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 10px 14px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--line-strong);
-  border-radius: 12px;
-}
-
-.dash-ribbon-label {
-  color: var(--muted);
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dash-ribbon-value {
-  color: var(--text);
-  font-size: 1.16rem;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.dash-ribbon-cell.tone-positive { border-left-color: var(--success); }
-.dash-ribbon-cell.tone-accent { border-left-color: var(--accent); }
-.dash-ribbon-cell.tone-warning { border-left-color: var(--warning); }
-.dash-ribbon-cell.tone-danger { border-left-color: var(--danger); }
-.dash-ribbon-cell.tone-warning .dash-ribbon-value { color: #9a7b16; }
-.dash-ribbon-cell.tone-danger .dash-ribbon-value { color: var(--danger); }
 
 /* ── Operational widget row ─────────────────────────────────────────── */
 .dash-grid {
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
   min-height: 0;
 }
 
@@ -153,11 +105,12 @@
 }
 
 /* Urgent reorder list */
+/* Locked to three equal slots — paging swaps content without reflowing. */
 .dash-reorder-list {
-  display: flex;
+  display: grid;
   flex: 1;
-  flex-direction: column;
-  gap: 9px;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 8px;
   min-height: 0;
   margin: 0;
   padding: 0;
@@ -168,6 +121,13 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-height: 0;
+}
+
+.dash-reorder-row.is-empty {
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  opacity: 0.5;
 }
 
 .dash-reorder-head {
@@ -203,37 +163,42 @@
   white-space: nowrap;
 }
 
+/* Sawtooth inventory-model legend (one row, shared by all charts below). */
+.dash-saw-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+}
+
+.dash-saw-key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 600;
+}
+
+.dash-saw-key-item i {
+  display: inline-block;
+  width: 12px;
+  height: 0;
+  border-top-width: 2px;
+  border-top-style: solid;
+}
+
+.dash-saw-key-item .k-stock { border-top-color: var(--accent); border-top-style: solid; }
+.dash-saw-key-item .k-reorder { border-top-color: var(--warning); border-top-style: dashed; }
+.dash-saw-key-item .k-safety { border-top-color: var(--danger); border-top-style: dashed; }
+
+/* The mini sawtooth (.saw-mini, styled in charts.css) fills the slot's spare height. */
 .dash-reorder-chart {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-left: 48px;
-}
-
-.dash-spark {
   flex: 1;
-  width: 100%;
-  min-width: 0;
-  height: 22px;
-  display: block;
+  align-items: stretch;
+  min-height: 0;
 }
-
-.dash-spark-line { fill: none; stroke-width: 1.6; }
-.dash-spark-area { stroke: none; opacity: 0.13; }
-.dash-spark-reorder {
-  stroke: var(--danger);
-  stroke-width: 1;
-  stroke-dasharray: 2.5 2;
-  vector-effect: non-scaling-stroke;
-  opacity: 0.85;
-}
-.dash-spark-dot { fill: var(--danger); }
-.dash-spark-line.tone-danger { stroke: var(--danger); }
-.dash-spark-line.tone-warning { stroke: var(--warning); }
-.dash-spark-line.tone-accent { stroke: var(--accent); }
-.dash-spark-area.tone-danger { fill: var(--danger); }
-.dash-spark-area.tone-warning { fill: var(--warning); }
-.dash-spark-area.tone-accent { fill: var(--accent); }
 
 .dash-reorder-eta {
   flex-shrink: 0;
@@ -323,37 +288,120 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   background: var(--panel-muted);
 }
 
-.dash-cycling-row:disabled { cursor: default; opacity: 0.55; }
+.dash-cycling-row:disabled { cursor: default; opacity: 0.5; }
 
-.dash-cycling-label {
-  color: var(--text);
-  font-size: 0.82rem;
-  font-weight: 600;
+/* High-contrast status badge — solid colour, white label. */
+.dash-cycle-badge {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 7px;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
+
+.dash-cycle-badge.seg-high { background: var(--accent); }
+.dash-cycle-badge.seg-long { background: var(--success); }
+.dash-cycle-badge.seg-oneOff { background: #9a7b16; }
 
 .dash-cycling-def {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .dash-cycling-count {
-  min-width: 20px;
-  color: var(--text);
-  font-size: 0.96rem;
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.82rem;
   font-weight: 800;
-  text-align: right;
 }
+
+.dash-cycling-count.seg-high { background: var(--accent); }
+.dash-cycling-count.seg-long { background: var(--success); }
+.dash-cycling-count.seg-oneOff { background: #9a7b16; }
 
 .dash-cycling-chev { color: var(--muted); font-size: 0.9rem; font-weight: 700; }
 
-/* ── Delivery planning (per-order, deep-linked) ─────────────────────── */
+/* ── Delivery planning (fulfilment pipeline) ────────────────────────── */
+.dash-pipe {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.dash-pipe-slot {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.dash-pipe-arrow {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  padding: 0 2px;
+  color: var(--line-strong);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.dash-pipe-stage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+  padding: 7px 4px;
+  border: 1px solid var(--line);
+  border-bottom: 3px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--panel-muted);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.dash-pipe-stage:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-soft); }
+.dash-pipe-stage:disabled { cursor: default; opacity: 0.5; }
+
+.dash-pipe-stage strong {
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dash-pipe-stage span {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dash-pipe-stage.is-live { background: #fff; }
+.dash-pipe-stage.stage-draft.is-live { border-bottom-color: var(--muted); }
+.dash-pipe-stage.stage-packing.is-live { border-bottom-color: var(--warning); }
+.dash-pipe-stage.stage-packing.is-live strong { color: #9a7b16; }
+.dash-pipe-stage.stage-delivering.is-live { border-bottom-color: var(--accent); }
+.dash-pipe-stage.stage-delivering.is-live strong { color: var(--accent); }
+
 .dash-do-list {
   display: flex;
   flex: 1;
@@ -669,10 +717,10 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   right: 0;
   top: 50%;
   display: none;
-  gap: 3px;
-  padding-left: 14px;
+  gap: 4px;
+  padding-left: 18px;
   transform: translateY(-50%);
-  background: linear-gradient(to right, transparent, #fff 26%);
+  background: linear-gradient(to right, transparent, #fff 22%);
 }
 
 .dash-pop-row:hover .dash-pop-actions,
@@ -680,20 +728,22 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   display: flex;
 }
 
-.dash-pop-actions button {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
+.dash-pop-action {
+  padding: 2px 9px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 999px;
   background: #fff;
-  font-size: 0.74rem;
-  line-height: 1;
+  color: var(--accent);
+  font-size: 0.66rem;
+  font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.dash-pop-actions button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.dash-pop-action:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+.dash-cov-legend-chev { color: var(--danger); font-size: 0.85rem; font-weight: 800; }
+.dash-cov-legend-item.is-clickable .seg-gap ~ .dash-cov-legend-label { font-weight: 700; }
 
 /* ── Drill-down modals (reuse the global modal-backdrop/detail-modal) ── */
 .dash-modal {
@@ -728,6 +778,106 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
 .dmt-supplier { color: var(--muted); font-size: 0.76rem; }
 .dmt-metric { color: var(--accent); font-weight: 700; white-space: nowrap; }
 .dmt-go { width: 18px; color: var(--muted); text-align: right; }
+
+/* ── Quick-PO drawer (Zone 1) ───────────────────────────────────────── */
+.dash-drawer {
+  display: flex;
+  flex-direction: column;
+  justify-self: end;
+  align-self: stretch;
+  width: min(420px, 94vw);
+  max-height: 100%;
+  overflow: auto;
+  border: 1px solid var(--line);
+  background: #fff;
+  animation: rise-in 0.2s ease-out;
+}
+
+.dash-drawer-context {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-muted);
+}
+
+.dash-drawer-context > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dash-drawer-context span {
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.dash-drawer-context strong { color: var(--text); font-size: 0.84rem; font-weight: 700; }
+
+.dash-drawer-body { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+.dash-drawer-row { display: flex; gap: 12px; }
+
+.dash-drawer-field { display: flex; flex: 1; flex-direction: column; gap: 5px; min-width: 0; }
+.dash-drawer-field > span {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.dash-drawer-field input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.dash-drawer-field input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+
+.dash-drawer-inputunit { position: relative; display: flex; align-items: center; }
+.dash-drawer-inputunit input { padding-right: 36px; }
+.dash-drawer-inputunit em {
+  position: absolute;
+  right: 10px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.dash-drawer-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--accent-soft);
+}
+.dash-drawer-total span { color: var(--muted); font-size: 0.74rem; font-weight: 600; }
+.dash-drawer-total strong { color: var(--accent-deep, var(--accent)); font-size: 1.2rem; font-weight: 800; }
+
+.dash-drawer-hint { margin: 0; color: var(--muted); font-size: 0.72rem; line-height: 1.4; }
+
+.dash-drawer-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 2px; }
+
+/* ── Adjust-threshold modal (Zone 4) ────────────────────────────────── */
+.dash-threshold { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+.dash-threshold-note { margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.45; }
+.dash-threshold-current {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--panel-muted);
+}
+.dash-threshold-current span { color: var(--muted); font-size: 0.74rem; font-weight: 600; }
+.dash-threshold-current strong { color: var(--text); font-size: 1rem; font-weight: 800; }
 
 /* ════════════════════════════════════════════════════════════════════
    Shared KPI-card styles — still consumed by the Inventory, Billing,
@@ -789,7 +939,6 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
 
 /* Tighten the control-tower grid on shorter laptops so it never scrolls. */
 @media (max-height: 780px) {
-  .dashboard-page { grid-template-rows: auto minmax(0, 1fr) 160px; gap: 10px; }
-  .dash-ribbon-value { font-size: 1.05rem; }
+  .dashboard-page { grid-template-rows: minmax(0, 1fr) 182px; gap: 10px; }
   .dash-card-head h3 { font-size: 0.96rem; }
 }

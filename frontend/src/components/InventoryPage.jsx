@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useLanguage } from "../i18n/LanguageContext";
 import InventoryDirectorySection from "./inventory/InventoryDirectorySection";
-import InventoryOverviewSection from "./inventory/InventoryOverviewSection";
+import InventoryControlBoard from "./inventory/InventoryControlBoard";
 import InventoryReferenceModal from "./inventory/InventoryReferenceModal";
 import useInventoryDirectoryFilters from "../hooks/useInventoryDirectoryFilters";
 
-function InventoryPage({ dashboard }) {
+function InventoryPage({ dashboard, billingNotes = [], paymentBatches = [], onNavigate }) {
   const { t } = useLanguage();
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [referenceOpen, setReferenceOpen] = useState(false);
@@ -35,8 +35,6 @@ function InventoryPage({ dashboard }) {
     stockReport,
     categoryOptions,
     supplierFilterOptions,
-    summary,
-    movementCounts,
     filteredRows,
     activeFilterCount,
     quickPresets,
@@ -70,10 +68,11 @@ function InventoryPage({ dashboard }) {
 
   return (
     <div className="stack-layout inventory-page">
-      <InventoryOverviewSection
-        stockReportCount={stockReport.length}
-        summary={summary}
-        movementCounts={movementCounts}
+      <InventoryControlBoard
+        dashboard={dashboard}
+        billingNotes={billingNotes}
+        paymentBatches={paymentBatches}
+        onNavigate={onNavigate}
         onOpenReference={() => setReferenceOpen(true)}
       />
 

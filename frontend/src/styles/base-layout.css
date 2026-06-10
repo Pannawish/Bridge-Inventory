@@ -29,6 +29,14 @@ body,
   overflow-x: hidden;
 }
 
+/* Lock the background page scroll while any full-screen overlay is open, on
+   every page (card popups share .modal-backdrop; the mobile nav uses
+   .sidebar-backdrop). */
+html:has(.modal-backdrop, .sidebar-backdrop),
+body:has(.modal-backdrop, .sidebar-backdrop) {
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   font-family: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

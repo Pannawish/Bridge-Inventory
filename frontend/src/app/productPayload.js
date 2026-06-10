@@ -33,6 +33,17 @@ export function buildProductSavePayload(product) {
     }
   });
 
+  // reorder_level is the one writable field the API keeps in snake_case (no
+  // camelCase alias), so map it explicitly. Only send a real number so a blank
+  // never clobbers the stored point.
+  if (
+    product.reorderLevel !== undefined &&
+    product.reorderLevel !== null &&
+    `${product.reorderLevel}` !== ""
+  ) {
+    formData.append("reorder_level", product.reorderLevel);
+  }
+
   appendProductJson(formData, "previousSkus", product.previousSkus);
   appendProductJson(formData, "subNames", product.subNames);
   appendProductJson(formData, "unitConversions", product.unitConversions);

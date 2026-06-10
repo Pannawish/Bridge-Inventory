@@ -128,6 +128,7 @@ function App() {
           handleCustomerSave={state.handleCustomerSave}
           handleCustomerDelete={state.handleCustomerDelete}
           handleProductSave={state.handleProductSave}
+          handleProductReorderUpdate={state.handleProductReorderUpdate}
           handleProductDelete={state.handleProductDelete}
           handleCategorySave={state.handleCategorySave}
           handleCategoryDelete={state.handleCategoryDelete}

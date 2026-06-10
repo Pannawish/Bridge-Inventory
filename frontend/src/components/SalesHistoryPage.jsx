@@ -24,6 +24,7 @@ function SalesHistoryPage({
   onSaleDelete,
   onWarning,
   focusSaleId = null,
+  statusFilter = null,
   onIntentConsumed,
 }) {
   const { t } = useLanguage();
@@ -90,6 +91,19 @@ function SalesHistoryPage({
     onPageRequest,
     t,
   });
+
+  // Deep-link from the dashboard's Delivery-Planning Action Center: pre-filter
+  // the list to a fulfilment stage (e.g. orders stuck in Packing) and reveal
+  // the filter panel so the active state is visible, then clear the intent.
+  useEffect(() => {
+    if (!statusFilter || statusFilter.length === 0) {
+      return;
+    }
+    setSelectedStatuses(statusFilter);
+    setFilterOpen(true);
+    onIntentConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter]);
 
   async function handleSave(updatedSale) {
     const saved = await onSaleUpdate?.(updatedSale);

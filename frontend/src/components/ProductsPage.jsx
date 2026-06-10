@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import ProductDetailModal from "./products/ProductDetailModal";
 import ProductDirectorySection from "./products/ProductDirectorySection";
 import ProductEditorModal from "./products/ProductEditorModal";
@@ -16,6 +17,8 @@ function ProductsPage({
   onLoadProductHistory,
   onSaveProduct,
   onDeleteProduct,
+  focusProductId = null,
+  onIntentConsumed,
 }) {
   const state = useProductsPageState({
     products,
@@ -29,6 +32,24 @@ function ProductsPage({
     onSaveProduct,
     onDeleteProduct,
   });
+
+  // Deep-link from the dashboard's Stock-Cycling / popular widgets: open the
+  // targeted product straight into its detail + transaction-history view, then
+  // clear the one-shot intent.
+  const { openProductDetail } = state;
+  useEffect(() => {
+    if (!focusProductId) {
+      return;
+    }
+    const target = (allProducts || []).find(
+      (product) => `${product.id}` === `${focusProductId}`
+    );
+    if (target) {
+      openProductDetail(target);
+    }
+    onIntentConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusProductId, allProducts]);
 
   return (
     <div className="stack-layout">

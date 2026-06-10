@@ -328,6 +328,46 @@ export function useAppMasterDataActions({
     }
   }
 
+  // Minimal partial update for the dashboard's inline "Adjust reorder point"
+  // popover. Sends only reorder_level so a quick tweak can never wipe the
+  // product's unit conversions or pictures the way a full save payload would.
+  async function handleProductReorderUpdate(productId, reorderLevel) {
+    const value = Number(reorderLevel);
+    const safeValue = Number.isFinite(value) && value >= 0 ? value : 0;
+    const existing = products.find((row) => `${row.id}` === `${productId}`);
+
+    if (usingMockProducts) {
+      if (!existing) {
+        return false;
+      }
+      const updated = { ...existing, reorderLevel: safeValue, reorder_level: safeValue };
+      setProducts((currentRows) => upsertEntity(currentRows, updated));
+      setProductRows((currentRows) => upsertEntity(currentRows, updated).slice(0, PAGE_SIZE));
+      setNotice(
+        buildEntityNotice("app.messages.entitySaved", "product", updated.productName || updated.id)
+      );
+      return updated;
+    }
+
+    try {
+      const saved = await api.updateProduct(productId, { reorder_level: safeValue });
+      const resolved =
+        saved ||
+        (existing ? { ...existing, reorder_level: safeValue, reorderLevel: safeValue } : null);
+      if (resolved) {
+        setProducts((currentRows) => upsertEntity(currentRows, resolved));
+        setProductRows((currentRows) => upsertEntity(currentRows, resolved).slice(0, PAGE_SIZE));
+      }
+      setNotice(
+        buildEntityNotice("app.messages.entitySaved", "product", resolved?.productName || productId)
+      );
+      return resolved;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
   async function handleQuotationSave(nextQuotation) {
     setError("");
 
@@ -416,6 +456,7 @@ export function useAppMasterDataActions({
     handleCategorySave,
     handleCategoryDelete,
     handleProductSave,
+    handleProductReorderUpdate,
     handleProductDelete,
     handleQuotationSave,
     handleQuotationDelete,

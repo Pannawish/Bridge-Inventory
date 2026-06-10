@@ -1,0 +1,91 @@
+/* ════════════════════════════════════════════════════════════════════
+   Shared reorder-point "sawtooth" charts.
+   .saw-mini  — dashboard, stretched to fill its slot (preserveAspectRatio none)
+   .saw-full  — inventory detail, labelled textbook model (aspect preserved)
+   ════════════════════════════════════════════════════════════════════ */
+.saw { display: block; width: 100%; }
+
+/* Stock trajectory (the teeth) */
+.saw-line { fill: none; stroke-width: 2; stroke-linejoin: round; }
+.saw-line.tone-danger { stroke: var(--danger); }
+.saw-line.tone-warning { stroke: var(--warning); }
+.saw-line.tone-accent { stroke: var(--accent); }
+.saw-line.tone-positive { stroke: var(--success); }
+.saw-line.tone-neutral { stroke: var(--muted); }
+
+/* Safety-stock zone + reference lines */
+.saw-ss-band { fill: var(--danger); opacity: 0.07; }
+.saw-ss { stroke: var(--danger); stroke-width: 1; stroke-dasharray: 4 3; opacity: 0.75; }
+.saw-rop { stroke: var(--warning); stroke-width: 1; stroke-dasharray: 4 3; opacity: 0.9; }
+
+/* "Now" current-stock marker */
+.saw-now-guide { stroke-width: 1; stroke-dasharray: 2 2; opacity: 0.45; }
+.saw-now-guide.tone-danger { stroke: var(--danger); }
+.saw-now-guide.tone-warning { stroke: var(--warning); }
+.saw-now-guide.tone-accent { stroke: var(--accent); }
+.saw-now-guide.tone-positive { stroke: var(--success); }
+.saw-now-guide.tone-neutral { stroke: var(--muted); }
+
+.saw-now { stroke: #fff; stroke-width: 1.2; }
+.saw-now.tone-danger { fill: var(--danger); }
+.saw-now.tone-warning { fill: var(--warning); }
+.saw-now.tone-accent { fill: var(--accent); }
+.saw-now.tone-positive { fill: var(--success); }
+.saw-now.tone-neutral { fill: var(--muted); }
+
+/* ── Mini (dashboard) ────────────────────────────────────────────────── */
+.saw-mini-wrap { position: relative; flex: 1; min-width: 0; height: 100%; }
+.saw-mini { position: absolute; inset: 0; width: 100%; height: 100%; }
+.saw-mini .saw-line { stroke-width: 1.8; }
+
+/* Value labels pinned to the reference lines / current dot. */
+.saw-tag {
+  position: absolute;
+  transform: translateY(-50%);
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.86);
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.saw-tag.is-now { left: 7px; }
+.saw-tag.is-rop { right: 4px; color: #9a7b16; }
+.saw-tag.is-ss { right: 4px; color: var(--danger); }
+.saw-tag.is-now.tone-danger { color: var(--danger); }
+.saw-tag.is-now.tone-warning { color: #9a7b16; }
+.saw-tag.is-now.tone-accent { color: var(--accent); }
+.saw-tag.is-now.tone-positive { color: var(--success); }
+.saw-tag.is-now.tone-neutral { color: var(--muted); }
+
+/* ── Full (inventory detail) ─────────────────────────────────────────── */
+.saw-full { height: auto; }
+
+.saw-axis { stroke: var(--line-strong); stroke-width: 1; }
+.saw-axis-label {
+  fill: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.saw-line-label { font-size: 10px; font-weight: 700; text-anchor: end; }
+.saw-line-label.is-reorder { fill: #9a7b16; }
+.saw-line-label.is-safety { fill: var(--danger); }
+
+.saw-bracket line { stroke: var(--muted); stroke-width: 1; }
+.saw-bracket-label { fill: var(--muted); font-size: 10px; font-weight: 700; text-anchor: middle; }
+.saw-bracket-label.is-lead { fill: var(--accent); }
+
+.saw-tick { fill: var(--muted); font-size: 9.5px; text-anchor: middle; }
+
+.saw-now-label { font-size: 11px; font-weight: 800; }
+.saw-now-label.tone-danger { fill: var(--danger); }
+.saw-now-label.tone-warning { fill: #9a7b16; }
+.saw-now-label.tone-accent { fill: var(--accent); }
+.saw-now-label.tone-positive { fill: var(--success); }
+.saw-now-label.tone-neutral { fill: var(--muted); }

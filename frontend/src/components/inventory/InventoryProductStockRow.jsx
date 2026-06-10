@@ -1,8 +1,7 @@
-import { formatMoney as fmt, formatDate } from "../../format";
+import { formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
-import { formatCurrency } from "../products/productUtils";
-import { api } from "../../api";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import InventoryDetailModal from "./InventoryDetailModal";
 import {
   formatUnits,
   getAvailable,
@@ -36,51 +35,7 @@ function MovementBadge({ movement }) {
 
 function InventoryProductStockRow({ row, health, movement }) {
   const { t } = useLanguage();
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [layers, setLayers] = useState([]);
-  const [layersLoading, setLayersLoading] = useState(false);
-  const [layersError, setLayersError] = useState("");
-
-  useEffect(() => {
-    if (!isExpanded || !row.product_id) {
-      return;
-    }
-
-    if (layers.length > 0) {
-      return;
-    }
-
-    let isMounted = true;
-    async function fetchLayers() {
-      setLayersLoading(true);
-      setLayersError("");
-      try {
-        const data = await api.getProductStockLayers(row.product_id);
-        if (isMounted) {
-          const sortedLayers = (data?.layers || []).sort((a, b) => {
-            const dateA = a.received_date || a.transaction_date || "";
-            const dateB = b.received_date || b.transaction_date || "";
-            return dateA.localeCompare(dateB);
-          });
-          setLayers(sortedLayers);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setLayersError(err.message || "Failed to load layers.");
-        }
-      } finally {
-        if (isMounted) {
-          setLayersLoading(false);
-        }
-      }
-    }
-
-    fetchLayers();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isExpanded, row.product_id, layers.length]);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const unit = row.unit || "";
   const available = getAvailable(row);
@@ -176,69 +131,17 @@ function InventoryProductStockRow({ row, health, movement }) {
             <button
               type="button"
               className="secondary-button compact-button inv-row-expand-btn"
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={() => setDetailOpen(true)}
             >
-              {isExpanded ? t("inventory.hideLayers") : t("inventory.showLayers")}
+              {t("inventory.showDetails")}
             </button>
           </div>
         </section>
       </div>
 
-      {isExpanded && (
-        <div className="inv-card-expanded-content">
-          {layersLoading && (
-            <div className="notice-banner inv-layers-notice">{t("common.loading")}</div>
-          )}
-          {layersError && (
-            <div className="error-banner inv-layers-notice">{layersError}</div>
-          )}
-
-          {!layersLoading && !layersError && layers.length === 0 && (
-            <p className="empty-copy inv-layers-empty">{t("inventory.noLayers")}</p>
-          )}
-
-          {!layersLoading && !layersError && layers.length > 0 && (
-            <div className="transaction-table-window inv-layers-table-window">
-              <table className="transaction-history-table inv-layers-table">
-                <thead>
-                  <tr>
-                    <th>{t("products.supplierColumn")}</th>
-                    <th>{t("products.batchRefColumn")}</th>
-                    <th>{t("products.receivedDateColumn")}</th>
-                    <th style={{ textAlign: "right" }}>{t("products.availableStockColumn")}</th>
-                    <th style={{ textAlign: "right" }}>{t("products.costPerUnitColumn")}</th>
-                    <th style={{ textAlign: "right" }}>{t("products.totalValueColumn")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {layers.map((layer) => (
-                    <tr key={layer.purchase_item_id}>
-                      <td>
-                        <strong>{layer.supplier_name || t("common.unknown")}</strong>
-                      </td>
-                      <td>
-                        <span className="batch-po-ref">{layer.purchase_reference_no || "—"}</span>
-                      </td>
-                      <td>
-                        {layer.received_date ? formatDate(layer.received_date) : formatDate(layer.transaction_date)}
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        {formatUnits(layer.available_quantity)} {unit}
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        {formatCurrency(layer.base_unit_cost)}
-                      </td>
-                      <td style={{ textAlign: "right" }} className="layer-total-val">
-                        {formatCurrency(layer.available_quantity * layer.base_unit_cost)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+      {detailOpen ? (
+        <InventoryDetailModal row={row} health={health} onClose={() => setDetailOpen(false)} />
+      ) : null}
     </article>
   );
 }

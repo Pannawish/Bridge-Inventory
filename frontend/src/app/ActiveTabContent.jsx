@@ -91,6 +91,7 @@ function ActiveTabContent({
   handleCustomerSave,
   handleCustomerDelete,
   handleProductSave,
+  handleProductReorderUpdate,
   handleProductDelete,
   handleCategorySave,
   handleCategoryDelete,
@@ -109,12 +110,20 @@ function ActiveTabContent({
         products={products}
         suppliers={suppliers}
         onNavigate={onDashboardNavigate}
+        onUpdateReorderLevel={handleProductReorderUpdate}
       />
     );
   }
 
   if (activeTab === "inventory") {
-    return <InventoryPage dashboard={dashboard} />;
+    return (
+      <InventoryPage
+        dashboard={dashboard}
+        billingNotes={billingNotes}
+        paymentBatches={paymentBatches}
+        onNavigate={onDashboardNavigate}
+      />
+    );
   }
 
   if (activeTab === "purchase-history") {
@@ -176,6 +185,7 @@ function ActiveTabContent({
         onSaleDelete={handleSaleDelete}
         onWarning={showWarning}
         focusSaleId={dashboardIntent?.tab === "sales-history" ? dashboardIntent.focusId : null}
+        statusFilter={dashboardIntent?.tab === "sales-history" ? dashboardIntent.statusFilter : null}
         onIntentConsumed={onConsumeIntent}
       />
     );
@@ -273,6 +283,8 @@ function ActiveTabContent({
         onLoadProductHistory={handleLoadProductHistory}
         onSaveProduct={handleProductSave}
         onDeleteProduct={handleProductDelete}
+        focusProductId={dashboardIntent?.tab === "products" ? dashboardIntent.focusProductId : null}
+        onIntentConsumed={onConsumeIntent}
       />
     );
   }
