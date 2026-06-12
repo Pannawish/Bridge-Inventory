@@ -24,6 +24,7 @@ function CategoryPage({
 }) {
   const {
     draftCategory,
+    isDraftCategoryDirty,
     searchTerm,
     filterOpen,
     levelFilter,
@@ -171,6 +172,7 @@ function CategoryPage({
           categories={categories}
           draftCategory={draftCategory}
           formError={formError}
+          isDirty={isDraftCategoryDirty}
           parentCategoryInput={parentCategoryInput}
           isParentCategoryMenuOpen={isParentCategoryMenuOpen}
           shouldShowRootParentOption={shouldShowRootParentOption}

@@ -21,6 +21,9 @@ function PurchaseEditForm({
     openProductIndex,
     itemErrors,
     formError,
+    isDirty,
+    isSubmitting,
+    saveSuccess,
     filteredSuppliers,
     vatSummary,
     visibleDocuments,
@@ -63,6 +66,7 @@ function PurchaseEditForm({
         </button>
       </div>
 
+      {saveSuccess ? <div className="notice-banner">{t("common.saveSuccess")}</div> : null}
       {formError ? <div className="error-banner">{formError}</div> : null}
 
       <form className="form-layout" onSubmit={handleSubmit}>
@@ -138,8 +142,8 @@ function PurchaseEditForm({
           <button className="secondary-button" type="button" onClick={onCancel}>
             {t("purchaseForm.cancelButton")}
           </button>
-          <button className="primary-button" type="submit">
-            {t("purchaseForm.saveButton")}
+          <button className="primary-button" type="submit" disabled={!isDirty || isSubmitting}>
+            {isSubmitting ? t("common.saving") : t("purchaseForm.saveButton")}
           </button>
         </div>
       </form>

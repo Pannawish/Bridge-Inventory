@@ -161,7 +161,11 @@ function QuotationPage({
     }
 
     setShowNewQuotationForm(false);
-    setEditingQuotation(null);
+    if (editingQuotation) {
+      setEditingQuotation(saved && typeof saved === "object" ? saved : quotation);
+    } else {
+      setEditingQuotation(null);
+    }
     return saved;
   }
 

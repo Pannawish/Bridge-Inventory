@@ -18,6 +18,7 @@ function SupplierPage({
   const {
     selectedSupplierId,
     draftSupplier,
+    isDraftSupplierDirty,
     searchTerm,
     filterOpen,
     profileFilter,
@@ -95,6 +96,7 @@ function SupplierPage({
         <SupplierEditorModal
           draftSupplier={draftSupplier}
           formErrors={formErrors}
+          isDirty={isDraftSupplierDirty}
           onClose={closeSupplierEditor}
           onSave={handleSaveSupplier}
           onDelete={handleDeleteSupplier}

@@ -18,6 +18,7 @@ function CustomerPage({
   const {
     selectedCustomerId,
     draftCustomer,
+    isDraftCustomerDirty,
     searchTerm,
     filterOpen,
     profileFilter,
@@ -95,6 +96,7 @@ function CustomerPage({
         <CustomerEditorModal
           draftCustomer={draftCustomer}
           formErrors={formErrors}
+          isDirty={isDraftCustomerDirty}
           onClose={closeCustomerEditor}
           onSave={handleSaveCustomer}
           onDelete={handleDeleteCustomer}

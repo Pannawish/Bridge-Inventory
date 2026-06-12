@@ -122,6 +122,7 @@ function ProductsPage({
       <ProductEditorModal
         draftProduct={state.draftProduct}
         allProducts={state.allProducts}
+        isDirty={state.isDraftProductDirty}
         productFormError={state.productFormError}
         categoryQuery={state.categoryQuery}
         categoryComboboxOpen={state.categoryComboboxOpen}

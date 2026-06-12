@@ -118,7 +118,7 @@ export function useSalesActions({
           : t("app.messages.salesTransactionSaved")
       );
       setActiveTab("sales-history");
-      await loadData();
+      await loadData(true);
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -169,7 +169,7 @@ export function useSalesActions({
     try {
       const updatedSale = await api.updateSaleStatus(saleId, nextStatus);
       setNotice(buildStatusUpdatedNotice("sale", sale.reference_no, nextStatus));
-      await loadData();
+      await loadData(true);
       maybeOpenCreditNotePrompt(sale, updatedSale);
     } catch (requestError) {
       setError(requestError.message);
@@ -215,10 +215,12 @@ export function useSalesActions({
       setSales((currentRows) => updateEntityById(currentRows, resolvedSale));
       setSaleRows((currentRows) => updateEntityById(currentRows, resolvedSale));
       setNotice(successNotice);
-      await refreshBillingNoteEligibility();
-      await loadData();
       maybeOpenCreditNotePrompt(previousSale, resolvedSale);
-      return true;
+      // Local rows are already patched optimistically; run the heavier server
+      // refreshes in the background so the save returns instantly.
+      refreshBillingNoteEligibility();
+      loadData(true);
+      return resolvedSale;
     } catch (requestError) {
       showWarning(requestError.message || t("app.messages.saleUpdateFailed"));
       return false;
@@ -251,7 +253,7 @@ export function useSalesActions({
         )
       );
       await refreshBillingNoteEligibility();
-      await loadData();
+      await loadData(true);
       return true;
     } catch (requestError) {
       setError(requestError.message);

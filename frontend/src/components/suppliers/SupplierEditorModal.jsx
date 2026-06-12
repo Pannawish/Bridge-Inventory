@@ -7,6 +7,7 @@ import SupplierDeliverySection from "./SupplierDeliverySection";
 function SupplierEditorModal({
   draftSupplier,
   formErrors,
+  isDirty = false,
   onClose,
   onSave,
   onDelete,
@@ -99,7 +100,7 @@ function SupplierEditorModal({
             <button className="secondary-button" type="button" onClick={onClose}>
               {t("common.cancel")}
             </button>
-            <button className="primary-button" type="submit">
+            <button className="primary-button" type="submit" disabled={!isDirty}>
               {t("supplier.saveButton")}
             </button>
           </div>

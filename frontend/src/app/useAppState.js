@@ -21,6 +21,15 @@ export function useAppState() {
   });
   const [notice, setNotice] = useState("");
   const [creditNotePrompt, setCreditNotePrompt] = useState(null);
+
+  // Auto-dismiss the success toast so the user never has to close it manually.
+  useEffect(() => {
+    if (!notice) {
+      return undefined;
+    }
+    const timeoutId = window.setTimeout(() => setNotice(""), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [notice]);
   // Deep-link intent set by the dashboard, consumed by the target tab's page
   // (e.g. open a specific sale, or a new PO/quote prefilled with items).
   const [dashboardIntent, setDashboardIntent] = useState(null);

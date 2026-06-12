@@ -39,6 +39,7 @@ function useProductEditorState({
   t,
 }) {
   const [draftProduct, setDraftProduct] = useState(null);
+  const [isDraftProductDirty, setIsDraftProductDirty] = useState(false);
   const [productFormError, setProductFormError] = useState("");
   const [skuChangeUnlocked, setSkuChangeUnlocked] = useState(false);
   const [categoryQuery, setCategoryQuery] = useState("");
@@ -115,6 +116,7 @@ function useProductEditorState({
     setSkuChangeUnlocked(false);
     setCategoryComboboxOpen(false);
     setCategoryQuery(getCategoryPathById(categories, categoryId));
+    setIsDraftProductDirty(false);
     setDraftProduct({
       ...normalizedProduct,
       categoryId,
@@ -127,9 +129,11 @@ function useProductEditorState({
     setSkuChangeUnlocked(false);
     setCategoryQuery("");
     setCategoryComboboxOpen(false);
+    setIsDraftProductDirty(false);
   }
 
   function updateDraftField(key, value) {
+    setIsDraftProductDirty(true);
     setDraftProduct((prev) =>
       updateDraftFieldHelper(prev, key, value, allProducts, categories, generateStructuredSku)
     );
@@ -137,6 +141,7 @@ function useProductEditorState({
   }
 
   function addDraftPictures(files) {
+    setIsDraftProductDirty(true);
     setDraftProduct((prev) => addDraftPicturesHelper(prev, files));
     setProductFormError("");
   }
@@ -147,46 +152,55 @@ function useProductEditorState({
   }
 
   function removeDraftPicture(pictureId) {
+    setIsDraftProductDirty(true);
     setDraftProduct((prev) => removeDraftPictureHelper(prev, pictureId));
     setProductFormError("");
   }
 
   function updateDraftSubName(index, value) {
+    setIsDraftProductDirty(true);
     setDraftProduct((prev) => updateDraftSubNameHelper(prev, index, value));
     setProductFormError("");
   }
 
   function addDraftSubName() {
+    setIsDraftProductDirty(true);
     setDraftProduct((prev) => addDraftSubNameHelper(prev));
     setProductFormError("");
   }
 
   function removeDraftSubName(index) {
+    setIsDraftProductDirty(true);
     setDraftProduct((prev) => removeDraftSubNameHelper(prev, index));
     setProductFormError("");
   }
 
   function setDraftSubNameAsMain(index) {
+    setIsDraftProductDirty(true);
     setDraftProduct((prev) => setDraftSubNameAsMainHelper(prev)(index));
     setProductFormError("");
   }
 
   function updateDraftUnitConversion(index, key, value) {
+    setIsDraftProductDirty(true);
     setDraftProduct((prev) => updateDraftUnitConversionHelper(prev, index, key, value));
     setProductFormError("");
   }
 
   function toggleDraftUnitConversion(index, key) {
+    setIsDraftProductDirty(true);
     setDraftProduct((prev) => toggleDraftUnitConversionHelper(prev, index, key));
     setProductFormError("");
   }
 
   function addDraftUnitConversion() {
+    setIsDraftProductDirty(true);
     setDraftProduct((prev) => addDraftUnitConversionHelper(prev));
     setProductFormError("");
   }
 
   function removeDraftUnitConversion(index) {
+    setIsDraftProductDirty(true);
     setDraftProduct((prev) => {
       const stockBaseUnit = getProductBaseUnit(prev);
       return removeDraftUnitConversionHelper(prev, index, stockBaseUnit);
@@ -199,6 +213,7 @@ function useProductEditorState({
       return;
     }
 
+    setIsDraftProductDirty(true);
     setDraftProduct((prev) => (prev ? { ...prev, sku: generateStructuredSku(prev) } : prev));
     setProductFormError("");
   }
@@ -254,6 +269,7 @@ function useProductEditorState({
     setSkuChangeUnlocked(false);
     setCategoryQuery("");
     setCategoryComboboxOpen(false);
+    setIsDraftProductDirty(false);
     setDraftProduct(createProduct({ productDisplayId: nextDisplayId }));
   }
 
@@ -266,6 +282,7 @@ function useProductEditorState({
 
   return {
     draftProduct,
+    isDraftProductDirty,
     productFormError,
     skuChangeUnlocked,
     categoryQuery,

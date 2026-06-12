@@ -33,7 +33,7 @@ export function usePurchaseActions({
       await api.createPurchase(formData);
       setNotice(t("app.messages.purchaseTransactionSaved"));
       setActiveTab("purchase-history"); // Wait, does usePurchaseActions need setActiveTab?
-      await loadData();
+      await loadData(true);
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -53,7 +53,7 @@ export function usePurchaseActions({
           saved?.reference_no || ""
         )
       );
-      await loadData();
+      await loadData(true);
       return saved;
     } catch (requestError) {
       setError(requestError.message);
@@ -106,7 +106,7 @@ export function usePurchaseActions({
     try {
       await api.updatePurchaseStatus(purchaseId, nextStatus);
       setNotice(buildStatusUpdatedNotice("purchase", purchase.reference_no, nextStatus));
-      await loadData();
+      await loadData(true);
     } catch (requestError) {
       setError(requestError.message);
     }
@@ -139,7 +139,7 @@ export function usePurchaseActions({
           updatedPurchase.reference_no || updatedPurchase.id
         )
       );
-      await loadData();
+      await loadData(true);
       return true;
     } catch (requestError) {
       showWarning(requestError.message || t("app.messages.purchaseUpdateFailed"));
@@ -177,9 +177,12 @@ export function usePurchaseActions({
           updatedPurchase.reference_no || updatedPurchase.id
         )
       );
-      await refreshPaymentBatchEligibility();
-      await loadData();
-      return true;
+      // Local rows are already patched optimistically above, so let the heavier
+      // server refreshes run in the background. The save returns immediately and
+      // the user gets instant feedback instead of waiting for a full reload.
+      refreshPaymentBatchEligibility();
+      loadData(true);
+      return resolvedPurchase;
     } catch (requestError) {
       setError(requestError.message);
       return false;
@@ -212,7 +215,7 @@ export function usePurchaseActions({
           deletedPurchase.reference_no || deletedPurchase.id
         )
       );
-      await loadData();
+      await loadData(true);
       return true;
     } catch (requestError) {
       setError(requestError.message);

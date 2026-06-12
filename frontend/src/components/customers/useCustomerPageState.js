@@ -29,6 +29,7 @@ export function useCustomerPageState({
   const { t } = useLanguage();
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [draftCustomer, setDraftCustomer] = useState(null);
+  const [isDraftCustomerDirty, setIsDraftCustomerDirty] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [profileFilter, setProfileFilter] = useState("all");
@@ -132,14 +133,17 @@ export function useCustomerPageState({
     setSelectedCustomerId(customer.id);
     setDraftCustomer(normalizeCustomer(customer));
     setFormErrors({});
+    setIsDraftCustomerDirty(false);
   }
 
   function closeCustomerEditor() {
     setDraftCustomer(null);
     setFormErrors({});
+    setIsDraftCustomerDirty(false);
   }
 
   function updateDraftCustomer(updater) {
+    setIsDraftCustomerDirty(true);
     setDraftCustomer((currentCustomer) =>
       currentCustomer ? normalizeCustomer(updater(currentCustomer)) : currentCustomer
     );
@@ -239,6 +243,7 @@ export function useCustomerPageState({
   function handleCreateCustomer() {
     setFormErrors({});
     setDraftCustomer(createCustomer());
+    setIsDraftCustomerDirty(false);
   }
 
   async function handleSaveCustomer() {
@@ -310,6 +315,7 @@ export function useCustomerPageState({
   return {
     selectedCustomerId,
     draftCustomer,
+    isDraftCustomerDirty,
     searchTerm,
     filterOpen,
     profileFilter,

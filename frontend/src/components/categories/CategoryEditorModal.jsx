@@ -4,6 +4,7 @@ function CategoryEditorModal({
   categories,
   draftCategory,
   formError,
+  isDirty = false,
   parentCategoryInput,
   isParentCategoryMenuOpen,
   shouldShowRootParentOption,
@@ -159,7 +160,7 @@ function CategoryEditorModal({
             <button className="secondary-button" type="button" onClick={onClose}>
               {t("common.cancel")}
             </button>
-            <button className="primary-button" type="submit">
+            <button className="primary-button" type="submit" disabled={!isDirty}>
               {t("category.saveButton")}
             </button>
           </div>

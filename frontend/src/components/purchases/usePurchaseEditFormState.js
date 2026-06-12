@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import {
   getInitialPurchaseItemStatus,
@@ -49,6 +49,20 @@ export function usePurchaseEditFormState({
   const [openProductIndex, setOpenProductIndex] = useState(null);
   const [itemErrors, setItemErrors] = useState({});
   const [formError, setFormError] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  function markDirty() {
+    setIsDirty(true);
+    setSaveSuccess(false);
+  }
+
+  useEffect(() => {
+    if (!saveSuccess) return;
+    const timer = setTimeout(() => setSaveSuccess(false), 2500);
+    return () => clearTimeout(timer);
+  }, [saveSuccess]);
 
   const filteredSuppliers = useMemo(() => {
     const normalizedQuery = supplierQuery.trim().toLowerCase();
@@ -92,14 +106,17 @@ export function usePurchaseEditFormState({
   }
 
   function updateForm(key, value) {
+    markDirty();
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
   }
 
   function updateItem(itemIndex, key, value) {
+    markDirty();
     setItems((currentItems) => updateItemHelper(currentItems, itemIndex, key, value));
   }
 
   function updateProductQuery(itemIndex, value) {
+    markDirty();
     setItems((currentItems) => updateProductQueryHelper(currentItems, itemIndex, value));
     setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
     setOpenProductIndex(itemIndex);
@@ -109,24 +126,29 @@ export function usePurchaseEditFormState({
     if (!isProductActive(product)) {
       return;
     }
+    markDirty();
     setItems((currentItems) => selectProductHelper(currentItems, itemIndex, product));
     setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
     setOpenProductIndex(null);
   }
 
   function addDiscount(itemIndex) {
+    markDirty();
     setItems((currentItems) => addDiscountHelper(currentItems, itemIndex));
   }
 
   function removeDiscount(itemIndex, discountIndex) {
+    markDirty();
     setItems((currentItems) => removeDiscountHelper(currentItems, itemIndex, discountIndex));
   }
 
   function updateDiscount(itemIndex, discountIndex, value) {
+    markDirty();
     setItems((currentItems) => updateDiscountHelper(currentItems, itemIndex, discountIndex, value));
   }
 
   function addItem() {
+    markDirty();
     setItems((currentItems) => addItemHelper(currentItems, purchase.id));
   }
 
@@ -140,6 +162,7 @@ export function usePurchaseEditFormState({
       return;
     }
 
+    markDirty();
     setItems((currentItems) => currentItems.filter((_, index) => index !== itemIndex));
     setItemErrors((currentErrors) => {
       const nextErrors = {};
@@ -159,6 +182,7 @@ export function usePurchaseEditFormState({
   }
 
   function selectSupplier(supplier) {
+    markDirty();
     setForm((currentForm) => ({
       ...currentForm,
       supplier_name: supplier.companyName,
@@ -185,7 +209,7 @@ export function usePurchaseEditFormState({
     return exactMatch?.companyName || "";
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     setFormError("");
 
@@ -303,10 +327,15 @@ export function usePurchaseEditFormState({
       total_amount: vatSummary.grandTotal,
     };
 
-    onSave({
+    setIsSubmitting(true);
+    const saved = await onSave?.({
       ...nextPurchase,
       status: getPurchaseStatusFromItems(nextPurchase),
     });
+    setIsSubmitting(false);
+    if (saved === false) return;
+    setIsDirty(false);
+    setSaveSuccess(true);
   }
 
   const vatOptions = useMemo(
@@ -316,6 +345,16 @@ export function usePurchaseEditFormState({
     ],
     [t]
   );
+
+  function handleVatModeChange(value) {
+    markDirty();
+    setVatMode(value);
+  }
+
+  function handleSupplierQueryChange(value) {
+    markDirty();
+    setSupplierQuery(value);
+  }
 
   return {
     form,
@@ -327,13 +366,16 @@ export function usePurchaseEditFormState({
     openProductIndex,
     itemErrors,
     formError,
+    isDirty,
+    isSubmitting,
+    saveSuccess,
     filteredSuppliers,
     vatSummary,
     visibleDocuments,
     getFilteredProducts,
     updateForm,
-    setVatMode,
-    setSupplierQuery,
+    setVatMode: handleVatModeChange,
+    setSupplierQuery: handleSupplierQueryChange,
     setSupplierError,
     setSupplierOpen,
     setOpenProductIndex,

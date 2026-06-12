@@ -6,6 +6,7 @@ import CustomerDeliverySection from "./CustomerDeliverySection";
 function CustomerEditorModal({
   draftCustomer,
   formErrors,
+  isDirty = false,
   onClose,
   onSave,
   onDelete,
@@ -92,7 +93,7 @@ function CustomerEditorModal({
             <button className="secondary-button" type="button" onClick={onClose}>
               {t("common.cancel")}
             </button>
-            <button className="primary-button" type="submit">
+            <button className="primary-button" type="submit" disabled={!isDirty}>
               {t("customer.saveButton")}
             </button>
           </div>

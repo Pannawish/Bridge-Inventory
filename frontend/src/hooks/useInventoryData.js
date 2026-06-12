@@ -298,8 +298,8 @@ export function useInventoryData() {
     [loadCreditNoteEligibility]
   );
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError("");
 
     const results = await Promise.allSettled(createInitialDataRequests(api));
@@ -316,7 +316,7 @@ export function useInventoryData() {
       );
     }
 
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, [inventoryDataSetters]);
 
   return {

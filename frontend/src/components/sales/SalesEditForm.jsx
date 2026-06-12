@@ -22,6 +22,9 @@ function SalesEditForm({
     customerOpen,
     customerError,
     formError,
+    isDirty,
+    isSubmitting,
+    saveSuccess,
     filteredCustomers,
     productOptions,
     stockLayersByItemKey,
@@ -72,6 +75,7 @@ function SalesEditForm({
         </button>
       </div>
 
+      {saveSuccess ? <div className="notice-banner">{t("common.saveSuccess")}</div> : null}
       {formError ? <div className="error-banner">{formError}</div> : null}
 
       <form className="form-layout" onSubmit={handleSubmit}>
@@ -159,8 +163,8 @@ function SalesEditForm({
           <button className="secondary-button" type="button" onClick={onCancel}>
             {t("salesForm.cancelButton")}
           </button>
-          <button className="primary-button" type="submit">
-            {t("salesForm.saveButton")}
+          <button className="primary-button" type="submit" disabled={!isDirty || isSubmitting}>
+            {isSubmitting ? t("common.saving") : t("salesForm.saveButton")}
           </button>
         </div>
       </form>

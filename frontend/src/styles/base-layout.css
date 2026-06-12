@@ -568,6 +568,39 @@ textarea {
   border: 1px solid #cbefdc;
 }
 
+/* Floating toast stack: keeps the success/error notice visible on top of the
+   page no matter how far the user has scrolled or whether an edit card/modal
+   is open. Sits above modals (.modal-backdrop z-index 100, doc-ref 1000). */
+.app-toast-stack {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(560px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.app-toast {
+  margin-bottom: 0;
+  pointer-events: auto;
+  animation: app-toast-in 0.22s ease;
+}
+
+@keyframes app-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .banner-close-button {
   display: grid;
   place-items: center;

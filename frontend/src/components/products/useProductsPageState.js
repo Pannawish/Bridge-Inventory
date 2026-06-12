@@ -74,6 +74,7 @@ function useProductsPageState({
 
   const {
     draftProduct,
+    isDraftProductDirty,
     productFormError,
     skuChangeUnlocked,
     categoryQuery,
@@ -392,6 +393,7 @@ function useProductsPageState({
 
     // Editor modal props
     draftProduct,
+    isDraftProductDirty,
     allProducts,
     productFormError,
     categoryQuery,

@@ -109,10 +109,11 @@ function SalesHistoryPage({
     const saved = await onSaleUpdate?.(updatedSale);
 
     if (saved === false) {
-      return;
+      return false;
     }
 
-    setEditingSale(null);
+    setEditingSale(saved && typeof saved === "object" ? saved : updatedSale);
+    return saved;
   }
 
   async function handleCreateSale(formData) {

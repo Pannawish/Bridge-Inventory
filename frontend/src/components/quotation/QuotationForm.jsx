@@ -21,6 +21,9 @@ function QuotationForm({
     itemErrors,
     vatOptions,
     isEditing,
+    isDirty,
+    isSubmitting,
+    saveSuccess,
     initialReference,
     customerQuery,
     setCustomerQuery,
@@ -76,6 +79,7 @@ function QuotationForm({
         ) : null}
       </div>
 
+      {saveSuccess ? <div className="notice-banner">{t("common.saveSuccess")}</div> : null}
       {formError ? <div className="error-banner">{formError}</div> : null}
 
       <form className="form-layout" onSubmit={handleSubmit}>
@@ -143,8 +147,16 @@ function QuotationForm({
               {t("quotation.cancelButton")}
             </button>
           ) : null}
-          <button className="primary-button" type="submit">
-            {isEditing ? t("quotation.saveButton") : t("quotation.createButton")}
+          <button
+            className="primary-button"
+            type="submit"
+            disabled={isEditing ? (!isDirty || isSubmitting) : isSubmitting}
+          >
+            {isSubmitting
+              ? t("common.saving")
+              : isEditing
+                ? t("quotation.saveButton")
+                : t("quotation.createButton")}
           </button>
         </div>
       </form>

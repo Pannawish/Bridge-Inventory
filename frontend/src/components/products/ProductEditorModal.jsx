@@ -7,6 +7,7 @@ import ProductUnitsFields from "./ProductUnitsFields";
 function ProductEditorModal({
   draftProduct,
   allProducts,
+  isDirty = false,
   productFormError,
   categoryQuery,
   categoryComboboxOpen,
@@ -189,7 +190,7 @@ function ProductEditorModal({
             <button className="secondary-button" type="button" onClick={onClose}>
               {t("products.cancelButton")}
             </button>
-            <button className="primary-button" type="submit">
+            <button className="primary-button" type="submit" disabled={!isDirty}>
               {t("products.saveButton")}
             </button>
           </div>

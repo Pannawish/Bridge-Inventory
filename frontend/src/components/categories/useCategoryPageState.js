@@ -23,6 +23,7 @@ export function useCategoryPageState({
 }) {
   const { t } = useLanguage();
   const [draftCategory, setDraftCategory] = useState(null);
+  const [isDraftCategoryDirty, setIsDraftCategoryDirty] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [levelFilter, setLevelFilter] = useState("all");
@@ -139,6 +140,7 @@ export function useCategoryPageState({
     );
     setIsParentCategoryMenuOpen(false);
     setFormError("");
+    setIsDraftCategoryDirty(false);
   }
 
   function openSubcategoryEditor(parentCategory) {
@@ -150,9 +152,11 @@ export function useCategoryPageState({
     setParentCategoryInput("");
     setIsParentCategoryMenuOpen(false);
     setFormError("");
+    setIsDraftCategoryDirty(false);
   }
 
   function updateDraftField(key, value) {
+    setIsDraftCategoryDirty(true);
     setDraftCategory((currentCategory) =>
       currentCategory ? { ...currentCategory, [key]: value } : currentCategory
     );
@@ -339,6 +343,7 @@ export function useCategoryPageState({
 
   return {
     draftCategory,
+    isDraftCategoryDirty,
     searchTerm,
     filterOpen,
     levelFilter,

@@ -28,6 +28,7 @@ export function useSupplierPageState({
   const { t } = useLanguage();
   const [selectedSupplierId, setSelectedSupplierId] = useState(null);
   const [draftSupplier, setDraftSupplier] = useState(null);
+  const [isDraftSupplierDirty, setIsDraftSupplierDirty] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [profileFilter, setProfileFilter] = useState("all");
@@ -131,14 +132,17 @@ export function useSupplierPageState({
     setSelectedSupplierId(supplier.id);
     setDraftSupplier(normalizeSupplier(supplier));
     setFormErrors({});
+    setIsDraftSupplierDirty(false);
   }
 
   function closeSupplierEditor() {
     setDraftSupplier(null);
     setFormErrors({});
+    setIsDraftSupplierDirty(false);
   }
 
   function updateDraftSupplier(updater) {
+    setIsDraftSupplierDirty(true);
     setDraftSupplier((currentSupplier) =>
       currentSupplier ? normalizeSupplier(updater(currentSupplier)) : currentSupplier
     );
@@ -235,6 +239,7 @@ export function useSupplierPageState({
   function handleCreateSupplier() {
     setFormErrors({});
     setDraftSupplier(createSupplier());
+    setIsDraftSupplierDirty(false);
   }
 
   async function handleSaveSupplier() {
@@ -306,6 +311,7 @@ export function useSupplierPageState({
   return {
     selectedSupplierId,
     draftSupplier,
+    isDraftSupplierDirty,
     searchTerm,
     filterOpen,
     profileFilter,

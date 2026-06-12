@@ -59,6 +59,20 @@ export function useQuotationFormState({
   const [itemErrors, setItemErrors] = useState({});
   const [customerQuery, setCustomerQuery] = useState(quotation?.customer_name || "");
   const [customerOpen, setCustomerOpen] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  function markDirty() {
+    setIsDirty(true);
+    setSaveSuccess(false);
+  }
+
+  useEffect(() => {
+    if (!saveSuccess) return;
+    const timer = setTimeout(() => setSaveSuccess(false), 2500);
+    return () => clearTimeout(timer);
+  }, [saveSuccess]);
 
   const normalizedCustomers = useMemo(
     () => normalizePartnerOptions(customers, form.customer_name),
@@ -119,6 +133,7 @@ export function useQuotationFormState({
   );
 
   function selectCustomer(customer) {
+    markDirty();
     const nextTerms = getCustomerPaymentTerms(customer);
     setForm((currentForm) => ({
       ...currentForm,
@@ -130,6 +145,7 @@ export function useQuotationFormState({
   }
 
   function updateForm(key, value) {
+    markDirty();
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
   }
 
@@ -148,6 +164,7 @@ export function useQuotationFormState({
       return;
     }
 
+    markDirty();
     const clampedDays = Math.min(100, Math.max(0, nextDays));
     setForm((currentForm) => ({
       ...currentForm,
@@ -162,6 +179,7 @@ export function useQuotationFormState({
   }
 
   function handleValidUntilDayTypeChange(dayType) {
+    markDirty();
     setForm((currentForm) => ({
       ...currentForm,
       valid_until_day_type: dayType,
@@ -175,6 +193,7 @@ export function useQuotationFormState({
   }
 
   function updateItem(itemIndex, key, value) {
+    markDirty();
     setItems((currentItems) =>
       currentItems.map((item, index) =>
         index === itemIndex ? { ...item, [key]: value } : item
@@ -201,6 +220,7 @@ export function useQuotationFormState({
   }
 
   function updateProductQuery(itemIndex, value) {
+    markDirty();
     setItems((currentItems) =>
       currentItems.map((item, index) =>
         index === itemIndex
@@ -224,6 +244,7 @@ export function useQuotationFormState({
       return;
     }
 
+    markDirty();
     const productName = getTranslatedProductName(product, t);
     const sku = getProductSku(product);
 
@@ -246,14 +267,17 @@ export function useQuotationFormState({
   }
 
   function addItem() {
+    markDirty();
     setItems((currentItems) => [...currentItems, emptyItem()]);
   }
 
   function removeItem(itemIndex) {
+    markDirty();
     setItems((currentItems) => currentItems.filter((_, index) => index !== itemIndex));
   }
 
   function addSupplierOption(itemIndex) {
+    markDirty();
     setItems((currentItems) =>
       currentItems.map((item, index) =>
         index === itemIndex
@@ -267,6 +291,7 @@ export function useQuotationFormState({
   }
 
   function removeSupplierOption(itemIndex, optionIndex) {
+    markDirty();
     setItems((currentItems) =>
       currentItems.map((item, index) =>
         index === itemIndex
@@ -282,6 +307,7 @@ export function useQuotationFormState({
   }
 
   function updateSupplierOption(itemIndex, optionIndex, key, value) {
+    markDirty();
     setItems((currentItems) =>
       currentItems.map((item, index) =>
         index === itemIndex
@@ -298,6 +324,7 @@ export function useQuotationFormState({
   }
 
   function addDiscount(itemIndex) {
+    markDirty();
     setItems((currentItems) =>
       currentItems.map((item, index) =>
         index === itemIndex ? { ...item, discounts: [...normalizeDiscounts(item), ""] } : item
@@ -306,6 +333,7 @@ export function useQuotationFormState({
   }
 
   function removeDiscount(itemIndex, discountIndex) {
+    markDirty();
     setItems((currentItems) =>
       currentItems.map((item, index) => {
         if (index !== itemIndex) {
@@ -325,6 +353,7 @@ export function useQuotationFormState({
   }
 
   function updateDiscount(itemIndex, discountIndex, value) {
+    markDirty();
     setItems((currentItems) =>
       currentItems.map((item, index) => {
         if (index !== itemIndex) {
@@ -370,6 +399,7 @@ export function useQuotationFormState({
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const savedQuotation = await onSave({
         ...(quotation || {}),
@@ -394,10 +424,22 @@ export function useQuotationFormState({
         return;
       }
 
-      onCancel?.();
+      if (isEditing) {
+        setIsDirty(false);
+        setSaveSuccess(true);
+      } else {
+        onCancel?.();
+      }
     } catch (error) {
       setFormError(error.message);
+    } finally {
+      setIsSubmitting(false);
     }
+  }
+
+  function handleCustomerQueryChange(value) {
+    markDirty();
+    setCustomerQuery(value);
   }
 
   return {
@@ -408,10 +450,13 @@ export function useQuotationFormState({
     itemErrors,
     vatOptions,
     isEditing,
+    isDirty,
+    isSubmitting,
+    saveSuccess,
     initialReference,
     customerOptions,
     customerQuery,
-    setCustomerQuery,
+    setCustomerQuery: handleCustomerQueryChange,
     customerOpen,
     setCustomerOpen,
     selectCustomer,

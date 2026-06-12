@@ -20,6 +20,9 @@ function BillingNoteDetailModal({
     isCancelled,
     creditTotal,
     netPayable,
+    isDirty,
+    isSubmitting,
+    saveSuccess,
     updateField,
     toggleLineReceived,
     updateLineReceivedDate,
@@ -70,6 +73,8 @@ function BillingNoteDetailModal({
             </button>
           </div>
         </div>
+
+        {saveSuccess ? <div className="notice-banner">{t("common.saveSuccess")}</div> : null}
 
         <form className="form-layout" onSubmit={handleSave}>
           <div className="form-grid">
@@ -324,8 +329,8 @@ function BillingNoteDetailModal({
             <button type="button" className="secondary-button" onClick={onClose}>
               {t("common.close")}
             </button>
-            <button type="submit" className="primary-button">
-              {t("common.save")}
+            <button type="submit" className="primary-button" disabled={!isDirty || isSubmitting}>
+              {isSubmitting ? t("common.saving") : t("common.save")}
             </button>
           </div>
         </form>

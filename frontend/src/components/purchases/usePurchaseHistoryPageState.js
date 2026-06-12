@@ -362,10 +362,11 @@ function usePurchaseHistoryPageState({
     const saved = await onPurchaseUpdate?.(updatedPurchase);
 
     if (saved === false) {
-      return;
+      return false;
     }
 
-    setEditingPurchase(null);
+    setEditingPurchase(saved && typeof saved === "object" ? saved : updatedPurchase);
+    return saved;
   }
 
   async function handleCreatePurchase(formData) {

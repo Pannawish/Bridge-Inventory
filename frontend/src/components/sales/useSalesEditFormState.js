@@ -60,6 +60,20 @@ export function useSalesEditFormState({
   const [customerError, setCustomerError] = useState("");
   const [formError, setFormError] = useState("");
   const [stockLayersByItemKey, setStockLayersByItemKey] = useState({});
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  function markDirty() {
+    setIsDirty(true);
+    setSaveSuccess(false);
+  }
+
+  useEffect(() => {
+    if (!saveSuccess) return;
+    const timer = setTimeout(() => setSaveSuccess(false), 2500);
+    return () => clearTimeout(timer);
+  }, [saveSuccess]);
 
   function getStockLayerKey(productId, saleItemId = "") {
     return `${productId || ""}:${saleItemId || "new"}`;
@@ -234,6 +248,7 @@ export function useSalesEditFormState({
   );
 
   function updateForm(key, value) {
+    markDirty();
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
   }
 
@@ -290,6 +305,7 @@ export function useSalesEditFormState({
   }
 
   function selectCustomer(customer) {
+    markDirty();
     setForm((currentForm) => ({
       ...currentForm,
       customer_name: customer.companyName,
@@ -317,6 +333,7 @@ export function useSalesEditFormState({
   }
 
   function updateItem(itemIndex, key, value) {
+    markDirty();
     setItems((currentItems) =>
       currentItems.map((item, index) => {
         if (index !== itemIndex) {
@@ -329,6 +346,7 @@ export function useSalesEditFormState({
   }
 
   function updateItemProduct(itemIndex, productValue) {
+    markDirty();
     setItems((currentItems) => {
       const nextItems = updateItemProductHelper(
         currentItems,
@@ -346,6 +364,7 @@ export function useSalesEditFormState({
   }
 
   function updateAllocationMode(itemIndex, mode) {
+    markDirty();
     setItems((currentItems) =>
       currentItems.map((item, index) => {
         if (index !== itemIndex) {
@@ -373,6 +392,7 @@ export function useSalesEditFormState({
   }
 
   function addAllocation(itemIndex) {
+    markDirty();
     setItems((currentItems) =>
       currentItems.map((item, index) =>
         index === itemIndex
@@ -386,6 +406,7 @@ export function useSalesEditFormState({
   }
 
   function removeAllocation(itemIndex, rowId) {
+    markDirty();
     setItems((currentItems) =>
       currentItems.map((item, index) => {
         if (index !== itemIndex) {
@@ -404,6 +425,7 @@ export function useSalesEditFormState({
   }
 
   function updateAllocation(itemIndex, rowId, key, value) {
+    markDirty();
     setItems((currentItems) =>
       currentItems.map((item, index) => {
         if (index !== itemIndex) {
@@ -422,18 +444,22 @@ export function useSalesEditFormState({
   }
 
   function addDiscount(itemIndex) {
+    markDirty();
     setItems((currentItems) => addDiscountHelper(currentItems, itemIndex));
   }
 
   function removeDiscount(itemIndex, discountIndex) {
+    markDirty();
     setItems((currentItems) => removeDiscountHelper(currentItems, itemIndex, discountIndex));
   }
 
   function updateDiscount(itemIndex, discountIndex, value) {
+    markDirty();
     setItems((currentItems) => updateDiscountHelper(currentItems, itemIndex, discountIndex, value));
   }
 
   function addItem() {
+    markDirty();
     setItems((currentItems) => addItemHelper(currentItems, sale.id));
   }
 
@@ -447,10 +473,11 @@ export function useSalesEditFormState({
       return;
     }
 
+    markDirty();
     setItems((currentItems) => currentItems.filter((_, index) => index !== itemIndex));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     setFormError("");
 
@@ -538,7 +565,8 @@ export function useSalesEditFormState({
           }),
         };
 
-    onSave({
+    setIsSubmitting(true);
+    const saved = await onSave?.({
       ...saleWithItems,
       reference_no: form.reference_no,
       customer_name: customerName,
@@ -570,6 +598,10 @@ export function useSalesEditFormState({
       grand_total: vatSummary.grandTotal,
       total_amount: vatSummary.grandTotal,
     });
+    setIsSubmitting(false);
+    if (saved === false) return;
+    setIsDirty(false);
+    setSaveSuccess(true);
   }
 
   const vatOptions = useMemo(
@@ -581,6 +613,16 @@ export function useSalesEditFormState({
     [t]
   );
 
+  function handleVatModeChange(value) {
+    markDirty();
+    setVatMode(value);
+  }
+
+  function handleCustomerQueryChange(value) {
+    markDirty();
+    setCustomerQuery(value);
+  }
+
   return {
     form,
     items,
@@ -589,6 +631,9 @@ export function useSalesEditFormState({
     customerOpen,
     customerError,
     formError,
+    isDirty,
+    isSubmitting,
+    saveSuccess,
     filteredCustomers,
     productOptions,
     stockLayersByItemKey,
@@ -599,8 +644,8 @@ export function useSalesEditFormState({
     saleStockMessage,
     visibleDocuments,
     updateForm,
-    setVatMode,
-    setCustomerQuery,
+    setVatMode: handleVatModeChange,
+    setCustomerQuery: handleCustomerQueryChange,
     setCustomerError,
     setCustomerOpen,
     setFormError,
