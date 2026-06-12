@@ -39,12 +39,14 @@ export function buildPurchaseGroups(quotation, rows, suppliers = []) {
     });
   });
 
+  const refNote = quotation.reference_no ? `Ref: ${quotation.reference_no}` : "";
+
   return [...groupsBySupplier.values()].map((group) => ({
     supplier_name: group.supplierName,
     supplier: group.supplier,
     referenceLabel: quotation.reference_no || "",
     transaction_date: quotation.quotation_date || getToday(),
-    note: "",
+    note: refNote,
     items: group.items,
   }));
 }

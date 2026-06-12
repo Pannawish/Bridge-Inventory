@@ -41,7 +41,9 @@ function usePurchaseFormState({
 }) {
   const nextReferenceNo = useMemo(() => getNextPurchaseReference(purchases), [purchases]);
   const lastGeneratedReference = useRef(nextReferenceNo);
-  const [form, setForm] = useState(() => createInitialForm(nextReferenceNo, prefill || {}));
+  const [form, setForm] = useState(() =>
+    createInitialForm(prefill?.reference_no || nextReferenceNo, prefill || {})
+  );
   const [items, setItems] = useState(() => createInitialItems(prefill || {}));
   const [vatMode, setVatMode] = useState(prefill?.vat_mode || "not_included");
   const [allItemsDiscountEnabled, setAllItemsDiscountEnabled] = useState(false);

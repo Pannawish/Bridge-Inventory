@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import PurchaseForm from "./PurchaseForm";
 import { useLanguage } from "../i18n/LanguageContext";
+import {
+  getNextPurchaseReference,
+  getNextPurchaseReferenceAfter,
+} from "./purchases/purchaseFormUtils";
 
 /**
  * Wizard for the quotation → purchase conversion. Each supplier group becomes
@@ -20,7 +24,15 @@ export default function MultiPurchaseWizard({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [createdIndexes, setCreatedIndexes] = useState(() => new Set());
 
-  const allCreated = groups.length > 0 && createdIndexes.size === groups.length;
+  const groupsWithRefs = useMemo(() => {
+    let ref = getNextPurchaseReference(purchases);
+    return groups.map((group, index) => {
+      if (index > 0) ref = getNextPurchaseReferenceAfter(ref);
+      return { ...group, reference_no: ref };
+    });
+  }, [groups, purchases]);
+
+  const allCreated = groupsWithRefs.length > 0 && createdIndexes.size === groupsWithRefs.length;
 
   async function handleCreateGroup(index, formData) {
     const saved = await onCreatePurchase(formData);
@@ -42,7 +54,7 @@ export default function MultiPurchaseWizard({
           <div>
             <p className="eyebrow">{t("multiPurchase.eyebrow")}</p>
             <h3>
-              {t("multiPurchase.title", { current: currentIndex + 1, total: groups.length })}
+              {t("multiPurchase.title", { current: currentIndex + 1, total: groupsWithRefs.length })}
             </h3>
           </div>
           <button
@@ -55,7 +67,7 @@ export default function MultiPurchaseWizard({
         </div>
 
         <div className="wizard-step-list">
-          {groups.map((group, index) => (
+          {groupsWithRefs.map((group, index) => (
             <button
               key={`${group.supplier_name}-${index}`}
               type="button"
@@ -83,9 +95,9 @@ export default function MultiPurchaseWizard({
           <button
             className="secondary-button"
             type="button"
-            disabled={currentIndex >= groups.length - 1}
+            disabled={currentIndex >= groupsWithRefs.length - 1}
             onClick={() =>
-              setCurrentIndex((value) => Math.min(groups.length - 1, value + 1))
+              setCurrentIndex((value) => Math.min(groupsWithRefs.length - 1, value + 1))
             }
           >
             {t("common.next")}
@@ -95,7 +107,7 @@ export default function MultiPurchaseWizard({
         {allCreated ? (
           <div className="wizard-finish">
             <div className="notice-banner">
-              {t("multiPurchase.allCreated", { total: groups.length })}
+              {t("multiPurchase.allCreated", { total: groupsWithRefs.length })}
             </div>
             <button className="primary-button" type="button" onClick={onViewPurchases}>
               {t("multiPurchase.goToPurchases")}
@@ -104,7 +116,7 @@ export default function MultiPurchaseWizard({
         ) : null}
       </section>
 
-      {groups.map((group, index) => (
+      {groupsWithRefs.map((group, index) => (
         <div key={`${group.supplier_name}-${index}`} hidden={index !== currentIndex}>
           {createdIndexes.has(index) ? (
             <section className="section-card">
@@ -117,7 +129,7 @@ export default function MultiPurchaseWizard({
               products={products}
               suppliers={suppliers}
               purchases={purchases}
-              prefill={group.prefill}
+              prefill={group}
               onSubmit={(formData) => handleCreateGroup(index, formData)}
               onCancel={onCancel}
             />

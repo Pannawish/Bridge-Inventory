@@ -290,7 +290,7 @@ export function getQuotationStockCoverage(quotation, products = []) {
     return isCovered
       ? {
           status: "covered",
-          metaKey: "quotationDetail.stockCoveredMeta",
+          metaKey: "quotationDetail.stockAvailableMeta",
           metaValues: {
             available: formatStockQuantity(availableBaseQuantity),
             unit: baseUnit,
@@ -298,7 +298,7 @@ export function getQuotationStockCoverage(quotation, products = []) {
         }
       : {
           status: "short",
-          metaKey: "quotationDetail.stockShortMeta",
+          metaKey: "quotationDetail.stockShortageMeta",
           metaValues: {
             available: formatStockQuantity(availableBaseQuantity),
             shortage: formatStockQuantity(shortageBaseQuantity),
