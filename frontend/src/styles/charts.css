@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════
    Shared reorder-point "sawtooth" charts.
-   .saw-mini  — dashboard, stretched to fill its slot (preserveAspectRatio none)
-   .saw-full  — inventory detail, labelled textbook model (aspect preserved)
+   .saw-mini  — dashboard tile: minimal trajectory + "order by" date marker
+   .saw-full  — inventory detail: full-width analysis chart w/ hover crosshair
    ════════════════════════════════════════════════════════════════════ */
 .saw { display: block; width: 100%; }
 
@@ -38,6 +38,9 @@
 .saw-mini { position: absolute; inset: 0; width: 100%; height: 100%; }
 .saw-mini .saw-line { stroke-width: 1.8; }
 
+/* Vertical "order by" crossing tick on the mini. */
+.saw-cross-mini { stroke: var(--warning); stroke-width: 1; stroke-dasharray: 2 2; opacity: 0.8; }
+
 /* Value labels pinned to the reference lines / current dot. */
 .saw-tag {
   position: absolute;
@@ -60,10 +63,30 @@
 .saw-tag.is-now.tone-positive { color: var(--success); }
 .saw-tag.is-now.tone-neutral { color: var(--muted); }
 
-/* ── Full (inventory detail) ─────────────────────────────────────────── */
-.saw-full { height: auto; }
+/* "Order by <date>" chip overlaid at the bottom-centre of the mini chart
+   (centred so it clears the edge-hugging value tags). */
+.saw-date {
+  position: absolute;
+  left: 50%;
+  bottom: -1px;
+  transform: translateX(-50%);
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #9a7b16;
+  font-size: 0.56rem;
+  font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.saw-date.is-now { color: var(--danger); }
+
+/* ── Full (inventory detail) — analysis chart ────────────────────────── */
+.saw-analysis { position: relative; width: 100%; }
+.saw-full { height: auto; cursor: crosshair; }
 
 .saw-axis { stroke: var(--line-strong); stroke-width: 1; }
+.saw-grid { stroke: var(--line); stroke-width: 1; }
 .saw-axis-label {
   fill: var(--muted);
   font-size: 11px;
@@ -73,15 +96,37 @@
   text-transform: uppercase;
 }
 
-.saw-line-label { font-size: 10px; font-weight: 700; text-anchor: end; }
-.saw-line-label.is-reorder { fill: #9a7b16; }
-.saw-line-label.is-safety { fill: var(--danger); }
+/* Threshold lines */
+.saw-peak { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 1 4; opacity: 0.5; }
 
-.saw-bracket line { stroke: var(--muted); stroke-width: 1; }
-.saw-bracket-label { fill: var(--muted); font-size: 10px; font-weight: 700; text-anchor: middle; }
-.saw-bracket-label.is-lead { fill: var(--accent); }
+/* Lead-time band + label */
+.saw-lead-band { fill: var(--accent); opacity: 0.05; }
+.saw-lead-label { fill: var(--accent); font-size: 10px; font-weight: 700; text-anchor: middle; }
 
-.saw-tick { fill: var(--muted); font-size: 9.5px; text-anchor: middle; }
+/* "If not ordered" stockout risk projection */
+.saw-risk { fill: none; stroke: var(--danger); stroke-width: 1.5; stroke-dasharray: 3 3; opacity: 0.7; }
+
+/* Left-axis quantity tick labels */
+.saw-yt { fill: var(--muted); font-size: 10px; font-weight: 600; text-anchor: end; }
+
+/* Right-gutter threshold names */
+.saw-name { font-size: 10.5px; font-weight: 700; text-anchor: start; }
+.saw-name.is-peak { fill: var(--accent); opacity: 0.8; }
+.saw-name.is-reorder { fill: #9a7b16; }
+.saw-name.is-safety { fill: var(--danger); }
+
+.saw-restock-label { fill: var(--accent); font-size: 10px; font-weight: 700; text-anchor: start; }
+
+/* Bottom date markers */
+.saw-marker line { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.4; }
+.saw-marker-role { font-size: 10px; font-weight: 800; text-anchor: middle; fill: var(--text); }
+.saw-marker-date { font-size: 9.5px; font-weight: 600; text-anchor: middle; fill: var(--muted); }
+.saw-marker.is-order line { stroke: var(--warning); opacity: 0.8; }
+.saw-marker.is-order .saw-marker-role { fill: #9a7b16; }
+.saw-marker.is-stockout line { stroke: var(--danger); opacity: 0.7; }
+.saw-marker.is-stockout .saw-marker-role { fill: var(--danger); }
+.saw-marker.is-restock line { stroke: var(--accent); opacity: 0.6; }
+.saw-marker.is-restock .saw-marker-role { fill: var(--accent); }
 
 .saw-now-label { font-size: 11px; font-weight: 800; }
 .saw-now-label.tone-danger { fill: var(--danger); }
@@ -89,3 +134,41 @@
 .saw-now-label.tone-accent { fill: var(--accent); }
 .saw-now-label.tone-positive { fill: var(--success); }
 .saw-now-label.tone-neutral { fill: var(--muted); }
+
+/* Hover crosshair */
+.saw-cross line { stroke: var(--text); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.4; }
+.saw-cross-dot { stroke: #fff; stroke-width: 1.5; }
+.saw-cross-dot.is-healthy { fill: var(--success); }
+.saw-cross-dot.is-reorder { fill: var(--warning); }
+.saw-cross-dot.is-safety { fill: var(--danger); }
+
+/* Floating hover tooltip (TradingView-style) */
+.saw-tip {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  gap: 1px;
+  min-width: 116px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 6px 20px rgba(15, 22, 50, 0.12);
+  transform: translate(14px, -110%);
+  pointer-events: none;
+}
+.saw-tip.flip { transform: translate(calc(-100% - 14px), -110%); }
+.saw-tip-date { color: var(--muted); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.02em; }
+.saw-tip-qty { color: var(--text); font-size: 1rem; font-weight: 800; }
+.saw-tip-sub { color: var(--muted); font-size: 0.64rem; font-weight: 600; }
+.saw-tip-status { margin-top: 3px; font-size: 0.66rem; font-weight: 800; }
+.saw-tip-status.is-healthy { color: var(--success); }
+.saw-tip-status.is-reorder { color: #9a7b16; }
+.saw-tip-status.is-safety { color: var(--danger); }
+
+.saw-hint {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-align: center;
+}

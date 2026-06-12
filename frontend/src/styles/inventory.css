@@ -422,19 +422,18 @@
   max-height: 90vh;
 }
 
-.inv-detail-top {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: 22px;
-  align-items: start;
-  margin-top: 6px;
-}
-
-@media (max-width: 860px) {
-  .inv-detail-top { grid-template-columns: 1fr; }
-}
+.inv-detail-graphwrap { margin-top: 6px; }
 
 .inv-detail-block { margin-top: 22px; }
+
+/* Calculation reference laid out as compact cards below the full-width chart.
+   (.inv-calc-list sets display:flex later in the file — keep both classes in
+   the selector so this grid wins on specificity.) */
+.inv-calc-list.inv-calc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(218px, 1fr));
+  gap: 8px;
+}
 
 .inv-detail-heading {
   margin: 0 0 10px;
@@ -446,7 +445,7 @@
 }
 
 .inv-graph-frame {
-  padding: 12px;
+  padding: 16px 18px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fafbfc;

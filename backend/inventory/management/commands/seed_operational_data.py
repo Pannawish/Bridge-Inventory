@@ -6,6 +6,7 @@ from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from inventory.models import (
     BillingNote,
@@ -27,10 +28,13 @@ from inventory.models import (
     Sale,
     SaleDocument,
     SaleItem,
+    SaleItemAllocation,
     Supplier,
 )
 from inventory.services import (
     SALE_STOCK_DEDUCTED_STATUSES,
+    allocate_sale_item_fifo,
+    build_stock_report,
     get_available_stock_by_product_id,
     get_sale_status_from_item_statuses,
 )
@@ -38,6 +42,100 @@ from inventory.services import (
 
 VAT_RATE = Decimal("0.07")
 CENT = Decimal("0.01")
+
+# Two years of operational history so every prediction window (daily demand,
+# lead time, cycling interval, reorder point) has real data behind it.
+HISTORY_DAYS = 730
+
+# ── Product behaviour archetypes ─────────────────────────────────────────
+# Each product is assigned a demand/replenishment archetype so the seeded
+# history deliberately covers every state the system can classify:
+#   staple       — fast mover, reorders monthly, ends comfortably stocked
+#   staple_low   — fast mover that ends AT/BELOW its reorder point (urgent)
+#   staple_out   — fast mover that ends at zero stock (stockout)
+#   watch        — ends slightly above the reorder point (watch band)
+#   slow         — long-cycle repeat mover (reorders every ~4-6 months)
+#   slow_low     — long-cycle mover that ends low
+#   seasonal     — demand bursts only in event months (Jan/May/Jun/Nov/Dec)
+#   one_off      — exactly one sale order ever (one-off sourcing)
+#   dead         — stocked long ago, zero sales ever (dead stock)
+#   new          — first purchased ~25 days ago (short history)
+#   oversold     — allocated sales exceed received stock (negative raw stock)
+#   backorder    — open customer demand exceeds stock + incoming POs
+PROFILE_PARAMS = {
+    "staple": {"sale_gap": (10, 20), "po_gap": (26, 42), "cover": (32, 48), "lead": (3, 7), "final": "healthy"},
+    "staple_low": {"sale_gap": (10, 20), "po_gap": (28, 44), "cover": (30, 42), "lead": (3, 8), "final": "low"},
+    "staple_out": {"sale_gap": (11, 22), "po_gap": (30, 46), "cover": (30, 40), "lead": (4, 9), "final": "out"},
+    "watch": {"sale_gap": (12, 22), "po_gap": (30, 46), "cover": (34, 50), "lead": (3, 7), "final": "watch"},
+    "slow": {"sale_gap": (55, 100), "po_gap": (110, 170), "cover": (120, 190), "lead": (7, 18), "final": "healthy"},
+    "slow_low": {"sale_gap": (50, 95), "po_gap": (120, 180), "cover": (110, 160), "lead": (10, 21), "final": "low"},
+    "seasonal": {"sale_gap": (8, 14), "po_gap": (60, 95), "cover": (70, 110), "lead": (4, 10), "final": "watch", "months": {1, 5, 6, 11, 12}},
+    "one_off": {"sale_gap": None, "po_gap": None, "cover": None, "lead": (10, 25), "final": "skip"},
+    "dead": {"sale_gap": None, "po_gap": None, "cover": None, "lead": (7, 20), "final": "skip"},
+    "new": {"sale_gap": (6, 10), "po_gap": (16, 22), "cover": (24, 34), "lead": (2, 5), "final": "healthy", "start_ago": 25},
+    "oversold": {"sale_gap": (12, 22), "po_gap": (42, 60), "cover": (40, 60), "lead": (5, 12), "final": "oversold"},
+    "backorder": {"sale_gap": (30, 60), "po_gap": (90, 150), "cover": (100, 150), "lead": (10, 24), "final": "backorder"},
+}
+
+# sku -> (profile, per-sale quantity range in BASE units)
+SKU_PROFILES = {
+    "NB-A5-80-TH": ("staple", 20, 60),
+    "PEN-BL-05": ("staple", 50, 150),
+    "PEN-BK-05": ("staple", 50, 150),
+    "A4-80G-RM": ("staple", 10, 30),
+    "STK-NOTE-3X3": ("staple", 12, 36),
+    "TISSUE-BOX": ("staple", 24, 96),
+    "TAPE-OPP-48": ("staple", 12, 36),
+    "FLD-MANILA-A4": ("staple", 50, 200),
+    "CUP-PAPER-8OZ": ("staple", 100, 400),
+    "MASK-SURGICAL": ("staple", 50, 150),
+    "PEN-RD-05": ("staple_low", 20, 60),
+    "MKR-WB-BL": ("staple_low", 12, 36),
+    "MKR-WB-BK": ("staple_low", 12, 36),
+    "LBL-THERM-80": ("staple_low", 12, 48),
+    "CRT-TAPE-5M": ("staple_low", 12, 36),
+    "WHITEBOARD-ERASER": ("staple_out", 6, 24),
+    "COFFEE-FILTER": ("staple_out", 100, 300),
+    "NB-A4-120-TH": ("watch", 10, 30),
+    "MAILER-BAG-M": ("watch", 50, 150),
+    "GLOVE-NITRILE-M": ("watch", 100, 300),
+    "BND-PVC-2IN": ("slow", 6, 24),
+    "STP-MINI": ("slow", 4, 12),
+    "STP-26-6": ("slow", 10, 30),
+    "HLT-SET-4": ("slow", 6, 24),
+    "CLEAN-SPRAY": ("slow", 6, 18),
+    "USB-C-1M": ("slow", 5, 15),
+    "HDMI-2M": ("slow", 3, 10),
+    "INK-BLK-001": ("slow", 4, 12),
+    "TONER-LJ-85A": ("slow", 1, 4),
+    "FLD-CLEAR-A4": ("slow", 25, 100),
+    "CLP-BINDER-32": ("slow", 12, 48),
+    "TAPE-MASK-24": ("slow", 12, 36),
+    "BOX-A4-SHIP": ("slow", 25, 100),
+    "PENCIL-2B": ("slow", 50, 150),
+    "ENVELOPE-C5": ("slow", 100, 300),
+    "BND-PVC-3IN": ("slow_low", 4, 12),
+    "INK-MAG-001": ("slow_low", 2, 8),
+    "BADGE-LANYARD": ("seasonal", 100, 400),
+    "NAMECARD-HOLDER": ("seasonal", 100, 300),
+    "WRAP-BUBBLE-50": ("seasonal", 1, 5),
+    "VEST-SAFETY": ("seasonal", 5, 20),
+    "ADP-USB65W": ("one_off", 10, 20),
+    "DRUM-LJ-85A": ("one_off", 2, 4),
+    "SIGN-STAND-A4": ("one_off", 8, 12),
+    "INK-YEL-001": ("dead", 0, 0),
+    "FOAMBOARD-A1": ("dead", 0, 0),
+    "USB-C-2M": ("new", 5, 15),
+    "LBL-A4-100": ("oversold", 200, 600),
+    "A3-80G-RM": ("backorder", 5, 20),
+    "INK-CYN-001": ("backorder", 2, 8),
+}
+
+# Products that end low/out *with* a replacement PO already on the way, vs.
+# urgent ones with no incoming stock at all (the Quick-PO case).
+INCOMING_RELIEF_SKUS = {"LBL-THERM-80", "COFFEE-FILTER", "BND-PVC-3IN"}
+DELAYED_PO_SKUS = {"INK-CYN-001", "TAPE-MASK-24", "GLOVE-NITRILE-M"}
+BACKORDER_SKUS = {"A3-80G-RM", "INK-CYN-001"}
 
 
 def money(value):
@@ -168,9 +266,12 @@ class Command(BaseCommand):
         suppliers = self.seed_suppliers()
         customers = self.seed_customers()
         products = self.seed_products(categories)
-        purchases = self.seed_purchases(rng, suppliers, products)
+        po_events, sale_events = self.build_simulation_plan(rng, products, suppliers, customers)
+        purchases = self.seed_purchases(rng, suppliers, products, po_events)
         quotations = self.seed_quotations(rng, suppliers, customers, products)
-        sales = self.seed_sales(rng, customers, products, suppliers)
+        sales = self.seed_sales(rng, customers, products, suppliers, sale_events)
+        self.seed_state_adjustments(rng, suppliers, customers, products, purchases, sales)
+        self.seed_sale_allocations(sales)
         self.link_quotation_documents(rng, quotations, purchases, sales)
         billing_notes = self.seed_billing_notes(rng, sales)
         payment_batches = self.seed_payment_batches(rng, purchases)
@@ -204,8 +305,13 @@ class Command(BaseCommand):
         for document in SaleDocument.objects.filter(sale__id__startswith="demo-sale-"):
             document.file.delete(save=False)
             document.delete()
-        Purchase.objects.filter(id__startswith="demo-po-").delete()
+        # FIFO allocations PROTECT their purchase items, so clear them (via the
+        # sales cascade plus any stragglers) before deleting the purchases.
+        SaleItemAllocation.objects.filter(
+            purchase_item__purchase__id__startswith="demo-po-"
+        ).delete()
         Sale.objects.filter(id__startswith="demo-sale-").delete()
+        Purchase.objects.filter(id__startswith="demo-po-").delete()
         Product.objects.filter(id__startswith="demo-").delete()
         Supplier.objects.filter(id__startswith="demo-").delete()
         Customer.objects.filter(id__startswith="demo-").delete()
@@ -589,141 +695,380 @@ class Command(BaseCommand):
             return [rng.choice([3, 5, 8]), rng.choice([2, 4, 5])]
         return [rng.choice([5, 10])]
 
-    def seed_purchases(self, rng, suppliers, products):
-        start_date = date(2026, 1, 6)
-        latest_transaction_date = timezone.localdate()
-        purchase_statuses = (
-            [Purchase.STATUS_RECEIVED] * 34
-            + [Purchase.STATUS_PARTIALLY_RECEIVED] * 10
-            + [Purchase.STATUS_ORDERED] * 14
-            + [Purchase.STATUS_DRAFT] * 8
-            + [Purchase.STATUS_CANCELLED] * 6
+    # ── Two-year demand/replenishment simulation ─────────────────────────
+    def product_profile(self, product):
+        profile_name, qty_lo, qty_hi = SKU_PROFILES.get(
+            product.sku, ("slow", 5, 20)
         )
-        # Spread the statuses across the timeline so the current month also has
-        # received purchases (stock, payment batches) and not only drafts.
-        rng.shuffle(purchase_statuses)
+        return profile_name, PROFILE_PARAMS[profile_name], qty_lo, qty_hi
+
+    def cost_drift(self, rng, day_offset):
+        """Unit costs rise ~12% across the two years (older FIFO layers are
+        cheaper), with per-order noise so supplier best/last costs differ."""
+        progress = day_offset / HISTORY_DAYS
+        return decimal(0.88 + 0.13 * progress + rng.uniform(-0.03, 0.03))
+
+    def build_simulation_plan(self, rng, products, suppliers, customers):
+        """Walk each product through a two-year timeline of replenishment
+        receipts and demand events according to its archetype. Returns flat
+        event lists; document bucketing happens in seed_purchases/seed_sales."""
+        today = timezone.localdate()
+        sim_start = today - timedelta(days=HISTORY_DAYS)
+        po_events = []
+        sale_events = []
+
+        # Regular departments per product (2-4 repeat buyers each).
+        def product_customers(idx):
+            return [customers[(idx * 5 + k) % len(customers)] for k in range(2 + idx % 3)]
+
+        # 2-3 alternating suppliers per product, primary first.
+        def product_suppliers(idx):
+            return [suppliers[(idx * 3 + k) % len(suppliers)] for k in range(2 + idx % 2)]
+
+        for idx, product in enumerate(products):
+            profile_name, params, qty_lo, qty_hi = self.product_profile(product)
+            sources = product_suppliers(idx)
+            buyers = product_customers(idx)
+            mean_qty = (qty_lo + qty_hi) / 2 or 1
+
+            if profile_name == "dead":
+                # Stocked twice long ago, never sold.
+                for ago in (rng.randint(560, 640), rng.randint(400, 480)):
+                    receipt_date = today - timedelta(days=ago)
+                    po_events.append(self.plan_po_event(
+                        rng, product, sources, receipt_date, today,
+                        qty_base=rng.randint(20, 60), lead=params["lead"],
+                    ))
+                continue
+
+            if profile_name == "one_off":
+                # One purchase, one sale order ever — one-off sourcing.
+                receipt_ago = rng.randint(380, 460)
+                receipt_date = today - timedelta(days=receipt_ago)
+                order_qty = rng.randint(max(1, qty_lo), max(2, qty_hi)) * 2
+                po_events.append(self.plan_po_event(
+                    rng, product, sources, receipt_date, today,
+                    qty_base=order_qty, lead=params["lead"],
+                ))
+                sale_events.append({
+                    "product": product,
+                    "customer": rng.choice(buyers),
+                    "date": receipt_date + timedelta(days=rng.randint(5, 20)),
+                    "qty_base": max(1, int(order_qty * rng.uniform(0.55, 0.8))),
+                })
+                continue
+
+            sale_gap = params["sale_gap"]
+            po_gap = params["po_gap"]
+            cover = params["cover"]
+            months = params.get("months")
+            start_ago = params.get("start_ago")
+            first_day = (
+                today - timedelta(days=start_ago)
+                if start_ago
+                else sim_start + timedelta(days=rng.randint(0, 25))
+            )
+            daily_est = mean_qty / ((sale_gap[0] + sale_gap[1]) / 2)
+
+            # Replenishment receipts at the product's cadence.
+            stock = 0
+            cursor = first_day
+            receipts = []
+            while cursor <= today - timedelta(days=2):
+                qty = max(1, int(daily_est * rng.uniform(*cover)))
+                receipts.append((cursor, qty))
+                cursor += timedelta(days=rng.randint(*po_gap))
+            for receipt_date, qty in receipts:
+                po_events.append(self.plan_po_event(
+                    rng, product, sources, receipt_date, today,
+                    qty_base=qty, lead=params["lead"],
+                ))
+
+            # Demand events, stock-aware (the oversold archetype is pushed
+            # past its stock later, in seed_state_adjustments).
+            receipt_iter = iter(receipts)
+            next_receipt = next(receipt_iter, None)
+            cursor = first_day + timedelta(days=rng.randint(2, 6))
+            while cursor <= today:
+                while next_receipt and next_receipt[0] <= cursor:
+                    stock += next_receipt[1]
+                    next_receipt = next(receipt_iter, None)
+                if months and cursor.month not in months:
+                    cursor += timedelta(days=7)
+                    continue
+                qty = rng.randint(qty_lo, qty_hi)
+                qty = min(qty, stock)
+                if qty >= max(1, qty_lo // 2):
+                    stock -= qty
+                    sale_events.append({
+                        "product": product,
+                        "customer": rng.choice(buyers),
+                        "date": cursor,
+                        "qty_base": qty,
+                    })
+                cursor += timedelta(days=rng.randint(*sale_gap))
+
+        # HR's monthly stationery basket: a recurring multi-line order on the
+        # 1st-3rd of every month (matches the customer's remark, and guarantees
+        # multi-line sales so partial pack/ship statuses have data).
+        hr = next((c for c in customers if "Human Resources" in c.company_name), customers[0])
+        staples = [p for p in products if SKU_PROFILES.get(p.sku, ("",))[0] == "staple"]
+        basket_day = date(sim_start.year, sim_start.month, 1)
+        while basket_day <= today:
+            if basket_day >= sim_start:
+                order_date = basket_day + timedelta(days=rng.randint(0, 2))
+                for product in rng.sample(staples, min(len(staples), rng.randint(3, 5))):
+                    _, q_lo, q_hi = SKU_PROFILES[product.sku]
+                    sale_events.append({
+                        "product": product,
+                        "customer": hr,
+                        "date": min(order_date, today),
+                        "qty_base": rng.randint(q_lo, max(q_lo + 1, q_hi // 2)),
+                    })
+            month = basket_day.month + 1
+            year = basket_day.year + (1 if month > 12 else 0)
+            basket_day = date(year, 1 if month > 12 else month, 1)
+
+        sale_events.sort(key=lambda event: event["date"])
+        return po_events, sale_events
+
+    def plan_po_event(self, rng, product, sources, receipt_date, today, qty_base, lead):
+        """One planned replenishment line: order placed `lead` days before the
+        receipt; late-prone suppliers receive after the expected date."""
+        supplier = sources[0] if rng.random() < 0.7 else rng.choice(sources)
+        lead_days_value = rng.randint(*lead)
+        order_date = receipt_date - timedelta(days=lead_days_value)
+        expected_date = order_date + timedelta(days=lead_days_value)
+        is_late = (
+            supplier.company_name in {
+                "North Star Printing Supply",
+                "Warehouse Direct Thailand",
+            }
+            and rng.random() < 0.7
+        )
+        received_date = min(
+            today,
+            expected_date + timedelta(days=rng.randint(2, 8) if is_late else rng.randint(-1, 2)),
+        )
+        return {
+            "product": product,
+            "supplier": supplier,
+            "order_date": order_date,
+            "expected_date": expected_date,
+            "received_date": max(order_date, received_date),
+            "qty_base": qty_base,
+        }
+
+    def seed_purchases(self, rng, suppliers, products, po_events):
+        today = timezone.localdate()
         vat_modes = ["not_included", "included", "none", "not_included", "not_included"]
         purchases = []
-        day_span = max(1, (latest_transaction_date - start_date).days)
-        for index, status in enumerate(purchase_statuses, start=1):
-            day_offset = round((index - 1) * day_span / max(1, len(purchase_statuses) - 1))
-            transaction_date = min(
-                latest_transaction_date,
-                start_date + timedelta(days=day_offset),
-            )
-            supplier = suppliers[index % len(suppliers)]
+
+        # Bucket planned receipt lines into PO documents by supplier + ISO week
+        # so products sharing a supplier merge into realistic multi-line POs.
+        buckets = {}
+        for event in po_events:
+            iso = event["order_date"].isocalendar()
+            key = (event["supplier"].id, iso[0], iso[1])
+            buckets.setdefault(key, []).append(event)
+
+        ordered_buckets = sorted(
+            buckets.values(), key=lambda lines: min(line["order_date"] for line in lines)
+        )
+
+        for index, lines in enumerate(ordered_buckets, start=1):
+            supplier = lines[0]["supplier"]
+            transaction_date = min(line["order_date"] for line in lines)
+            age_days = (today - transaction_date).days
             vat_mode = vat_modes[index % len(vat_modes)]
-            supplier_tax_invoice = "" if status == Purchase.STATUS_DRAFT or index % 11 == 0 else f"{supplier.taxpayer_id[-4:]}-{transaction_date:%y%m}-{index:04d}"
-            item_count = rng.choice([1, 2, 2, 3, 3, 4, 5])
-            selected_products = rng.sample(products, item_count)
+
+            # Old receipts are the stock backbone and stay received; recent
+            # orders may still be in flight.
             line_specs = []
             line_amounts = []
-            for line_index, product in enumerate(selected_products, start=1):
+            for line in lines:
+                product = line["product"]
                 conversion = self.choose_unit(rng, product, True)
-                quantity = rng.choice([1, 2, 3, 4, 5, 6, 8, 10, 12])
-                unit_cost = money(product._seed_cost * conversion.factor_to_base * decimal(rng.uniform(0.92, 1.08)))
+                factor = conversion.factor_to_base
+                quantity = max(1, round(decimal(line["qty_base"]) / factor))
+                day_offset = HISTORY_DAYS - age_days
+                unit_cost = money(
+                    product._seed_cost * factor * self.cost_drift(rng, max(0, day_offset))
+                )
                 discounts = self.discounts(rng)
                 amount = line_amount(quantity, unit_cost, discounts)
-                expected_offset = rng.choice([2, 3, 5, 7, 10, 14, 21])
-                expected_date = min(
-                    latest_transaction_date,
-                    transaction_date + timedelta(days=expected_offset),
-                )
-                if status == Purchase.STATUS_RECEIVED:
+                expected_date = line["expected_date"]
+                if age_days > 25 or rng.random() < 0.88:
                     item_status = PurchaseItem.ITEM_RECEIVED
-                    received_date = max(
-                        transaction_date,
-                        min(
-                            latest_transaction_date,
-                            expected_date + timedelta(days=rng.choice([-1, 0, 1, 2])),
-                        ),
-                    )
-                elif status == Purchase.STATUS_PARTIALLY_RECEIVED:
-                    item_status = PurchaseItem.ITEM_RECEIVED if line_index <= max(1, item_count // 2) else PurchaseItem.ITEM_PENDING
-                    received_date = expected_date if item_status == PurchaseItem.ITEM_RECEIVED else None
-                elif status == Purchase.STATUS_CANCELLED:
-                    item_status = PurchaseItem.ITEM_CANCELLED
-                    received_date = None
+                    received_date = line["received_date"]
                 else:
+                    # A recent order still in flight: keep it pending with a
+                    # FUTURE expected date so it reads as incoming stock, not
+                    # an overdue PO (the deliberate delayed-PO cases are seeded
+                    # separately in seed_state_adjustments).
                     item_status = PurchaseItem.ITEM_PENDING
                     received_date = None
+                    expected_date = today + timedelta(days=rng.randint(2, 10))
+                line_specs.append({
+                    "product": product,
+                    "conversion": conversion,
+                    "quantity": quantity,
+                    "unit_cost": unit_cost,
+                    "discounts": discounts,
+                    "amount": amount,
+                    "expected_date": expected_date,
+                    "item_status": item_status,
+                    "received_date": received_date,
+                })
                 line_amounts.append(amount)
-                line_specs.append(
-                    {
-                        "product": product,
-                        "conversion": conversion,
-                        "quantity": quantity,
-                        "unit_cost": unit_cost,
-                        "discounts": discounts,
-                        "amount": amount,
-                        "expected_date": expected_date,
-                        "item_status": item_status,
-                        "received_date": received_date,
-                    }
-                )
-            total_before_vat, vat_amount, grand_total = transaction_totals(line_amounts, vat_mode)
-            payment_term_type = supplier.term_type or ""
-            payment_term_days = supplier.billing_note_date if payment_term_type == "credit" else ""
-            if payment_term_type == "cash":
-                payment_date = transaction_date
-            elif payment_term_type == "credit":
-                days_value = "".join(c for c in payment_term_days if c.isdigit())
-                payment_date = transaction_date + timedelta(days=int(days_value)) if days_value else None
+
+            statuses = {spec["item_status"] for spec in line_specs}
+            if statuses == {PurchaseItem.ITEM_RECEIVED}:
+                status = Purchase.STATUS_RECEIVED
+            elif PurchaseItem.ITEM_RECEIVED in statuses:
+                status = Purchase.STATUS_PARTIALLY_RECEIVED
             else:
-                payment_date = None
-            purchase = Purchase.objects.create(
-                id=self.next_demo_id(Purchase, "demo-po-"),
-                reference_no=self.next_reference_no(Purchase, "PO", transaction_date),
-                supplier=supplier,
-                supplier_name=supplier.company_name,
-                supplier_tax_invoice=supplier_tax_invoice,
-                status=status,
-                transaction_date=transaction_date,
-                payment_term_type=payment_term_type,
-                payment_term_days=payment_term_days,
-                payment_date=payment_date,
-                note=self.purchase_note(status, supplier.company_name, index),
-                vat_mode=vat_mode,
-                total_before_vat=total_before_vat,
-                vat_amount=vat_amount,
-                grand_total=grand_total,
-            )
-            for item in line_specs:
-                product = item["product"]
-                conversion = item["conversion"]
-                quantity = decimal(item["quantity"])
-                PurchaseItem.objects.create(
-                    purchase=purchase,
-                    product=product,
-                    product_name=product.product_name,
-                    sku=product.sku,
-                    expected_delivery_date=item["expected_date"],
-                    item_status=item["item_status"],
-                    received_date=item["received_date"],
-                    lead_time_days=lead_days(transaction_date, item["expected_date"]),
-                    unit=conversion.unit,
-                    base_unit=product.stock_base_unit,
-                    conversion_factor=conversion.factor_to_base,
-                    quantity=quantity,
-                    base_quantity=quantity * conversion.factor_to_base,
-                    unit_cost=item["unit_cost"],
-                    discounts=item["discounts"],
-                    amount=item["amount"],
+                status = Purchase.STATUS_ORDERED
+
+            purchases.append(
+                self.create_purchase_document(
+                    rng, supplier, transaction_date, status, vat_mode, line_specs, index
                 )
-            full_base = sum(decimal(item["amount"]) for item in line_specs)
-            payable_base = sum(
-                decimal(item["amount"])
-                for item in line_specs
-                if item["item_status"] != "cancelled"
             )
-            purchase.payable_total = (
-                grand_total
-                if full_base <= 0
-                else money(grand_total * (payable_base / full_base))
+
+        # Status-variety documents that never affect stock: cancelled POs
+        # through the history, plus a few recent drafts awaiting confirmation.
+        for serial in range(1, 13):
+            ago = rng.randint(10, HISTORY_DAYS - 10)
+            transaction_date = today - timedelta(days=ago)
+            supplier = suppliers[serial % len(suppliers)]
+            line_specs = self.simple_po_lines(
+                rng, rng.sample(products, rng.choice([1, 2])), transaction_date, today,
+                item_status=PurchaseItem.ITEM_CANCELLED,
             )
-            purchase.save(update_fields=["payable_total"])
-            purchases.append(purchase)
+            purchases.append(
+                self.create_purchase_document(
+                    rng, supplier, transaction_date,
+                    Purchase.STATUS_CANCELLED, "not_included", line_specs, 900 + serial,
+                )
+            )
+        for serial in range(1, 7):
+            transaction_date = today - timedelta(days=rng.randint(0, 12))
+            supplier = suppliers[(serial * 4) % len(suppliers)]
+            line_specs = self.simple_po_lines(
+                rng, rng.sample(products, rng.choice([1, 2, 3])), transaction_date, today,
+                item_status=PurchaseItem.ITEM_PENDING,
+            )
+            purchases.append(
+                self.create_purchase_document(
+                    rng, supplier, transaction_date,
+                    Purchase.STATUS_DRAFT, "not_included", line_specs, 950 + serial,
+                )
+            )
+
         return purchases
+
+    def simple_po_lines(self, rng, line_products, transaction_date, today, item_status):
+        line_specs = []
+        for product in line_products:
+            conversion = self.choose_unit(rng, product, True)
+            quantity = rng.choice([1, 2, 3, 4, 5])
+            age_days = (today - transaction_date).days
+            unit_cost = money(
+                product._seed_cost
+                * conversion.factor_to_base
+                * self.cost_drift(rng, max(0, HISTORY_DAYS - age_days))
+            )
+            discounts = self.discounts(rng)
+            # Pending (draft/ordered) lines expect delivery in the future so
+            # they read as incoming stock — never as accidental overdue POs.
+            expected_date = (
+                today + timedelta(days=rng.choice([3, 5, 7, 10]))
+                if item_status == PurchaseItem.ITEM_PENDING
+                else transaction_date + timedelta(days=rng.choice([3, 5, 7, 10]))
+            )
+            line_specs.append({
+                "product": product,
+                "conversion": conversion,
+                "quantity": quantity,
+                "unit_cost": unit_cost,
+                "discounts": discounts,
+                "amount": line_amount(quantity, unit_cost, discounts),
+                "expected_date": expected_date,
+                "item_status": item_status,
+                "received_date": None,
+            })
+        return line_specs
+
+    def create_purchase_document(self, rng, supplier, transaction_date, status, vat_mode, line_specs, index):
+        line_amounts = [spec["amount"] for spec in line_specs]
+        total_before_vat, vat_amount, grand_total = transaction_totals(line_amounts, vat_mode)
+        payment_term_type = supplier.term_type or ""
+        payment_term_days = supplier.billing_note_date if payment_term_type == "credit" else ""
+        if payment_term_type == "cash":
+            payment_date = transaction_date
+        elif payment_term_type == "credit":
+            days_value = "".join(c for c in payment_term_days if c.isdigit())
+            payment_date = transaction_date + timedelta(days=int(days_value)) if days_value else None
+        else:
+            payment_date = None
+        supplier_tax_invoice = (
+            ""
+            if status == Purchase.STATUS_DRAFT or index % 11 == 0
+            else f"{supplier.taxpayer_id[-4:]}-{transaction_date:%y%m}-{index:04d}"
+        )
+        purchase = Purchase.objects.create(
+            id=self.next_demo_id(Purchase, "demo-po-"),
+            reference_no=self.next_reference_no(Purchase, "PO", transaction_date),
+            supplier=supplier,
+            supplier_name=supplier.company_name,
+            supplier_tax_invoice=supplier_tax_invoice,
+            status=status,
+            transaction_date=transaction_date,
+            payment_term_type=payment_term_type,
+            payment_term_days=payment_term_days,
+            payment_date=payment_date,
+            note=self.purchase_note(status, supplier.company_name, index),
+            vat_mode=vat_mode,
+            total_before_vat=total_before_vat,
+            vat_amount=vat_amount,
+            grand_total=grand_total,
+        )
+        for item in line_specs:
+            product = item["product"]
+            conversion = item["conversion"]
+            quantity = decimal(item["quantity"])
+            PurchaseItem.objects.create(
+                purchase=purchase,
+                product=product,
+                product_name=product.product_name,
+                sku=product.sku,
+                expected_delivery_date=item["expected_date"],
+                item_status=item["item_status"],
+                received_date=item["received_date"],
+                lead_time_days=lead_days(transaction_date, item["expected_date"]),
+                unit=conversion.unit,
+                base_unit=product.stock_base_unit,
+                conversion_factor=conversion.factor_to_base,
+                quantity=quantity,
+                base_quantity=quantity * conversion.factor_to_base,
+                unit_cost=item["unit_cost"],
+                discounts=item["discounts"],
+                amount=item["amount"],
+            )
+        full_base = sum(decimal(item["amount"]) for item in line_specs)
+        payable_base = sum(
+            decimal(item["amount"])
+            for item in line_specs
+            if item["item_status"] != "cancelled"
+        )
+        purchase.payable_total = (
+            grand_total
+            if full_base <= 0
+            else money(grand_total * (payable_base / full_base))
+        )
+        purchase.save(update_fields=["payable_total"])
+        return purchase
 
     def purchase_note(self, status, supplier_name, index):
         notes = {
@@ -737,9 +1082,9 @@ class Command(BaseCommand):
         return f"{notes[status]} {suffix}"
 
     def seed_quotations(self, rng, suppliers, customers, products):
-        start_date = date(2026, 1, 12)
         latest_quotation_date = timezone.localdate()
-        quotation_count = 18
+        start_date = latest_quotation_date - timedelta(days=HISTORY_DAYS - 14)
+        quotation_count = 26
         day_span = max(1, (latest_quotation_date - start_date).days)
         vat_modes = ["not_included", "included", "none", "not_included"]
         validity_patterns = (
@@ -976,58 +1321,67 @@ class Command(BaseCommand):
         next_statuses[rng.choice(eligible_indexes)] = inactive_status
         return next_statuses
 
-    def choose_sale_quantity(self, rng, conversion, active_stock_available, item_status):
-        if conversion.factor_to_base < 1:
-            quantity_options = [5, 10, 15, 20, 25, 50, 100]
-        else:
-            quantity_options = [1, 2, 3, 4, 5, 8, 10, 12, 20, 30]
+    def sale_status_for_age(self, rng, age_days, line_count):
+        """Realistic status mix: old orders are settled (delivered, with some
+        cancelled/returned); only recent orders are still moving through the
+        draft → packed → shipped pipeline."""
+        multi = line_count > 1
+        roll = rng.random()
+        if age_days > 60:
+            if roll < 0.86:
+                return Sale.STATUS_DELIVERED
+            if roll < 0.94:
+                return Sale.STATUS_CANCELLED
+            return Sale.STATUS_RETURNED
+        if age_days > 21:
+            if roll < 0.70:
+                return Sale.STATUS_DELIVERED
+            if roll < 0.78:
+                return Sale.STATUS_SHIPPED
+            if roll < 0.84:
+                return Sale.STATUS_PARTIALLY_DELIVERED if multi else Sale.STATUS_SHIPPED
+            if roll < 0.90:
+                return Sale.STATUS_PACKED
+            if roll < 0.96:
+                return Sale.STATUS_CANCELLED
+            return Sale.STATUS_RETURNED
+        if roll < 0.30:
+            return Sale.STATUS_DELIVERED
+        if roll < 0.45:
+            return Sale.STATUS_SHIPPED
+        if roll < 0.53:
+            return Sale.STATUS_PARTIALLY_SHIPPED if multi else Sale.STATUS_SHIPPED
+        if roll < 0.65:
+            return Sale.STATUS_PACKED
+        if roll < 0.73:
+            return Sale.STATUS_PARTIALLY_PACKED if multi else Sale.STATUS_PACKED
+        if roll < 0.80:
+            return Sale.STATUS_PARTIALLY_DELIVERED if multi else Sale.STATUS_DELIVERED
+        if roll < 0.95:
+            return Sale.STATUS_DRAFT
+        if roll < 0.98:
+            return Sale.STATUS_CANCELLED
+        return Sale.STATUS_RETURNED
 
-        if item_status not in SALE_STOCK_DEDUCTED_STATUSES:
-            return decimal(rng.choice(quantity_options))
-
-        max_quantity = int(active_stock_available / conversion.factor_to_base)
-        if max_quantity <= 0:
-            return None
-
-        allowed_options = [quantity for quantity in quantity_options if quantity <= max_quantity]
-        if allowed_options:
-            return decimal(rng.choice(allowed_options))
-
-        return decimal(max_quantity)
-
-    def seed_sales(self, rng, customers, products, suppliers):
-        start_date = date(2026, 1, 10)
-        latest_transaction_date = timezone.localdate()
-        sale_statuses = (
-            [Sale.STATUS_DELIVERED] * 38
-            + [Sale.STATUS_SHIPPED] * 12
-            + [Sale.STATUS_PACKED] * 12
-            + [Sale.STATUS_PARTIALLY_DELIVERED] * 8
-            + [Sale.STATUS_PARTIALLY_SHIPPED] * 8
-            + [Sale.STATUS_PARTIALLY_PACKED] * 6
-            + [Sale.STATUS_DRAFT] * 10
-            + [Sale.STATUS_CANCELLED] * 8
-            + [Sale.STATUS_RETURNED] * 4
-        )
-        # Mix statuses across the whole timeline (instead of all-delivered first)
-        # so every month — including the current one — has a realistic spread.
-        rng.shuffle(sale_statuses)
+    def seed_sales(self, rng, customers, products, suppliers, sale_events):
+        """Turn the planned demand events into sale documents: events from the
+        same customer on the same date merge into one multi-line sale."""
+        today = timezone.localdate()
         vat_modes = ["not_included", "included", "none", "not_included"]
         sales = []
-        available_stock_by_product_id = {
-            str(product_id): Decimal(quantity)
-            for product_id, quantity in get_available_stock_by_product_id(
-                product_ids=[product.id for product in products]
-            ).items()
-        }
-        day_span = max(1, (latest_transaction_date - start_date).days)
-        for index, status in enumerate(sale_statuses, start=1):
-            day_offset = round((index - 1) * day_span / max(1, len(sale_statuses) - 1))
-            transaction_date = min(
-                latest_transaction_date,
-                start_date + timedelta(days=day_offset),
-            )
-            customer = customers[index % len(customers)]
+
+        buckets = {}
+        for event in sale_events:
+            key = (event["customer"].id, event["date"])
+            buckets.setdefault(key, []).append(event)
+        ordered_buckets = sorted(
+            buckets.values(), key=lambda events: (events[0]["date"], events[0]["customer"].id)
+        )
+
+        for index, events in enumerate(ordered_buckets, start=1):
+            customer = events[0]["customer"]
+            transaction_date = events[0]["date"]
+            age_days = (today - transaction_date).days
             vat_mode = vat_modes[index % len(vat_modes)]
             payment_term_type = customer.term_type or ""
             payment_term_days = customer.billing_note_date if payment_term_type == "credit" else ""
@@ -1038,75 +1392,43 @@ class Command(BaseCommand):
                 payment_date = transaction_date + timedelta(days=int(days_value)) if days_value else None
             else:
                 payment_date = None
-            item_count = rng.choice([1, 2, 2, 3, 3, 4])
+
+            status = self.sale_status_for_age(rng, age_days, len(events))
             statuses = self.maybe_add_credit_note_candidate_status(
                 rng,
                 status,
-                self.sale_item_statuses(status, item_count),
+                self.sale_item_statuses(status, len(events)),
             )
+
             line_specs = []
             line_amounts = []
-            used_product_ids = set()
-            for item_status in statuses:
-                candidate_products = products
-                if item_status in SALE_STOCK_DEDUCTED_STATUSES:
-                    candidate_products = [
-                        product
-                        for product in products
-                        if available_stock_by_product_id.get(
-                            f"{product.id}",
-                            Decimal("0"),
-                        )
-                        > 0
-                    ]
-                    if used_product_ids and len(candidate_products) > 1:
-                        candidate_products = [
-                            product
-                            for product in candidate_products
-                            if product.id not in used_product_ids
-                        ] or candidate_products
-                    if not candidate_products:
-                        item_status = SaleItem.ITEM_PENDING
-                        candidate_products = products
-                elif used_product_ids and len(products) > 1:
-                    candidate_products = [
-                        product
-                        for product in products
-                        if product.id not in used_product_ids
-                    ] or products
-
-                product = rng.choice(candidate_products)
+            for event, item_status in zip(events, statuses):
+                product = event["product"]
                 conversion = self.choose_unit(rng, product, False)
-                quantity = self.choose_sale_quantity(
-                    rng,
-                    conversion,
-                    available_stock_by_product_id.get(f"{product.id}", Decimal("0")),
-                    item_status,
+                factor = conversion.factor_to_base
+                quantity = max(1, round(decimal(event["qty_base"]) / factor))
+                price_drift = self.cost_drift(rng, max(0, HISTORY_DAYS - age_days))
+                unit_price = money(
+                    product._seed_price * factor * price_drift * decimal(rng.uniform(1.0, 1.08))
                 )
-                if quantity is None:
-                    item_status = SaleItem.ITEM_PENDING
-                    quantity = self.choose_sale_quantity(
-                        rng,
-                        conversion,
-                        available_stock_by_product_id.get(f"{product.id}", Decimal("0")),
-                        item_status,
-                    )
-                unit_price = money(product._seed_price * conversion.factor_to_base * decimal(rng.uniform(0.96, 1.12)))
                 discounts = self.discounts(rng, allow_multiple=True)
+                amount = line_amount(quantity, unit_price, discounts)
                 shipped_date = None
                 delivered_date = None
                 if item_status in {SaleItem.ITEM_SHIPPED, SaleItem.ITEM_DELIVERED}:
-                    shipped_date = transaction_date + timedelta(days=rng.choice([0, 1, 2]))
+                    shipped_date = min(today, transaction_date + timedelta(days=rng.choice([0, 1, 2])))
                 if item_status == SaleItem.ITEM_DELIVERED:
-                    delivered_date = (shipped_date or transaction_date) + timedelta(days=rng.choice([0, 1, 2, 3]))
-                amount = line_amount(quantity, unit_price, discounts)
+                    delivered_date = min(
+                        today,
+                        (shipped_date or transaction_date) + timedelta(days=rng.choice([0, 1, 2, 3])),
+                    )
                 # Record the source supplier and that supplier's unit cost on
                 # the line so margin, the Sales detail Supplier/Unit Cost
                 # columns, and below-cost warnings all have data. ~12% of
                 # active lines are deliberately sold below cost to exercise the
                 # loss case on the dashboard and the sales form warning.
                 source_supplier = rng.choice(suppliers)
-                base_cost = product._seed_cost * conversion.factor_to_base
+                base_cost = product._seed_cost * factor * price_drift
                 effective_unit_price = (
                     amount / decimal(quantity) if quantity else decimal(unit_price)
                 )
@@ -1114,30 +1436,21 @@ class Command(BaseCommand):
                     unit_cost = money(effective_unit_price * decimal(rng.uniform(1.05, 1.30)))
                 else:
                     unit_cost = money(base_cost * decimal(rng.uniform(0.80, 0.97)))
-                base_quantity = quantity * conversion.factor_to_base
-                if item_status in SALE_STOCK_DEDUCTED_STATUSES:
-                    available_stock_by_product_id[f"{product.id}"] = max(
-                        Decimal("0"),
-                        available_stock_by_product_id.get(f"{product.id}", Decimal("0"))
-                        - base_quantity,
-                    )
                 line_amounts.append(amount)
-                line_specs.append(
-                    {
-                        "product": product,
-                        "conversion": conversion,
-                        "quantity": quantity,
-                        "unit_price": unit_price,
-                        "discounts": discounts,
-                        "amount": amount,
-                        "item_status": item_status,
-                        "shipped_date": shipped_date,
-                        "delivered_date": delivered_date,
-                        "supplier": source_supplier,
-                        "unit_cost": unit_cost,
-                    }
-                )
-                used_product_ids.add(product.id)
+                line_specs.append({
+                    "product": product,
+                    "conversion": conversion,
+                    "quantity": quantity,
+                    "unit_price": unit_price,
+                    "discounts": discounts,
+                    "amount": amount,
+                    "item_status": item_status,
+                    "shipped_date": shipped_date,
+                    "delivered_date": delivered_date,
+                    "supplier": source_supplier,
+                    "unit_cost": unit_cost,
+                })
+
             total_before_vat, vat_amount, grand_total = transaction_totals(line_amounts, vat_mode)
             final_status = get_sale_status_from_item_statuses(
                 [item["item_status"] for item in line_specs],
@@ -1204,6 +1517,374 @@ class Command(BaseCommand):
         suffix = ["Billing follows customer cycle.", "Includes line discounts.", "Mixed unit quantities.", "Urgent department request."][index % 4]
         return f"{notes[status]} {suffix}"
 
+    # ── Final-state adjustments ──────────────────────────────────────────
+    def seed_state_adjustments(self, rng, suppliers, customers, products, purchases, sales):
+        """Nudge each product's CURRENT stock into its archetype's target band
+        (computed against the same reorder point the app itself derives), then
+        layer on the open-order edge cases: replacement POs already in flight,
+        overdue POs, and customer backorders bigger than stock + incoming."""
+        today = timezone.localdate()
+        report = {row["product_id"]: row for row in build_stock_report()}
+
+        for idx, product in enumerate(products):
+            profile_name, params, qty_lo, qty_hi = self.product_profile(product)
+            final = params["final"]
+            row = report.get(product.id)
+            if not row or final == "skip":
+                continue
+            available = decimal(row["available_stock"] or 0)
+            reorder = decimal(row["reorder_level"] or 0)
+            received = decimal(row["received_purchase_units"] or 0)
+            if reorder <= 0:
+                reorder = decimal(max(qty_hi, 10))
+
+            if final == "healthy":
+                if available < reorder * decimal("1.6"):
+                    target = reorder * decimal(str(rng.uniform(1.7, 2.2)))
+                elif available > reorder * decimal("3.2"):
+                    target = reorder * decimal(str(rng.uniform(2.0, 2.6)))
+                else:
+                    continue
+            elif final == "watch":
+                target = reorder * decimal(str(rng.uniform(1.08, 1.22)))
+            elif final == "low":
+                target = reorder * decimal(str(rng.uniform(0.35, 0.85)))
+            elif final == "out":
+                target = Decimal("0")
+            elif final == "oversold":
+                # Sell PAST zero so raw stock goes negative (oversold badge).
+                target = -(received * Decimal("0.06"))
+            elif final == "backorder":
+                target = reorder * decimal(str(rng.uniform(0.25, 0.6)))
+            else:
+                continue
+
+            delta = int(round(available - target))
+            if delta > 0:
+                customer = customers[(idx * 7) % len(customers)]
+                sale_date = today - timedelta(days=rng.randint(2, 8))
+                sales.append(
+                    self.create_adjustment_sale(rng, product, customer, sale_date, delta, suppliers)
+                )
+            elif delta < 0:
+                supplier = suppliers[(idx * 3) % len(suppliers)]
+                received_date = today - timedelta(days=rng.randint(1, 5))
+                purchases.append(
+                    self.create_adjustment_purchase(
+                        rng, supplier, product, -delta,
+                        received_date=received_date,
+                    )
+                )
+
+        products_by_sku = {product.sku: product for product in products}
+        added_incoming = {}
+
+        # Replacement stock already ordered for some low/out items (the others
+        # stay urgent with nothing on the way — the Quick-PO case).
+        for serial, sku in enumerate(sorted(INCOMING_RELIEF_SKUS), start=1):
+            product = products_by_sku.get(sku)
+            row = report.get(product.id) if product else None
+            if not row:
+                continue
+            qty = max(int(decimal(row["reorder_level"] or 0) * decimal("1.3")), 10)
+            supplier = suppliers[(serial * 5) % len(suppliers)]
+            order_date = today - timedelta(days=rng.randint(1, 6))
+            added_incoming[sku] = added_incoming.get(sku, 0) + qty
+            purchases.append(
+                self.create_adjustment_purchase(
+                    rng, supplier, product, qty,
+                    order_date=order_date,
+                    expected_date=today + timedelta(days=rng.randint(2, 6)),
+                    pending=True,
+                )
+            )
+
+        # Purchase orders that are overdue: expected date already passed, items
+        # still pending (delayed_purchase_units + dispatch attention).
+        for serial, sku in enumerate(sorted(DELAYED_PO_SKUS), start=1):
+            product = products_by_sku.get(sku)
+            if not product:
+                continue
+            supplier = suppliers[(serial * 9 + 5) % len(suppliers)]
+            order_date = today - timedelta(days=rng.randint(20, 32))
+            qty = rng.randint(20, 60)
+            added_incoming[sku] = added_incoming.get(sku, 0) + qty
+            purchases.append(
+                self.create_adjustment_purchase(
+                    rng, supplier, product, qty,
+                    order_date=order_date,
+                    expected_date=today - timedelta(days=rng.randint(5, 10)),
+                    pending=True,
+                )
+            )
+
+        # Open customer demand bigger than stock + ALL incoming (backorder
+        # table) — including the relief/delayed POs created just above.
+        for serial, sku in enumerate(sorted(BACKORDER_SKUS), start=1):
+            product = products_by_sku.get(sku)
+            row = report.get(product.id) if product else None
+            if not row:
+                continue
+            shortfall_base = int(
+                (
+                    decimal(row["available_stock"] or 0)
+                    + decimal(row["pending_purchase_units"] or 0)
+                    + decimal(row["delayed_purchase_units"] or 0)
+                    + decimal(added_incoming.get(sku, 0))
+                )
+                * decimal("1.6")
+                + decimal(row["reorder_level"] or 10)
+            )
+            customer = customers[(serial * 11) % len(customers)]
+            sale_date = today - timedelta(days=rng.randint(0, 3))
+            sales.append(
+                self.create_adjustment_sale(
+                    rng, product, customer, sale_date, max(shortfall_base, 10), suppliers,
+                    status=Sale.STATUS_DRAFT,
+                )
+            )
+
+        # One deliberately split delivery: first line booked in, second line
+        # still on the truck (partially-received PO state).
+        split_products = [
+            products_by_sku[sku]
+            for sku in ("TISSUE-BOX", "CUP-PAPER-8OZ")
+            if sku in products_by_sku
+        ]
+        if len(split_products) == 2:
+            supplier = suppliers[7 % len(suppliers)]
+            order_date = today - timedelta(days=6)
+            line_specs = []
+            for position, product in enumerate(split_products):
+                conversion = self.base_conversion(product)
+                quantity = rng.randint(20, 60)
+                unit_cost = money(product._seed_cost * self.cost_drift(rng, HISTORY_DAYS))
+                amount = line_amount(quantity, unit_cost, [])
+                received = position == 0
+                line_specs.append({
+                    "product": product,
+                    "conversion": conversion,
+                    "quantity": quantity,
+                    "unit_cost": unit_cost,
+                    "discounts": [],
+                    "amount": amount,
+                    "expected_date": today + timedelta(days=2) if not received else order_date + timedelta(days=4),
+                    "item_status": PurchaseItem.ITEM_RECEIVED if received else PurchaseItem.ITEM_PENDING,
+                    "received_date": order_date + timedelta(days=4) if received else None,
+                })
+            purchases.append(
+                self.create_purchase_document(
+                    rng, supplier, order_date, Purchase.STATUS_PARTIALLY_RECEIVED,
+                    "not_included", line_specs, 2998,
+                )
+            )
+
+        # A few recent multi-line orders frozen mid-pipeline so the partial
+        # pack/ship/delivery states always have live documents.
+        partial_statuses = [
+            Sale.STATUS_PARTIALLY_PACKED,
+            Sale.STATUS_PARTIALLY_PACKED,
+            Sale.STATUS_PARTIALLY_SHIPPED,
+            Sale.STATUS_PARTIALLY_DELIVERED,
+        ]
+        healthy_staples = [
+            products_by_sku[sku]
+            for sku, (profile, _lo, _hi) in SKU_PROFILES.items()
+            if profile == "staple" and sku in products_by_sku
+        ]
+        for serial, status in enumerate(partial_statuses, start=1):
+            customer = customers[(serial * 3 + 1) % len(customers)]
+            sale_date = today - timedelta(days=rng.randint(1, 6))
+            chosen = rng.sample(healthy_staples, min(3, len(healthy_staples)))
+            sales.append(
+                self.create_partial_sale(rng, chosen, customer, sale_date, status, suppliers)
+            )
+
+    def base_conversion(self, product):
+        return next(
+            conversion
+            for conversion in product.unit_conversions.all()
+            if conversion.factor_to_base == Decimal("1")
+        )
+
+    def create_adjustment_purchase(
+        self, rng, supplier, product, qty_base,
+        received_date=None, order_date=None, expected_date=None, pending=False,
+    ):
+        conversion = self.base_conversion(product)
+        if order_date is None:
+            order_date = (received_date or timezone.localdate()) - timedelta(days=rng.randint(2, 6))
+        if expected_date is None:
+            expected_date = received_date or order_date + timedelta(days=rng.randint(2, 6))
+        unit_cost = money(product._seed_cost * self.cost_drift(rng, HISTORY_DAYS))
+        amount = line_amount(qty_base, unit_cost, [])
+        line_specs = [{
+            "product": product,
+            "conversion": conversion,
+            "quantity": qty_base,
+            "unit_cost": unit_cost,
+            "discounts": [],
+            "amount": amount,
+            "expected_date": expected_date,
+            "item_status": PurchaseItem.ITEM_PENDING if pending else PurchaseItem.ITEM_RECEIVED,
+            "received_date": None if pending else received_date,
+        }]
+        status = Purchase.STATUS_ORDERED if pending else Purchase.STATUS_RECEIVED
+        return self.create_purchase_document(
+            rng, supplier, order_date, status, "not_included", line_specs,
+            rng.randint(2000, 2999),
+        )
+
+    def create_adjustment_sale(self, rng, product, customer, transaction_date, qty_base, suppliers, status=Sale.STATUS_DELIVERED):
+        conversion = self.base_conversion(product)
+        unit_price = money(product._seed_price * decimal(str(rng.uniform(0.97, 1.06))))
+        amount = line_amount(qty_base, unit_price, [])
+        total_before_vat, vat_amount, grand_total = transaction_totals([amount], "not_included")
+        item_status = self.sale_item_statuses(status, 1)[0]
+        note = (
+            "Bulk department request cleared from stock."
+            if status == Sale.STATUS_DELIVERED
+            else "Awaiting stock — customer order exceeds what is on hand."
+        )
+        sale = Sale.objects.create(
+            id=self.next_demo_id(Sale, "demo-sale-"),
+            reference_no=self.next_reference_no(Sale, "TI", transaction_date),
+            customer=customer,
+            customer_name=customer.company_name,
+            status=status,
+            payment_term_type=customer.term_type or "",
+            payment_term_days=customer.billing_note_date if (customer.term_type or "") == "credit" else "",
+            payment_date=None,
+            transaction_date=transaction_date,
+            note=note,
+            vat_mode="not_included",
+            total_before_vat=total_before_vat,
+            vat_amount=vat_amount,
+            grand_total=grand_total,
+        )
+        today = timezone.localdate()
+        shipped_date = transaction_date if item_status in {SaleItem.ITEM_SHIPPED, SaleItem.ITEM_DELIVERED} else None
+        delivered_date = (
+            min(transaction_date + timedelta(days=1), today)
+            if item_status == SaleItem.ITEM_DELIVERED
+            else None
+        )
+        supplier = rng.choice(suppliers)
+        SaleItem.objects.create(
+            sale=sale,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            supplier=supplier,
+            supplier_name=supplier.company_name,
+            unit_cost=money(product._seed_cost * decimal("0.95")),
+            item_status=item_status,
+            shipped_date=shipped_date,
+            delivered_date=delivered_date,
+            unit=conversion.unit,
+            base_unit=product.stock_base_unit,
+            conversion_factor=Decimal("1"),
+            quantity=decimal(qty_base),
+            base_quantity=decimal(qty_base),
+            unit_price=unit_price,
+            discounts=[],
+            amount=amount,
+        )
+        return sale
+
+    def create_partial_sale(self, rng, line_products, customer, transaction_date, status, suppliers):
+        """A small recent multi-line sale frozen in a partial pipeline state
+        (partially packed/shipped/delivered)."""
+        item_statuses = self.sale_item_statuses(status, len(line_products))
+        line_specs = []
+        line_amounts = []
+        today = timezone.localdate()
+        for product, item_status in zip(line_products, item_statuses):
+            conversion = self.base_conversion(product)
+            quantity = rng.randint(3, 12)
+            unit_price = money(product._seed_price * decimal(str(rng.uniform(0.98, 1.06))))
+            amount = line_amount(quantity, unit_price, [])
+            shipped_date = (
+                min(transaction_date + timedelta(days=1), today)
+                if item_status in {SaleItem.ITEM_SHIPPED, SaleItem.ITEM_DELIVERED}
+                else None
+            )
+            delivered_date = (
+                min(transaction_date + timedelta(days=2), today)
+                if item_status == SaleItem.ITEM_DELIVERED
+                else None
+            )
+            line_specs.append({
+                "product": product,
+                "conversion": conversion,
+                "quantity": quantity,
+                "unit_price": unit_price,
+                "amount": amount,
+                "item_status": item_status,
+                "shipped_date": shipped_date,
+                "delivered_date": delivered_date,
+            })
+            line_amounts.append(amount)
+        total_before_vat, vat_amount, grand_total = transaction_totals(line_amounts, "not_included")
+        final_status = get_sale_status_from_item_statuses(
+            [spec["item_status"] for spec in line_specs], fallback_status=status
+        )
+        sale = Sale.objects.create(
+            id=self.next_demo_id(Sale, "demo-sale-"),
+            reference_no=self.next_reference_no(Sale, "TI", transaction_date),
+            customer=customer,
+            customer_name=customer.company_name,
+            status=final_status,
+            payment_term_type=customer.term_type or "",
+            payment_term_days=customer.billing_note_date if (customer.term_type or "") == "credit" else "",
+            payment_date=None,
+            transaction_date=transaction_date,
+            note="Department order currently being processed by the warehouse.",
+            vat_mode="not_included",
+            total_before_vat=total_before_vat,
+            vat_amount=vat_amount,
+            grand_total=grand_total,
+        )
+        for spec in line_specs:
+            product = spec["product"]
+            supplier = rng.choice(suppliers)
+            SaleItem.objects.create(
+                sale=sale,
+                product=product,
+                product_name=product.product_name,
+                sku=product.sku,
+                supplier=supplier,
+                supplier_name=supplier.company_name,
+                unit_cost=money(product._seed_cost * decimal("0.95")),
+                item_status=spec["item_status"],
+                shipped_date=spec["shipped_date"],
+                delivered_date=spec["delivered_date"],
+                unit=spec["conversion"].unit,
+                base_unit=product.stock_base_unit,
+                conversion_factor=Decimal("1"),
+                quantity=decimal(spec["quantity"]),
+                base_quantity=decimal(spec["quantity"]),
+                unit_price=spec["unit_price"],
+                discounts=[],
+                amount=spec["amount"],
+            )
+        return sale
+
+    def seed_sale_allocations(self, sales):
+        """Create FIFO layer allocations for every stock-deducting sale line so
+        the per-layer availability shown in the inventory detail (FIFO table)
+        matches the stock report. The deliberately oversold product allocates
+        what it can and stays short — leaving the oversold case visible."""
+        ordered = sorted(sales, key=lambda sale: (sale.transaction_date, sale.reference_no))
+        for sale in ordered:
+            for item in sale.items.select_related("product").all():
+                if item.item_status not in SALE_STOCK_DEDUCTED_STATUSES:
+                    continue
+                try:
+                    allocate_sale_item_fifo(item)
+                except ValidationError:
+                    pass
+
     def seed_billing_notes(self, rng, sales):
         eligible_statuses = {
             Sale.STATUS_DELIVERED,
@@ -1216,96 +1897,123 @@ class Command(BaseCommand):
                 continue
             grouped_sales.setdefault(sale.customer_name, []).append(sale)
 
-        status_cycle = [
-            BillingNote.STATUS_FULLY_RECEIVED,
-            BillingNote.STATUS_ISSUED,
-            BillingNote.STATUS_PARTIALLY_RECEIVED,
-            BillingNote.STATUS_FULLY_RECEIVED,
-            BillingNote.STATUS_ISSUED,
-            BillingNote.STATUS_CANCELLED,
-        ]
-        billing_notes = []
-        serial = 1
-
+        # Build candidate chunks per customer across the WHOLE two-year
+        # timeline, then sample evenly so AR documents exist in every period —
+        # old ones mostly settled, recent ones still open, and a few stale
+        # unpaid notes left as overdue AR.
+        chunks = []
         for customer_name in sorted(grouped_sales):
             customer_sales = sorted(
                 grouped_sales[customer_name],
                 key=lambda row: (row.transaction_date, row.reference_no),
             )
             cursor = 0
-            while cursor < len(customer_sales) and serial <= 28:
+            while cursor < len(customer_sales):
                 line_count = min(len(customer_sales) - cursor, rng.choice([1, 1, 2, 2, 3]))
-                selected_sales = customer_sales[cursor : cursor + line_count]
+                chunks.append(customer_sales[cursor : cursor + line_count])
                 cursor += line_count
+        chunks.sort(key=lambda selected: max(sale.transaction_date for sale in selected))
+        max_notes = 64
+        if len(chunks) > max_notes:
+            step = len(chunks) / max_notes
+            chunks = [chunks[int(i * step)] for i in range(max_notes)]
 
-                latest_sale_date = max(sale.transaction_date for sale in selected_sales)
-                billing_note_date = min(
-                    timezone.localdate(),
-                    latest_sale_date + timedelta(days=rng.choice([2, 4, 7, 10])),
-                )
-                sale_payment_dates = [sale.payment_date for sale in selected_sales if sale.payment_date]
-                expected_payment_date = (
-                    max(sale_payment_dates)
-                    if sale_payment_dates
-                    else billing_note_date + timedelta(days=30)
-                )
-                status = status_cycle[(serial - 1) % len(status_cycle)]
-                customer = selected_sales[0].customer
-                billing_note = BillingNote.objects.create(
-                    id=self.next_demo_id(BillingNote, "demo-bn-"),
-                    reference_no=self.next_reference_no(
-                        BillingNote,
-                        "BN",
-                        billing_note_date,
-                    ),
-                    customer=customer,
-                    customer_name=customer_name,
-                    billing_note_date=billing_note_date,
-                    expected_payment_date=expected_payment_date,
-                    status=status,
-                    bank_reference=(
-                        f"KB-BN-{billing_note_date:%y%m}-{serial:03d}"
-                        if status == BillingNote.STATUS_FULLY_RECEIVED
-                        else ""
-                    ),
-                    note=self.billing_note_note(status, customer_name),
-                )
-                line_rows = []
-                total_amount = Decimal("0.00")
-                for line_index, sale in enumerate(selected_sales):
-                    received = status == BillingNote.STATUS_FULLY_RECEIVED or (
-                        status == BillingNote.STATUS_PARTIALLY_RECEIVED and line_index == 0
-                    )
-                    received_date = None
-                    if received:
-                        received_date = min(
-                            timezone.localdate(),
-                            (sale.payment_date or expected_payment_date)
-                            + timedelta(days=rng.choice([-1, 0, 1, 2])),
-                        )
-                    amount = money(sale.grand_total)
-                    line_rows.append(
-                        BillingNoteLine(
-                            billing_note=billing_note,
-                            sale=sale,
-                            received=received,
-                            received_date=received_date,
-                            amount=amount,
-                        )
-                    )
-                    total_amount += amount
-                BillingNoteLine.objects.bulk_create(line_rows)
+        today = timezone.localdate()
+        billing_notes = []
+        serial = 1
 
-                received_dates = [
-                    line.received_date
-                    for line in line_rows
-                    if line.received and line.received_date
-                ]
-                billing_note.total_amount = total_amount
-                billing_note.actual_payment_date = max(received_dates) if received_dates else None
-                billing_note.save(update_fields=["total_amount", "actual_payment_date", "updated_at"])
-                billing_notes.append(billing_note)
-                serial += 1
+        for selected_sales in chunks:
+            latest_sale_date = max(sale.transaction_date for sale in selected_sales)
+            billing_note_date = min(
+                today,
+                latest_sale_date + timedelta(days=rng.choice([2, 4, 7, 10])),
+            )
+            sale_payment_dates = [sale.payment_date for sale in selected_sales if sale.payment_date]
+            expected_payment_date = (
+                max(sale_payment_dates)
+                if sale_payment_dates
+                else billing_note_date + timedelta(days=30)
+            )
+            age_days = (today - billing_note_date).days
+            roll = rng.random()
+            if age_days > 120:
+                if roll < 0.82:
+                    status = BillingNote.STATUS_FULLY_RECEIVED
+                elif roll < 0.92:
+                    status = BillingNote.STATUS_ISSUED
+                else:
+                    status = BillingNote.STATUS_CANCELLED
+            elif age_days > 30:
+                if roll < 0.55:
+                    status = BillingNote.STATUS_FULLY_RECEIVED
+                elif roll < 0.75:
+                    status = BillingNote.STATUS_PARTIALLY_RECEIVED
+                else:
+                    status = BillingNote.STATUS_ISSUED
+            else:
+                if roll < 0.60:
+                    status = BillingNote.STATUS_ISSUED
+                elif roll < 0.85:
+                    status = BillingNote.STATUS_PARTIALLY_RECEIVED
+                else:
+                    status = BillingNote.STATUS_FULLY_RECEIVED
+            customer_name = selected_sales[0].customer_name
+            customer = selected_sales[0].customer
+            billing_note = BillingNote.objects.create(
+                id=self.next_demo_id(BillingNote, "demo-bn-"),
+                reference_no=self.next_reference_no(
+                    BillingNote,
+                    "BN",
+                    billing_note_date,
+                ),
+                customer=customer,
+                customer_name=customer_name,
+                billing_note_date=billing_note_date,
+                expected_payment_date=expected_payment_date,
+                status=status,
+                bank_reference=(
+                    f"KB-BN-{billing_note_date:%y%m}-{serial:03d}"
+                    if status == BillingNote.STATUS_FULLY_RECEIVED
+                    else ""
+                ),
+                note=self.billing_note_note(status, customer_name),
+            )
+            line_rows = []
+            total_amount = Decimal("0.00")
+            for line_index, sale in enumerate(selected_sales):
+                received = status == BillingNote.STATUS_FULLY_RECEIVED or (
+                    status == BillingNote.STATUS_PARTIALLY_RECEIVED and line_index == 0
+                )
+                received_date = None
+                if received:
+                    received_date = min(
+                        timezone.localdate(),
+                        (sale.payment_date or expected_payment_date)
+                        + timedelta(days=rng.choice([-1, 0, 1, 2])),
+                    )
+                amount = money(sale.grand_total)
+                line_rows.append(
+                    BillingNoteLine(
+                        billing_note=billing_note,
+                        sale=sale,
+                        received=received,
+                        received_date=received_date,
+                        amount=amount,
+                    )
+                )
+                total_amount += amount
+            BillingNoteLine.objects.bulk_create(line_rows)
+
+            received_dates = [
+                line.received_date
+                for line in line_rows
+                if line.received and line.received_date
+            ]
+            billing_note.total_amount = total_amount
+            billing_note.actual_payment_date = max(received_dates) if received_dates else None
+            billing_note.save(update_fields=["total_amount", "actual_payment_date", "updated_at"])
+            billing_notes.append(billing_note)
+            serial += 1
 
         return billing_notes
 
@@ -1330,96 +2038,121 @@ class Command(BaseCommand):
                 continue
             grouped_purchases.setdefault(purchase.supplier_name, []).append(purchase)
 
-        status_cycle = [
-            PaymentBatch.STATUS_PAID,
-            PaymentBatch.STATUS_SCHEDULED,
-            PaymentBatch.STATUS_PARTIALLY_PAID,
-            PaymentBatch.STATUS_PAID,
-            PaymentBatch.STATUS_SCHEDULED,
-            PaymentBatch.STATUS_CANCELLED,
-        ]
-        payment_batches = []
-        serial = 1
-
+        # Same spread-over-time approach as billing notes: AP exists in every
+        # period, old batches mostly paid, recent ones scheduled or partial.
+        chunks = []
         for supplier_name in sorted(grouped_purchases):
             supplier_purchases = sorted(
                 grouped_purchases[supplier_name],
                 key=lambda row: (row.transaction_date, row.reference_no),
             )
             cursor = 0
-            while cursor < len(supplier_purchases) and serial <= 24:
+            while cursor < len(supplier_purchases):
                 line_count = min(len(supplier_purchases) - cursor, rng.choice([1, 1, 2, 2, 3]))
-                selected_purchases = supplier_purchases[cursor : cursor + line_count]
+                chunks.append(supplier_purchases[cursor : cursor + line_count])
                 cursor += line_count
+        chunks.sort(key=lambda selected: max(purchase.transaction_date for purchase in selected))
+        max_batches = 52
+        if len(chunks) > max_batches:
+            step = len(chunks) / max_batches
+            chunks = [chunks[int(i * step)] for i in range(max_batches)]
 
-                latest_purchase_date = max(purchase.transaction_date for purchase in selected_purchases)
-                batch_date = min(
-                    timezone.localdate(),
-                    latest_purchase_date + timedelta(days=rng.choice([2, 5, 8, 12])),
-                )
-                purchase_payment_dates = [
-                    purchase.payment_date
-                    for purchase in selected_purchases
-                    if purchase.payment_date
-                ]
-                planned_payment_date = (
-                    max(purchase_payment_dates)
-                    if purchase_payment_dates
-                    else batch_date + timedelta(days=30)
-                )
-                status = status_cycle[(serial - 1) % len(status_cycle)]
-                supplier = selected_purchases[0].supplier
-                payment_batch = PaymentBatch.objects.create(
-                    id=self.next_demo_id(PaymentBatch, "demo-pmt-"),
-                    reference_no=self.next_reference_no(
-                        PaymentBatch,
-                        "PMT",
-                        batch_date,
-                    ),
-                    supplier=supplier,
-                    supplier_name=supplier_name,
-                    batch_date=batch_date,
-                    planned_payment_date=planned_payment_date,
-                    status=status,
-                    bank_reference=(
-                        f"SCB-PMT-{batch_date:%y%m}-{serial:03d}"
-                        if status == PaymentBatch.STATUS_PAID
-                        else ""
-                    ),
-                    note=self.payment_batch_note(status, supplier_name),
-                )
-                line_rows = []
-                total_amount = Decimal("0.00")
-                for line_index, purchase in enumerate(selected_purchases):
-                    paid = status == PaymentBatch.STATUS_PAID or (
-                        status == PaymentBatch.STATUS_PARTIALLY_PAID and line_index == 0
-                    )
-                    paid_date = None
-                    if paid:
-                        paid_date = min(
-                            timezone.localdate(),
-                            (purchase.payment_date or planned_payment_date)
-                            + timedelta(days=rng.choice([-1, 0, 1, 2])),
-                        )
-                    amount = money(purchase.payable_total or purchase.grand_total)
-                    line_rows.append(
-                        PaymentBatchLine(
-                            payment_batch=payment_batch,
-                            purchase=purchase,
-                            paid=paid,
-                            paid_date=paid_date,
-                            amount=amount,
-                        )
-                    )
-                    total_amount += amount
-                PaymentBatchLine.objects.bulk_create(line_rows)
+        today = timezone.localdate()
+        payment_batches = []
+        serial = 1
 
-                paid_dates = [line.paid_date for line in line_rows if line.paid and line.paid_date]
-                payment_batch.total_amount = total_amount
-                payment_batch.actual_payment_date = max(paid_dates) if paid_dates else None
-                payment_batch.save(update_fields=["total_amount", "actual_payment_date", "updated_at"])
-                payment_batches.append(payment_batch)
-                serial += 1
+        for selected_purchases in chunks:
+            supplier_name = selected_purchases[0].supplier_name
+            latest_purchase_date = max(purchase.transaction_date for purchase in selected_purchases)
+            batch_date = min(
+                timezone.localdate(),
+                latest_purchase_date + timedelta(days=rng.choice([2, 5, 8, 12])),
+            )
+            purchase_payment_dates = [
+                purchase.payment_date
+                for purchase in selected_purchases
+                if purchase.payment_date
+            ]
+            planned_payment_date = (
+                max(purchase_payment_dates)
+                if purchase_payment_dates
+                else batch_date + timedelta(days=30)
+            )
+            age_days = (today - batch_date).days
+            roll = rng.random()
+            if age_days > 120:
+                if roll < 0.84:
+                    status = PaymentBatch.STATUS_PAID
+                elif roll < 0.93:
+                    status = PaymentBatch.STATUS_SCHEDULED
+                else:
+                    status = PaymentBatch.STATUS_CANCELLED
+            elif age_days > 30:
+                if roll < 0.55:
+                    status = PaymentBatch.STATUS_PAID
+                elif roll < 0.75:
+                    status = PaymentBatch.STATUS_PARTIALLY_PAID
+                else:
+                    status = PaymentBatch.STATUS_SCHEDULED
+            else:
+                if roll < 0.55:
+                    status = PaymentBatch.STATUS_SCHEDULED
+                elif roll < 0.80:
+                    status = PaymentBatch.STATUS_PARTIALLY_PAID
+                else:
+                    status = PaymentBatch.STATUS_PAID
+            supplier = selected_purchases[0].supplier
+            payment_batch = PaymentBatch.objects.create(
+                id=self.next_demo_id(PaymentBatch, "demo-pmt-"),
+                reference_no=self.next_reference_no(
+                    PaymentBatch,
+                    "PMT",
+                    batch_date,
+                ),
+                supplier=supplier,
+                supplier_name=supplier_name,
+                batch_date=batch_date,
+                planned_payment_date=planned_payment_date,
+                status=status,
+                bank_reference=(
+                    f"SCB-PMT-{batch_date:%y%m}-{serial:03d}"
+                    if status == PaymentBatch.STATUS_PAID
+                    else ""
+                ),
+                note=self.payment_batch_note(status, supplier_name),
+            )
+            line_rows = []
+            total_amount = Decimal("0.00")
+            for line_index, purchase in enumerate(selected_purchases):
+                paid = status == PaymentBatch.STATUS_PAID or (
+                    status == PaymentBatch.STATUS_PARTIALLY_PAID and line_index == 0
+                )
+                paid_date = None
+                if paid:
+                    paid_date = min(
+                        timezone.localdate(),
+                        (purchase.payment_date or planned_payment_date)
+                        + timedelta(days=rng.choice([-1, 0, 1, 2])),
+                    )
+                amount = money(purchase.payable_total or purchase.grand_total)
+                line_rows.append(
+                    PaymentBatchLine(
+                        payment_batch=payment_batch,
+                        purchase=purchase,
+                        paid=paid,
+                        paid_date=paid_date,
+                        amount=amount,
+                    )
+                )
+                total_amount += amount
+            PaymentBatchLine.objects.bulk_create(line_rows)
+
+            paid_dates = [line.paid_date for line in line_rows if line.paid and line.paid_date]
+            payment_batch.total_amount = total_amount
+            payment_batch.actual_payment_date = max(paid_dates) if paid_dates else None
+            payment_batch.save(update_fields=["total_amount", "actual_payment_date", "updated_at"])
+            payment_batches.append(payment_batch)
+            serial += 1
 
         return payment_batches
 
@@ -1463,7 +2196,7 @@ class Command(BaseCommand):
 
         credit_notes = []
         for serial, (sale, creditable_items) in enumerate(
-            sales_with_creditable_items[:8], start=1
+            sales_with_creditable_items[:14], start=1
         ):
             credit_note_date = min(
                 timezone.localdate(),
@@ -1522,8 +2255,8 @@ class Command(BaseCommand):
         return credit_notes
 
     def seed_documents(self, rng, purchases, sales):
-        selected_purchases = [purchase for i, purchase in enumerate(purchases) if i % 4 == 0 and purchase.status != Purchase.STATUS_DRAFT]
-        selected_sales = [sale for i, sale in enumerate(sales) if i % 5 == 0 and sale.status != Sale.STATUS_DRAFT]
+        selected_purchases = [purchase for i, purchase in enumerate(purchases) if i % 6 == 0 and purchase.status != Purchase.STATUS_DRAFT]
+        selected_sales = [sale for i, sale in enumerate(sales) if i % 12 == 0 and sale.status != Sale.STATUS_DRAFT]
         for purchase in selected_purchases:
             for existing in purchase.documents.all():
                 existing.file.delete(save=False)

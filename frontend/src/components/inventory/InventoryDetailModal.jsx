@@ -102,26 +102,25 @@ function InventoryDetailModal({ row, health, onClose }) {
           </div>
         </div>
 
-        <div className="inv-detail-top">
-          <div className="inv-detail-graph">
-            <p className="inv-detail-heading">{t("inventory.graph.title")}</p>
-            <div className="inv-graph-frame">
-              <ReorderSawtoothFull
-                current={available}
-                reorder={reorder}
-                safety={safety}
-                dailyDemand={demand}
-                leadTime={leadTime}
-                restock={buy}
-                unit={unit}
-                tone={HEALTH_TONE[health] || "accent"}
-              />
-            </div>
+        <div className="inv-detail-graphwrap">
+          <p className="inv-detail-heading">{t("inventory.graph.title")}</p>
+          <div className="inv-graph-frame">
+            <ReorderSawtoothFull
+              current={available}
+              reorder={reorder}
+              safety={safety}
+              dailyDemand={demand}
+              leadTime={leadTime}
+              restock={buy}
+              unit={unit}
+              tone={HEALTH_TONE[health] || "accent"}
+            />
           </div>
+        </div>
 
-          <div className="inv-detail-calc">
-            <p className="inv-detail-heading">{t("inventory.calc.title")}</p>
-            <div className="inv-calc-list">
+        <div className="inv-detail-block">
+          <p className="inv-detail-heading">{t("inventory.calc.title")}</p>
+          <div className="inv-calc-list inv-calc-grid">
               <CalcLine
                 label={t("inventory.calc.onHand")}
                 value={t("inventory.unitsValue", { qty: formatUnits(available), unit })}
@@ -172,7 +171,6 @@ function InventoryDetailModal({ row, health, onClose }) {
               />
             </div>
           </div>
-        </div>
 
         <div className="inv-detail-block">
           <p className="inv-detail-heading">{t("inventory.layers.title")}</p>
