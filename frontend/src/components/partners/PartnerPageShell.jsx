@@ -1,4 +1,4 @@
-import { FilterPresets, ActiveFilterChips } from "../FilterControls";
+import UniversalFilter from "../filters/UniversalFilter";
 import { useLanguage } from "../../i18n/LanguageContext";
 
 function PartnerPageShell({
@@ -10,11 +10,7 @@ function PartnerPageShell({
   filteredCount,
   totalCount,
   localCount,
-  filterOpen,
-  activeFilterCount,
-  onToggleFilterOpen,
   onResetFilters,
-  quickPresets,
   activeChips,
   profileFilter,
   onProfileFilterChange,
@@ -23,80 +19,50 @@ function PartnerPageShell({
 }) {
   const { t } = useLanguage();
 
+  // Single facet — the customer/supplier profile. (The old quick-filter pills
+  // just duplicated this select, so they were dropped.)
+  const filterFields = [
+    {
+      id: "profile",
+      type: "select",
+      section: "primary",
+      label: t(`${entityKey}.profileFilter`),
+      value: profileFilter,
+      onChange: onProfileFilterChange,
+      allValue: "all",
+      allLabel: t(allProfilesLabelKey),
+      options: profileOptions.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    },
+  ];
+
   return (
     <div className="stack-layout">
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t(`${entityKey}.eyebrow`)}</p>
-            <h3>{t(`${entityKey}.findTitle`)}</h3>
-          </div>
-        </div>
-
-        <div className="supplier-directory-toolbar">
-          <label className="stock-search supplier-search">
-            <span className="stock-search-icon">S</span>
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => onSearchTermChange(event.target.value)}
-              placeholder={t(`${entityKey}.searchPlaceholder`)}
-            />
-          </label>
-          <div className="stock-report-summary supplier-search-meta">
-            <span>
-              {isServerPaginated
-                ? t(`${entityKey}.pageCountServer`, {
-                    count: filteredCount,
-                    total: totalCount,
-                  })
-                : t(`${entityKey}.pageCountLocal`, {
-                    count: filteredCount,
-                    total: localCount,
-                  })}
-            </span>
-          </div>
-        </div>
-
-        <div className="history-filter-actions">
-          <button
-            className="secondary-button product-filter-toggle"
-            type="button"
-            aria-expanded={filterOpen}
-            onClick={onToggleFilterOpen}
-          >
-            {t("common.filter")}
-            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
-          </button>
-          <button className="secondary-button" type="button" onClick={onResetFilters}>
-            {t("common.resetFilter")}
-          </button>
-        </div>
-
-        <FilterPresets presets={quickPresets} />
-        <ActiveFilterChips chips={activeChips} onClearAll={onResetFilters} />
-
-        {filterOpen ? (
-          <div className="history-filter-panel">
-            <div className="history-filter-grid">
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t(`${entityKey}.profileFilter`)}</span>
-                <select
-                  value={profileFilter}
-                  onChange={(event) => onProfileFilterChange(event.target.value)}
-                >
-                  <option value="all">{t(allProfilesLabelKey)}</option>
-                  {profileOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {t(option.labelKey)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </div>
-        ) : null}
-      </section>
+      <UniversalFilter
+        search={{
+          value: searchTerm,
+          onChange: onSearchTermChange,
+          placeholder: t(`${entityKey}.searchPlaceholder`),
+        }}
+        meta={t(
+          isServerPaginated ? `${entityKey}.pageCountServer` : `${entityKey}.pageCountLocal`,
+          {
+            count: filteredCount,
+            total: isServerPaginated ? totalCount : localCount,
+          }
+        )}
+        fields={filterFields}
+        activeChips={activeChips}
+        onReset={onResetFilters}
+        labels={{
+          more: t("filterControls.moreFilters"),
+          reset: t("filterControls.resetFilter"),
+          quick: t("filterControls.quickFilters"),
+          clearAll: t("filterControls.clearAll"),
+        }}
+      />
 
       {children}
     </div>

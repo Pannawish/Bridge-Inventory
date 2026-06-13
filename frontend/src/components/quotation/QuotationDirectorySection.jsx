@@ -1,5 +1,5 @@
 import PaginationControls from "../PaginationControls";
-import { FilterPresets, ActiveFilterChips, RangeField } from "../FilterControls";
+import UniversalFilter from "../filters/UniversalFilter";
 import { formatDate, formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getItemCount, getQuotationState } from "./quotationUtils";
@@ -10,8 +10,6 @@ function QuotationDirectorySection({
   paginatedQuotations = [],
   searchTerm,
   onSearchTermChange,
-  filterOpen,
-  onToggleFilter,
   activeFilterCount = 0,
   onResetFilters,
   quickPresets = [],
@@ -43,148 +41,109 @@ function QuotationDirectorySection({
 }) {
   const { t } = useLanguage();
 
+  // Config-driven filter definition. Re-ordering or moving a field between the
+  // always-visible row and the "More filters" panel is a one-line change here.
+  const filterFields = [
+    {
+      id: "customer",
+      type: "combobox",
+      section: "primary",
+      label: t("quotation.filterCustomerTitle"),
+      value: selectedCustomer,
+      onChange: onSelectedCustomerChange,
+      options: customerOptions.map((name) => ({ value: name, label: name })),
+      allValue: "",
+      placeholder: t("quotation.searchCustomerPlaceholder"),
+      emptyMessage: t("quotation.noCustomerFound"),
+    },
+    {
+      id: "date",
+      type: "daterange",
+      section: "primary",
+      label: t("filterControls.dateRange"),
+      from: dateFrom,
+      to: dateTo,
+      onFromChange: onDateFromChange,
+      onToChange: onDateToChange,
+    },
+    {
+      id: "state",
+      type: "select",
+      section: "primary",
+      label: t("quotation.filterStateTitle"),
+      value: stateFilter,
+      onChange: onStateFilterChange,
+      allValue: "all",
+      allLabel: t("quotation.filterAllStates"),
+      options: [
+        { value: "valid", label: t("quotation.filterStateValid") },
+        { value: "expired", label: t("quotation.filterStateExpired") },
+      ],
+    },
+    {
+      id: "amount",
+      type: "numberRange",
+      section: "advanced",
+      label: t("quotation.filterAmountTitle"),
+      prefix: "฿",
+      min: amountMin,
+      max: amountMax,
+      onMinChange: onAmountMinChange,
+      onMaxChange: onAmountMaxChange,
+      placeholderMin: t("filterControls.min"),
+      placeholderMax: t("filterControls.max"),
+    },
+    {
+      id: "product",
+      type: "select",
+      section: "advanced",
+      label: t("quotation.filterProductTitle"),
+      value: selectedProduct,
+      onChange: onSelectedProductChange,
+      allValue: "",
+      allLabel: t("quotation.filterAllProducts"),
+      options: productOptions,
+    },
+    {
+      id: "vat",
+      type: "select",
+      section: "advanced",
+      label: t("quotation.filterVatTitle"),
+      value: vatFilter,
+      onChange: onVatFilterChange,
+      allValue: "all",
+      allLabel: t("quotation.filterAllVat"),
+      options: [
+        { value: "included", label: t("quotation.filterVatIncluded") },
+        { value: "not_included", label: t("quotation.filterVatExcluded") },
+        { value: "none", label: t("quotation.filterVatNone") },
+      ],
+    },
+  ];
+
   return (
     <>
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("quotation.searchEyebrow")}</p>
-            <h3>{t("quotation.searchTitle")}</h3>
-          </div>
-        </div>
-
-        <div className="supplier-directory-toolbar">
-          <label className="stock-search supplier-search">
-            <span className="stock-search-icon">Q</span>
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => onSearchTermChange(event.target.value)}
-              placeholder={t("quotation.quotationSearchPlaceholder")}
-            />
-          </label>
-          <div className="stock-report-summary supplier-search-meta">
-            <span>
-              {t("quotation.shownCount", {
-                shown: filteredQuotations.length,
-                total: quotations.length,
-              })}
-            </span>
-          </div>
-        </div>
-
-        <div className="history-filter-actions">
-          <button
-            className="secondary-button product-filter-toggle"
-            type="button"
-            aria-expanded={filterOpen}
-            onClick={onToggleFilter}
-          >
-            {t("quotation.filterButton")}
-            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
-          </button>
-          <button className="secondary-button" type="button" onClick={onResetFilters}>
-            {t("quotation.resetFilterButton")}
-          </button>
-        </div>
-
-        <FilterPresets presets={quickPresets} />
-        <ActiveFilterChips chips={activeChips} onClearAll={onResetFilters} />
-
-        {filterOpen ? (
-          <div className="history-filter-panel">
-            <div className="history-filter-grid">
-              <label className="history-filter-field">
-                <span className="history-filter-title">
-                  {t("quotation.filterCustomerTitle")}
-                </span>
-                <select
-                  value={selectedCustomer}
-                  onChange={(event) => onSelectedCustomerChange(event.target.value)}
-                >
-                  <option value="">{t("quotation.filterAllCustomers")}</option>
-                  {customerOptions.map((customerName) => (
-                    <option key={customerName} value={customerName}>
-                      {customerName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">
-                  {t("quotation.filterProductTitle")}
-                </span>
-                <select
-                  value={selectedProduct}
-                  onChange={(event) => onSelectedProductChange(event.target.value)}
-                >
-                  <option value="">{t("quotation.filterAllProducts")}</option>
-                  {productOptions.map((product) => (
-                    <option key={product.value} value={product.value}>
-                      {product.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("quotation.filterStateTitle")}</span>
-                <select
-                  value={stateFilter}
-                  onChange={(event) => onStateFilterChange(event.target.value)}
-                >
-                  <option value="all">{t("quotation.filterAllStates")}</option>
-                  <option value="valid">{t("quotation.filterStateValid")}</option>
-                  <option value="expired">{t("quotation.filterStateExpired")}</option>
-                </select>
-              </label>
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("quotation.filterVatTitle")}</span>
-                <select
-                  value={vatFilter}
-                  onChange={(event) => onVatFilterChange(event.target.value)}
-                >
-                  <option value="all">{t("quotation.filterAllVat")}</option>
-                  <option value="included">{t("quotation.filterVatIncluded")}</option>
-                  <option value="not_included">{t("quotation.filterVatExcluded")}</option>
-                  <option value="none">{t("quotation.filterVatNone")}</option>
-                </select>
-              </label>
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">
-                  {t("quotation.filterDateFromTitle")}
-                </span>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(event) => onDateFromChange(event.target.value)}
-                />
-              </label>
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("quotation.filterDateToTitle")}</span>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(event) => onDateToChange(event.target.value)}
-                />
-              </label>
-
-              <RangeField
-                title={t("quotation.filterAmountTitle")}
-                prefix="฿"
-                minValue={amountMin}
-                maxValue={amountMax}
-                onMinChange={onAmountMinChange}
-                onMaxChange={onAmountMaxChange}
-              />
-            </div>
-          </div>
-        ) : null}
-      </section>
+      <UniversalFilter
+        search={{
+          value: searchTerm,
+          onChange: onSearchTermChange,
+          placeholder: t("quotation.quotationSearchPlaceholder"),
+        }}
+        meta={t("quotation.shownCount", {
+          shown: filteredQuotations.length,
+          total: quotations.length,
+        })}
+        fields={filterFields}
+        quickFilters={quickPresets}
+        activeChips={activeChips}
+        onReset={onResetFilters}
+        labels={{
+          more: t("filterControls.moreFilters"),
+          reset: t("filterControls.resetFilter"),
+          quick: t("filterControls.quickFilters"),
+          clearAll: t("filterControls.clearAll"),
+        }}
+      />
 
       <section className="section-card">
         <div className="section-heading">

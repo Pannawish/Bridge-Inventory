@@ -298,7 +298,7 @@ export function useSalesHistoryDirectoryFilters({
   ].filter(Boolean);
 
   const selectedProductLabel =
-    productOptions.find((product) => product.value === selectedProduct)?.label || "";
+    productOptions.find((product) => `${product.id}` === `${selectedProduct}`)?.label || "";
   const activeChips = [
     selectedCustomer && {
       key: "customer",
@@ -373,6 +373,8 @@ export function useSalesHistoryDirectoryFilters({
     selectedStatuses,
     setSelectedStatuses,
     selectedCustomer,
+    setSelectedCustomer,
+    customerOptions,
     customerFilterQuery,
     customerFilterOpen,
     setCustomerFilterOpen,

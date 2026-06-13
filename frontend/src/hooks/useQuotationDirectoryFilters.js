@@ -164,22 +164,11 @@ export function useQuotationDirectoryFilters({
     none: t("quotation.vatNone"),
   };
 
+  // Only a single shortcut that the date-range fields can't express in one tap.
+  // Everything else duplicates an existing filter, so it was removed.
   const quickPresets = [
     {
-      label: t("quotation.quickValidOnly"),
-      active: stateFilter === "valid",
-      onClick: () =>
-        setStateFilter((current) => (current === "valid" ? "all" : "valid")),
-    },
-    {
-      label: t("quotation.quickExpired"),
-      active: stateFilter === "expired",
-      onClick: () =>
-        setStateFilter((current) =>
-          current === "expired" ? "all" : "expired"
-        ),
-    },
-    {
+      key: "last30",
       label: t("quotation.quickLast30Days"),
       active: dateFrom === daysAgoInputValue(30) && !dateTo,
       onClick: () => {

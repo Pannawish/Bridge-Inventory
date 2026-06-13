@@ -239,27 +239,8 @@ export function useCategoryPageState({
     [t]
   );
 
-  const quickPresets = useMemo(
-    () => [
-      {
-        label: t("category.quickRoot"),
-        active: levelFilter === "root",
-        onClick: () => setLevelFilter((current) => (current === "root" ? "all" : "root")),
-      },
-      {
-        label: t("category.quickUnassigned"),
-        active: usageFilter === "unassigned",
-        onClick: () =>
-          setUsageFilter((current) => (current === "unassigned" ? "all" : "unassigned")),
-      },
-      {
-        label: t("category.quickLeaf"),
-        active: usageFilter === "leaf",
-        onClick: () => setUsageFilter((current) => (current === "leaf" ? "all" : "leaf")),
-      },
-    ],
-    [t, levelFilter, usageFilter]
-  );
+  // No quick presets — each shortcut just duplicated the Level / Usage selects.
+  const quickPresets = useMemo(() => [], []);
 
   const activeChips = useMemo(
     () =>

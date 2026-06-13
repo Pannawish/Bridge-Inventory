@@ -1,3 +1,424 @@
+/* ═══ UniversalFilter — config-driven filter bar (POC: Quotations) ═══
+   One control height + a single CSS grid keep every field on a clean
+   baseline; ranges live inside one bordered pill so they can never spill
+   into the neighbouring column. */
+.uf-card {
+  --uf-h: 42px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.uf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.uf-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 320px;
+  min-width: 0;
+  height: var(--uf-h);
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.uf-search:focus-within {
+  border-color: var(--accent);
+}
+
+.uf-search-icon {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.uf-search input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.uf-meta {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.uf-primary-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.uf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.uf-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.uf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.uf-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Every control is the same height + shape for a clean baseline. */
+.uf-control,
+.uf-field select.uf-control {
+  box-sizing: border-box;
+  height: var(--uf-h);
+  width: 100%;
+  min-width: 0;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.uf-field select.uf-control {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.uf-control:focus,
+.uf-control:focus-within {
+  border-color: var(--accent);
+  outline: none;
+}
+
+/* Ranges: one bordered pill wrapping borderless inputs. flex:1 1 0 + min-width:0
+   lets the inputs shrink instead of overflowing the column. */
+.uf-daterange,
+.uf-numrange {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.uf-daterange input,
+.uf-numrange input {
+  flex: 1 1 0;
+  min-width: 0;
+  height: calc(var(--uf-h) - 14px);
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.uf-daterange-sep,
+.uf-numrange-sep {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.uf-numrange-prefix {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.uf-combobox {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.uf-combobox input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0 12px;
+  border: none;
+  outline: none;
+  background: transparent;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.uf-combobox-menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.uf-combobox-option {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.uf-combobox-option:hover,
+.uf-combobox-option.active {
+  background: var(--panel-muted);
+  color: var(--accent);
+}
+
+.uf-combobox-empty {
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.uf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--uf-h);
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.uf-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.uf-more-btn[aria-expanded="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.uf-chevron {
+  transition: transform 0.18s ease;
+}
+
+.uf-chevron.open {
+  transform: rotate(180deg);
+}
+
+.uf-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.uf-advanced {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel-muted);
+}
+
+.uf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.uf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-muted);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.uf-chip:hover {
+  border-color: var(--accent);
+}
+
+.uf-chip-x {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.uf-chip-clear {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Quick-filter pills sit right above the data table. */
+.uf-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.uf-quick-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-right: 2px;
+}
+
+.uf-pill {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.uf-pill:hover {
+  border-color: var(--accent);
+}
+
+.uf-pill.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Status multi-select: a 42px trigger that opens the shared StatusFilterGroup. */
+.uf-statusgroup {
+  position: relative;
+  padding: 0;
+}
+
+.uf-statusgroup-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.uf-statusgroup-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.uf-statusgroup-caret {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.uf-statusgroup-popover {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 280px;
+  max-width: 340px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+/* Multi-select chip group + single toggle reuse the pill styling. */
+.uf-chipgroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--uf-h);
+}
+
+@media (max-width: 760px) {
+  .uf-primary-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .uf-actions {
+    justify-content: flex-end;
+  }
+}
+
 .supplier-directory-card {
   display: grid;
   gap: 18px;
@@ -64,6 +485,137 @@
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 14px;
+}
+
+/* ── Unified directory filter bar (compact bar + More expander) ── */
+.filter-bar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.filter-bar-search {
+  flex: 1 1 auto;
+}
+
+.filter-bar-count {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.filter-bar-primary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.filter-bar-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  flex: 1 1 auto;
+}
+
+.filter-bar-fields > * {
+  flex: 1 1 200px;
+  min-width: 170px;
+  max-width: 300px;
+}
+
+.filter-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.filter-bar-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-bar-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.filter-bar-more {
+  margin-top: 14px;
+}
+
+/* Grouped date-range inputs reuse the amount RangeField look. */
+.history-filter-date-range input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Compact multi-select status facet shown in the always-visible primary row. */
+.filter-status-field {
+  position: relative;
+}
+
+.filter-status-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.filter-status-trigger:hover {
+  border-color: var(--accent);
+}
+
+.filter-status-trigger-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-status-trigger-caret {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.filter-status-popover {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 300px;
+  max-width: min(420px, 90vw);
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
 }
 
 .history-filter-panel {
@@ -424,14 +976,14 @@
   min-width: 0;
   width: 100%;
   padding: 9px 10px;
-  border-radius: 12px;
+  border-radius: 4px;
   font-size: 0.78rem;
 }
 
 .transaction-table-window .table-action-button {
   width: 100%;
   padding: 8px 8px;
-  border-radius: 12px;
+  border-radius: 4px;
   font-size: 0.78rem;
   text-align: center;
 }

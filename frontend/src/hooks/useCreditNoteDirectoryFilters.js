@@ -104,28 +104,17 @@ export function useCreditNoteDirectoryFilters({
   }
 
   const last30Active = dateFrom === daysAgoString(30) && !dateTo;
+  // Only the date shortcut survives — the status presets duplicated the
+  // always-visible Status field.
   const quickPresets = [
     {
+      key: "last30",
       label: t("creditNote.filterLastDays"),
       active: last30Active,
       onClick: () => {
         setDateFrom(last30Active ? "" : daysAgoString(30));
         setDateTo("");
       },
-    },
-    {
-      label: t("creditNote.filterIssued"),
-      active: statusFilter === "issued",
-      onClick: () =>
-        setStatusFilter((current) => (current === "issued" ? "all" : "issued")),
-    },
-    {
-      label: t("creditNote.filterCancelled"),
-      active: statusFilter === "cancelled",
-      onClick: () =>
-        setStatusFilter((current) =>
-          current === "cancelled" ? "all" : "cancelled"
-        ),
     },
   ];
 

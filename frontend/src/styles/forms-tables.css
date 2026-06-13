@@ -8,7 +8,7 @@
 .trend-card,
 .inventory-summary-card {
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 4px;
   background: #ffffff;
   box-shadow: var(--shadow-soft);
   animation: rise-in 0.35s ease-out;
@@ -73,7 +73,7 @@
   display: grid;
   gap: 8px;
   padding: 18px 20px;
-  border-radius: 14px;
+  border-radius: 4px;
 }
 
 .inventory-summary-card span {

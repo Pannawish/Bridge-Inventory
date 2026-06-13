@@ -52,6 +52,8 @@ function SalesHistoryPage({
     selectedStatuses,
     setSelectedStatuses,
     selectedCustomer,
+    setSelectedCustomer,
+    customerOptions,
     customerFilterQuery,
     customerFilterOpen,
     setCustomerFilterOpen,
@@ -194,16 +196,11 @@ function SalesHistoryPage({
       onResetFilters={resetFilters}
       quickPresets={quickPresets}
       activeChips={activeChips}
-      customerFilterQuery={customerFilterQuery}
-      onCustomerFilterQueryChange={handleCustomerFilterQueryChange}
-      customerFilterOpen={customerFilterOpen}
-      onCustomerFilterOpen={() => setCustomerFilterOpen(true)}
-      onCustomerFilterClose={() => setCustomerFilterOpen(false)}
-      filteredCustomerOptions={filteredCustomerOptions}
+      customerOptions={customerOptions}
       selectedCustomer={selectedCustomer}
-      onSelectCustomerFilter={selectCustomerFilter}
+      onSelectedCustomerChange={setSelectedCustomer}
       selectedProduct={selectedProduct}
-      onProductFilterChange={setSelectedProduct}
+      onSelectedProductChange={setSelectedProduct}
       productOptions={productOptions}
       dateFrom={dateFrom}
       onDateFromChange={setDateFrom}

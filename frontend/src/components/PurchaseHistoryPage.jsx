@@ -96,26 +96,12 @@ function PurchaseHistoryPage({
       onResetFilters={state.resetFilters}
       quickPresets={state.quickPresets}
       activeChips={state.activeChips}
-      supplierFilterQuery={state.supplierFilterQuery}
-      onSupplierFilterQueryChange={(value) => {
-        state.setSupplierFilterQuery(value);
-        state.setSelectedSupplier("");
-        state.setSupplierFilterOpen(true);
-      }}
-      supplierFilterOpen={state.supplierFilterOpen}
-      onSupplierFilterOpen={() => state.setSupplierFilterOpen(true)}
-      onSupplierFilterClose={() => state.setSupplierFilterOpen(false)}
-      filteredSupplierOptions={state.filteredSupplierOptions}
+      supplierOptions={state.supplierOptions}
       selectedSupplier={state.selectedSupplier}
-      onSelectSupplierFilter={state.selectSupplierFilter}
-      productFilterQuery={state.productFilterQuery}
-      onProductFilterQueryChange={state.handleProductFilterQueryChange}
-      productFilterOpen={state.productFilterOpen}
-      onProductFilterOpen={() => state.setProductFilterOpen(true)}
-      onProductFilterClose={() => state.setProductFilterOpen(false)}
-      filteredProductOptions={state.filteredProductOptions}
+      onSelectedSupplierChange={state.setSelectedSupplier}
+      productOptions={state.productOptions}
       selectedProduct={state.selectedProduct}
-      onSelectProductFilter={state.selectProductFilter}
+      onSelectedProductChange={state.setSelectedProduct}
       dateFrom={state.dateFrom}
       onDateFromChange={state.setDateFrom}
       dateTo={state.dateTo}

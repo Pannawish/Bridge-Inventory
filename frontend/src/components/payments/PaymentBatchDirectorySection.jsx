@@ -1,11 +1,6 @@
 import { formatDate, formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
-import {
-  FilterPresets,
-  ActiveFilterChips,
-  FilterCombobox,
-  RangeField,
-} from "../FilterControls";
+import UniversalFilter from "../filters/UniversalFilter";
 import PaginationControls from "../PaginationControls";
 import PaymentBatchStatusPill from "./PaymentBatchStatusPill";
 
@@ -49,6 +44,56 @@ function PaymentBatchDirectorySection({
 }) {
   const { t } = useLanguage();
 
+  // WHO → WHEN → $ → STATUS, all in the always-visible row (no More needed).
+  const filterFields = [
+    {
+      id: "supplier",
+      type: "combobox",
+      section: "primary",
+      label: t("paymentBatch.supplierFilter"),
+      value: supplierFilter,
+      onChange: onSupplierFilterChange,
+      options: supplierOptions,
+      allValue: "",
+      placeholder: t("paymentBatch.searchSupplierPlaceholder"),
+      emptyMessage: t("paymentBatch.noSupplierFound"),
+    },
+    {
+      id: "date",
+      type: "daterange",
+      section: "primary",
+      label: t("filterControls.dateRange"),
+      from: dateFrom,
+      to: dateTo,
+      onFromChange: onDateFromChange,
+      onToChange: onDateToChange,
+    },
+    {
+      id: "amount",
+      type: "numberRange",
+      section: "primary",
+      label: t("filterControls.amountBaht"),
+      prefix: "฿",
+      min: amountMin,
+      max: amountMax,
+      onMinChange: onAmountMinChange,
+      onMaxChange: onAmountMaxChange,
+      placeholderMin: t("filterControls.min"),
+      placeholderMax: t("filterControls.max"),
+    },
+    {
+      id: "status",
+      type: "select",
+      section: "primary",
+      label: t("common.status"),
+      value: statusFilter,
+      onChange: onStatusFilterChange,
+      allValue: "all",
+      allLabel: t("filterControls.allStatuses"),
+      options: statusOptions,
+    },
+  ];
+
   return (
     <div className="stack-layout">
       <section className="section-card">
@@ -78,111 +123,30 @@ function PaymentBatchDirectorySection({
         </div>
       </section>
 
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("paymentBatch.searchEyebrow")}</p>
-            <h3>{t("paymentBatch.searchTitle")}</h3>
-          </div>
-        </div>
-
-        <div className="supplier-directory-toolbar">
-          <label className="stock-search supplier-search">
-            <span className="stock-search-icon">S</span>
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => onSearchTermChange(event.target.value)}
-              placeholder={t("paymentBatch.searchPlaceholder")}
-            />
-          </label>
-          <div className="stock-report-summary supplier-search-meta">
-            <span>
-              {isServerPaginated
-                ? t("paymentBatch.pageCountServer", {
-                    count: filteredPaymentBatches.length,
-                    total: totalPaymentBatchCount,
-                  })
-                : t("paymentBatch.pageCountLocal", {
-                    count: filteredPaymentBatches.length,
-                    total: paymentBatches.length,
-                  })}
-            </span>
-          </div>
-        </div>
-
-        <div className="history-filter-actions">
-          <button
-            className="secondary-button product-filter-toggle"
-            type="button"
-            aria-expanded={filterOpen}
-            onClick={onToggleFilter}
-          >
-            {t("filterControls.filter")}
-            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
-          </button>
-          <button className="secondary-button" type="button" onClick={onResetFilters}>
-            {t("filterControls.resetFilter")}
-          </button>
-        </div>
-
-        <FilterPresets presets={quickPresets} />
-        <ActiveFilterChips chips={activeChips} onClearAll={onResetFilters} />
-
-        {filterOpen ? (
-          <div className="history-filter-panel">
-            <div className="history-filter-grid">
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("common.status")}</span>
-                <select
-                  value={statusFilter}
-                  onChange={(event) => onStatusFilterChange(event.target.value)}
-                >
-                  <option value="all">{t("filterControls.allStatuses")}</option>
-                  {statusOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <FilterCombobox
-                id="payment-batch-supplier-filter"
-                title={t("paymentBatch.supplierFilter")}
-                value={supplierFilter}
-                options={supplierOptions}
-                placeholder={t("paymentBatch.searchSupplierPlaceholder")}
-                emptyMessage={t("paymentBatch.noSupplierFound")}
-                onChange={onSupplierFilterChange}
-              />
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("filterControls.from")}</span>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(event) => onDateFromChange(event.target.value)}
-                />
-              </label>
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("filterControls.to")}</span>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(event) => onDateToChange(event.target.value)}
-                />
-              </label>
-              <RangeField
-                title={t("filterControls.amountBaht")}
-                prefix="฿"
-                minValue={amountMin}
-                maxValue={amountMax}
-                onMinChange={onAmountMinChange}
-                onMaxChange={onAmountMaxChange}
-              />
-            </div>
-          </div>
-        ) : null}
-      </section>
+      <UniversalFilter
+        search={{
+          value: searchTerm,
+          onChange: onSearchTermChange,
+          placeholder: t("paymentBatch.searchPlaceholder"),
+        }}
+        meta={t(
+          isServerPaginated ? "paymentBatch.pageCountServer" : "paymentBatch.pageCountLocal",
+          {
+            count: filteredPaymentBatches.length,
+            total: isServerPaginated ? totalPaymentBatchCount : paymentBatches.length,
+          }
+        )}
+        fields={filterFields}
+        quickFilters={quickPresets}
+        activeChips={activeChips}
+        onReset={onResetFilters}
+        labels={{
+          more: t("filterControls.moreFilters"),
+          reset: t("filterControls.resetFilter"),
+          quick: t("filterControls.quickFilters"),
+          clearAll: t("filterControls.clearAll"),
+        }}
+      />
 
       <section className="section-card">
         <div className="section-heading">

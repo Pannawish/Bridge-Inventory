@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "../i18n/LanguageContext";
+import StatusFilterGroup from "./StatusFilterGroup";
 
 // Self-contained searchable dropdown for a single filter facet (supplier,
 // customer, product, …). It owns its own query/open state so the page hook
@@ -206,6 +207,133 @@ export function RangeField({
           min="0"
         />
       </div>
+    </div>
+  );
+}
+
+// Simple labelled native <select> facet, styled like every other filter field.
+// `options` is [{ value, label }]; an "all" option is rendered from `allLabel`.
+// `allValue` is the sentinel the page uses for "no filter" (some pages use "",
+// others "all").
+export function FilterSelect({ title, value, options = [], allLabel, allValue = "all", onChange }) {
+  return (
+    <label className="history-filter-field">
+      <span className="history-filter-title">{title}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {allLabel != null ? <option value={allValue}>{allLabel}</option> : null}
+        {options.map((option) => (
+          <option key={`${option.value}`} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+// Grouped "Date range" facet: a single field holding the From/To date inputs
+// side by side, mirroring how RangeField groups a min/max amount pair.
+export function FilterDateRange({ title, dateFrom, dateTo, onDateFromChange, onDateToChange }) {
+  const { t } = useLanguage();
+  return (
+    <div className="history-filter-field">
+      <span className="history-filter-title">{title || t("filterControls.dateRange")}</span>
+      <div className="history-filter-range history-filter-date-range">
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(event) => onDateFromChange(event.target.value)}
+          aria-label={t("filterControls.from")}
+        />
+        <span className="history-filter-range-sep">–</span>
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(event) => onDateToChange(event.target.value)}
+          aria-label={t("filterControls.to")}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Compact multi-select status facet for the always-visible primary row: a
+// trigger button summarising the selection, opening a popover that reuses the
+// shared StatusFilterGroup (presets + checkboxes) so behaviour stays identical.
+export function FilterStatusDropdown({
+  title,
+  statuses = [],
+  selectedStatuses = [],
+  presets = [],
+  formatStatusLabel = (status) => status,
+  onChange,
+}) {
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+    function handlePointer(event) {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+    function handleKey(event) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handlePointer);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handlePointer);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  const allSelected =
+    statuses.length > 0 && selectedStatuses.length === statuses.length;
+  let summary;
+  if (allSelected) {
+    summary = t("filterControls.allStatuses");
+  } else if (selectedStatuses.length === 0) {
+    summary = t("filterControls.statusNone");
+  } else if (selectedStatuses.length <= 2) {
+    summary = selectedStatuses.map((status) => formatStatusLabel(status)).join(", ");
+  } else {
+    summary = t("filterControls.statusCount", { count: selectedStatuses.length });
+  }
+
+  return (
+    <div className="history-filter-field filter-status-field" ref={containerRef}>
+      <span className="history-filter-title">{title}</span>
+      <button
+        type="button"
+        className="filter-status-trigger"
+        aria-expanded={open}
+        aria-haspopup="true"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="filter-status-trigger-text">{summary}</span>
+        <span className="filter-status-trigger-caret" aria-hidden="true">
+          ▾
+        </span>
+      </button>
+      {open ? (
+        <div className="filter-status-popover">
+          <StatusFilterGroup
+            title={title}
+            statuses={statuses}
+            selectedStatuses={selectedStatuses}
+            presets={presets}
+            formatStatusLabel={formatStatusLabel}
+            onChange={onChange}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

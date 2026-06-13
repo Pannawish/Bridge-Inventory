@@ -1,18 +1,9 @@
 import PaginationControls from "../PaginationControls";
-import StatusFilterGroup from "../StatusFilterGroup";
 import TransactionTable from "../TransactionTable";
-import {
-  FilterPresets,
-  ActiveFilterChips,
-  FilterCombobox,
-  RangeField,
-} from "../FilterControls";
+import UniversalFilter from "../filters/UniversalFilter";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getStatusLabel } from "../../i18n/statusLabels";
-import {
-  saleStatusPresets,
-  statusOptions,
-} from "./salesHistoryUtils";
+import { saleStatusPresets, statusOptions } from "./salesHistoryUtils";
 
 function SalesHistoryDirectorySection({
   sales = [],
@@ -27,22 +18,14 @@ function SalesHistoryDirectorySection({
   totalSalesCount = 0,
   searchTerm,
   onSearchTermChange,
-  filterOpen,
-  onToggleFilter,
-  activeFilterCount = 0,
   onResetFilters,
   quickPresets = [],
   activeChips = [],
-  customerFilterQuery,
-  onCustomerFilterQueryChange,
-  customerFilterOpen,
-  onCustomerFilterOpen,
-  onCustomerFilterClose,
-  filteredCustomerOptions = [],
+  customerOptions = [],
   selectedCustomer,
-  onSelectCustomerFilter,
+  onSelectedCustomerChange,
   selectedProduct,
-  onProductFilterChange,
+  onSelectedProductChange,
   productOptions = [],
   dateFrom,
   onDateFromChange,
@@ -67,182 +50,116 @@ function SalesHistoryDirectorySection({
 }) {
   const { t } = useLanguage();
 
+  const countLabel = t(
+    isServerPaginated ? "salesHistory.pageCountServer" : "salesHistory.pageCountLocal",
+    { count: filteredSales.length, total: totalSalesCount }
+  );
+
+  // WHO → WHEN → STATUS in the always-visible row; WHAT → $ → VAT under More.
+  const filterFields = [
+    {
+      id: "customer",
+      type: "combobox",
+      section: "primary",
+      label: t("salesHistory.customerFilter"),
+      value: selectedCustomer,
+      onChange: onSelectedCustomerChange,
+      options: customerOptions.map((customer) => ({
+        value: customer.companyName,
+        label: customer.companyName,
+      })),
+      allValue: "",
+      placeholder: t("salesHistory.searchCustomerPlaceholder"),
+      emptyMessage: t("salesHistory.noCustomerFound"),
+    },
+    {
+      id: "date",
+      type: "daterange",
+      section: "primary",
+      label: t("filterControls.dateRange"),
+      from: dateFrom,
+      to: dateTo,
+      onFromChange: onDateFromChange,
+      onToChange: onDateToChange,
+    },
+    {
+      id: "status",
+      type: "statusGroup",
+      section: "primary",
+      label: t("salesHistory.statusSectionTitle"),
+      statuses: statusOptions,
+      selectedStatuses,
+      onChange: onSelectedStatusesChange,
+      presets: saleStatusPresets.map((preset) => ({
+        ...preset,
+        label: t(preset.labelKey),
+      })),
+      formatStatusLabel: (status) => getStatusLabel(t, status),
+      summaryAll: t("filterControls.allStatuses"),
+      summaryNone: t("filterControls.statusNone"),
+      summaryCount: (count) => t("filterControls.statusCount", { count }),
+    },
+    {
+      id: "product",
+      type: "combobox",
+      section: "advanced",
+      label: t("salesHistory.productFilter"),
+      value: selectedProduct,
+      onChange: onSelectedProductChange,
+      options: productOptions.map((product) => ({
+        value: product.id,
+        label: product.label,
+      })),
+      allValue: "",
+      placeholder: t("salesHistory.searchProductPlaceholder"),
+      emptyMessage: t("salesHistory.noProductFound"),
+    },
+    {
+      id: "amount",
+      type: "numberRange",
+      section: "advanced",
+      label: t("salesHistory.amountLabel"),
+      prefix: "฿",
+      min: amountMin,
+      max: amountMax,
+      onMinChange: onAmountMinChange,
+      onMaxChange: onAmountMaxChange,
+      placeholderMin: t("filterControls.min"),
+      placeholderMax: t("filterControls.max"),
+    },
+    {
+      id: "vat",
+      type: "select",
+      section: "advanced",
+      label: t("salesHistory.vatLabel"),
+      value: vatFilter,
+      onChange: onVatFilterChange,
+      allValue: "all",
+      allLabel: t("salesHistory.allVat"),
+      options: vatOptions,
+    },
+  ];
+
   return (
     <div className="stack-layout">
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("salesHistory.searchEyebrow")}</p>
-            <h3>{t("salesHistory.searchTitle")}</h3>
-          </div>
-        </div>
-
-        <div className="supplier-directory-toolbar">
-          <label className="stock-search supplier-search">
-            <span className="stock-search-icon">S</span>
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => onSearchTermChange(event.target.value)}
-              placeholder={t("salesHistory.searchPlaceholder")}
-            />
-          </label>
-          <div className="stock-report-summary supplier-search-meta">
-            <span>
-              {isServerPaginated
-                ? t("salesHistory.pageCountServer", {
-                    count: filteredSales.length,
-                    total: totalSalesCount,
-                  })
-                : t("salesHistory.pageCountLocal", {
-                    count: filteredSales.length,
-                    total: totalSalesCount,
-                  })}
-            </span>
-          </div>
-        </div>
-
-        <div className="history-filter-actions">
-          <button
-            className="secondary-button product-filter-toggle"
-            type="button"
-            aria-expanded={filterOpen}
-            onClick={onToggleFilter}
-          >
-            {t("filterControls.filter")}
-            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
-          </button>
-          <button className="secondary-button" type="button" onClick={onResetFilters}>
-            {t("filterControls.resetFilter")}
-          </button>
-        </div>
-
-        <FilterPresets presets={quickPresets} />
-        <ActiveFilterChips chips={activeChips} onClearAll={onResetFilters} />
-
-        {filterOpen ? (
-          <div className="history-filter-panel">
-            <div className="history-filter-grid">
-              <label className="history-filter-field supplier-combobox-field">
-                <span className="history-filter-title">{t("salesHistory.customerFilter")}</span>
-                <div className="supplier-combobox">
-                  <input
-                    type="search"
-                    value={customerFilterQuery}
-                    onChange={(event) => onCustomerFilterQueryChange(event.target.value)}
-                    onFocus={onCustomerFilterOpen}
-                    onBlur={() => {
-                      window.setTimeout(onCustomerFilterClose, 120);
-                    }}
-                    placeholder={t("salesHistory.searchCustomerPlaceholder")}
-                    autoComplete="off"
-                    aria-expanded={customerFilterOpen}
-                    aria-controls="sales-history-customer-filter"
-                  />
-
-                  {customerFilterOpen ? (
-                    <div
-                      className="supplier-combobox-menu"
-                      id="sales-history-customer-filter"
-                      role="listbox"
-                    >
-                      {filteredCustomerOptions.length ? (
-                        filteredCustomerOptions.map((customer) => (
-                          <button
-                            key={customer.id}
-                            type="button"
-                            className={
-                              customer.companyName === selectedCustomer
-                                ? "supplier-combobox-option active"
-                                : "supplier-combobox-option"
-                            }
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              onSelectCustomerFilter(customer);
-                            }}
-                            role="option"
-                            aria-selected={customer.companyName === selectedCustomer}
-                          >
-                            {customer.companyName}
-                          </button>
-                        ))
-                      ) : (
-                        <div className="supplier-combobox-empty">
-                          {t("salesHistory.noCustomerFound")}
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              </label>
-
-              <FilterCombobox
-                id="sales-history-product-filter"
-                title={t("salesHistory.productFilter")}
-                value={selectedProduct}
-                options={productOptions}
-                placeholder={t("salesHistory.searchProductPlaceholder")}
-                emptyMessage={t("salesHistory.noProductFound")}
-                onChange={onProductFilterChange}
-              />
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("salesHistory.dateFromLabel")}</span>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(event) => onDateFromChange(event.target.value)}
-                />
-              </label>
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("salesHistory.dateToLabel")}</span>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(event) => onDateToChange(event.target.value)}
-                />
-              </label>
-
-              <RangeField
-                title={t("salesHistory.amountLabel")}
-                prefix="฿"
-                minValue={amountMin}
-                maxValue={amountMax}
-                onMinChange={onAmountMinChange}
-                onMaxChange={onAmountMaxChange}
-              />
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("salesHistory.vatLabel")}</span>
-                <select
-                  value={vatFilter}
-                  onChange={(event) => onVatFilterChange(event.target.value)}
-                >
-                  <option value="all">{t("salesHistory.allVat")}</option>
-                  {vatOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <StatusFilterGroup
-              title={t("salesHistory.statusSectionTitle")}
-              statuses={statusOptions}
-              selectedStatuses={selectedStatuses}
-              presets={saleStatusPresets.map((preset) => ({
-                ...preset,
-                label: t(preset.labelKey),
-              }))}
-              formatStatusLabel={(status) => getStatusLabel(t, status)}
-              onChange={onSelectedStatusesChange}
-            />
-          </div>
-        ) : null}
-      </section>
+      <UniversalFilter
+        search={{
+          value: searchTerm,
+          onChange: onSearchTermChange,
+          placeholder: t("salesHistory.searchPlaceholder"),
+        }}
+        meta={countLabel}
+        fields={filterFields}
+        quickFilters={quickPresets}
+        activeChips={activeChips}
+        onReset={onResetFilters}
+        labels={{
+          more: t("filterControls.moreFilters"),
+          reset: t("filterControls.resetFilter"),
+          quick: t("filterControls.quickFilters"),
+          clearAll: t("filterControls.clearAll"),
+        }}
+      />
 
       <TransactionTable
         rows={filteredSales}

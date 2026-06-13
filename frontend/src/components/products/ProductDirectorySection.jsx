@@ -1,5 +1,5 @@
 import PaginationControls from "../PaginationControls";
-import { FilterPresets, ActiveFilterChips } from "../FilterControls";
+import UniversalFilter from "../filters/UniversalFilter";
 import { getCategoryLeafLabel } from "../CategoryPage";
 import {
   getProductDefaultPurchaseUnit,
@@ -43,96 +43,70 @@ function ProductDirectorySection({
 }) {
   const { t } = useLanguage();
 
+  const stockOptions = [
+    { value: "in-stock", label: t("products.inStock") },
+    { value: "low-stock", label: t("products.lowStock") },
+    { value: "out-of-stock", label: t("products.outOfStock") },
+    { value: "selling", label: t("products.hasSales") },
+    { value: "no-sales", label: t("products.noSalesYet") },
+    { value: "no-purchases", label: t("products.noReceivedPurchases") },
+  ];
+
+  // WHAT (category) → status (stock health), both always visible.
+  const filterFields = [
+    {
+      id: "category",
+      type: "select",
+      section: "primary",
+      label: t("products.categoryFilter"),
+      value: categoryFilter,
+      onChange: onCategoryFilterChange,
+      allValue: "all",
+      allLabel: t("products.allCategories"),
+      options: categoryOptions.map((categoryLabel) => ({
+        value: categoryLabel,
+        label: categoryLabel,
+      })),
+    },
+    {
+      id: "stock",
+      type: "select",
+      section: "primary",
+      label: t("products.inventoryFilter"),
+      value: stockFilter,
+      onChange: onStockFilterChange,
+      allValue: "all",
+      allLabel: t("products.allStock"),
+      options: stockOptions,
+    },
+  ];
+
   return (
     <>
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("products.eyebrow")}</p>
-            <h3>{t("products.findTitle")}</h3>
-          </div>
-        </div>
-
-        <div className="supplier-directory-toolbar">
-          <label className="stock-search supplier-search">
-            <span className="stock-search-icon">S</span>
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => onSearchTermChange(event.target.value)}
-              placeholder={t("products.searchPlaceholder")}
-            />
-          </label>
-          <div className="stock-report-summary supplier-search-meta">
-            <span>
-              {isServerPaginated
-                ? t("products.pageCountServer", {
-                    count: filteredCount,
-                    total: totalProductCount,
-                  })
-                : t("products.pageCountLocal", {
-                    count: filteredCount,
-                    total: localProductCount,
-                  })}
-            </span>
-          </div>
-        </div>
-
-        <div className="history-filter-actions">
-          <button
-            className="secondary-button product-filter-toggle"
-            type="button"
-            aria-expanded={showProductFilters}
-            onClick={onToggleFilters}
-          >
-            {t("filterControls.filter")}
-            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
-          </button>
-          <button className="secondary-button" type="button" onClick={onResetFilters}>
-            {t("filterControls.resetFilter")}
-          </button>
-        </div>
-
-        <FilterPresets presets={quickPresets} />
-        <ActiveFilterChips chips={activeChips} onClearAll={onResetFilters} />
-
-        {showProductFilters ? (
-          <div className="history-filter-panel">
-            <div className="history-filter-grid">
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("products.categoryFilter")}</span>
-                <select
-                  value={categoryFilter}
-                  onChange={(event) => onCategoryFilterChange(event.target.value)}
-                >
-                  <option value="all">{t("products.allCategories")}</option>
-                  {categoryOptions.map((categoryLabel) => (
-                    <option key={categoryLabel} value={categoryLabel}>
-                      {categoryLabel}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("products.inventoryFilter")}</span>
-                <select
-                  value={stockFilter}
-                  onChange={(event) => onStockFilterChange(event.target.value)}
-                >
-                  <option value="all">{t("products.allStock")}</option>
-                  <option value="in-stock">{t("products.inStock")}</option>
-                  <option value="low-stock">{t("products.lowStock")}</option>
-                  <option value="out-of-stock">{t("products.outOfStock")}</option>
-                  <option value="selling">{t("products.hasSales")}</option>
-                  <option value="no-sales">{t("products.noSalesYet")}</option>
-                  <option value="no-purchases">{t("products.noReceivedPurchases")}</option>
-                </select>
-              </label>
-            </div>
-          </div>
-        ) : null}
-      </section>
+      <UniversalFilter
+        search={{
+          value: searchTerm,
+          onChange: onSearchTermChange,
+          placeholder: t("products.searchPlaceholder"),
+        }}
+        meta={t(
+          isServerPaginated ? "products.pageCountServer" : "products.pageCountLocal",
+          {
+            count: filteredCount,
+            total: isServerPaginated ? totalProductCount : localProductCount,
+          }
+        )}
+        fields={filterFields}
+        quickFilters={quickPresets}
+        activeChips={activeChips}
+        onReset={onResetFilters}
+        labels={{
+          more: t("filterControls.moreFilters"),
+          reset: t("filterControls.resetFilter"),
+          quick: t("filterControls.quickFilters"),
+          clearAll: t("filterControls.clearAll"),
+        }}
+      />
 
       <section className="section-card">
         <div className="section-heading">

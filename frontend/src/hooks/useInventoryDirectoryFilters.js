@@ -160,32 +160,9 @@ function useInventoryDirectoryFilters({ dashboard, t }) {
     (daysWithin !== "all" ? 1 : 0) +
     (needsReorderOnly ? 1 : 0);
 
-  const quickPresets = [
-    {
-      key: "needs",
-      label: t("inventory.filters.presetNeedsReorder"),
-      active: needsReorderOnly,
-      onClick: () => setNeedsReorderOnly((value) => !value),
-    },
-    {
-      key: "low",
-      label: t("inventory.health.low"),
-      active: healthSet.has("low"),
-      onClick: () => toggleInSet(setHealthSet, "low"),
-    },
-    {
-      key: "dead",
-      label: t("inventory.health.dead"),
-      active: healthSet.has("dead"),
-      onClick: () => toggleInSet(setHealthSet, "dead"),
-    },
-    {
-      key: "fast",
-      label: t("inventory.filters.presetFastMovers"),
-      active: movementSet.has("fast"),
-      onClick: () => toggleInSet(setMovementSet, "fast"),
-    },
-  ];
+  // No quick presets — these duplicated the Health / Movement chip groups and
+  // the reorder toggle. Health is now an always-visible primary filter instead.
+  const quickPresets = [];
 
   const activeChips = [];
   healthSet.forEach((value) =>

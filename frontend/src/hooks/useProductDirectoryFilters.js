@@ -144,32 +144,9 @@ export function useProductDirectoryFilters({
     "no-purchases": t("products.noReceivedPurchases"),
   };
 
-  function toggleStock(value) {
-    setStockFilter((current) => (current === value ? "all" : value));
-  }
-
-  const quickPresets = [
-    {
-      label: t("products.inStock"),
-      active: stockFilter === "in-stock",
-      onClick: () => toggleStock("in-stock"),
-    },
-    {
-      label: t("products.lowStock"),
-      active: stockFilter === "low-stock",
-      onClick: () => toggleStock("low-stock"),
-    },
-    {
-      label: t("products.outOfStock"),
-      active: stockFilter === "out-of-stock",
-      onClick: () => toggleStock("out-of-stock"),
-    },
-    {
-      label: t("products.noSalesYet"),
-      active: stockFilter === "no-sales",
-      onClick: () => toggleStock("no-sales"),
-    },
-  ];
+  // No quick presets — every shortcut duplicated the Stock-status select, and
+  // there is no date facet here, so nothing additive remains.
+  const quickPresets = [];
 
   const activeChips = [
     categoryFilter !== "all" && {

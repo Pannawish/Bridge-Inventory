@@ -106,26 +106,17 @@ export function usePaymentBatchDirectoryFilters({
   }
 
   const last30Active = dateFrom === daysAgoString(30) && !dateTo;
+  // Only the date shortcut survives — the status presets duplicated the
+  // always-visible Status field.
   const quickPresets = [
     {
+      key: "last30",
       label: t("paymentBatch.filterLastDays"),
       active: last30Active,
       onClick: () => {
         setDateFrom(last30Active ? "" : daysAgoString(30));
         setDateTo("");
       },
-    },
-    {
-      label: t("paymentBatch.filterScheduled"),
-      active: statusFilter === "scheduled",
-      onClick: () =>
-        setStatusFilter((current) => (current === "scheduled" ? "all" : "scheduled")),
-    },
-    {
-      label: t("paymentBatch.filterPaid"),
-      active: statusFilter === "paid",
-      onClick: () =>
-        setStatusFilter((current) => (current === "paid" ? "all" : "paid")),
     },
   ];
 

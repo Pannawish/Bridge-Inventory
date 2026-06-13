@@ -1,11 +1,6 @@
 import PaginationControls from "../PaginationControls";
-import StatusFilterGroup from "../StatusFilterGroup";
 import TransactionTable from "../TransactionTable";
-import {
-  FilterPresets,
-  ActiveFilterChips,
-  RangeField,
-} from "../FilterControls";
+import UniversalFilter from "../filters/UniversalFilter";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getStatusLabel } from "../../i18n/statusLabels";
 import { purchaseStatusPresets, statusOptions } from "./purchaseHistoryUtils";
@@ -20,28 +15,15 @@ function PurchaseHistoryDirectorySection({
   totalPurchaseCount = 0,
   searchTerm,
   onSearchTermChange,
-  filterOpen,
-  onToggleFilter,
-  activeFilterCount = 0,
   onResetFilters,
   quickPresets = [],
   activeChips = [],
-  supplierFilterQuery,
-  onSupplierFilterQueryChange,
-  supplierFilterOpen,
-  onSupplierFilterOpen,
-  onSupplierFilterClose,
-  filteredSupplierOptions = [],
+  supplierOptions = [],
   selectedSupplier,
-  onSelectSupplierFilter,
-  productFilterQuery,
-  onProductFilterQueryChange,
-  productFilterOpen,
-  onProductFilterOpen,
-  onProductFilterClose,
-  filteredProductOptions = [],
+  onSelectedSupplierChange,
+  productOptions = [],
   selectedProduct,
-  onSelectProductFilter,
+  onSelectedProductChange,
   dateFrom,
   onDateFromChange,
   dateTo,
@@ -64,225 +46,116 @@ function PurchaseHistoryDirectorySection({
 }) {
   const { t } = useLanguage();
 
+  const countLabel = t(
+    isServerPaginated ? "purchaseHistory.pageCountServer" : "purchaseHistory.pageCountLocal",
+    { count: filteredPurchases.length, total: totalPurchaseCount }
+  );
+
+  // WHO → WHEN → STATUS in the always-visible row; WHAT → $ → VAT under More.
+  const filterFields = [
+    {
+      id: "supplier",
+      type: "combobox",
+      section: "primary",
+      label: t("purchaseHistory.supplierFilter"),
+      value: selectedSupplier,
+      onChange: onSelectedSupplierChange,
+      options: supplierOptions.map((supplier) => ({
+        value: supplier.companyName,
+        label: supplier.companyName,
+      })),
+      allValue: "",
+      placeholder: t("purchaseHistory.searchSupplierPlaceholder"),
+      emptyMessage: t("purchaseHistory.noSupplierFound"),
+    },
+    {
+      id: "date",
+      type: "daterange",
+      section: "primary",
+      label: t("filterControls.dateRange"),
+      from: dateFrom,
+      to: dateTo,
+      onFromChange: onDateFromChange,
+      onToChange: onDateToChange,
+    },
+    {
+      id: "status",
+      type: "statusGroup",
+      section: "primary",
+      label: t("purchaseHistory.statusSectionTitle"),
+      statuses: statusOptions,
+      selectedStatuses,
+      onChange: onSelectedStatusesChange,
+      presets: purchaseStatusPresets.map((preset) => ({
+        ...preset,
+        label: t(preset.labelKey),
+      })),
+      formatStatusLabel: (status) => getStatusLabel(t, status),
+      summaryAll: t("filterControls.allStatuses"),
+      summaryNone: t("filterControls.statusNone"),
+      summaryCount: (count) => t("filterControls.statusCount", { count }),
+    },
+    {
+      id: "product",
+      type: "combobox",
+      section: "advanced",
+      label: t("purchaseHistory.productFilter"),
+      value: selectedProduct,
+      onChange: onSelectedProductChange,
+      options: productOptions.map((product) => ({
+        value: product.id,
+        label: product.label,
+      })),
+      allValue: "",
+      placeholder: t("purchaseHistory.searchProductPlaceholder"),
+      emptyMessage: t("purchaseHistory.noProductFound"),
+    },
+    {
+      id: "amount",
+      type: "numberRange",
+      section: "advanced",
+      label: t("purchaseHistory.amountLabel"),
+      prefix: "฿",
+      min: amountMin,
+      max: amountMax,
+      onMinChange: onAmountMinChange,
+      onMaxChange: onAmountMaxChange,
+      placeholderMin: t("filterControls.min"),
+      placeholderMax: t("filterControls.max"),
+    },
+    {
+      id: "vat",
+      type: "select",
+      section: "advanced",
+      label: t("purchaseHistory.vatLabel"),
+      value: vatFilter,
+      onChange: onVatFilterChange,
+      allValue: "all",
+      allLabel: t("purchaseHistory.allVat"),
+      options: vatOptions,
+    },
+  ];
+
   return (
     <div className="stack-layout">
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("purchaseHistory.searchEyebrow")}</p>
-            <h3>{t("purchaseHistory.searchTitle")}</h3>
-          </div>
-        </div>
-
-        <div className="supplier-directory-toolbar">
-          <label className="stock-search supplier-search">
-            <span className="stock-search-icon">S</span>
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => onSearchTermChange(event.target.value)}
-              placeholder={t("purchaseHistory.searchPlaceholder")}
-            />
-          </label>
-          <div className="stock-report-summary supplier-search-meta">
-            <span>
-              {isServerPaginated
-                ? t("purchaseHistory.pageCountServer", {
-                    count: filteredPurchases.length,
-                    total: totalPurchaseCount,
-                  })
-                : t("purchaseHistory.pageCountLocal", {
-                    count: filteredPurchases.length,
-                    total: totalPurchaseCount,
-                  })}
-            </span>
-          </div>
-        </div>
-
-        <div className="history-filter-actions">
-          <button
-            className="secondary-button product-filter-toggle"
-            type="button"
-            aria-expanded={filterOpen}
-            onClick={onToggleFilter}
-          >
-            {t("filterControls.filter")}
-            {activeFilterCount ? <span>{activeFilterCount}</span> : null}
-          </button>
-          <button className="secondary-button" type="button" onClick={onResetFilters}>
-            {t("filterControls.resetFilter")}
-          </button>
-        </div>
-
-        <FilterPresets presets={quickPresets} />
-        <ActiveFilterChips chips={activeChips} onClearAll={onResetFilters} />
-
-        {filterOpen ? (
-          <div className="history-filter-panel">
-            <div className="history-filter-grid">
-              <label className="history-filter-field supplier-combobox-field">
-                <span className="history-filter-title">{t("purchaseHistory.supplierFilter")}</span>
-                <div className="supplier-combobox">
-                  <input
-                    type="search"
-                    value={supplierFilterQuery}
-                    onChange={(event) => onSupplierFilterQueryChange(event.target.value)}
-                    onFocus={onSupplierFilterOpen}
-                    onBlur={() => {
-                      window.setTimeout(onSupplierFilterClose, 120);
-                    }}
-                    placeholder={t("purchaseHistory.searchSupplierPlaceholder")}
-                    autoComplete="off"
-                    aria-expanded={supplierFilterOpen}
-                    aria-controls="purchase-history-supplier-filter"
-                  />
-
-                  {supplierFilterOpen ? (
-                    <div
-                      className="supplier-combobox-menu"
-                      id="purchase-history-supplier-filter"
-                      role="listbox"
-                    >
-                      {filteredSupplierOptions.length ? (
-                        filteredSupplierOptions.map((supplier) => (
-                          <button
-                            key={supplier.id}
-                            type="button"
-                            className={
-                              supplier.companyName === selectedSupplier
-                                ? "supplier-combobox-option active"
-                                : "supplier-combobox-option"
-                            }
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              onSelectSupplierFilter(supplier);
-                            }}
-                            role="option"
-                            aria-selected={supplier.companyName === selectedSupplier}
-                          >
-                            {supplier.companyName}
-                          </button>
-                        ))
-                      ) : (
-                        <div className="supplier-combobox-empty">
-                          {t("purchaseHistory.noSupplierFound")}
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              </label>
-
-              <label className="history-filter-field supplier-combobox-field">
-                <span className="history-filter-title">{t("purchaseHistory.productFilter")}</span>
-                <div className="supplier-combobox">
-                  <input
-                    type="search"
-                    value={productFilterQuery}
-                    onChange={(event) => onProductFilterQueryChange(event.target.value)}
-                    onFocus={onProductFilterOpen}
-                    onBlur={() => {
-                      window.setTimeout(onProductFilterClose, 120);
-                    }}
-                    placeholder={t("purchaseHistory.searchProductPlaceholder")}
-                    autoComplete="off"
-                    aria-expanded={productFilterOpen}
-                    aria-controls="purchase-history-product-filter"
-                  />
-
-                  {productFilterOpen ? (
-                    <div
-                      className="supplier-combobox-menu"
-                      id="purchase-history-product-filter"
-                      role="listbox"
-                    >
-                      {filteredProductOptions.length ? (
-                        filteredProductOptions.map((product) => (
-                          <button
-                            key={product.id}
-                            type="button"
-                            className={
-                              product.id === selectedProduct
-                                ? "supplier-combobox-option active"
-                                : "supplier-combobox-option"
-                            }
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              onSelectProductFilter(product);
-                            }}
-                            role="option"
-                            aria-selected={product.id === selectedProduct}
-                          >
-                            {product.label}
-                          </button>
-                        ))
-                      ) : (
-                        <div className="supplier-combobox-empty">
-                          {t("purchaseHistory.noProductFound")}
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              </label>
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("purchaseHistory.dateFromLabel")}</span>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(event) => onDateFromChange(event.target.value)}
-                />
-              </label>
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("purchaseHistory.dateToLabel")}</span>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(event) => onDateToChange(event.target.value)}
-                />
-              </label>
-
-              <RangeField
-                title={t("purchaseHistory.amountLabel")}
-                prefix="฿"
-                minValue={amountMin}
-                maxValue={amountMax}
-                onMinChange={onAmountMinChange}
-                onMaxChange={onAmountMaxChange}
-              />
-
-              <label className="history-filter-field">
-                <span className="history-filter-title">{t("purchaseHistory.vatLabel")}</span>
-                <select
-                  value={vatFilter}
-                  onChange={(event) => onVatFilterChange(event.target.value)}
-                >
-                  <option value="all">{t("purchaseHistory.allVat")}</option>
-                  {vatOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <StatusFilterGroup
-              title={t("purchaseHistory.statusSectionTitle")}
-              statuses={statusOptions}
-              selectedStatuses={selectedStatuses}
-              presets={purchaseStatusPresets.map((preset) => ({
-                ...preset,
-                label: t(preset.labelKey),
-              }))}
-              formatStatusLabel={(status) => getStatusLabel(t, status)}
-              onChange={onSelectedStatusesChange}
-            />
-          </div>
-        ) : null}
-      </section>
+      <UniversalFilter
+        search={{
+          value: searchTerm,
+          onChange: onSearchTermChange,
+          placeholder: t("purchaseHistory.searchPlaceholder"),
+        }}
+        meta={countLabel}
+        fields={filterFields}
+        quickFilters={quickPresets}
+        activeChips={activeChips}
+        onReset={onResetFilters}
+        labels={{
+          more: t("filterControls.moreFilters"),
+          reset: t("filterControls.resetFilter"),
+          quick: t("filterControls.quickFilters"),
+          clearAll: t("filterControls.clearAll"),
+        }}
+      />
 
       <TransactionTable
         rows={filteredPurchases}
