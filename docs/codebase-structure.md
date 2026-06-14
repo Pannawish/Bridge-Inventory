@@ -99,6 +99,7 @@ frontend/
 ├── index.html
 ├── package-lock.json
 ├── package.json
+├── vite.config.js
 ├── src/
 │   ├── App.jsx
 │   ├── api.js
@@ -170,6 +171,8 @@ frontend/
 │   │   │   ├── categoryPageHelpers.js
 │   │   │   ├── categoryUtils.js
 │   │   │   └── useCategoryPageState.js
+│   │   ├── charts/
+│   │   │   └── ReorderSawtooth.jsx
 │   │   ├── credits/
 │   │   │   ├── CreateCreditNoteModal.jsx
 │   │   │   ├── CreditNoteDetailModal.jsx
@@ -191,9 +194,14 @@ frontend/
 │   │   │   ├── PrintableTransactionDocument.jsx
 │   │   │   ├── documentRefConfig.jsx
 │   │   │   └── printTransactionDocument.jsx
+│   │   ├── filters/
+│   │   │   ├── DirectoryFilterBar.jsx
+│   │   │   └── UniversalFilter.jsx
 │   │   ├── inventory/
+│   │   │   ├── InventoryControlBoard.jsx
+│   │   │   ├── InventoryDetailModal.jsx
 │   │   │   ├── InventoryDirectorySection.jsx
-│   │   │   ├── InventoryOverviewSection.jsx
+│   │   │   ├── InventoryMetricModal.jsx
 │   │   │   ├── InventoryProductStockRow.jsx
 │   │   │   ├── InventoryReferenceModal.jsx
 │   │   │   └── inventoryUtils.js

@@ -19,12 +19,13 @@ This document is written for end users of the web app: operations staff, purchas
 
 This platform is custom-built to support a middle-man trading business model that buys products from suppliers, holds stock, and resells them to customers. The system maintains robust historical snapshotting so transaction audits stay clean even if catalog details change later.
 
-The app coordinates and relates five distinct workflows:
+The app coordinates and relates six distinct workflows:
 1.  **Master Catalog**: Products, nested categories, suppliers, and customers.
 2.  **Quotations**: Customer quotes, stock checks, and purchase/sales generation.
 3.  **Purchases**: Supplier orders, expected deliveries, and partial or full receiving logs.
 4.  **Sales**: Outbound sales orders, item-level fulfillment, and automatic/manual FIFO allocations.
 5.  **Finance Follow-up**: Customer receivables (Billing Notes), supplier payables (Payment Batches), and returns/cancel logs (Credit Notes).
+6.  **Operational Review**: Dashboard, inventory control, and AI-assisted analysis.
 
 ---
 
@@ -32,7 +33,7 @@ The app coordinates and relates five distinct workflows:
 
 | Role | Core Workspace Responsibilities |
 | :--- | :--- |
-| **Admin / Supervisor** | `Dashboard`, `Inventory`, `Settings` (Monitor margins, low stock, and system language) |
+| **Admin / Supervisor** | `Dashboard`, `Inventory`, `Settings` in the sidebar footer (Monitor margins, low stock, and system language) |
 | **Product Controller** | `Products`, `Categories`, `Inventory` (Keep master catalogs and conversions accurate) |
 | **Purchasing Staff** | `Quotation` (short-stock lines), `Purchases` (POs), `Suppliers` (Vendor records) |
 | **Sales Representatives** | `Quotation` (Inbound deals), `Sales` (Order progression), `Customers` (Accounts) |
@@ -44,17 +45,17 @@ The app coordinates and relates five distinct workflows:
 
 The sidebar navigation bar is grouped logically by business function:
 
-*   **Workspace**: `Dashboard` (KPIs), `Inventory` (FIFO layers & stock status), `AI Chat` (natural language queries).
-*   **Purchasing**: `Quotation` (cost checks), `Purchases` (receiving logs), `Suppliers` (contact registers).
-*   **Sales**: `Sales` (order progress), `Customers` (billing/shipping cards).
-*   **Records**: `Billing Notes` (customer billing), `Payment Batches` (supplier payments), `Credit Notes` (customer adjustments), `Products` (item setups), `Categories` (hierarchies).
-*   **Settings**: Language toggling between English and Thai.
+*   **Workspace**: `Dashboard` (operational overview), `Inventory` (reorder planning, stock health, AP/AR snapshots), `AI Chat` (natural language queries).
+*   **Purchasing**: `Purchases` (receiving logs and PO history), `Payment Batches` (supplier payables).
+*   **Sales**: `Quotation` (cost checks and conversion), `Sales` (order progress), `Billing Notes` (customer receivables), `Credit Notes` (returns/cancellations).
+*   **Records**: `Products` (item setups), `Categories` (hierarchies), `Suppliers` (vendor records), `Customers` (customer records).
+*   **Sidebar footer**: `Settings` for language toggling between English and Thai, plus the `Sign Out` action.
 
 <p align="left">
   <img src="docs/screenshots/sidebar-navigation.png" alt="Sidebar navigation" width="900" />
 </p>
 
-*Sidebar navigation showing the Workspace, Purchasing, Sales, Records, and Settings groups.*
+*Sidebar navigation showing the Workspace, Purchasing, Sales, Records groups, plus footer settings and sign-out controls.*
 
 ---
 
@@ -78,7 +79,7 @@ For trainee onboarding, quick walkthroughs, or system demonstrations without con
 
 #### C. Safely Signing Out
 1. Go to the bottom of the sidebar.
-2. Verify your active username located directly under the Settings menu.
+2. Verify your active username shown in the sidebar footer above the **Sign Out** button.
 3. Click the **"Sign Out"** button (represented by the logout icon). The system will instantly delete all active tokens from storage, unmount the workspace, and reload back to the secure Sign In card.
 
 ---
@@ -366,29 +367,34 @@ Saved quotations, purchase orders, sales invoices, billing notes, payment batche
 
 ### 9.1 Dashboard
 The **Dashboard** summarizes your company's operational position:
-*   **AP & AR Ratios**: Live tracking of what you owe suppliers vs. what customers owe you.
-*   **Net Position**: Live margins and net cash position for the selected period.
-*   **Top Products**: Details on best-selling items, units sold, and margins.
+*   **Urgent Reorder**: Highlights products already at or below reorder level and lets you jump into a quick PO flow.
+*   **Stock Cycling**: Separates high-cycle, long-cycle, and one-off products so you can judge whether stock is moving normally.
+*   **Delivery Planning**: Surfaces open sales by fulfillment stage and flags delayed inbound stock affecting dispatch.
+*   **Cash-Flow Forecast**: Compares near-term receivables and payables.
+*   **Order Coverage**: Shows whether open customer demand is covered by on-hand stock, incoming stock, or still has a gap.
 
-*   [ ] Monitor AR/AP ratios to check collection pressure.
-*   [ ] Review product sales trends.
+*   [ ] Review urgent reorder items before they stock out.
+*   [ ] Check delayed inbound supply before promising delivery dates.
+*   [ ] Compare open receivables and payables for near-term cash pressure.
 
 <p align="left">
   <img src="docs/screenshots/dashboard-overview.png" alt="Dashboard overview" width="900" />
 </p>
 
-*Dashboard overview showing sales vs. purchases.*
+*Dashboard overview showing replenishment, delivery, cash-flow, and order-coverage signals.*
 
 ---
 
 ### 9.2 Inventory
 The **Inventory** workspace is your primary control center for reorder planning:
-*   **KPI Metrics**: Total inventory asset valuation (based on average received unit cost) and attention signals.
-*   **Reorder Prompts**: Recommends restocking quantities based on safety stock parameters, pending orders, and shortages.
-*   **FIFO Explorer**: Click any item to inspect its exact received FIFO cost layers.
+*   **Control Board**: Separates stock-and-reorder KPIs from cash-position KPIs, including open AR, open AP, and net position.
+*   **Formula Reference**: Explains how reorder point, safety stock, days left, and recommended buy quantities are calculated.
+*   **Quick Filters**: Filter by health, movement, category, supplier, stockout window, reorder need, and stock value.
+*   **Detail Modals**: Click any KPI or stock row to inspect the exact products, FIFO layers, and financial documents behind the number.
 
-*   [ ] Review products flagged as "Low/Urgent" stock health.
-*   [ ] Inspect suggested buy quantities and pricing histories.
+*   [ ] Review products flagged as low, watch, or dead stock.
+*   [ ] Inspect suggested buy quantities and supplier options before raising POs.
+*   [ ] Use the formula reference when validating reorder settings with supervisors.
 
 <p align="left">
   <img src="docs/screenshots/inventory-stock-review.png" alt="Inventory stock review table" width="900" />
@@ -465,7 +471,7 @@ Use this exercise during training sessions:
 | **Settle supplier bills** | `Payment Batches` | Group eligible un-paid purchases |
 | **Record returned goods** | `Credit Notes` | Issue adjustments from cancelled/returned sales |
 | **Ask questions in plain text** | `AI Chat` | Query stock, margins, and trends |
-| **Toggle language** | `Settings` | Change system language (English / Thai) |
+| **Toggle language** | `Settings` in the sidebar footer | Change system language (English / Thai) |
 
 ---
 

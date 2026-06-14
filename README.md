@@ -11,7 +11,7 @@
 
 Bridge Inventory is a full-stack, enterprise-lite inventory management system tailored for SME trading businesses. It is built specifically for **middle-man business models** that buy from suppliers, hold stock, and resell to customers. 
 
-Instead of a generic stock tracker, this platform coordinates actual day-to-day operations: **Quotations, Purchases, Sales, Billing Notes, Payment Batches, Stock normalizations, and an AI inventory assistant**—all unified under authoritative backend calculations.
+Instead of a generic stock tracker, this platform coordinates actual day-to-day operations: **Quotations, Purchases, Sales, Billing Notes, Payment Batches, Credit Notes, inventory control, and an AI inventory assistant**—all unified under authoritative backend calculations.
 
 ---
 
@@ -33,7 +33,7 @@ Want to explore the user interface without running any local databases?
 
 | Functional Area | Implemented Operational Capabilities |
 | :--- | :--- |
-| **Products & Stock** | Product master setups, nested categories, multi-image uploads, supplier-specific sourcing options, unit conversions, and on-demand FIFO stock history. |
+| **Products & Stock** | Product master setups, nested categories, multi-image uploads, supplier-specific sourcing options, unit conversions, on-demand FIFO stock history, and an inventory control workspace for reorder planning. |
 | **Quotations** | Customer billing quotes with unit-aware quantities, live stock-sufficiency indicators, and one-click conversion into sales orders or purchase lines. |
 | **Purchases** | Detailed PO setups, partial/full receiving updates, expected arrival schedules, supplier tax invoice tracking, base quantity normalization, and cost snapshotting. |
 | **Sales** | Stock-aware sales validation, live delivery trackers, cancelled/returned flows, average cost references, and automatic/manual FIFO purchase layer allocation. |
@@ -109,7 +109,8 @@ graph TD
 │   ├── codebase-structure.md         # Source tree navigation map
 │   ├── frontend-refactor-handoff.md  # Maintainability splits and hooks details
 │   ├── login_system.md               # JWT & Guest Mode developer guide
-│   └── database-schema.md            # MySQL database schemas & ERD reference
+│   ├── database-schema.md            # MySQL database schemas & ERD reference
+│   └── workflow-reference.md         # End-to-end business flow narrative
 └── AGENTS.md     # Engineering standards & constraints for contributors
 ```
 
