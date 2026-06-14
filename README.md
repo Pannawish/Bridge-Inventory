@@ -39,7 +39,7 @@ Want to explore the user interface without running any local databases?
 | **Sales** | Stock-aware sales validation, live delivery trackers, cancelled/returned flows, average cost references, and automatic/manual FIFO purchase layer allocation. |
 | **Finance (BN / PB / CN)** | Billing Notes for receivables, Payment Batches for payables, and Credit Notes for cancelled/returned goods, with server-validated transaction eligibility checks and net-of-credit billing summaries. |
 | **Business Documents** | Printable quotation, purchase order, sales invoice, billing note, payment batch, and credit note layouts generated from shared transaction document configs. |
-| **AI Assistant** | OpenAI-powered bilingual natural language query assistant for checking low stocks, recent orders, product value, and margins. |
+| **AI Assistant** | OpenAI-powered bilingual natural language query assistant for stock alerts, customer/supplier date-range summaries, receivables/payables, margins, overdue exceptions, trends, and reference line-item detail. |
 
 ---
 
@@ -120,6 +120,7 @@ graph TD
 
 For deeper codebase context and engineering rules, check out the specialized guides:
 *   [HANDOUT.md](./HANDOUT.md) — End-user training manual and user workflows.
+*   [docs/ai-assistant-guide.md](./docs/ai-assistant-guide.md) — Supported AI assistant question types, limits, and usage examples.
 *   [docs/workflow-reference.md](./docs/workflow-reference.md) — End-to-end workflow text for diagrams, presentations, and onboarding.
 *   [docs/business-rules-reference.md](./docs/business-rules-reference.md) — Master business logic for exact status, FIFO, and eligibility behaviors.
 *   [docs/codebase-structure.md](./docs/codebase-structure.md) — Navigation maps for the source tree and modular splits.

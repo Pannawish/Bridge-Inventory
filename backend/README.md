@@ -81,7 +81,7 @@ MYSQL_PORT=3306
 CORS_ALLOWED_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
 
 OPENAI_API_KEY=
-OPENAI_MODEL=gpt-5-mini
+OPENAI_MODEL=gpt-5.4-mini
 ```
 
 Notes:
@@ -321,8 +321,19 @@ Behavior:
 
 - If `OPENAI_API_KEY` is set, the backend calls the configured `OPENAI_MODEL`.
 - If `OPENAI_API_KEY` is empty, the backend returns a local read-only summary built from current inventory data.
+- The response includes `answer`, `used_model`, and a structured `presentation` payload for the frontend chat cards.
 
-The assistant is intended for concise operational questions about stock, products, and transaction summaries. It is read-only and does not mutate inventory data.
+Current coverage includes:
+
+- stock alerts, reorder guidance, and product stock lookups
+- customer and supplier summaries within explicit or relative date ranges
+- purchases, sales, quotations, billing notes, payment batches, and credit notes
+- receivables, payables, net position, order coverage, and backorder gaps
+- product margin/profitability, supplier lead-time performance, customer buying trends
+- overdue and exception monitoring
+- line-item detail by document reference such as `PO-...`, `TI-...`, `QT-...`, `BN-...`, `PMT-...`, and `CN-...`
+
+The assistant is read-only and does not mutate inventory data. It answers from the backend-built inventory context, so it should be treated as an operational analysis layer rather than the source of truth for transaction state.
 
 ## Frontend Connection
 
