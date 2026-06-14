@@ -1548,6 +1548,8 @@ def serialize_sale_for_chat(sale):
                 "unit": item.unit,
                 "base_quantity": as_number(item.base_quantity),
                 "base_unit": item.base_unit,
+                "unit_price": as_number(item.unit_price),
+                "unit_cost": as_number(item.unit_cost),
                 "shipped_date": item.shipped_date,
                 "delivered_date": item.delivered_date,
                 "amount": as_number(item.amount),
@@ -2538,6 +2540,7 @@ def build_ai_inventory_context(question, request=None):
     finance_segment = build_finance_segment(DEFAULT_SEGMENT_PERIOD, today=dashboard_today)
     cashflow_segment = build_cashflow_segment(today=dashboard_today)
     order_coverage_segment = build_order_coverage_segment(today=dashboard_today)
+    products_segment = build_products_segment(DEFAULT_SEGMENT_PERIOD, today=dashboard_today)
 
     return {
         "query_terms": terms,
@@ -2560,6 +2563,7 @@ def build_ai_inventory_context(question, request=None):
             "finance": finance_segment,
             "cashflow": cashflow_segment,
             "order_coverage": order_coverage_segment,
+            "products": products_segment,
         },
         "stock": {
             "matching_rows": matching_stock_rows,
@@ -2780,6 +2784,143 @@ def build_credit_note_records(rows, limit=5):
         )
         for row in rows[:limit]
     ]
+
+
+def compute_margin_rows_from_sales_rows(rows, sku_filter=None, limit=6):
+    performance = {}
+    allowed_skus = set(sku_filter or [])
+    for row in rows:
+        for item in row.get("items", []):
+            sku = item.get("sku") or ""
+            if allowed_skus and sku not in allowed_skus:
+                continue
+            key = sku or item.get("product_name") or "Unknown"
+            quantity = Decimal(str(item.get("base_quantity") or item.get("quantity") or 0))
+            revenue = Decimal(str(item.get("amount") or 0))
+            cost = Decimal(str(item.get("unit_cost") or 0)) * quantity
+            bucket = performance.setdefault(
+                key,
+                {
+                    "product_name": item.get("product_name") or key,
+                    "sku": sku,
+                    "units": Decimal("0"),
+                    "revenue": Decimal("0"),
+                    "cost": Decimal("0"),
+                },
+            )
+            bucket["units"] += quantity
+            bucket["revenue"] += revenue
+            bucket["cost"] += cost
+
+    ranked = []
+    for row in performance.values():
+        margin = row["revenue"] - row["cost"]
+        margin_pct = (margin / row["revenue"] * Decimal("100")) if row["revenue"] > 0 else Decimal("0")
+        ranked.append(
+            {
+                "product_name": row["product_name"],
+                "sku": row["sku"],
+                "units": as_number(row["units"]),
+                "revenue": as_number(row["revenue"]),
+                "cost": as_number(row["cost"]),
+                "margin": as_number(margin),
+                "margin_pct": as_number(margin_pct.quantize(Decimal("0.1"))),
+            }
+        )
+
+    return sorted(ranked, key=lambda row: (row["margin"], row["revenue"]), reverse=True)[:limit]
+
+
+def build_margin_records(rows, limit=6):
+    return [
+        chat_record(
+            f"{row['product_name']} ({row['sku']})" if row.get("sku") else row["product_name"],
+            meta=combine_chat_meta(
+                f"{row['units']} units",
+                f"revenue {row['revenue']}",
+                f"cost {row['cost']}",
+                f"margin {row['margin_pct']}%",
+            ),
+            value=row["margin"],
+        )
+        for row in rows[:limit]
+    ]
+
+
+def build_exception_transaction_records(rows, date_key, party_key, amount_key, due_label, limit=5):
+    return [
+        chat_record(
+            row["reference_no"] or row["id"],
+            meta=combine_chat_meta(row.get(date_key), row.get(party_key), row.get("status"), due_label),
+            value=row.get(amount_key),
+        )
+        for row in rows[:limit]
+    ]
+
+
+def build_detail_records(items, record_type="item", limit=8):
+    records = []
+    for item in items[:limit]:
+        if record_type == "sale":
+            records.append(
+                chat_record(
+                    f"{item.get('product_name')} ({item.get('sku')})" if item.get("sku") else item.get("product_name"),
+                    meta=combine_chat_meta(
+                        f"qty {item.get('quantity')} {item.get('unit')}",
+                        item.get("status"),
+                        f"unit price {item.get('unit_price')}",
+                    ),
+                    value=item.get("amount"),
+                )
+            )
+        elif record_type == "purchase":
+            records.append(
+                chat_record(
+                    f"{item.get('product_name')} ({item.get('sku')})" if item.get("sku") else item.get("product_name"),
+                    meta=combine_chat_meta(
+                        f"qty {item.get('quantity')} {item.get('unit')}",
+                        item.get("status"),
+                        f"expected {item.get('expected_delivery_date')}",
+                    ),
+                    value=item.get("amount"),
+                )
+            )
+        elif record_type == "credit":
+            records.append(
+                chat_record(
+                    f"{item.get('product_name')} ({item.get('sku')})" if item.get("sku") else item.get("product_name"),
+                    meta=combine_chat_meta(
+                        f"qty {item.get('quantity')}",
+                        f"unit price {item.get('unit_price')}",
+                    ),
+                    value=item.get("amount"),
+                )
+            )
+        elif record_type == "billing":
+            records.append(
+                chat_record(
+                    item.get("sale_reference_no") or "Sale line",
+                    meta=combine_chat_meta(item.get("sale_status"), f"received {item.get('received')}"),
+                    value=item.get("amount"),
+                )
+            )
+        elif record_type == "payment":
+            records.append(
+                chat_record(
+                    item.get("purchase_reference_no") or "Purchase line",
+                    meta=combine_chat_meta(item.get("purchase_status"), f"paid {item.get('paid')}"),
+                    value=item.get("amount"),
+                )
+            )
+        else:
+            records.append(
+                chat_record(
+                    f"{item.get('product_name')} ({item.get('sku')})" if item.get("sku") else item.get("product_name"),
+                    meta=combine_chat_meta(f"qty {item.get('quantity')} {item.get('unit')}"),
+                    value=item.get("amount"),
+                )
+            )
+    return records
 
 
 def build_customer_chat_summary(
@@ -3218,6 +3359,291 @@ def build_order_coverage_presentation(context):
     }
 
 
+def build_margin_presentation(context):
+    finance = context["dashboard"]["finance"]
+    products_segment = context["dashboard"].get("products") or build_products_segment(
+        DEFAULT_SEGMENT_PERIOD,
+        today=context["today"],
+    )
+    matching_skus = {row.get("sku") for row in context["stock"]["matching_rows"] if row.get("sku")}
+    matching_skus.update({row.get("sku") for row in context.get("products", []) if row.get("sku")})
+    margin_rows = compute_margin_rows_from_sales_rows(context["sales"], sku_filter=matching_skus)
+    if not margin_rows:
+        margin_rows = [
+            {
+                "product_name": row["product_name"],
+                "sku": row["sku"],
+                "units": row["units"],
+                "revenue": row["revenue"],
+                "cost": row["cost"],
+                "margin": row["margin"],
+                "margin_pct": as_number(
+                    (
+                        Decimal(str(row["margin"])) / Decimal(str(row["revenue"])) * Decimal("100")
+                    ).quantize(Decimal("0.1"))
+                )
+                if Decimal(str(row["revenue"] or 0)) > 0
+                else 0,
+            }
+            for row in products_segment["top_products"]
+        ]
+    total_revenue = sum(Decimal(str(row["revenue"] or 0)) for row in margin_rows)
+    total_cost = sum(Decimal(str(row["cost"] or 0)) for row in margin_rows)
+    total_margin = total_revenue - total_cost
+    margin_pct = (total_margin / total_revenue * Decimal("100")) if total_revenue > 0 else Decimal("0")
+    return {
+        "title": "Margin and profitability",
+        "subtitle": finance["period_label"],
+        "metrics": [
+            chat_metric("Revenue", as_number(total_revenue) if margin_rows else finance["sales_total"]),
+            chat_metric("Estimated cost", as_number(total_cost) if margin_rows else finance["purchases_total"]),
+            chat_metric("Gross margin", as_number(total_margin) if margin_rows else finance["gross_margin"]),
+            chat_metric(
+                "Margin %",
+                as_number(margin_pct.quantize(Decimal("0.1"))) if margin_rows else finance["margin_pct"],
+            ),
+        ],
+        "sections": [
+            chat_section(
+                "Highlights",
+                items=[
+                    f"Gross margin for the dashboard period is {finance['gross_margin']} on sales {finance['sales_total']}.",
+                    f"AR outstanding {finance['ar']['outstanding']}; AP outstanding {finance['ap']['outstanding']}.",
+                ],
+            ),
+            chat_section("Top margin products", records=build_margin_records(margin_rows)),
+        ],
+    }
+
+
+def build_supplier_performance_presentation(context):
+    if not context["matched_suppliers"]:
+        return None
+    supplier_name = context["matched_suppliers"][0]
+    purchase_items = PurchaseItem.objects.select_related("purchase").filter(
+        purchase__supplier_name=supplier_name
+    )
+    if context.get("date_interval"):
+        purchase_items = filter_by_date_interval(
+            purchase_items,
+            "purchase__transaction_date",
+            context["date_interval"],
+        )
+    received_items = purchase_items.filter(item_status=PurchaseItem.ITEM_RECEIVED)
+    pending_items = purchase_items.filter(item_status=PurchaseItem.ITEM_PENDING)
+    delayed_items = pending_items.filter(expected_delivery_date__lt=context["today"])
+    lead_times = []
+    for item in received_items:
+        if item.lead_time_days is not None:
+            lead_times.append(Decimal(str(item.lead_time_days)))
+        elif item.received_date and item.purchase.transaction_date:
+            lead_times.append(Decimal(str((item.received_date - item.purchase.transaction_date).days)))
+    avg_lead = (
+        sum(lead_times, Decimal("0")) / Decimal(str(len(lead_times)))
+        if lead_times
+        else None
+    )
+    supplier_summary = context["partner_summaries"]["suppliers"][0]
+    return {
+        "title": f"Supplier performance: {supplier_name}",
+        "subtitle": supplier_summary["subtitle"],
+        "metrics": [
+            chat_metric("Purchase total", supplier_summary["metrics"][0]["value"]),
+            chat_metric("Avg lead days", as_number(avg_lead.quantize(Decimal('0.1'))) if avg_lead is not None else "n/a"),
+            chat_metric(
+                "Delayed units",
+                as_number(delayed_items.aggregate(total=Sum("base_quantity"))["total"] or Decimal("0")),
+                tone="warning",
+            ),
+            chat_metric("Open PO lines", pending_items.count()),
+        ],
+        "sections": [
+            chat_section(
+                "Highlights",
+                items=[
+                    f"Received lines measured for lead time: {received_items.count()}.",
+                    f"Delayed incoming lines: {delayed_items.count()}.",
+                    f"Scheduled or open payables: {supplier_summary['metrics'][2]['value']}.",
+                ],
+            ),
+            chat_section("Recent purchases", records=build_purchase_records(context["purchases"])),
+            chat_section(
+                "Delayed incoming lines",
+                records=[
+                    chat_record(
+                        item.purchase.reference_no or item.purchase_id,
+                        meta=combine_chat_meta(item.product_name, item.expected_delivery_date, item.item_status),
+                        value=as_number(item.base_quantity),
+                    )
+                    for item in delayed_items[:5]
+                ],
+            ),
+        ],
+    }
+
+
+def build_customer_trend_presentation(context):
+    if not context["matched_customers"]:
+        return None
+    customer_name = context["matched_customers"][0]
+    today = context["today"]
+    if context.get("date_interval"):
+        current_start = context["date_interval"]["start"]
+        current_end = context["date_interval"]["end"]
+    else:
+        current_end = today
+        current_start = today - timedelta(days=29)
+    window_days = max(1, (current_end - current_start).days + 1)
+    previous_end = current_start - timedelta(days=1)
+    previous_start = previous_end - timedelta(days=window_days - 1)
+    current_sales = Sale.objects.exclude(status__in=SALE_INACTIVE_TRANSACTION_STATUSES).filter(
+        customer_name=customer_name,
+        transaction_date__gte=current_start,
+        transaction_date__lte=current_end,
+    )
+    previous_sales = Sale.objects.exclude(status__in=SALE_INACTIVE_TRANSACTION_STATUSES).filter(
+        customer_name=customer_name,
+        transaction_date__gte=previous_start,
+        transaction_date__lte=previous_end,
+    )
+    current_total = current_sales.aggregate(total=Sum("grand_total"))["total"] or Decimal("0")
+    previous_total = previous_sales.aggregate(total=Sum("grand_total"))["total"] or Decimal("0")
+    delta = current_total - previous_total
+    delta_pct = (delta / previous_total * Decimal("100")) if previous_total > 0 else None
+    recent_rows = [serialize_sale_for_chat(sale) for sale in current_sales.prefetch_related("items")[:6]]
+    return {
+        "title": f"Customer buying trend: {customer_name}",
+        "subtitle": f"{current_start.isoformat()} to {current_end.isoformat()}",
+        "metrics": [
+            chat_metric("Current sales", as_number(current_total)),
+            chat_metric("Previous sales", as_number(previous_total)),
+            chat_metric("Change", as_number(delta), tone="success" if delta >= 0 else "warning"),
+            chat_metric(
+                "Change %",
+                as_number(delta_pct.quantize(Decimal("0.1"))) if delta_pct is not None else "n/a",
+                tone="success" if delta >= 0 else "warning",
+            ),
+        ],
+        "sections": [
+            chat_section(
+                "Highlights",
+                items=[
+                    f"Orders in current window: {current_sales.count()}.",
+                    f"Orders in previous window: {previous_sales.count()}.",
+                ],
+            ),
+            chat_section("Recent sales", records=build_sale_records(recent_rows)),
+            chat_section("Top products", records=build_top_product_records(recent_rows)),
+        ],
+    }
+
+
+def build_exception_presentation(context):
+    overdue_billing = BillingNote.objects.exclude(
+        status__in=(BillingNote.STATUS_FULLY_RECEIVED, BillingNote.STATUS_CANCELLED)
+    ).filter(expected_payment_date__lt=context["today"]).order_by("expected_payment_date", "created_at")
+    overdue_payment = PaymentBatch.objects.exclude(
+        status__in=(PaymentBatch.STATUS_PAID, PaymentBatch.STATUS_CANCELLED)
+    ).filter(planned_payment_date__lt=context["today"]).order_by("planned_payment_date", "created_at")
+    delayed_purchase_items = PurchaseItem.objects.select_related("purchase").filter(
+        item_status=PurchaseItem.ITEM_PENDING,
+        expected_delivery_date__lt=context["today"],
+    ).order_by("expected_delivery_date", "purchase__created_at")
+    backordered_sale_items = SaleItem.objects.select_related("sale").filter(
+        item_status=SaleItem.ITEM_PENDING,
+        product_id__isnull=False,
+    ).exclude(sale__status__in=SALE_INACTIVE_TRANSACTION_STATUSES).order_by("sale__transaction_date", "sale__created_at")
+
+    overdue_billing_rows = [serialize_billing_note_for_chat(note) for note in overdue_billing[:5]]
+    overdue_payment_rows = [serialize_payment_batch_for_chat(batch) for batch in overdue_payment[:5]]
+    gap_units = context["dashboard"]["order_coverage"]["states"]["gap"]["units"]
+    return {
+        "title": "Overdue and exception monitor",
+        "subtitle": context["today"].isoformat(),
+        "metrics": [
+            chat_metric("Overdue AR", context["dashboard"]["cashflow"]["overdue_ar"], tone="warning"),
+            chat_metric("Overdue AP", context["dashboard"]["cashflow"]["overdue_ap"], tone="warning"),
+            chat_metric("Delayed PO lines", delayed_purchase_items.count(), tone="warning"),
+            chat_metric("Backorder gap units", gap_units, tone="warning"),
+        ],
+        "sections": [
+            chat_section(
+                "Overdue billing notes",
+                records=build_exception_transaction_records(
+                    overdue_billing_rows,
+                    "expected_payment_date",
+                    "customer_name",
+                    "total_amount",
+                    "overdue AR",
+                ),
+            ),
+            chat_section(
+                "Overdue payment batches",
+                records=build_exception_transaction_records(
+                    overdue_payment_rows,
+                    "planned_payment_date",
+                    "supplier_name",
+                    "total_amount",
+                    "overdue AP",
+                ),
+            ),
+            chat_section(
+                "Delayed purchase lines",
+                records=[
+                    chat_record(
+                        item.purchase.reference_no or item.purchase_id,
+                        meta=combine_chat_meta(item.product_name, item.expected_delivery_date, item.purchase.supplier_name),
+                        value=as_number(item.base_quantity),
+                    )
+                    for item in delayed_purchase_items[:5]
+                ],
+            ),
+            chat_section(
+                "Backordered sale lines",
+                records=[
+                    chat_record(
+                        item.sale.reference_no or item.sale_id,
+                        meta=combine_chat_meta(item.product_name, item.sale.customer_name, item.sale.transaction_date),
+                        value=as_number(item.base_quantity),
+                    )
+                    for item in backordered_sale_items[:5]
+                ],
+            ),
+        ],
+    }
+
+
+def build_reference_line_item_presentation(context, reference_prefix):
+    record_map = {
+        "PO": ("Purchase line items", matched_rows(context, "purchases"), "items", "purchase"),
+        "TI": ("Sales line items", matched_rows(context, "sales"), "items", "sale"),
+        "QT": ("Quotation line items", matched_rows(context, "quotations"), "items", "item"),
+        "CN": ("Credit note lines", matched_rows(context, "credit_notes"), "lines", "credit"),
+        "BN": ("Billing note lines", matched_rows(context, "billing_notes"), "lines", "billing"),
+        "PMT": ("Payment batch lines", matched_rows(context, "payment_batches"), "lines", "payment"),
+    }
+    title, rows, key, record_type = record_map.get(reference_prefix, ("Line items", [], "items", "item"))
+    if not rows:
+        return None
+    row = rows[0]
+    items = row.get(key, [])
+    return {
+        "title": title,
+        "subtitle": row.get("reference_no") or row.get("id") or "Matched reference",
+        "metrics": [
+            chat_metric("Lines", len(items)),
+            chat_metric("Status", row.get("status", "")),
+            chat_metric("Total", row.get("grand_total", row.get("total_amount", ""))),
+        ],
+        "sections": [
+            chat_section(
+                "Line details",
+                records=build_detail_records(items, record_type=record_type),
+            )
+        ],
+    }
+
+
 def build_capabilities_presentation(context):
     return {
         "title": "AI assistant coverage",
@@ -3245,8 +3671,35 @@ def build_chat_presentation(question, context=None):
     context = context or build_ai_inventory_context(question)
     matching_stock = context["stock"]["matching_rows"]
     question_text = (question or "").lower()
-    reference_like = any("-" in term and any(char.isdigit() for char in term) for term in context["query_terms"])
     reference_prefix = get_reference_prefix(context["query_terms"])
+    reference_like = bool(reference_prefix) or any(
+        "-" in term and any(char.isdigit() for char in term) for term in context["query_terms"]
+    )
+    wants_line_items = any(
+        phrase in question_text
+        for phrase in ("line item", "line items", "item detail", "items in", "show items", "what is inside")
+    )
+
+    if any(term in question_text for term in ("margin", "profit", "profitability", "gross margin")):
+        return build_margin_presentation(context)
+
+    if any(term in question_text for term in ("lead time", "supplier performance", "vendor performance")):
+        supplier_performance = build_supplier_performance_presentation(context)
+        if supplier_performance:
+            return supplier_performance
+
+    if any(term in question_text for term in ("trend", "buying pattern", "buying trend", "growth")):
+        customer_trend = build_customer_trend_presentation(context)
+        if customer_trend:
+            return customer_trend
+
+    if any(term in question_text for term in ("overdue", "exception", "late", "delayed")):
+        return build_exception_presentation(context)
+
+    if reference_like and wants_line_items:
+        line_item_presentation = build_reference_line_item_presentation(context, reference_prefix)
+        if line_item_presentation:
+            return line_item_presentation
 
     partner_summary = get_partner_summary_presentation(question, context)
     if partner_summary:

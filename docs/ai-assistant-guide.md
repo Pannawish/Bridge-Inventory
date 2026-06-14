@@ -24,6 +24,11 @@ It is designed to answer short business questions using current system data such
 - credit note summaries
 - AR / AP / net position summaries
 - order coverage and backorder summaries
+- product margin and profitability summaries
+- supplier lead-time and delayed incoming performance summaries
+- customer buying trend comparisons
+- overdue and exception monitoring
+- line-item detail by document reference
 
 It does **not** create, edit, approve, cancel, or delete records.
 
@@ -59,6 +64,11 @@ Examples:
 - `Summarize customer activity for Acme Co. from 2026-06-01 to 2026-06-14`
 - `Summarize supplier activity for Apex Supply this month`
 - `What are the latest sales transactions?`
+- `Show product margin and profitability`
+- `Show supplier performance and lead time for Paper Supply Co.`
+- `Show buying trend for customer Finance Department`
+- `Show overdue and exception issues`
+- `Show line items for TI-6905-023`
 - `Show recent quotations`
 - `Summarize billing notes`
 - `Summarize payment batches`
@@ -245,6 +255,79 @@ Best example questions:
 
 - `Which customer orders are backordered?`
 - `Show order coverage`
+
+### 4.11 Margin And Product Profitability
+
+The assistant can summarize:
+
+- gross margin for the current dashboard period
+- top products by estimated margin
+- product-level revenue, cost, and margin from matched sales lines
+
+Best example questions:
+
+- `Show product margin and profitability`
+- `Which products have the best margin this month?`
+- `Show margin for CHAT-1`
+
+### 4.12 Supplier Performance And Lead Time
+
+The assistant can summarize:
+
+- average received lead time for a matched supplier
+- delayed incoming purchase lines
+- open PO lines and scheduled payables
+
+Best example questions:
+
+- `Show supplier performance and lead time for Paper Supply Co.`
+- `Which supplier has delayed incoming stock?`
+- `Show delayed purchase lines`
+
+### 4.13 Customer Buying Trends
+
+The assistant can summarize:
+
+- current versus previous sales window for a matched customer
+- sales count trend
+- recent sales and top products in the active window
+
+Best example questions:
+
+- `Show buying trend for customer Finance Department`
+- `How is Graduate School buying this month compared with the previous period?`
+
+### 4.14 Overdue And Exception Monitoring
+
+The assistant can summarize:
+
+- overdue billing notes
+- overdue payment batches
+- delayed purchase lines
+- backordered sale lines and demand gaps
+
+Best example questions:
+
+- `Show overdue and exception issues`
+- `Which billing notes are overdue?`
+- `Show delayed purchase lines`
+
+### 4.15 Line-Item Detail By Reference
+
+The assistant can summarize:
+
+- sale line items
+- purchase line items
+- quotation lines
+- billing note lines
+- payment batch lines
+- credit note lines
+
+Best example questions:
+
+- `Show line items for TI-6905-023`
+- `Show line items for PO-6905-001`
+- `Show line items for CN-6905-001`
 
 ---
 

@@ -2817,7 +2817,7 @@ class ChatAssistantAlignmentTests(TestCase):
             reference_no="PO-CHAT-READY",
             supplier=self.supplier,
             supplier_name=self.supplier.company_name,
-            transaction_date=self.today,
+            transaction_date=self.today - timedelta(days=3),
             status=Purchase.STATUS_RECEIVED,
             grand_total=Decimal("10"),
         )
@@ -2827,6 +2827,8 @@ class ChatAssistantAlignmentTests(TestCase):
             product_name=self.product.product_name,
             sku=self.product.sku,
             item_status=PurchaseItem.ITEM_RECEIVED,
+            received_date=self.today - timedelta(days=1),
+            lead_time_days=2,
             unit="pcs",
             base_unit="pcs",
             conversion_factor=Decimal("1"),
@@ -2850,6 +2852,7 @@ class ChatAssistantAlignmentTests(TestCase):
             product_name=self.product.product_name,
             sku=self.product.sku,
             item_status=PurchaseItem.ITEM_PENDING,
+            expected_delivery_date=self.today - timedelta(days=2),
             unit="pcs",
             base_unit="pcs",
             conversion_factor=Decimal("1"),
@@ -2881,6 +2884,29 @@ class ChatAssistantAlignmentTests(TestCase):
             unit_price=Decimal("10"),
             unit_cost=Decimal("6"),
             amount=Decimal("50"),
+        )
+
+        self.previous_sale = Sale.objects.create(
+            reference_no="TI-CHAT-PREVIOUS",
+            customer=self.customer,
+            customer_name=self.customer.company_name,
+            transaction_date=self.today - timedelta(days=40),
+            status=Sale.STATUS_DELIVERED,
+            grand_total=Decimal("20"),
+        )
+        SaleItem.objects.create(
+            sale=self.previous_sale,
+            product_name="Previous Trend Service",
+            sku="",
+            item_status=SaleItem.ITEM_DELIVERED,
+            unit="job",
+            base_unit="job",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("2"),
+            base_quantity=Decimal("2"),
+            unit_price=Decimal("10"),
+            unit_cost=Decimal("5"),
+            amount=Decimal("20"),
         )
 
         self.quotation = Quotation.objects.create(
@@ -3014,3 +3040,47 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertIn("Supplier summary", response["answer"])
         self.assertIn("Purchase count: 2", response["answer"])
         self.assertIn("Scheduled AP: 120", response["answer"])
+
+    def test_chat_reports_margin_and_profitability(self):
+        response = answer_inventory_question("Show product margin and profitability")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Margin and profitability")
+        self.assertIn("Gross margin", response["answer"])
+        self.assertIn("Chat Product (CHAT-1)", response["answer"])
+
+    def test_chat_reports_supplier_performance_and_lead_time(self):
+        response = answer_inventory_question(
+            f"Show supplier performance and lead time for {self.supplier.company_name}"
+        )
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], f"Supplier performance: {self.supplier.company_name}")
+        self.assertIn("Avg lead days: 2", response["answer"])
+        self.assertIn("Delayed units: 2", response["answer"])
+
+    def test_chat_reports_customer_buying_trend(self):
+        response = answer_inventory_question(
+            f"Show buying trend for customer {self.customer.company_name}"
+        )
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], f"Customer buying trend: {self.customer.company_name}")
+        self.assertIn("Current sales: 50", response["answer"])
+        self.assertIn("Previous sales: 20", response["answer"])
+
+    def test_chat_reports_overdue_and_exception_monitor(self):
+        response = answer_inventory_question("Show overdue and exception issues")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Overdue and exception monitor")
+        self.assertIn("Overdue AR: 300", response["answer"])
+        self.assertIn("PO-CHAT-INCOMING", response["answer"])
+
+    def test_chat_shows_reference_line_item_details(self):
+        response = answer_inventory_question("Show line items for TI-CHAT-BACKORDER")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Sales line items")
+        self.assertIn("Chat Product (CHAT-1)", response["answer"])
+        self.assertIn("qty 5 pcs", response["answer"])
