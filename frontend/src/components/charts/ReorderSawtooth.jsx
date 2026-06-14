@@ -401,9 +401,11 @@ export function ReorderSawtoothFull({ tone = "accent", unit = "", ...params }) {
           <span className="saw-tip-sub">{t("inventory.graph.daysFromNow", { n: Math.round(hover.day) })}</span>
           <span className={`saw-tip-status is-${hoverStatus}`}>{hoverStatusLabel}</span>
         </div>
-      ) : (
-        <p className="saw-hint">{t("inventory.graph.hoverHint")}</p>
-      )}
+      ) : null}
+
+      {/* Keep the hint visible at all times — the hover tooltip floats above it
+          instead of replacing it, so the text no longer flickers in and out. */}
+      <p className="saw-hint">{t("inventory.graph.hoverHint")}</p>
     </div>
   );
 }

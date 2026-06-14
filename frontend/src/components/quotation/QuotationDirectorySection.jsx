@@ -210,11 +210,11 @@ function QuotationDirectorySection({
                         <td>
                           <div className="cell-stack">
                             <span className="quotation-date-value">
-                              {quotation.quotation_date || "—"}
+                              {formatDate(quotation.quotation_date)}
                             </span>
                             <span>
                               {t("quotation.validUntilRow", {
-                                date: quotation.valid_until_date || "—",
+                                date: formatDate(quotation.valid_until_date),
                               })}
                             </span>
                           </div>

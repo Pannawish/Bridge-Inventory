@@ -1,4 +1,4 @@
-import { computePaymentDate, formatMoney as fmt } from "../../format";
+import { computePaymentDate, formatDate, formatMoney as fmt } from "../../format";
 import { getStatusLabel } from "../../i18n/statusLabels";
 import {
   getStoredSaleItemStatus,
@@ -214,8 +214,8 @@ export function getSalesItemRemovalMessage(sale, item, itemIndex, t) {
     `${t("salesForm.removeSKU")} ${item.sku || "—"}`,
     `${t("salesForm.removeQuantity")} ${quantity || "—"}${baseQuantity}`,
     `${t("salesForm.removeStatus")} ${getStatusLabel(t, itemStatus)}`,
-    `${t("salesForm.removeShippedDate")} ${item.shipped_date || "—"}`,
-    `${t("salesForm.removeDeliveredDate")} ${item.delivered_date || "—"}`,
+    `${t("salesForm.removeShippedDate")} ${formatDate(item.shipped_date)}`,
+    `${t("salesForm.removeDeliveredDate")} ${formatDate(item.delivered_date)}`,
     `${t("salesForm.removeLineAmount")} ${fmt(computeAmount(item, sale))}`,
     "",
     impact,

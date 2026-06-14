@@ -1,4 +1,4 @@
-import { formatMoney as fmt } from "../../format";
+import { formatDate, formatMoney as fmt } from "../../format";
 import { getStatusLabel } from "../../i18n/statusLabels";
 import {
   getInitialPurchaseItemStatus,
@@ -233,8 +233,8 @@ export function getPurchaseItemRemovalMessage(purchase, item, itemIndex, t) {
     `${t("purchaseForm.removeSKU")} ${item.sku || "—"}`,
     `${t("purchaseForm.removeQuantity")} ${quantity || "—"}${baseQuantity}`,
     `${t("purchaseForm.removeStatus")} ${getStatusLabel(t, displayStatus)}`,
-    `${t("purchaseForm.removeExpectedDelivery")} ${item.expected_delivery_date || "—"}`,
-    `${t("purchaseForm.removeReceivedDate")} ${item.received_date || "—"}`,
+    `${t("purchaseForm.removeExpectedDelivery")} ${formatDate(item.expected_delivery_date)}`,
+    `${t("purchaseForm.removeReceivedDate")} ${formatDate(item.received_date)}`,
     `${t("purchaseForm.removeLineAmount")} ${fmt(computeAmount(item, purchase))}`,
     "",
     impact,
