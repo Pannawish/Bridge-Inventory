@@ -799,6 +799,9 @@ export const translations = {
     },
     billingNote: {
       eyebrow: "Billing Note",
+      editEyebrow: "Billing Note Edit",
+      editTitle: "Edit Billing Note",
+      saveLines: "Save receipts",
       customerFilter: "Customer",
       searchCustomerPlaceholder: "Search customer",
       noCustomerFound: "No customer found.",
@@ -875,6 +878,8 @@ export const translations = {
     },
     creditNote: {
       eyebrow: "Credit Note",
+      editEyebrow: "Credit Note Edit",
+      editTitle: "Edit Credit Note",
       customerFilter: "Customer",
       searchCustomerPlaceholder: "Search customer",
       noCustomerFound: "No customer found.",
@@ -982,6 +987,9 @@ export const translations = {
     },
     paymentBatch: {
       eyebrow: "Payment Batch",
+      editEyebrow: "Payment Batch Edit",
+      editTitle: "Edit Payment Batch",
+      saveLines: "Save payments",
       supplierFilter: "Supplier",
       searchSupplierPlaceholder: "Search supplier",
       noSupplierFound: "No supplier found.",
@@ -2837,6 +2845,9 @@ export const translations = {
     },
     billingNote: {
       eyebrow: "ใบวางบิล",
+      editEyebrow: "แก้ไขใบวางบิล",
+      editTitle: "แก้ไขใบวางบิล",
+      saveLines: "บันทึกการรับเงิน",
       customerFilter: "ลูกค้า",
       searchCustomerPlaceholder: "ค้นหาลูกค้า",
       noCustomerFound: "ไม่พบลูกค้า",
@@ -2913,6 +2924,8 @@ export const translations = {
     },
     creditNote: {
       eyebrow: "ใบลดหนี้",
+      editEyebrow: "แก้ไขใบลดหนี้",
+      editTitle: "แก้ไขใบลดหนี้",
       customerFilter: "ลูกค้า",
       searchCustomerPlaceholder: "ค้นหาลูกค้า",
       noCustomerFound: "ไม่พบลูกค้า",
@@ -3020,6 +3033,9 @@ export const translations = {
     },
     paymentBatch: {
       eyebrow: "รายการจ่ายเงิน",
+      editEyebrow: "แก้ไขรายการจ่ายเงิน",
+      editTitle: "แก้ไขรายการจ่ายเงิน",
+      saveLines: "บันทึกการจ่ายเงิน",
       supplierFilter: "ผู้จัดจำหน่าย",
       searchSupplierPlaceholder: "ค้นหาผู้จัดจำหน่าย",
       noSupplierFound: "ไม่พบผู้จัดจำหน่าย",

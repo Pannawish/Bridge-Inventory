@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
+import { deepEqual } from "../../equality";
 import {
   toggleLinePaidTransform,
   updateLinePaidDateTransform,
@@ -11,14 +12,11 @@ function usePaymentBatchDetailState({ paymentBatch, onSave, onDelete }) {
   const { t } = useLanguage();
   const [draft, setDraft] = useState(paymentBatch);
   const [docRefModal, setDocRefModal] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setDraft(paymentBatch);
   }, [paymentBatch]);
-
-  function updateField(key, value) {
-    setDraft((current) => ({ ...current, [key]: value }));
-  }
 
   function toggleLinePaid(lineId) {
     setDraft((current) => toggleLinePaidTransform(current, lineId));
@@ -36,14 +34,16 @@ function usePaymentBatchDetailState({ paymentBatch, onSave, onDelete }) {
     setDraft((current) => clearAllPaidTransform(current));
   }
 
-  function handleSave(event) {
-    event.preventDefault();
-    onSave(draft);
+  async function handleSave(event) {
+    event?.preventDefault();
+    setIsSubmitting(true);
+    await onSave?.(draft);
+    setIsSubmitting(false);
   }
 
   function handleCancelBatch() {
     if (window.confirm(t("paymentBatch.cancelBatchConfirm"))) {
-      onSave({ ...draft, status: "cancelled" });
+      onSave?.({ ...draft, status: "cancelled" });
     }
   }
 
@@ -52,13 +52,17 @@ function usePaymentBatchDetailState({ paymentBatch, onSave, onDelete }) {
   }
 
   const isCancelled = draft.status === "cancelled";
+  // Derived: Save is only "dirty" while the working draft differs from the
+  // payment batch as last loaded/saved. Reverting line changes turns Save off.
+  const isDirty = !deepEqual(draft, paymentBatch);
 
   return {
     draft,
     docRefModal,
     setDocRefModal,
     isCancelled,
-    updateField,
+    isDirty,
+    isSubmitting,
     toggleLinePaid,
     updateLinePaidDate,
     markAllPaid,

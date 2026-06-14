@@ -21,7 +21,6 @@ import {
   getCustomerPaymentTerms,
   getNextSalesReference,
   getNextSalesReferenceAfter,
-  showStockAlert,
   vatOptionValues,
 } from "./salesFormUtils";
 import {
@@ -259,9 +258,9 @@ function useSalesFormState({
         t,
         locale: language === "th" ? "th-TH" : "en-US",
       });
-      updateForm("status", "draft");
+      // Block the promotion: keep the current status (the select reverts) and
+      // explain why via the inline banner. No silent downgrade, no window.alert.
       setStatusError(message);
-      showStockAlert(message);
       return;
     }
 

@@ -103,12 +103,25 @@ export function usePurchaseActions({
       return;
     }
 
+    // Optimistically reflect the new status so the row updates instantly (same
+    // feel as the detail view), then reconcile with the server in the background.
+    // Roll the row back if the request fails.
+    const optimisticPurchase = applyPurchaseStatusToItems(purchase, nextStatus);
+    setPurchases((currentRows) => updateEntityById(currentRows, optimisticPurchase));
+    setPurchaseRows((currentRows) => updateEntityById(currentRows, optimisticPurchase));
+    setNotice(
+      buildStatusUpdatedNotice("purchase", purchase.reference_no, optimisticPurchase.status)
+    );
+
     try {
       await api.updatePurchaseStatus(purchaseId, nextStatus);
-      setNotice(buildStatusUpdatedNotice("purchase", purchase.reference_no, nextStatus));
-      await loadData(true);
+      // Background refreshes — not awaited, so the UI already shows the change.
+      refreshPaymentBatchEligibility();
+      loadData(true);
     } catch (requestError) {
-      setError(requestError.message);
+      setPurchases((currentRows) => updateEntityById(currentRows, purchase));
+      setPurchaseRows((currentRows) => updateEntityById(currentRows, purchase));
+      showWarning(requestError.message);
     }
   }
 
@@ -139,7 +152,11 @@ export function usePurchaseActions({
           updatedPurchase.reference_no || updatedPurchase.id
         )
       );
-      await loadData(true);
+      // Local rows are already patched optimistically above, so run the heavier
+      // server refreshes in the background. The save returns instantly and the
+      // detail Save button rebaselines without waiting for a full reload.
+      refreshPaymentBatchEligibility();
+      loadData(true);
       return true;
     } catch (requestError) {
       showWarning(requestError.message || t("app.messages.purchaseUpdateFailed"));

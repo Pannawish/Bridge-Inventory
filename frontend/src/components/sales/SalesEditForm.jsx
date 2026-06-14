@@ -24,7 +24,6 @@ function SalesEditForm({
     formError,
     isDirty,
     isSubmitting,
-    saveSuccess,
     filteredCustomers,
     productOptions,
     stockLayersByItemKey,
@@ -75,7 +74,6 @@ function SalesEditForm({
         </button>
       </div>
 
-      {saveSuccess ? <div className="notice-banner">{t("common.saveSuccess")}</div> : null}
       {formError ? <div className="error-banner">{formError}</div> : null}
 
       <form className="form-layout" onSubmit={handleSubmit}>

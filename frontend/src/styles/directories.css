@@ -487,6 +487,14 @@
   margin-top: 14px;
 }
 
+/* Inside a transaction detail popup the mark-all/clear row sits between the
+   section header and the line table — give it a clear gap so it doesn't fuse
+   onto the column header below, and keep the buttons compact/proportional. */
+.transaction-detail-modal .history-filter-actions {
+  margin-top: 4px;
+  margin-bottom: 18px;
+}
+
 /* ── Unified directory filter bar (compact bar + More expander) ── */
 .filter-bar-toolbar {
   display: flex;

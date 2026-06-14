@@ -23,7 +23,6 @@ function PurchaseEditForm({
     formError,
     isDirty,
     isSubmitting,
-    saveSuccess,
     filteredSuppliers,
     vatSummary,
     visibleDocuments,
@@ -66,7 +65,6 @@ function PurchaseEditForm({
         </button>
       </div>
 
-      {saveSuccess ? <div className="notice-banner">{t("common.saveSuccess")}</div> : null}
       {formError ? <div className="error-banner">{formError}</div> : null}
 
       <form className="form-layout" onSubmit={handleSubmit}>

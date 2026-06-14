@@ -1,48 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { formatMoney as fmt } from "../../format";
+import { useState } from "react";
+import { formatDate, formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import DocumentRefChip from "../DocumentRefChip";
 import DocumentRefModal from "../DocumentRefModal";
 import { printTransactionDocument } from "../documentRefs/printTransactionDocument";
 import CreditNoteStatusPill from "./CreditNoteStatusPill";
-import {
-  CREDIT_NOTE_STATUS_LABEL_KEYS,
-  customerBillingNoteOptions,
-} from "./creditNoteUtils";
 
-function CreditNoteDetailModal({
-  creditNote,
-  billingNotes,
-  onClose,
-  onSave,
-  onDelete,
-}) {
+function CreditNoteDetailModal({ creditNote, onClose, onEdit, onDelete }) {
   const { t } = useLanguage();
-  const [draft, setDraft] = useState(creditNote);
   const [docRefModal, setDocRefModal] = useState(null);
-
-  useEffect(() => {
-    setDraft(creditNote);
-  }, [creditNote]);
-
-  function updateField(key, value) {
-    setDraft((current) => ({ ...current, [key]: value }));
-  }
-
-  const billingNoteOptions = useMemo(
-    () =>
-      customerBillingNoteOptions(
-        billingNotes,
-        draft.customer_name,
-        draft.billing_note || ""
-      ),
-    [billingNotes, draft.customer_name, draft.billing_note]
-  );
-
-  function handleSave(event) {
-    event.preventDefault();
-    onSave(draft);
-  }
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -56,18 +22,29 @@ function CreditNoteDetailModal({
         <div className="section-heading">
           <div>
             <p className="eyebrow">{t("creditNote.eyebrow")}</p>
-            <h3 id="cn-detail-title">{draft.reference_no || draft.id}</h3>
+            <h3 id="cn-detail-title">{creditNote.reference_no || creditNote.id}</h3>
           </div>
-          <div className="section-heading-actions">
-            <CreditNoteStatusPill status={draft.status} />
+          <div className="transaction-detail-actions">
+            {onEdit ? (
+              <button
+                type="button"
+                className="edit-button table-action-button"
+                onClick={() => {
+                  onEdit(creditNote);
+                  onClose();
+                }}
+              >
+                {t("common.edit")}
+              </button>
+            ) : null}
             <button
               type="button"
               className="secondary-button table-action-button"
               onClick={() =>
                 printTransactionDocument({
                   docType: "credit-note",
-                  doc: draft,
-                  referenceNo: draft.reference_no,
+                  doc: creditNote,
+                  referenceNo: creditNote.reference_no,
                   t,
                 })
               }
@@ -76,185 +53,132 @@ function CreditNoteDetailModal({
             </button>
             <button
               type="button"
-              className="icon-button subtle"
-              aria-label={t("common.close")}
+              className="secondary-button table-action-button"
               onClick={onClose}
             >
-              X
+              {t("common.close")}
             </button>
           </div>
         </div>
 
-        <form className="form-layout" onSubmit={handleSave}>
-          <div className="form-grid">
-            <label>
-              {t("creditNote.referenceNo")}
-              <input
-                value={draft.reference_no || ""}
-                onChange={(event) => updateField("reference_no", event.target.value)}
-              />
-            </label>
-
-            <label>
-              {t("creditNote.customerLabel")}
-              <input value={draft.customer_name || ""} disabled />
-            </label>
-
-            <label>
-              {t("creditNote.sourceSale")}
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  value={draft.sale_reference_no || draft.sale || ""}
-                  disabled
-                  style={{ flex: 1 }}
-                />
-                {draft.sale ? (
-                  <DocumentRefChip
-                    label={draft.sale_reference_no || draft.sale}
-                    docType="sale"
-                    onClick={() =>
-                      setDocRefModal({
-                        docType: "sale",
-                        docId: draft.sale,
-                        referenceNo: draft.sale_reference_no || draft.sale,
-                      })
-                    }
-                  />
-                ) : null}
-              </div>
-            </label>
-
-            <label>
-              {t("creditNote.creditNoteDateLabel")}
-              <input
-                type="date"
-                value={draft.credit_note_date || ""}
-                onChange={(event) => updateField("credit_note_date", event.target.value)}
-              />
-            </label>
-
-            <label>
-              {t("creditNote.appliedBillingNote")}
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <select
-                  value={draft.billing_note || ""}
-                  onChange={(event) =>
-                    updateField("billing_note", event.target.value || null)
+        <div className="detail-grid">
+          <div>
+            <p className="detail-label">{t("creditNote.customerLabel")}</p>
+            <strong>{creditNote.customer_name || "—"}</strong>
+          </div>
+          <div>
+            <p className="detail-label">{t("creditNote.colStatus")}</p>
+            <strong>
+              <CreditNoteStatusPill status={creditNote.status} />
+            </strong>
+          </div>
+          <div>
+            <p className="detail-label">{t("creditNote.creditNoteDateLabel")}</p>
+            <strong>{formatDate(creditNote.credit_note_date)}</strong>
+          </div>
+          <div>
+            <p className="detail-label">{t("creditNote.sourceSale")}</p>
+            {creditNote.sale ? (
+              <div className="doc-ref-chips">
+                <DocumentRefChip
+                  label={creditNote.sale_reference_no || creditNote.sale}
+                  docType="sale"
+                  onClick={() =>
+                    setDocRefModal({
+                      docType: "sale",
+                      docId: creditNote.sale,
+                      referenceNo: creditNote.sale_reference_no || creditNote.sale,
+                    })
                   }
-                  style={{ flex: 1 }}
-                >
-                  <option value="">{t("creditNote.notApplied")}</option>
-                  {billingNoteOptions.map((billingNote) => (
-                    <option key={billingNote.id} value={billingNote.id}>
-                      {(billingNote.reference_no || billingNote.id) +
-                        ` — ${fmt(billingNote.total_amount)}`}
-                    </option>
-                  ))}
-                </select>
-                {draft.billing_note ? (
-                  <DocumentRefChip
-                    label={draft.billing_note_reference_no || draft.billing_note}
-                    docType="billing-note"
-                    onClick={() =>
-                      setDocRefModal({
-                        docType: "billing-note",
-                        docId: draft.billing_note,
-                        referenceNo:
-                          draft.billing_note_reference_no || draft.billing_note,
-                      })
-                    }
-                  />
-                ) : null}
+                />
               </div>
-            </label>
+            ) : (
+              <strong>—</strong>
+            )}
+          </div>
+          <div>
+            <p className="detail-label">{t("creditNote.appliedBillingNote")}</p>
+            {creditNote.billing_note ? (
+              <div className="doc-ref-chips">
+                <DocumentRefChip
+                  label={creditNote.billing_note_reference_no || creditNote.billing_note}
+                  docType="billing-note"
+                  onClick={() =>
+                    setDocRefModal({
+                      docType: "billing-note",
+                      docId: creditNote.billing_note,
+                      referenceNo:
+                        creditNote.billing_note_reference_no || creditNote.billing_note,
+                    })
+                  }
+                />
+              </div>
+            ) : (
+              <strong>{t("creditNote.notApplied")}</strong>
+            )}
+          </div>
+          <div className="full-width">
+            <p className="detail-label">{t("creditNote.noteLabel")}</p>
+            <strong>{creditNote.note || "—"}</strong>
+          </div>
+        </div>
 
-            <label>
-              {t("common.status")}
-              <select
-                value={draft.status || "issued"}
-                onChange={(event) => updateField("status", event.target.value)}
-              >
-                {Object.entries(CREDIT_NOTE_STATUS_LABEL_KEYS).map(([value, key]) => (
-                  <option key={value} value={value}>
-                    {t(key)}
-                  </option>
+        <div className="line-items-header">
+          <div>
+            <p className="eyebrow">{t("creditNote.linesDetailEyebrow")}</p>
+            <h4>{t("creditNote.linesDetailTitle")}</h4>
+          </div>
+          <span>
+            {t("creditNote.linesItemCount", { count: (creditNote.lines || []).length })}
+          </span>
+        </div>
+
+        <div className="transaction-table-window">
+          <div className="table-scroll partner-line-scroll desktop-table">
+            <table className="transaction-history-table partner-line-table">
+              <thead>
+                <tr>
+                  <th>{t("creditNote.colProduct")}</th>
+                  <th>{t("creditNote.colSKU")}</th>
+                  <th>{t("creditNote.colQuantity")}</th>
+                  <th>{t("creditNote.colUnitPrice")}</th>
+                  <th>{t("creditNote.colAmount")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(creditNote.lines || []).map((line) => (
+                  <tr key={line.id} className="partner-table-row">
+                    <td>{line.product_name}</td>
+                    <td>{line.sku || "—"}</td>
+                    <td>{line.quantity}</td>
+                    <td>{fmt(line.unit_price)}</td>
+                    <td>{fmt(line.amount)}</td>
+                  </tr>
                 ))}
-              </select>
-            </label>
-
-            <label className="full-width">
-              {t("creditNote.noteLabel")}
-              <textarea
-                rows="2"
-                value={draft.note || ""}
-                onChange={(event) => updateField("note", event.target.value)}
-              />
-            </label>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan="4" style={{ textAlign: "right" }}>
+                    <strong>{t("creditNote.totalCredit")}</strong>
+                  </td>
+                  <td>
+                    <strong>{fmt(creditNote.total_amount)}</strong>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
+        </div>
 
-          <div className="line-items-header">
-            <div>
-              <p className="eyebrow">{t("creditNote.linesDetailEyebrow")}</p>
-              <h4>{t("creditNote.linesDetailTitle")}</h4>
-            </div>
-            <span>
-              {t("creditNote.linesItemCount", { count: (draft.lines || []).length })}
-            </span>
-          </div>
-
-          <div className="transaction-table-window">
-            <div className="table-scroll partner-line-scroll desktop-table">
-              <table className="transaction-history-table partner-line-table">
-                <thead>
-                  <tr>
-                    <th>{t("creditNote.colProduct")}</th>
-                    <th>{t("creditNote.colSKU")}</th>
-                    <th>{t("creditNote.colQuantity")}</th>
-                    <th>{t("creditNote.colUnitPrice")}</th>
-                    <th>{t("creditNote.colAmount")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(draft.lines || []).map((line) => (
-                    <tr key={line.id} className="partner-table-row">
-                      <td>{line.product_name}</td>
-                      <td>{line.sku || "—"}</td>
-                      <td>{line.quantity}</td>
-                      <td>{fmt(line.unit_price)}</td>
-                      <td>{fmt(line.amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan="4" style={{ textAlign: "right" }}>
-                      <strong>{t("creditNote.totalCredit")}</strong>
-                    </td>
-                    <td>
-                      <strong>{fmt(draft.total_amount)}</strong>
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-
-          <div className="supplier-modal-actions">
-            <button
-              type="button"
-              className="danger-button"
-              onClick={() => onDelete(draft)}
-            >
-              {t("common.delete")}
-            </button>
-            <button type="button" className="secondary-button" onClick={onClose}>
-              {t("common.close")}
-            </button>
-            <button type="submit" className="primary-button">
-              {t("common.save")}
-            </button>
-          </div>
-        </form>
+        <div className="transaction-detail-footer">
+          <button
+            type="button"
+            className="danger-button"
+            onClick={() => onDelete(creditNote)}
+          >
+            {t("common.delete")}
+          </button>
+        </div>
       </div>
 
       {docRefModal ? (

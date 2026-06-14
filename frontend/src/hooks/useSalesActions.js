@@ -10,10 +10,6 @@ function shouldKeepSaleAsDraft(status) {
   return !["draft", "cancelled", "returned"].includes(`${status || "draft"}`);
 }
 
-function buildDraftSale(sale) {
-  return applySaleStatusToItems(sale, "draft");
-}
-
 function updateEntityById(currentRows, nextEntity) {
   return currentRows.map((row) => (row.id === nextEntity.id ? nextEntity : row));
 }
@@ -46,28 +42,23 @@ export function useSalesActions({
   t,
   handleCreditNoteCreate,
 }) {
-  function normalizeSaleForAvailableStock(sale, options = {}) {
+  // Returns the stock shortfalls that should BLOCK a save/create when the sale is
+  // being promoted past Draft. Empty when the sale stays in a non-committing
+  // status (draft/cancelled/returned), when stock validation is off (real
+  // backend), or when there is enough stock. Callers block on a non-empty result
+  // — we never silently downgrade the sale to Draft.
+  function getSaleStockBlockIssues(sale, options = {}) {
     const requestedStatus = sale?.status || "draft";
 
     if (!shouldKeepSaleAsDraft(requestedStatus)) {
-      return { sale, issues: [], forcedDraft: false };
+      return [];
     }
 
     if (!usingMockPurchases || !usingMockSales) {
-      return { sale, issues: [], forcedDraft: false };
+      return [];
     }
 
-    const issues = getSaleStockIssues(sale, products, purchases, sales, options);
-
-    if (!issues.length) {
-      return { sale, issues: [], forcedDraft: false };
-    }
-
-    return {
-      sale: buildDraftSale(sale),
-      issues,
-      forcedDraft: true,
-    };
+    return getSaleStockIssues(sale, products, purchases, sales, options);
   }
 
   function maybeOpenCreditNotePrompt(previousSale, nextSale) {
@@ -99,24 +90,16 @@ export function useSalesActions({
       status: `${formData.get("status") || "draft"}`,
       items: JSON.parse(`${formData.get("items") || "[]"}`),
     };
-    const { sale: normalizedSale, issues, forcedDraft } = normalizeSaleForAvailableStock(
-      requestedSale
-    );
+    const issues = getSaleStockBlockIssues(requestedSale);
 
-    if (forcedDraft) {
-      formData.set("status", normalizedSale.status);
-      formData.set("items", JSON.stringify(normalizedSale.items || []));
+    if (issues.length) {
+      showWarning(formatSaleStockMessage(issues));
+      return false;
     }
 
     try {
       await api.createSale(formData);
-      setNotice(
-        forcedDraft
-          ? t("app.messages.salesTransactionSavedAsDraft", {
-              reason: formatSaleStockMessage(issues),
-            })
-          : t("app.messages.salesTransactionSaved")
-      );
+      setNotice(t("app.messages.salesTransactionSaved"));
       setActiveTab("sales-history");
       await loadData(true);
       return true;
@@ -166,51 +149,63 @@ export function useSalesActions({
       return;
     }
 
+    // Optimistically reflect the new status so the row updates instantly (same
+    // feel as the detail view), then reconcile with the server in the background.
+    // Roll the row back if the request fails.
+    const optimisticSale = applySaleStatusToItems(sale, nextStatus);
+    setSales((currentRows) => updateEntityById(currentRows, optimisticSale));
+    setSaleRows((currentRows) => updateEntityById(currentRows, optimisticSale));
+    setNotice(buildStatusUpdatedNotice("sale", sale.reference_no, optimisticSale.status));
+
     try {
       const updatedSale = await api.updateSaleStatus(saleId, nextStatus);
-      setNotice(buildStatusUpdatedNotice("sale", sale.reference_no, nextStatus));
-      await loadData(true);
-      maybeOpenCreditNotePrompt(sale, updatedSale);
+      const resolvedSale = updatedSale || optimisticSale;
+      setSales((currentRows) => updateEntityById(currentRows, resolvedSale));
+      setSaleRows((currentRows) => updateEntityById(currentRows, resolvedSale));
+      maybeOpenCreditNotePrompt(sale, resolvedSale);
+      // Background refreshes — not awaited, so the UI already shows the change.
+      refreshBillingNoteEligibility();
+      loadData(true);
     } catch (requestError) {
-      setError(requestError.message);
+      setSales((currentRows) => updateEntityById(currentRows, sale));
+      setSaleRows((currentRows) => updateEntityById(currentRows, sale));
+      showWarning(requestError.message);
     }
   }
 
   async function handleSaleUpdate(updatedSale) {
     setError("");
     const previousSale = sales.find((row) => row.id === updatedSale.id);
-    const { sale: normalizedSale, issues, forcedDraft } = normalizeSaleForAvailableStock(
-      updatedSale,
-      {
-        excludeSaleId: updatedSale.id,
-        currentSale: previousSale,
-      }
+    const issues = getSaleStockBlockIssues(updatedSale, {
+      excludeSaleId: updatedSale.id,
+      currentSale: previousSale,
+    });
+
+    if (issues.length) {
+      showWarning(formatSaleStockMessage(issues));
+      return false;
+    }
+
+    const successNotice = buildEntityNotice(
+      "app.messages.entityUpdated",
+      "sale",
+      updatedSale.reference_no || updatedSale.id
     );
-    const successNotice = forcedDraft
-      ? t("app.messages.saleSavedAsDraft", {
-          ref: updatedSale.reference_no || updatedSale.id,
-          reason: formatSaleStockMessage(issues),
-        })
-      : buildEntityNotice(
-          "app.messages.entityUpdated",
-          "sale",
-          updatedSale.reference_no || updatedSale.id
-        );
 
     if (usingMockSales) {
-      setSales((currentRows) => updateEntityById(currentRows, normalizedSale));
-      setSaleRows((currentRows) => updateEntityById(currentRows, normalizedSale));
+      setSales((currentRows) => updateEntityById(currentRows, updatedSale));
+      setSaleRows((currentRows) => updateEntityById(currentRows, updatedSale));
       setNotice(successNotice);
-      maybeOpenCreditNotePrompt(previousSale, normalizedSale);
+      maybeOpenCreditNotePrompt(previousSale, updatedSale);
       return true;
     }
 
     try {
       const savedSale = await api.updateSale(
-        normalizedSale.id,
-        buildSaleUpdatePayload(normalizedSale)
+        updatedSale.id,
+        buildSaleUpdatePayload(updatedSale)
       );
-      const resolvedSale = savedSale || normalizedSale;
+      const resolvedSale = savedSale || updatedSale;
 
       setSales((currentRows) => updateEntityById(currentRows, resolvedSale));
       setSaleRows((currentRows) => updateEntityById(currentRows, resolvedSale));

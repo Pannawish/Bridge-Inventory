@@ -27,7 +27,7 @@ export function useAppState() {
     if (!notice) {
       return undefined;
     }
-    const timeoutId = window.setTimeout(() => setNotice(""), 4000);
+    const timeoutId = window.setTimeout(() => setNotice(""), 5000);
     return () => window.clearTimeout(timeoutId);
   }, [notice]);
   // Deep-link intent set by the dashboard, consumed by the target tab's page
@@ -113,6 +113,17 @@ export function useAppState() {
     refreshPaymentBatchEligibility,
     refreshCreditNoteEligibility,
   } = useInventoryData();
+
+  // Auto-dismiss the error/warning toast after the same 5s as the success toast,
+  // so every notification clears itself without a manual close.
+  useEffect(() => {
+    if (!error) {
+      return undefined;
+    }
+    const timeoutId = window.setTimeout(() => setError(""), 5000);
+    return () => window.clearTimeout(timeoutId);
+  }, [error, setError]);
+
   const { formatSaleStockMessage, buildEntityNotice, buildStatusUpdatedNotice, buildStatusChangeConfirm } =
     buildAppMessageHelpers({
       t,
@@ -163,10 +174,9 @@ export function useAppState() {
       return;
     }
 
-    if (typeof window !== "undefined") {
-      window.alert(message);
-    }
-
+    // Surface the warning through the app's error toast (app-toast-stack) only —
+    // no window.alert. The setTimeout(0) lets the cleared toast unmount and
+    // re-mount so the same message re-fires/re-animates when repeated.
     window.setTimeout(() => {
       setError(message);
     }, 0);

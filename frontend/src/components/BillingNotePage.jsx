@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import BillingNoteDetailModal from "./billing/BillingNoteDetailModal";
 import BillingNoteDirectorySection from "./billing/BillingNoteDirectorySection";
+import BillingNoteEditForm from "./billing/BillingNoteEditForm";
 import CreateBillingNoteModal from "./billing/CreateBillingNoteModal";
 import { getToday } from "./billing/billingNoteUtils";
 import { useBillingNoteDirectoryFilters } from "../hooks/useBillingNoteDirectoryFilters";
@@ -21,6 +22,7 @@ function BillingNotePage({
   const { t } = useLanguage();
   const [creating, setCreating] = useState(false);
   const [activeBillingNote, setActiveBillingNote] = useState(null);
+  const [editingBillingNote, setEditingBillingNote] = useState(null);
   const {
     searchTerm,
     setSearchTerm,
@@ -86,11 +88,18 @@ function BillingNotePage({
     }
   }
 
-  async function handleSave(updated) {
+  async function handleSaveLines(updated) {
     const saved = await onUpdateBillingNote?.(updated);
-    if (saved !== false) {
-      setActiveBillingNote(null);
-    }
+    if (saved === false) return false;
+    setActiveBillingNote(saved && typeof saved === "object" ? saved : updated);
+    return saved;
+  }
+
+  async function handleSaveEdit(updated) {
+    const saved = await onUpdateBillingNote?.(updated);
+    if (saved === false) return false;
+    setEditingBillingNote(saved && typeof saved === "object" ? saved : updated);
+    return saved;
   }
 
   async function handleDelete(note) {
@@ -100,6 +109,7 @@ function BillingNotePage({
     const ok = await onDeleteBillingNote?.(note);
     if (ok !== false) {
       setActiveBillingNote(null);
+      setEditingBillingNote(null);
     }
   }
 
@@ -112,6 +122,19 @@ function BillingNotePage({
           nextReferenceNo={nextReferenceNo}
           onClose={() => setCreating(false)}
           onCreate={handleCreate}
+        />
+      </div>
+    );
+  }
+
+  if (editingBillingNote) {
+    return (
+      <div className="stack-layout">
+        <BillingNoteEditForm
+          key={editingBillingNote.id}
+          billingNote={editingBillingNote}
+          onCancel={() => setEditingBillingNote(null)}
+          onSave={handleSaveEdit}
         />
       </div>
     );
@@ -163,7 +186,8 @@ function BillingNotePage({
           key={activeBillingNote.id}
           billingNote={activeBillingNote}
           onClose={() => setActiveBillingNote(null)}
-          onSave={handleSave}
+          onEdit={setEditingBillingNote}
+          onSave={handleSaveLines}
           onDelete={handleDelete}
         />
       ) : null}

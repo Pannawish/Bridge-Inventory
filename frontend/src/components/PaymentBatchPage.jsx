@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import CreatePaymentBatchModal from "./payments/CreatePaymentBatchModal";
 import PaymentBatchDirectorySection from "./payments/PaymentBatchDirectorySection";
 import PaymentBatchDetailModal from "./payments/PaymentBatchDetailModal";
+import PaymentBatchEditForm from "./payments/PaymentBatchEditForm";
 import { getToday } from "./payments/paymentBatchUtils";
 import { usePaymentBatchDirectoryFilters } from "../hooks/usePaymentBatchDirectoryFilters";
 import { useLanguage } from "../i18n/LanguageContext";
@@ -21,6 +22,7 @@ function PaymentBatchPage({
   const { t } = useLanguage();
   const [creating, setCreating] = useState(false);
   const [activeBatch, setActiveBatch] = useState(null);
+  const [editingBatch, setEditingBatch] = useState(null);
   const {
     searchTerm,
     setSearchTerm,
@@ -86,11 +88,18 @@ function PaymentBatchPage({
     }
   }
 
-  async function handleSave(updated) {
+  async function handleSaveLines(updated) {
     const saved = await onUpdatePaymentBatch?.(updated);
-    if (saved !== false) {
-      setActiveBatch(null);
-    }
+    if (saved === false) return false;
+    setActiveBatch(saved && typeof saved === "object" ? saved : updated);
+    return saved;
+  }
+
+  async function handleSaveEdit(updated) {
+    const saved = await onUpdatePaymentBatch?.(updated);
+    if (saved === false) return false;
+    setEditingBatch(saved && typeof saved === "object" ? saved : updated);
+    return saved;
   }
 
   async function handleDelete(batch) {
@@ -100,6 +109,7 @@ function PaymentBatchPage({
     const ok = await onDeletePaymentBatch?.(batch);
     if (ok !== false) {
       setActiveBatch(null);
+      setEditingBatch(null);
     }
   }
 
@@ -112,6 +122,19 @@ function PaymentBatchPage({
           nextReferenceNo={nextReferenceNo}
           onClose={() => setCreating(false)}
           onCreate={handleCreate}
+        />
+      </div>
+    );
+  }
+
+  if (editingBatch) {
+    return (
+      <div className="stack-layout">
+        <PaymentBatchEditForm
+          key={editingBatch.id}
+          paymentBatch={editingBatch}
+          onCancel={() => setEditingBatch(null)}
+          onSave={handleSaveEdit}
         />
       </div>
     );
@@ -163,7 +186,8 @@ function PaymentBatchPage({
           key={activeBatch.id}
           paymentBatch={activeBatch}
           onClose={() => setActiveBatch(null)}
-          onSave={handleSave}
+          onEdit={setEditingBatch}
+          onSave={handleSaveLines}
           onDelete={handleDelete}
         />
       ) : null}

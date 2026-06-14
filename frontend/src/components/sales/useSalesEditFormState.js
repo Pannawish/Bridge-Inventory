@@ -35,12 +35,6 @@ import {
   addItemHelper,
 } from "./salesEditFormStateHelpers";
 
-function showStockAlert(message) {
-  if (message && typeof window !== "undefined") {
-    window.alert(message);
-  }
-}
-
 export function useSalesEditFormState({
   sale,
   products,
@@ -294,9 +288,9 @@ export function useSalesEditFormState({
         t,
         locale: language === "th" ? "th-TH" : "en-US",
       });
-      updateForm("status", "draft");
+      // Block the promotion: keep the current status (the select reverts) and
+      // explain why via the inline banner. No silent downgrade, no window.alert.
       setFormError(message);
-      showStockAlert(message);
       return;
     }
 

@@ -7,6 +7,7 @@ import {
 } from "../purchaseStatus";
 import { saleStatuses, updateSaleItemDate, updateSaleItemStatus } from "../saleStatus";
 import { formatSaleStockIssueMessage, getSaleStockIssues } from "../saleStock";
+import { deepEqual } from "../equality";
 import DocumentRefModal from "./DocumentRefModal";
 import { useLanguage } from "../i18n/LanguageContext";
 import TransactionDetailModal from "./transactions/TransactionDetailModal";
@@ -36,7 +37,7 @@ function TransactionTable({
 }) {
   const { language, t } = useLanguage();
   const [selectedRow, setSelectedRow] = useState(null);
-  const [hasUnsavedItemChanges, setHasUnsavedItemChanges] = useState(false);
+  const [originalRow, setOriginalRow] = useState(null);
   const [showAllRows, setShowAllRows] = useState(false);
   const [docRefModal, setDocRefModal] = useState(null);
   const title =
@@ -56,6 +57,11 @@ function TransactionTable({
     (sum, row) => sum + getRowGrandTotal(row, type),
     0
   );
+  // Derived, not a one-way flag: Save is only enabled while the working row
+  // actually differs from the row as it was opened/last saved. Reverting an
+  // edit back to its original value turns Save off again.
+  const hasUnsavedItemChanges =
+    !!selectedRow && !!originalRow && !deepEqual(selectedRow, originalRow);
 
   function handleDeleteSelectedRow() {
     const confirmed = window.confirm(
@@ -74,18 +80,17 @@ function TransactionTable({
 
   function openSelectedRow(row) {
     setSelectedRow(row);
-    setHasUnsavedItemChanges(false);
+    setOriginalRow(row);
   }
 
   function closeSelectedRow() {
     setSelectedRow(null);
-    setHasUnsavedItemChanges(false);
+    setOriginalRow(null);
   }
 
   function handleMarkPurchaseItemReceived(itemIndex) {
     const updatedRow = markPurchaseItemReceived(selectedRow, itemIndex);
     setSelectedRow(updatedRow);
-    setHasUnsavedItemChanges(true);
   }
 
   function handlePurchaseItemStatusChange(itemIndex, nextStatus) {
@@ -99,13 +104,11 @@ function TransactionTable({
 
     const updatedRow = updatePurchaseItemStatus(selectedRow, itemIndex, nextStatus);
     setSelectedRow(updatedRow);
-    setHasUnsavedItemChanges(true);
   }
 
   function handlePurchaseItemReceivedDateChange(itemIndex, receivedDate) {
     const updatedRow = updatePurchaseItemReceivedDate(selectedRow, itemIndex, receivedDate);
     setSelectedRow(updatedRow);
-    setHasUnsavedItemChanges(true);
   }
 
   function handlePurchaseTaxInvoiceChange(nextValue) {
@@ -117,7 +120,6 @@ function TransactionTable({
           }
         : currentRow
     );
-    setHasUnsavedItemChanges(true);
   }
 
   function handleSaleCustomerPoReferenceChange(nextValue) {
@@ -129,7 +131,6 @@ function TransactionTable({
           }
         : currentRow
     );
-    setHasUnsavedItemChanges(true);
   }
 
   async function handleSavePurchaseUpdates() {
@@ -139,7 +140,7 @@ function TransactionTable({
       return;
     }
 
-    setHasUnsavedItemChanges(false);
+    setOriginalRow(selectedRow);
   }
 
   function handleSaleItemStatusChange(itemIndex, nextStatus) {
@@ -156,10 +157,15 @@ function TransactionTable({
     }
 
     const updatedRow = updateSaleItemStatus(selectedRow, itemIndex, nextStatus);
+    // Validate against the original *saved* baseline (originalRow), not the live
+    // selectedRow. selectedRow already carries this session's earlier unsaved
+    // line changes, so using it as the baseline subtracts those out of the demand
+    // and lets the order over-commit stock one line at a time. Measuring the delta
+    // from the saved state counts every unsaved change in this session together.
     const issues = enableSaleStockPrecheck
       ? getSaleStockIssues(updatedRow, products, purchases, sales, {
           excludeSaleId: selectedRow.id,
-          currentSale: selectedRow,
+          currentSale: originalRow || selectedRow,
         })
       : [];
 
@@ -175,13 +181,11 @@ function TransactionTable({
 
     onWarning?.("");
     setSelectedRow(updatedRow);
-    setHasUnsavedItemChanges(true);
   }
 
   function handleSaleItemDateChange(itemIndex, fieldName, nextValue) {
     const updatedRow = updateSaleItemDate(selectedRow, itemIndex, fieldName, nextValue);
     setSelectedRow(updatedRow);
-    setHasUnsavedItemChanges(true);
   }
 
   async function handleSaveSaleUpdates() {
@@ -191,7 +195,7 @@ function TransactionTable({
       return;
     }
 
-    setHasUnsavedItemChanges(false);
+    setOriginalRow(selectedRow);
   }
 
   return (

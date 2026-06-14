@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import CreateCreditNoteModal from "./credits/CreateCreditNoteModal";
 import CreditNoteDirectorySection from "./credits/CreditNoteDirectorySection";
 import CreditNoteDetailModal from "./credits/CreditNoteDetailModal";
+import CreditNoteEditForm from "./credits/CreditNoteEditForm";
 import {
   getToday,
 } from "./credits/creditNoteUtils";
@@ -25,6 +26,7 @@ function CreditNotePage({
   const { t } = useLanguage();
   const [creating, setCreating] = useState(false);
   const [activeCreditNote, setActiveCreditNote] = useState(null);
+  const [editingCreditNote, setEditingCreditNote] = useState(null);
   const [docRefModal, setDocRefModal] = useState(null);
   const {
     searchTerm,
@@ -98,11 +100,11 @@ function CreditNotePage({
     }
   }
 
-  async function handleSave(updated) {
+  async function handleSaveEdit(updated) {
     const saved = await onUpdateCreditNote?.(updated);
-    if (saved !== false) {
-      setActiveCreditNote(null);
-    }
+    if (saved === false) return false;
+    setEditingCreditNote(saved && typeof saved === "object" ? saved : updated);
+    return saved;
   }
 
   async function handleDelete(note) {
@@ -112,6 +114,7 @@ function CreditNotePage({
     const ok = await onDeleteCreditNote?.(note);
     if (ok !== false) {
       setActiveCreditNote(null);
+      setEditingCreditNote(null);
     }
   }
 
@@ -125,6 +128,20 @@ function CreditNotePage({
           nextReferenceNo={nextReferenceNo}
           onClose={() => setCreating(false)}
           onCreate={handleCreate}
+        />
+      </div>
+    );
+  }
+
+  if (editingCreditNote) {
+    return (
+      <div className="stack-layout">
+        <CreditNoteEditForm
+          key={editingCreditNote.id}
+          creditNote={editingCreditNote}
+          billingNotes={billingNotes}
+          onCancel={() => setEditingCreditNote(null)}
+          onSave={handleSaveEdit}
         />
       </div>
     );
@@ -176,9 +193,8 @@ function CreditNotePage({
         <CreditNoteDetailModal
           key={activeCreditNote.id}
           creditNote={activeCreditNote}
-          billingNotes={billingNotes}
           onClose={() => setActiveCreditNote(null)}
-          onSave={handleSave}
+          onEdit={setEditingCreditNote}
           onDelete={handleDelete}
         />
       ) : null}

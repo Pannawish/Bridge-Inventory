@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
+import { deepEqual } from "../../equality";
 import {
   toggleLineReceivedTransform,
   updateLineReceivedDateTransform,
@@ -12,59 +13,33 @@ function useBillingNoteDetailState({ billingNote, onSave, onDelete }) {
   const { t } = useLanguage();
   const [draft, setDraft] = useState(billingNote);
   const [docRefModal, setDocRefModal] = useState(null);
-  const [isDirty, setIsDirty] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-
-  function markDirty() {
-    setIsDirty(true);
-    setSaveSuccess(false);
-  }
 
   useEffect(() => {
     setDraft(billingNote);
-    setIsDirty(false);
   }, [billingNote]);
 
-  useEffect(() => {
-    if (!saveSuccess) return;
-    const timer = setTimeout(() => setSaveSuccess(false), 2500);
-    return () => clearTimeout(timer);
-  }, [saveSuccess]);
-
-  function updateField(key, value) {
-    markDirty();
-    setDraft((current) => ({ ...current, [key]: value }));
-  }
-
   function toggleLineReceived(lineId) {
-    markDirty();
     setDraft((current) => toggleLineReceivedTransform(current, lineId));
   }
 
   function updateLineReceivedDate(lineId, value) {
-    markDirty();
     setDraft((current) => updateLineReceivedDateTransform(current, lineId, value));
   }
 
   function markAllReceived() {
-    markDirty();
     setDraft((current) => markAllReceivedTransform(current));
   }
 
   function clearAllReceived() {
-    markDirty();
     setDraft((current) => clearAllReceivedTransform(current));
   }
 
   async function handleSave(event) {
-    event.preventDefault();
+    event?.preventDefault();
     setIsSubmitting(true);
-    const saved = await onSave?.(draft);
+    await onSave?.(draft);
     setIsSubmitting(false);
-    if (saved === false) return;
-    setIsDirty(false);
-    setSaveSuccess(true);
   }
 
   function handleCancelBillingNote() {
@@ -78,6 +53,9 @@ function useBillingNoteDetailState({ billingNote, onSave, onDelete }) {
   }
 
   const isCancelled = draft.status === "cancelled";
+  // Derived: Save is only "dirty" while the working draft differs from the
+  // billing note as last loaded/saved. Reverting line changes turns Save off.
+  const isDirty = !deepEqual(draft, billingNote);
   const { creditTotal, netPayable } = computeCreditSummary(draft);
 
   return {
@@ -89,8 +67,6 @@ function useBillingNoteDetailState({ billingNote, onSave, onDelete }) {
     netPayable,
     isDirty,
     isSubmitting,
-    saveSuccess,
-    updateField,
     toggleLineReceived,
     updateLineReceivedDate,
     markAllReceived,

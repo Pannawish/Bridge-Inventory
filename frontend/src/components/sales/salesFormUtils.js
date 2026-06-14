@@ -240,12 +240,6 @@ export function getCustomerPaymentTerms(customer) {
   };
 }
 
-export function showStockAlert(message) {
-  if (message && typeof window !== "undefined") {
-    window.alert(message);
-  }
-}
-
 export function getFilteredCustomers(customers, customerQuery) {
   const normalizedQuery = customerQuery.trim().toLowerCase();
 
