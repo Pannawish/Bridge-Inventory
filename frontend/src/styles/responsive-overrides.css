@@ -715,3 +715,13 @@ label textarea:focus,
 .chat-bubble.user {
   background: var(--accent) !important;
 }
+
+@media (max-width: 720px) {
+  .chat-record-row {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

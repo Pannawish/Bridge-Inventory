@@ -118,6 +118,21 @@ CHAT_STOP_WORDS = {
     "what",
     "which",
 }
+PARTNER_NAME_STOP_WORDS = {
+    "and",
+    "co",
+    "company",
+    "corp",
+    "corporation",
+    "inc",
+    "limited",
+    "ltd",
+    "llc",
+    "plc",
+    "public",
+    "thai",
+    "thailand",
+}
 
 
 def as_number(value):
@@ -131,6 +146,23 @@ def as_number(value):
         return float(value)
 
     return value
+
+
+def normalize_chat_text(value):
+    normalized = re.sub(r"[^0-9a-zA-Zก-๙]+", " ", (value or "").lower())
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def get_month_bounds(year, month):
+    start = date(year, month, 1)
+    if month == 12:
+        return start, date(year + 1, 1, 1) - timedelta(days=1)
+    return start, date(year, month + 1, 1) - timedelta(days=1)
+
+
+def get_week_bounds(anchor_date):
+    start = anchor_date - timedelta(days=anchor_date.weekday())
+    return start, start + timedelta(days=6)
 
 
 def get_product_label(product):
@@ -1370,14 +1402,40 @@ def get_date_interval(question):
         if parsed_date:
             dates.append(parsed_date)
 
-    if not dates:
-        return None
+    if dates:
+        start_date = dates[0]
+        end_date = dates[1] if len(dates) > 1 else dates[0]
+        if end_date < start_date:
+            start_date, end_date = end_date, start_date
+        return {"start": start_date, "end": end_date}
 
-    start_date = dates[0]
-    end_date = dates[1] if len(dates) > 1 else dates[0]
-    if end_date < start_date:
-        start_date, end_date = end_date, start_date
-    return {"start": start_date, "end": end_date}
+    question_text = normalize_chat_text(question)
+    today = timezone.localdate()
+    if "today" in question_text:
+        return {"start": today, "end": today}
+    if "yesterday" in question_text:
+        prior_day = today - timedelta(days=1)
+        return {"start": prior_day, "end": prior_day}
+    if "this week" in question_text:
+        start_date, end_date = get_week_bounds(today)
+        return {"start": start_date, "end": end_date}
+    if "last week" in question_text:
+        start_date, end_date = get_week_bounds(today - timedelta(days=7))
+        return {"start": start_date, "end": end_date}
+    if "this month" in question_text:
+        start_date, end_date = get_month_bounds(today.year, today.month)
+        return {"start": start_date, "end": end_date}
+    if "last month" in question_text:
+        previous_month_anchor = today.replace(day=1) - timedelta(days=1)
+        start_date, end_date = get_month_bounds(previous_month_anchor.year, previous_month_anchor.month)
+        return {"start": start_date, "end": end_date}
+    if "this year" in question_text:
+        return {"start": date(today.year, 1, 1), "end": date(today.year, 12, 31)}
+    if "last year" in question_text:
+        previous_year = today.year - 1
+        return {"start": date(previous_year, 1, 1), "end": date(previous_year, 12, 31)}
+
+    return None
 
 
 def filter_by_date_interval(queryset, date_field, date_interval):
@@ -1392,12 +1450,24 @@ def filter_by_date_interval(queryset, date_field, date_interval):
 
 
 def get_matching_partner_names(question, model):
-    question_text = (question or "").lower()
+    question_text = normalize_chat_text(question)
+    question_terms = set(question_text.split())
     names = []
     for name in model.objects.values_list("company_name", flat=True):
-        normalized_name = (name or "").strip()
-        if normalized_name and normalized_name.lower() in question_text:
-            names.append(normalized_name)
+        normalized_name = normalize_chat_text(name)
+        if normalized_name and normalized_name in question_text:
+            names.append(name)
+            continue
+        significant_terms = [
+            term
+            for term in normalized_name.split()
+            if len(term) >= 3 and term not in PARTNER_NAME_STOP_WORDS
+        ]
+        if not significant_terms:
+            continue
+        minimum_matches = 1 if len(significant_terms) == 1 else 2
+        if sum(1 for term in significant_terms if term in question_terms) >= minimum_matches:
+            names.append(name)
     return names
 
 
@@ -2323,14 +2393,16 @@ def build_ai_inventory_context(question, request=None):
 
     date_filtered_purchases = filter_by_date_interval(purchases, "transaction_date", date_interval)
     date_filtered_sales = filter_by_date_interval(sales, "transaction_date", date_interval)
+    has_purchase_filter = bool(terms or matching_supplier_names or matching_product_ids)
+    has_sale_filter = bool(terms or matching_customer_names or matching_product_ids)
     matched_purchases = (
         date_filtered_purchases.filter(purchase_query).distinct()
-        if terms
+        if has_purchase_filter
         else (date_filtered_purchases if date_interval else Purchase.objects.none())
     )
     matched_sales = (
         date_filtered_sales.filter(sale_query).distinct()
-        if terms
+        if has_sale_filter
         else (date_filtered_sales if date_interval else Sale.objects.none())
     )
     recent_purchases = date_filtered_purchases.order_by("-transaction_date", "-created_at")[:8]
@@ -2345,24 +2417,28 @@ def build_ai_inventory_context(question, request=None):
     date_filtered_billing_notes = filter_by_date_interval(billing_notes, "billing_note_date", date_interval)
     date_filtered_payment_batches = filter_by_date_interval(payment_batches, "batch_date", date_interval)
     date_filtered_credit_notes = filter_by_date_interval(credit_notes, "credit_note_date", date_interval)
+    has_quotation_filter = bool(terms or matching_customer_names or matching_supplier_names)
+    has_billing_filter = bool(terms or matching_customer_names)
+    has_payment_filter = bool(terms or matching_supplier_names)
+    has_credit_filter = bool(terms or matching_customer_names)
     matched_quotations = (
         date_filtered_quotations.filter(quotation_query).distinct()
-        if terms
+        if has_quotation_filter
         else (date_filtered_quotations if date_interval else Quotation.objects.none())
     )
     matched_billing_notes = (
         date_filtered_billing_notes.filter(billing_query).distinct()
-        if terms
+        if has_billing_filter
         else (date_filtered_billing_notes if date_interval else BillingNote.objects.none())
     )
     matched_payment_batches = (
         date_filtered_payment_batches.filter(payment_query).distinct()
-        if terms
+        if has_payment_filter
         else (date_filtered_payment_batches if date_interval else PaymentBatch.objects.none())
     )
     matched_credit_notes = (
         date_filtered_credit_notes.filter(credit_query).distinct()
-        if terms
+        if has_credit_filter
         else (date_filtered_credit_notes if date_interval else CreditNote.objects.none())
     )
     has_query_filter = bool(terms or date_interval or matching_customer_names or matching_supplier_names)
@@ -2412,6 +2488,52 @@ def build_ai_inventory_context(question, request=None):
         serialize_credit_note_for_chat(note)
         for note in limited_unique_rows(matched_credit_notes, credit_note_fallback, limit=6)
     ]
+    customer_summaries = []
+    for name in matching_customer_names[:3]:
+        customer_sales = date_filtered_sales.filter(customer_name=name)
+        customer_quotations = date_filtered_quotations.filter(customer_name=name)
+        customer_billing_notes = date_filtered_billing_notes.filter(customer_name=name)
+        customer_credit_notes = date_filtered_credit_notes.filter(customer_name=name)
+        customer_open_billing_notes = customer_billing_notes.exclude(
+            status__in=(BillingNote.STATUS_FULLY_RECEIVED, BillingNote.STATUS_CANCELLED)
+        )
+        customer_summaries.append(
+            build_customer_chat_summary(
+                name,
+                date_interval,
+                [serialize_sale_for_chat(sale) for sale in customer_sales[:6]],
+                [serialize_quotation_for_chat(quotation) for quotation in customer_quotations[:6]],
+                [serialize_billing_note_for_chat(note) for note in customer_billing_notes[:6]],
+                [serialize_credit_note_for_chat(note) for note in customer_credit_notes[:6]],
+                sales_summary=summarize_model_rows(customer_sales, "grand_total"),
+                quotation_summary=summarize_model_rows(customer_quotations, "grand_total"),
+                billing_summary=summarize_model_rows(customer_billing_notes, "total_amount"),
+                credit_summary=summarize_model_rows(customer_credit_notes, "total_amount"),
+                open_billing_summary=summarize_model_rows(customer_open_billing_notes, "total_amount"),
+            )
+        )
+
+    supplier_summaries = []
+    for name in matching_supplier_names[:3]:
+        supplier_purchases = date_filtered_purchases.filter(supplier_name=name)
+        supplier_quotations = date_filtered_quotations.filter(supplier_name=name)
+        supplier_payment_batches = date_filtered_payment_batches.filter(supplier_name=name)
+        supplier_open_payment_batches = supplier_payment_batches.exclude(
+            status__in=(PaymentBatch.STATUS_PAID, PaymentBatch.STATUS_CANCELLED)
+        )
+        supplier_summaries.append(
+            build_supplier_chat_summary(
+                name,
+                date_interval,
+                [serialize_purchase_for_chat(purchase) for purchase in supplier_purchases[:6]],
+                [serialize_quotation_for_chat(quotation) for quotation in supplier_quotations[:6]],
+                [serialize_payment_batch_for_chat(batch) for batch in supplier_payment_batches[:6]],
+                purchase_summary=summarize_model_rows(supplier_purchases, "grand_total"),
+                quotation_summary=summarize_model_rows(supplier_quotations, "grand_total"),
+                payment_summary=summarize_model_rows(supplier_payment_batches, "total_amount"),
+                open_payment_summary=summarize_model_rows(supplier_open_payment_batches, "total_amount"),
+            )
+        )
     dashboard_today = timezone.localdate()
     finance_segment = build_finance_segment(DEFAULT_SEGMENT_PERIOD, today=dashboard_today)
     cashflow_segment = build_cashflow_segment(today=dashboard_today)
@@ -2425,12 +2547,12 @@ def build_ai_inventory_context(question, request=None):
         "date_interval": date_interval,
         "match_counts": {
             "products": matching_products.count() if terms else 0,
-            "purchases": matched_purchases.count() if terms else 0,
-            "sales": matched_sales.count() if terms else 0,
-            "quotations": matched_quotations.count() if terms else 0,
-            "billing_notes": matched_billing_notes.count() if terms else 0,
-            "payment_batches": matched_payment_batches.count() if terms else 0,
-            "credit_notes": matched_credit_notes.count() if terms else 0,
+            "purchases": matched_purchases.count() if has_purchase_filter else 0,
+            "sales": matched_sales.count() if has_sale_filter else 0,
+            "quotations": matched_quotations.count() if has_quotation_filter else 0,
+            "billing_notes": matched_billing_notes.count() if has_billing_filter else 0,
+            "payment_batches": matched_payment_batches.count() if has_payment_filter else 0,
+            "credit_notes": matched_credit_notes.count() if has_credit_filter else 0,
         },
         "dashboard_metrics": dashboard_summary["metrics"],
         "dashboard": {
@@ -2462,6 +2584,10 @@ def build_ai_inventory_context(question, request=None):
             "billing_notes": summarize_model_rows(matched_billing_notes, "total_amount", billing_note_rows),
             "payment_batches": summarize_model_rows(matched_payment_batches, "total_amount", payment_batch_rows),
             "credit_notes": summarize_model_rows(matched_credit_notes, "total_amount", credit_note_rows),
+        },
+        "partner_summaries": {
+            "customers": customer_summaries,
+            "suppliers": supplier_summaries,
         },
         "purchases": purchase_rows,
         "sales": sale_rows,
@@ -2520,6 +2646,319 @@ def date_interval_label(date_interval):
     start = date_interval["start"].isoformat()
     end = date_interval["end"].isoformat()
     return start if start == end else f"{start} to {end}"
+
+
+def chat_scope_label(date_interval, fallback="All dates"):
+    return date_interval_label(date_interval) or fallback
+
+
+def chat_metric(label, value, tone="default"):
+    return {"label": label, "value": str(value), "tone": tone}
+
+
+def chat_record(label, meta="", value=""):
+    return {"label": label, "meta": meta, "value": "" if value is None else str(value)}
+
+
+def chat_section(title, items=None, records=None):
+    return {
+        "title": title,
+        "items": items or [],
+        "records": records or [],
+    }
+
+
+def combine_chat_meta(*parts):
+    values = [str(part) for part in parts if part not in (None, "", [])]
+    return " | ".join(values)
+
+
+def build_top_product_records(rows, item_key="items", limit=5):
+    product_totals = {}
+    for row in rows:
+        for item in row.get(item_key, []):
+            key = item.get("sku") or item.get("product_name") or "Unknown"
+            bucket = product_totals.setdefault(
+                key,
+                {
+                    "product_name": item.get("product_name") or key,
+                    "sku": item.get("sku") or "",
+                    "quantity": Decimal("0"),
+                    "amount": Decimal("0"),
+                    "unit": item.get("base_unit") or item.get("unit") or "",
+                },
+            )
+            quantity = item.get("base_quantity")
+            if quantity in (None, ""):
+                quantity = item.get("quantity")
+            bucket["quantity"] += Decimal(str(quantity or 0))
+            amount = item.get("amount")
+            if amount in (None, "") and item.get("sale_price") not in (None, "") and item.get("quantity") not in (None, ""):
+                amount = Decimal(str(item.get("sale_price") or 0)) * Decimal(str(item.get("quantity") or 0))
+            bucket["amount"] += Decimal(str(amount or 0))
+
+    ranked_rows = sorted(
+        product_totals.values(),
+        key=lambda row: (row["amount"], row["quantity"]),
+        reverse=True,
+    )[:limit]
+    return [
+        chat_record(
+            f"{row['product_name']} ({row['sku']})" if row["sku"] else row["product_name"],
+            meta=combine_chat_meta(f"{as_number(row['quantity'])} {row['unit']}".strip()),
+            value=as_number(row["amount"]),
+        )
+        for row in ranked_rows
+    ]
+
+
+def build_purchase_records(rows, limit=5):
+    return [
+        chat_record(
+            row["reference_no"] or row["id"],
+            meta=combine_chat_meta(row["transaction_date"], row["supplier_name"], row["status"]),
+            value=row["grand_total"],
+        )
+        for row in rows[:limit]
+    ]
+
+
+def build_sale_records(rows, limit=5):
+    return [
+        chat_record(
+            row["reference_no"] or row["id"],
+            meta=combine_chat_meta(row["transaction_date"], row["customer_name"], row["status"]),
+            value=row["grand_total"],
+        )
+        for row in rows[:limit]
+    ]
+
+
+def build_quotation_records(rows, limit=5):
+    return [
+        chat_record(
+            row["reference_no"] or row["id"],
+            meta=combine_chat_meta(
+                row["quotation_date"],
+                row["customer_name"] or row["supplier_name"],
+                f"valid until {row['valid_until_date']}" if row.get("valid_until_date") else "",
+            ),
+            value=row["grand_total"],
+        )
+        for row in rows[:limit]
+    ]
+
+
+def build_billing_note_records(rows, limit=5):
+    return [
+        chat_record(
+            row["reference_no"] or row["id"],
+            meta=combine_chat_meta(row["billing_note_date"], row["customer_name"], row["status"]),
+            value=row["total_amount"],
+        )
+        for row in rows[:limit]
+    ]
+
+
+def build_payment_batch_records(rows, limit=5):
+    return [
+        chat_record(
+            row["reference_no"] or row["id"],
+            meta=combine_chat_meta(row["batch_date"], row["supplier_name"], row["status"]),
+            value=row["total_amount"],
+        )
+        for row in rows[:limit]
+    ]
+
+
+def build_credit_note_records(rows, limit=5):
+    return [
+        chat_record(
+            row["reference_no"] or row["id"],
+            meta=combine_chat_meta(row["credit_note_date"], row["customer_name"], row["status"]),
+            value=row["total_amount"],
+        )
+        for row in rows[:limit]
+    ]
+
+
+def build_customer_chat_summary(
+    name,
+    date_interval,
+    sale_rows,
+    quotation_rows,
+    billing_note_rows,
+    credit_note_rows,
+    sales_summary=None,
+    quotation_summary=None,
+    billing_summary=None,
+    credit_summary=None,
+    open_billing_summary=None,
+):
+    sales_summary = sales_summary or summarize_money_rows(sale_rows)
+    quotation_summary = quotation_summary or summarize_money_rows(quotation_rows)
+    billing_summary = billing_summary or summarize_money_rows(billing_note_rows, amount_key="total_amount")
+    credit_summary = credit_summary or summarize_money_rows(credit_note_rows, amount_key="total_amount")
+    open_billing_rows = [
+        row
+        for row in billing_note_rows
+        if row.get("status") not in {BillingNote.STATUS_FULLY_RECEIVED, BillingNote.STATUS_CANCELLED}
+    ]
+    open_billing_summary = open_billing_summary or summarize_money_rows(open_billing_rows, amount_key="total_amount")
+    top_product_records = build_top_product_records(sale_rows)
+    scope_label = chat_scope_label(date_interval)
+
+    return {
+        "role": "customer",
+        "name": name,
+        "scope_label": scope_label,
+        "title": f"Customer summary: {name}",
+        "subtitle": scope_label,
+        "metrics": [
+            chat_metric("Sales total", sales_summary["total"]),
+            chat_metric("Sales count", sales_summary["count"]),
+            chat_metric("Open AR", open_billing_summary["total"], tone="success" if open_billing_summary["total"] else "default"),
+            chat_metric("Credits", credit_summary["total"], tone="warning" if credit_summary["total"] else "default"),
+        ],
+        "sections": [
+            chat_section(
+                "Highlights",
+                items=[
+                    f"Sales: {sales_summary['count']} records, active total {sales_summary['active_total']}.",
+                    f"Quotations: {quotation_summary['count']} records, total {quotation_summary['total']}.",
+                    f"Billing notes: {billing_summary['count']} records, open receivables {open_billing_summary['total']}.",
+                    f"Credit notes: {credit_summary['count']} records, total {credit_summary['total']}.",
+                ],
+            ),
+            chat_section("Recent sales", records=build_sale_records(sale_rows)),
+            chat_section("Billing notes", records=build_billing_note_records(billing_note_rows)),
+            chat_section("Top products", records=top_product_records),
+            chat_section("Recent quotations", records=build_quotation_records(quotation_rows)),
+            chat_section("Credit notes", records=build_credit_note_records(credit_note_rows)),
+        ],
+    }
+
+
+def build_supplier_chat_summary(
+    name,
+    date_interval,
+    purchase_rows,
+    quotation_rows,
+    payment_batch_rows,
+    purchase_summary=None,
+    quotation_summary=None,
+    payment_summary=None,
+    open_payment_summary=None,
+):
+    purchase_summary = purchase_summary or summarize_money_rows(purchase_rows)
+    quotation_summary = quotation_summary or summarize_money_rows(quotation_rows)
+    payment_summary = payment_summary or summarize_money_rows(payment_batch_rows, amount_key="total_amount")
+    open_payment_rows = [
+        row
+        for row in payment_batch_rows
+        if row.get("status") not in {PaymentBatch.STATUS_PAID, PaymentBatch.STATUS_CANCELLED}
+    ]
+    open_payment_summary = open_payment_summary or summarize_money_rows(open_payment_rows, amount_key="total_amount")
+    top_product_records = build_top_product_records(purchase_rows)
+    scope_label = chat_scope_label(date_interval)
+
+    return {
+        "role": "supplier",
+        "name": name,
+        "scope_label": scope_label,
+        "title": f"Supplier summary: {name}",
+        "subtitle": scope_label,
+        "metrics": [
+            chat_metric("Purchase total", purchase_summary["total"]),
+            chat_metric("Purchase count", purchase_summary["count"]),
+            chat_metric("Scheduled AP", open_payment_summary["total"], tone="warning" if open_payment_summary["total"] else "default"),
+            chat_metric("Payment batches", payment_summary["count"]),
+        ],
+        "sections": [
+            chat_section(
+                "Highlights",
+                items=[
+                    f"Purchases: {purchase_summary['count']} records, active total {purchase_summary['active_total']}.",
+                    f"Supplier quotations: {quotation_summary['count']} records, total {quotation_summary['total']}.",
+                    f"Payment batches: {payment_summary['count']} records, scheduled or open payables {open_payment_summary['total']}.",
+                ],
+            ),
+            chat_section("Recent purchases", records=build_purchase_records(purchase_rows)),
+            chat_section("Payment batches", records=build_payment_batch_records(payment_batch_rows)),
+            chat_section("Top purchased products", records=top_product_records),
+            chat_section("Supplier quotations", records=build_quotation_records(quotation_rows)),
+        ],
+    }
+
+
+def presentation_to_text(presentation):
+    if not presentation:
+        return ""
+
+    lines = [presentation.get("title", "Assistant summary")]
+    if presentation.get("subtitle"):
+        lines.append(presentation["subtitle"])
+    if presentation.get("metrics"):
+        lines.append(
+            ", ".join(
+                f"{metric['label']}: {metric['value']}"
+                for metric in presentation["metrics"][:5]
+            )
+        )
+    for section in presentation.get("sections", []):
+        items = section.get("items") or []
+        records = section.get("records") or []
+        if items:
+            lines.append(f"{section['title']}: " + " ".join(items[:3]))
+            continue
+        if records:
+            lines.append(
+                f"{section['title']}: "
+                + " ".join(
+                    f"{record['label']} ({record['meta']}) {record['value']}".strip()
+                    for record in records[:4]
+                )
+            )
+    return "\n".join(line for line in lines if line)
+
+
+def get_partner_summary_presentation(question, context):
+    question_text = (question or "").lower()
+    customer_summaries = context.get("partner_summaries", {}).get("customers", [])
+    supplier_summaries = context.get("partner_summaries", {}).get("suppliers", [])
+    has_partner_scope = bool(customer_summaries or supplier_summaries)
+    has_named_date_scope = bool(context.get("date_interval"))
+    wants_summary = any(
+        phrase in question_text
+        for phrase in (
+            "summary",
+            "summarize",
+            "overview",
+            "activity",
+            "account",
+            "customer",
+            "supplier",
+            "partner",
+            "business",
+            "from",
+            "between",
+            "during",
+            "total",
+        )
+    )
+    if not has_partner_scope:
+        return None
+    if customer_summaries and ("customer" in question_text or "sale" in question_text or "billing" in question_text or "credit" in question_text):
+        return customer_summaries[0]
+    if supplier_summaries and ("supplier" in question_text or "purchase" in question_text or "payment" in question_text):
+        return supplier_summaries[0]
+    if has_named_date_scope or wants_summary:
+        return customer_summaries[0] if customer_summaries else supplier_summaries[0]
+    if customer_summaries and not supplier_summaries:
+        return customer_summaries[0]
+    if supplier_summaries and not customer_summaries:
+        return supplier_summaries[0]
+    return None
 
 
 def build_transaction_summary_answer(label, rows, party_key, date_interval=None, summary=None):
@@ -2609,162 +3048,291 @@ def build_order_coverage_answer(context):
     )
 
 
-def build_local_chat_answer(question, context=None):
+def build_stock_chat_presentation(context, matching_stock_only=False):
+    rows = context["stock"]["matching_rows"] if matching_stock_only else context["stock"]["low_stock_rows"]
+    if not rows:
+        return {
+            "title": "Stock summary",
+            "subtitle": chat_scope_label(context.get("date_interval"), fallback="Current inventory"),
+            "metrics": [chat_metric("Low-stock items", 0)],
+            "sections": [chat_section("Highlights", items=["No low-stock products were found from the current inventory data."])],
+        }
+    return {
+        "title": "Stock summary" if matching_stock_only else "Restock priorities",
+        "subtitle": chat_scope_label(context.get("date_interval"), fallback="Current inventory"),
+        "metrics": [
+            chat_metric("Items shown", len(rows[:5])),
+            chat_metric("Low-stock items", len(context["stock"]["low_stock_rows"])),
+        ],
+        "sections": [
+            chat_section(
+                "Products",
+                records=[
+                    chat_record(
+                        f"{row['product_name']} ({row['sku']})",
+                        meta=combine_chat_meta(
+                            f"available {row['available_stock']} {row['unit']}",
+                            f"reorder {row['reorder_level']}",
+                        ),
+                        value=row["recommended_restock"],
+                    )
+                    for row in rows[:5]
+                ],
+            )
+        ],
+    }
+
+
+def build_transaction_chat_presentation(title, subtitle, summary, rows, record_builder):
+    if not rows:
+        return {
+            "title": title,
+            "subtitle": subtitle,
+            "metrics": [chat_metric("Records", 0)],
+            "sections": [chat_section("Highlights", items=[f"No records were found for {subtitle.lower()}."])],
+        }
+    return {
+        "title": title,
+        "subtitle": subtitle,
+        "metrics": [
+            chat_metric("Records", summary["count"]),
+            chat_metric("Active", summary["active_count"]),
+            chat_metric("Total", summary["total"]),
+        ],
+        "sections": [
+            chat_section(
+                "Highlights",
+                items=[
+                    f"{summary['count']} records matched the question.",
+                    f"Active total is {summary['active_total']}.",
+                ],
+            ),
+            chat_section("Recent records", records=record_builder(rows)),
+        ],
+    }
+
+
+def build_reference_chat_presentation(context, reference_prefix):
+    if reference_prefix == "PO" and matched_rows(context, "purchases"):
+        return build_transaction_chat_presentation(
+            "Purchase summary",
+            chat_scope_label(context.get("date_interval"), fallback="Matched reference"),
+            context["summaries"]["purchases"],
+            matched_rows(context, "purchases"),
+            build_purchase_records,
+        )
+    if reference_prefix == "TI" and matched_rows(context, "sales"):
+        return build_transaction_chat_presentation(
+            "Sales summary",
+            chat_scope_label(context.get("date_interval"), fallback="Matched reference"),
+            context["summaries"]["sales"],
+            matched_rows(context, "sales"),
+            build_sale_records,
+        )
+    if reference_prefix == "BN" and matched_rows(context, "billing_notes"):
+        return build_transaction_chat_presentation(
+            "Billing note summary",
+            chat_scope_label(context.get("date_interval"), fallback="Matched reference"),
+            context["summaries"]["billing_notes"],
+            matched_rows(context, "billing_notes"),
+            build_billing_note_records,
+        )
+    if reference_prefix == "PMT" and matched_rows(context, "payment_batches"):
+        return build_transaction_chat_presentation(
+            "Payment batch summary",
+            chat_scope_label(context.get("date_interval"), fallback="Matched reference"),
+            context["summaries"]["payment_batches"],
+            matched_rows(context, "payment_batches"),
+            build_payment_batch_records,
+        )
+    if reference_prefix == "QT" and matched_rows(context, "quotations"):
+        return build_transaction_chat_presentation(
+            "Quotation summary",
+            chat_scope_label(context.get("date_interval"), fallback="Matched reference"),
+            context["summaries"]["quotations"],
+            matched_rows(context, "quotations"),
+            build_quotation_records,
+        )
+    if reference_prefix == "CN" and matched_rows(context, "credit_notes"):
+        return build_transaction_chat_presentation(
+            "Credit note summary",
+            chat_scope_label(context.get("date_interval"), fallback="Matched reference"),
+            context["summaries"]["credit_notes"],
+            matched_rows(context, "credit_notes"),
+            build_credit_note_records,
+        )
+    return {
+        "title": "Reference lookup",
+        "subtitle": "Matched reference",
+        "metrics": [chat_metric("Matches", 0)],
+        "sections": [chat_section("Highlights", items=["I could not find a matching reference number in the current inventory data."])],
+    }
+
+
+def build_net_position_presentation(context):
+    finance = context["dashboard"]["finance"]
+    cashflow = context["dashboard"]["cashflow"]
+    return {
+        "title": "Net position",
+        "subtitle": finance["period_label"],
+        "metrics": [
+            chat_metric("AR", finance["ar"]["outstanding"], tone="success"),
+            chat_metric("AP", finance["ap"]["outstanding"], tone="warning"),
+            chat_metric("Net", finance["net_position"]),
+            chat_metric("Open net", cashflow["net_open"]),
+        ],
+        "sections": [
+            chat_section(
+                "Highlights",
+                items=[
+                    f"Open receivables today: {cashflow['ar_total_open']}.",
+                    f"Open payables today: {cashflow['ap_total_open']}.",
+                    f"Overdue AR {cashflow['overdue_ar']}; overdue AP {cashflow['overdue_ap']}.",
+                ],
+            )
+        ],
+    }
+
+
+def build_order_coverage_presentation(context):
+    coverage = context["dashboard"]["order_coverage"]
+    return {
+        "title": "Order coverage",
+        "subtitle": coverage["today"],
+        "metrics": [
+            chat_metric("Coverage", f"{coverage['coverage_pct']}%"),
+            chat_metric("Ready units", coverage["states"]["ready"]["units"]),
+            chat_metric("Incoming units", coverage["states"]["incoming"]["units"]),
+            chat_metric("Gap units", coverage["states"]["gap"]["units"], tone="warning"),
+        ],
+        "sections": [
+            chat_section(
+                "Highlights",
+                items=[
+                    f"Ready now value: {coverage['states']['ready']['value']}.",
+                    f"Incoming value: {coverage['states']['incoming']['value']}.",
+                    f"Gap value: {coverage['states']['gap']['value']} across open demand {coverage['total']['value']}.",
+                ],
+            )
+        ],
+    }
+
+
+def build_capabilities_presentation(context):
+    return {
+        "title": "AI assistant coverage",
+        "subtitle": chat_scope_label(context.get("date_interval"), fallback="Current data"),
+        "metrics": [
+            chat_metric("Products", len(context.get("products", [])[:8])),
+            chat_metric("Sales", context["summaries"]["sales"]["count"]),
+            chat_metric("Purchases", context["summaries"]["purchases"]["count"]),
+            chat_metric("Credit notes", context["summaries"]["credit_notes"]["count"]),
+        ],
+        "sections": [
+            chat_section(
+                "You can ask",
+                items=[
+                    "Summaries for a customer or supplier within a date range.",
+                    "Stock, restock priorities, quotations, billing notes, and payment batches.",
+                    "Receivables, payables, net position, and order coverage gaps.",
+                ],
+            )
+        ],
+    }
+
+
+def build_chat_presentation(question, context=None):
     context = context or build_ai_inventory_context(question)
-    low_stock = context["stock"]["low_stock_rows"]
     matching_stock = context["stock"]["matching_rows"]
-    question_text = question.lower()
+    question_text = (question or "").lower()
     reference_like = any("-" in term and any(char.isdigit() for char in term) for term in context["query_terms"])
     reference_prefix = get_reference_prefix(context["query_terms"])
 
+    partner_summary = get_partner_summary_presentation(question, context)
+    if partner_summary:
+        return partner_summary
+
     if "low" in question_text or "restock" in question_text:
-        if not low_stock:
-            return "No low-stock products were found from the current inventory data."
-        lines = [
-            (
-                f"{row['product_name']} has {row['available_stock']} {row['unit']} available, "
-                f"reorder level {row['reorder_level']}, suggested restock {row['recommended_restock']}."
-            )
-            for row in low_stock[:5]
-        ]
-        return "Products needing attention: " + " ".join(lines)
+        return build_stock_chat_presentation(context)
 
     if matching_stock and any(word in question_text for word in ["product", "sku", "stock", "restock", "reorder"]):
-        lines = [
-            (
-                f"{row['product_name']} ({row['sku']}) has {row['available_stock']} "
-                f"{row['unit']} available, reorder level {row['reorder_level']}, "
-                f"suggested restock {row['recommended_restock']}."
-            )
-            for row in matching_stock[:5]
-        ]
-        return "Matching stock details: " + " ".join(lines)
+        return build_stock_chat_presentation(context, matching_stock_only=True)
 
     if "stock" in question_text:
-        if not low_stock:
-            return "No low-stock products were found from the current inventory data."
-        lines = [
-            f"{row['product_name']} has {row['available_stock']} {row['unit']} available."
-            for row in low_stock[:5]
-        ]
-        return "Products needing attention: " + " ".join(lines)
+        return build_stock_chat_presentation(context)
 
     if reference_like:
-        if reference_prefix == "PO" and matched_rows(context, "purchases"):
-            return "Purchase summary: " + " ".join(
-                format_transaction_line(purchase, "supplier_name")
-                for purchase in matched_rows(context, "purchases")[:5]
-            )
-        if reference_prefix == "TI" and matched_rows(context, "sales"):
-            return "Sales summary: " + " ".join(
-                format_transaction_line(sale, "customer_name")
-                for sale in matched_rows(context, "sales")[:5]
-            )
-        if reference_prefix == "BN" and matched_rows(context, "billing_notes"):
-            return "Billing note summary: " + " ".join(
-                f"{note['reference_no'] or note['id']}: {note['customer_name']}, {note['status']}, total {note['total_amount']}."
-                for note in matched_rows(context, "billing_notes")[:5]
-            )
-        if reference_prefix == "PMT" and matched_rows(context, "payment_batches"):
-            return "Payment batch summary: " + " ".join(
-                f"{batch['reference_no'] or batch['id']}: {batch['supplier_name']}, {batch['status']}, total {batch['total_amount']}."
-                for batch in matched_rows(context, "payment_batches")[:5]
-            )
-        if reference_prefix == "QT" and matched_rows(context, "quotations"):
-            return "Quotation summary: " + " ".join(
-                f"{quotation['reference_no'] or quotation['id']}: {quotation['customer_name'] or quotation['supplier_name']}, total {quotation['grand_total']}."
-                for quotation in matched_rows(context, "quotations")[:5]
-            )
-        if reference_prefix == "CN" and matched_rows(context, "credit_notes"):
-            return "Credit note summary: " + " ".join(
-                f"{note['reference_no'] or note['id']}: {note['customer_name']}, {note['status']}, total {note['total_amount']}."
-                for note in matched_rows(context, "credit_notes")[:5]
-            )
-        if matched_rows(context, "purchases"):
-            return "Purchase summary: " + " ".join(
-                format_transaction_line(purchase, "supplier_name")
-                for purchase in matched_rows(context, "purchases")[:5]
-            )
-        if matched_rows(context, "sales"):
-            return "Sales summary: " + " ".join(
-                format_transaction_line(sale, "customer_name")
-                for sale in matched_rows(context, "sales")[:5]
-            )
-        if matched_rows(context, "billing_notes"):
-            return "Billing note summary: " + " ".join(
-                f"{note['reference_no'] or note['id']}: {note['customer_name']}, {note['status']}, total {note['total_amount']}."
-                for note in matched_rows(context, "billing_notes")[:5]
-            )
-        if matched_rows(context, "payment_batches"):
-            return "Payment batch summary: " + " ".join(
-                f"{batch['reference_no'] or batch['id']}: {batch['supplier_name']}, {batch['status']}, total {batch['total_amount']}."
-                for batch in matched_rows(context, "payment_batches")[:5]
-            )
-        if matched_rows(context, "credit_notes"):
-            return "Credit note summary: " + " ".join(
-                f"{note['reference_no'] or note['id']}: {note['customer_name']}, {note['status']}, total {note['total_amount']}."
-                for note in matched_rows(context, "credit_notes")[:5]
-            )
-        return "I could not find a matching reference number in the current inventory data."
+        return build_reference_chat_presentation(context, reference_prefix)
 
     if "net position" in question_text or "receivable" in question_text or "payable" in question_text:
-        return build_net_position_answer(context)
+        return build_net_position_presentation(context)
 
     if "backorder" in question_text or "coverage" in question_text:
-        return build_order_coverage_answer(context)
+        return build_order_coverage_presentation(context)
 
     if "sale" in question_text:
-        if not context["sales"]:
-            return "No sales transactions are stored yet."
-        return build_transaction_summary_answer(
-            "Sales",
-            context["sales"],
-            "customer_name",
-            context["date_interval"],
+        return build_transaction_chat_presentation(
+            "Sales summary",
+            chat_scope_label(context["date_interval"]),
             context["summaries"]["sales"],
+            context["sales"],
+            build_sale_records,
         )
 
     if "purchase" in question_text:
-        if not context["purchases"]:
-            return "No purchase transactions are stored yet."
-        return build_transaction_summary_answer(
-            "Purchase",
-            context["purchases"],
-            "supplier_name",
-            context["date_interval"],
+        return build_transaction_chat_presentation(
+            "Purchase summary",
+            chat_scope_label(context["date_interval"]),
             context["summaries"]["purchases"],
+            context["purchases"],
+            build_purchase_records,
         )
 
     if "quotation" in question_text:
-        return build_quotation_summary_answer(
-            context["quotations"],
-            context["date_interval"],
+        return build_transaction_chat_presentation(
+            "Quotation summary",
+            chat_scope_label(context["date_interval"]),
             context["summaries"]["quotations"],
+            context["quotations"],
+            build_quotation_records,
         )
 
     if "billing" in question_text:
-        if not context["billing_notes"]:
-            return "No billing notes are stored yet."
-        return "Billing note summary: " + " ".join(
-            f"{note['reference_no'] or note['id']}: {note['customer_name']}, {note['status']}, total {note['total_amount']}."
-            for note in context["billing_notes"][:5]
+        return build_transaction_chat_presentation(
+            "Billing note summary",
+            chat_scope_label(context["date_interval"]),
+            context["summaries"]["billing_notes"],
+            context["billing_notes"],
+            build_billing_note_records,
         )
 
     if "payment" in question_text or "paid" in question_text:
-        if not context["payment_batches"]:
-            return "No payment batches are stored yet."
-        return "Payment batch summary: " + " ".join(
-            f"{batch['reference_no'] or batch['id']}: {batch['supplier_name']}, {batch['status']}, total {batch['total_amount']}."
-            for batch in context["payment_batches"][:5]
+        return build_transaction_chat_presentation(
+            "Payment batch summary",
+            chat_scope_label(context["date_interval"]),
+            context["summaries"]["payment_batches"],
+            context["payment_batches"],
+            build_payment_batch_records,
         )
 
     if "credit" in question_text:
-        return build_credit_note_summary_answer(
-            context["credit_notes"],
-            context["date_interval"],
+        return build_transaction_chat_presentation(
+            "Credit note summary",
+            chat_scope_label(context["date_interval"]),
             context["summaries"]["credit_notes"],
+            context["credit_notes"],
+            build_credit_note_records,
         )
 
+    return build_capabilities_presentation(context)
+
+
+def build_local_chat_answer(question, context=None, presentation=None):
+    context = context or build_ai_inventory_context(question)
+    presentation = presentation or build_chat_presentation(question, context)
+    answer = presentation_to_text(presentation)
+    if answer:
+        return answer
     return (
         "I can summarize stock, restock needs, products, sales, purchases, quotations, "
         "billing notes, payment batches, credit notes, net position, and order coverage. "
@@ -2774,28 +3342,43 @@ def build_local_chat_answer(question, context=None):
 
 def answer_inventory_question(question, request=None):
     context = build_ai_inventory_context(question, request)
+    presentation = build_chat_presentation(question, context)
+    local_answer = build_local_chat_answer(question, context, presentation)
     if not settings.OPENAI_API_KEY:
         return {
-            "answer": build_local_chat_answer(question, context),
+            "answer": local_answer,
             "used_model": "local-summary",
+            "presentation": presentation,
         }
 
     from openai import OpenAI
 
-    client = OpenAI(api_key=settings.OPENAI_API_KEY)
-    response = client.responses.create(
-        model=settings.OPENAI_MODEL,
-        instructions=(
-            "You are a read-only inventory assistant. Answer only from the provided app data. "
-            "If the data is missing, say that clearly. Keep answers concise and practical."
-        ),
-        input=(
-            f"User question:\n{question}\n\n"
-            f"Inventory app data:\n{json.dumps(context, default=str, ensure_ascii=False)}"
-        ),
-    )
-
-    return {
-        "answer": response.output_text,
-        "used_model": settings.OPENAI_MODEL,
-    }
+    try:
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        response = client.responses.create(
+            model=settings.OPENAI_MODEL,
+            instructions=(
+                "You are a read-only inventory assistant for a trading business. "
+                "Answer only from the provided app data. If data is missing, say so clearly. "
+                "Be practical and helpful. When summarizing a supplier or customer, mention the date scope, "
+                "headline totals, outstanding receivables/payables when relevant, and 2 to 5 concrete highlights. "
+                "Format the answer in short readable sections using plain text lines or bullet-style lines."
+            ),
+            input=(
+                f"User question:\n{question}\n\n"
+                f"Suggested local summary:\n{local_answer}\n\n"
+                f"Inventory app data:\n{json.dumps(context, default=str, ensure_ascii=False)}"
+            ),
+        )
+        answer_text = (response.output_text or "").strip() or local_answer
+        return {
+            "answer": answer_text,
+            "used_model": settings.OPENAI_MODEL,
+            "presentation": presentation,
+        }
+    except Exception:
+        return {
+            "answer": local_answer,
+            "used_model": "local-summary",
+            "presentation": presentation,
+        }

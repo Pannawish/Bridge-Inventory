@@ -36,6 +36,7 @@ export function useAppChat({ api, t, setError }) {
           role: "assistant",
           content: response.answer || "No answer returned.",
           model: response.used_model,
+          presentation: response.presentation || null,
         },
       ]);
     } catch (requestError) {

@@ -2798,6 +2798,7 @@ class PurchasePayableSyncTests(APITestCase):
         self.assertEqual(len(line_data["purchase_cancelled_items"]), 1)
 
 
+@override_settings(OPENAI_API_KEY="")
 class ChatAssistantAlignmentTests(TestCase):
     def setUp(self):
         self.today = timezone.localdate()
@@ -2959,6 +2960,7 @@ class ChatAssistantAlignmentTests(TestCase):
         response = answer_inventory_question("Show recent quotations")
 
         self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Quotation summary")
         self.assertIn("Quotation summary", response["answer"])
         self.assertIn("QT-CHAT-001", response["answer"])
 
@@ -2966,6 +2968,7 @@ class ChatAssistantAlignmentTests(TestCase):
         response = answer_inventory_question("Show credit notes")
 
         self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Credit note summary")
         self.assertIn("Credit note summary", response["answer"])
         self.assertIn("CN-CHAT-001", response["answer"])
 
@@ -2973,13 +2976,41 @@ class ChatAssistantAlignmentTests(TestCase):
         response = answer_inventory_question("What is our net position?")
 
         self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Net position")
         self.assertIn("Net position", response["answer"])
-        self.assertIn("AR 300", response["answer"])
-        self.assertIn("AP 120", response["answer"])
+        self.assertIn("AR: 300", response["answer"])
+        self.assertIn("AP: 120", response["answer"])
 
     def test_chat_reports_order_coverage_and_gap(self):
         response = answer_inventory_question("Which customer orders are backordered?")
 
         self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Order coverage")
         self.assertIn("Order coverage", response["answer"])
-        self.assertIn("gap 2 units", response["answer"])
+        self.assertIn("Gap units: 2", response["answer"])
+
+    def test_chat_summarizes_customer_with_date_range(self):
+        question = (
+            f"Summarize customer activity for {self.customer.company_name} "
+            f"from {self.today.isoformat()} to {self.today.isoformat()}"
+        )
+
+        response = answer_inventory_question(question)
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], f"Customer summary: {self.customer.company_name}")
+        self.assertEqual(response["presentation"]["subtitle"], self.today.isoformat())
+        self.assertIn(f"Customer summary: {self.customer.company_name}", response["answer"])
+        self.assertIn("Sales count: 1", response["answer"])
+        self.assertIn("Open AR: 300", response["answer"])
+
+    def test_chat_summarizes_supplier_this_month(self):
+        response = answer_inventory_question(
+            f"Summarize supplier activity for {self.supplier.company_name} this month"
+        )
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], f"Supplier summary: {self.supplier.company_name}")
+        self.assertIn("Supplier summary", response["answer"])
+        self.assertIn("Purchase count: 2", response["answer"])
+        self.assertIn("Scheduled AP: 120", response["answer"])

@@ -14,6 +14,8 @@ It is designed to answer short business questions using current system data such
 
 - stock and restock signals
 - products and SKU matches
+- customer summaries within a date range
+- supplier summaries within a date range
 - sales summaries
 - purchase summaries
 - quotation summaries
@@ -36,6 +38,7 @@ The assistant screen includes:
 - a message thread
 - a text box for your question
 - example prompt chips
+- compact summary cards with key figures, highlights, and recent records when the answer matches a supported business summary
 
 ---
 
@@ -53,6 +56,8 @@ Examples:
 
 - `Which items are low stock?`
 - `Which product should I restock first?`
+- `Summarize customer activity for Acme Co. from 2026-06-01 to 2026-06-14`
+- `Summarize supplier activity for Apex Supply this month`
 - `What are the latest sales transactions?`
 - `Show recent quotations`
 - `Summarize billing notes`
@@ -71,6 +76,7 @@ If you want a more specific answer, include:
 - a `customer name`
 - a `supplier name`
 - a `reference number` such as `PO-...`, `TI-...`, `QT-...`, `BN-...`, `PMT-...`, or `CN-...`
+- a `date range` such as `2026-06-01 to 2026-06-14`, `this month`, or `last month`
 
 ---
 
@@ -118,6 +124,21 @@ Best example questions:
 - `What are the latest sales transactions?`
 - `Show sales for Finance Department`
 - `Show TI-6905-023`
+
+### 4.3A Customer And Supplier Summaries
+
+The assistant can summarize:
+
+- a customer across sales, quotations, billing notes, and credit notes
+- a supplier across purchases, payment batches, and supplier-side quotations
+- totals and counts for the matched date range
+- recent document references and top products in the matched activity
+
+Best example questions:
+
+- `Summarize customer activity for Finance Department from 2026-06-01 to 2026-06-14`
+- `Summarize supplier activity for Siam Paper & Label Ltd. this month`
+- `Show customer summary for Graduate School`
 
 ### 4.4 Purchases
 
