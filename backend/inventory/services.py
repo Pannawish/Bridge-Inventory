@@ -13,6 +13,7 @@ from rest_framework.exceptions import ValidationError
 
 from .models import (
     BillingNote,
+    CreditNote,
     Customer,
     PaymentBatch,
     PaymentBatchLine,
@@ -64,6 +65,11 @@ CHAT_STOP_WORDS = {
     "batch",
     "batches",
     "billing",
+    "cash",
+    "cashflow",
+    "coverage",
+    "credit",
+    "credits",
     "detail",
     "details",
     "date",
@@ -83,7 +89,13 @@ CHAT_STOP_WORDS = {
     "purchase",
     "purchases",
     "payment",
+    "position",
     "show",
+    "quotation",
+    "quotations",
+    "recent",
+    "receivable",
+    "receivables",
     "sale",
     "sales",
     "stock",
@@ -95,6 +107,14 @@ CHAT_STOP_WORDS = {
     "to",
     "transaction",
     "transactions",
+    "payable",
+    "payables",
+    "order",
+    "orders",
+    "backorder",
+    "backordered",
+    "open",
+    "net",
     "what",
     "which",
 }
@@ -1544,6 +1564,32 @@ def serialize_quotation_for_chat(quotation):
     }
 
 
+def serialize_credit_note_for_chat(note):
+    return {
+        "id": note.id,
+        "reference_no": note.reference_no,
+        "customer_name": note.customer_name,
+        "sale_reference_no": note.sale_reference_no,
+        "billing_note_reference_no": (
+            note.billing_note.reference_no if note.billing_note_id and note.billing_note else ""
+        ),
+        "credit_note_date": note.credit_note_date,
+        "status": note.status,
+        "total_amount": as_number(note.total_amount),
+        "note": note.note,
+        "lines": [
+            {
+                "product_name": line.product_name,
+                "sku": line.sku,
+                "quantity": as_number(line.quantity),
+                "unit_price": as_number(line.unit_price),
+                "amount": as_number(line.amount),
+            }
+            for line in note.lines.all()
+        ],
+    }
+
+
 def build_dashboard_summary(request=None):
     stock_report = build_stock_report()
     low_stock_items = [
@@ -2262,6 +2308,14 @@ def build_ai_inventory_context(question, request=None):
         if matching_supplier_names
         else build_text_query(terms, ["reference_no", "supplier_name", "bank_reference", "note"])
     )
+    credit_query = (
+        Q(customer_name__in=matching_customer_names)
+        if matching_customer_names
+        else build_text_query(
+            terms,
+            ["reference_no", "customer_name", "sale_reference_no", "note"],
+        )
+    )
 
     if matching_product_ids and not matching_customer_names and not matching_supplier_names:
         purchase_query |= Q(items__product_id__in=matching_product_ids) | Q(items__sku__in=[row["sku"] for row in matching_stock_rows])
@@ -2285,10 +2339,12 @@ def build_ai_inventory_context(question, request=None):
     quotations = Quotation.objects.prefetch_related("line_items__product")
     billing_notes = BillingNote.objects.prefetch_related("lines__sale")
     payment_batches = PaymentBatch.objects.prefetch_related("lines__purchase")
+    credit_notes = CreditNote.objects.prefetch_related("lines", "sale", "billing_note")
 
     date_filtered_quotations = filter_by_date_interval(quotations, "quotation_date", date_interval)
     date_filtered_billing_notes = filter_by_date_interval(billing_notes, "billing_note_date", date_interval)
     date_filtered_payment_batches = filter_by_date_interval(payment_batches, "batch_date", date_interval)
+    date_filtered_credit_notes = filter_by_date_interval(credit_notes, "credit_note_date", date_interval)
     matched_quotations = (
         date_filtered_quotations.filter(quotation_query).distinct()
         if terms
@@ -2303,6 +2359,11 @@ def build_ai_inventory_context(question, request=None):
         date_filtered_payment_batches.filter(payment_query).distinct()
         if terms
         else (date_filtered_payment_batches if date_interval else PaymentBatch.objects.none())
+    )
+    matched_credit_notes = (
+        date_filtered_credit_notes.filter(credit_query).distinct()
+        if terms
+        else (date_filtered_credit_notes if date_interval else CreditNote.objects.none())
     )
     has_query_filter = bool(terms or date_interval or matching_customer_names or matching_supplier_names)
     purchase_fallback = [] if has_query_filter else recent_purchases
@@ -2321,6 +2382,11 @@ def build_ai_inventory_context(question, request=None):
         []
         if has_query_filter
         else date_filtered_payment_batches.order_by("-batch_date", "-created_at")[:6]
+    )
+    credit_note_fallback = (
+        []
+        if has_query_filter
+        else date_filtered_credit_notes.order_by("-credit_note_date", "-created_at")[:6]
     )
     purchase_rows = [
         serialize_purchase_for_chat(purchase)
@@ -2342,6 +2408,14 @@ def build_ai_inventory_context(question, request=None):
         serialize_payment_batch_for_chat(batch)
         for batch in limited_unique_rows(matched_payment_batches, payment_batch_fallback, limit=6)
     ]
+    credit_note_rows = [
+        serialize_credit_note_for_chat(note)
+        for note in limited_unique_rows(matched_credit_notes, credit_note_fallback, limit=6)
+    ]
+    dashboard_today = timezone.localdate()
+    finance_segment = build_finance_segment(DEFAULT_SEGMENT_PERIOD, today=dashboard_today)
+    cashflow_segment = build_cashflow_segment(today=dashboard_today)
+    order_coverage_segment = build_order_coverage_segment(today=dashboard_today)
 
     return {
         "query_terms": terms,
@@ -2356,8 +2430,15 @@ def build_ai_inventory_context(question, request=None):
             "quotations": matched_quotations.count() if terms else 0,
             "billing_notes": matched_billing_notes.count() if terms else 0,
             "payment_batches": matched_payment_batches.count() if terms else 0,
+            "credit_notes": matched_credit_notes.count() if terms else 0,
         },
         "dashboard_metrics": dashboard_summary["metrics"],
+        "dashboard": {
+            "metrics": dashboard_summary["metrics"],
+            "finance": finance_segment,
+            "cashflow": cashflow_segment,
+            "order_coverage": order_coverage_segment,
+        },
         "stock": {
             "matching_rows": matching_stock_rows,
             "low_stock_rows": low_stock_rows,
@@ -2380,12 +2461,14 @@ def build_ai_inventory_context(question, request=None):
             "quotations": summarize_model_rows(matched_quotations, "grand_total", quotation_rows),
             "billing_notes": summarize_model_rows(matched_billing_notes, "total_amount", billing_note_rows),
             "payment_batches": summarize_model_rows(matched_payment_batches, "total_amount", payment_batch_rows),
+            "credit_notes": summarize_model_rows(matched_credit_notes, "total_amount", credit_note_rows),
         },
         "purchases": purchase_rows,
         "sales": sale_rows,
         "quotations": quotation_rows,
         "billing_notes": billing_note_rows,
         "payment_batches": payment_batch_rows,
+        "credit_notes": credit_note_rows,
     }
 
 
@@ -2457,7 +2540,7 @@ def build_transaction_summary_answer(label, rows, party_key, date_interval=None,
 def get_reference_prefix(terms):
     for term in terms:
         upper_term = term.upper()
-        for prefix in ["PO", "TI", "BN", "PMT", "QT"]:
+        for prefix in ["PO", "TI", "BN", "PMT", "QT", "CN"]:
             if upper_term.startswith(f"{prefix}-"):
                 return prefix
     return ""
@@ -2466,6 +2549,64 @@ def get_reference_prefix(terms):
 def matched_rows(context, key):
     count = context["match_counts"].get(key, 0)
     return context[key][:count] if count else []
+
+
+def build_quotation_summary_answer(rows, date_interval=None, summary=None):
+    if not rows:
+        scope = f" for {date_interval_label(date_interval)}" if date_interval else ""
+        return f"No quotation records were found{scope}."
+
+    summary = summary or summarize_money_rows(rows)
+    scope = f" for {date_interval_label(date_interval)}" if date_interval else ""
+    lines = " ".join(
+        f"{row['reference_no'] or row['id']}: {row['customer_name'] or row['supplier_name']}, total {row['grand_total']}."
+        for row in rows[:5]
+    )
+    return f"Quotation summary{scope}: {summary['count']} records, total {summary['total']}. {lines}"
+
+
+def build_credit_note_summary_answer(rows, date_interval=None, summary=None):
+    if not rows:
+        scope = f" for {date_interval_label(date_interval)}" if date_interval else ""
+        return f"No credit note records were found{scope}."
+
+    summary = summary or summarize_money_rows(rows, amount_key="total_amount")
+    scope = f" for {date_interval_label(date_interval)}" if date_interval else ""
+    lines = " ".join(
+        f"{row['reference_no'] or row['id']}: {row['customer_name']}, {row['status']}, total {row['total_amount']}."
+        for row in rows[:5]
+    )
+    return (
+        f"Credit note summary{scope}: {summary['count']} records, "
+        f"{summary['active_count']} active, total {summary['total']}, "
+        f"active total {summary['active_total']}. {lines}"
+    )
+
+
+def build_net_position_answer(context):
+    finance = context["dashboard"]["finance"]
+    cashflow = context["dashboard"]["cashflow"]
+    return (
+        f"Net position ({finance['period_label']}): AR {finance['ar']['outstanding']}, "
+        f"AP {finance['ap']['outstanding']}, net {finance['net_position']}. "
+        f"Open balances today: AR {cashflow['ar_total_open']}, AP {cashflow['ap_total_open']}, "
+        f"net {cashflow['net_open']}. Overdue AR {cashflow['overdue_ar']}, overdue AP {cashflow['overdue_ap']}."
+    )
+
+
+def build_order_coverage_answer(context):
+    coverage = context["dashboard"]["order_coverage"]
+    ready = coverage["states"]["ready"]
+    incoming = coverage["states"]["incoming"]
+    gap = coverage["states"]["gap"]
+    total = coverage["total"]
+    return (
+        f"Order coverage: {coverage['coverage_pct']}% covered. "
+        f"Ready now {ready['units']} units / {ready['value']} value, "
+        f"incoming {incoming['units']} units / {incoming['value']} value, "
+        f"gap {gap['units']} units / {gap['value']} value, "
+        f"across {total['units']} units / {total['value']} total open demand."
+    )
 
 
 def build_local_chat_answer(question, context=None):
@@ -2534,6 +2675,11 @@ def build_local_chat_answer(question, context=None):
                 f"{quotation['reference_no'] or quotation['id']}: {quotation['customer_name'] or quotation['supplier_name']}, total {quotation['grand_total']}."
                 for quotation in matched_rows(context, "quotations")[:5]
             )
+        if reference_prefix == "CN" and matched_rows(context, "credit_notes"):
+            return "Credit note summary: " + " ".join(
+                f"{note['reference_no'] or note['id']}: {note['customer_name']}, {note['status']}, total {note['total_amount']}."
+                for note in matched_rows(context, "credit_notes")[:5]
+            )
         if matched_rows(context, "purchases"):
             return "Purchase summary: " + " ".join(
                 format_transaction_line(purchase, "supplier_name")
@@ -2554,7 +2700,18 @@ def build_local_chat_answer(question, context=None):
                 f"{batch['reference_no'] or batch['id']}: {batch['supplier_name']}, {batch['status']}, total {batch['total_amount']}."
                 for batch in matched_rows(context, "payment_batches")[:5]
             )
+        if matched_rows(context, "credit_notes"):
+            return "Credit note summary: " + " ".join(
+                f"{note['reference_no'] or note['id']}: {note['customer_name']}, {note['status']}, total {note['total_amount']}."
+                for note in matched_rows(context, "credit_notes")[:5]
+            )
         return "I could not find a matching reference number in the current inventory data."
+
+    if "net position" in question_text or "receivable" in question_text or "payable" in question_text:
+        return build_net_position_answer(context)
+
+    if "backorder" in question_text or "coverage" in question_text:
+        return build_order_coverage_answer(context)
 
     if "sale" in question_text:
         if not context["sales"]:
@@ -2578,6 +2735,13 @@ def build_local_chat_answer(question, context=None):
             context["summaries"]["purchases"],
         )
 
+    if "quotation" in question_text:
+        return build_quotation_summary_answer(
+            context["quotations"],
+            context["date_interval"],
+            context["summaries"]["quotations"],
+        )
+
     if "billing" in question_text:
         if not context["billing_notes"]:
             return "No billing notes are stored yet."
@@ -2594,10 +2758,17 @@ def build_local_chat_answer(question, context=None):
             for batch in context["payment_batches"][:5]
         )
 
+    if "credit" in question_text:
+        return build_credit_note_summary_answer(
+            context["credit_notes"],
+            context["date_interval"],
+            context["summaries"]["credit_notes"],
+        )
+
     return (
         "I can summarize stock, restock needs, products, sales, purchases, quotations, "
-        "billing notes, and payment batches. Include a reference number, SKU, product, "
-        "customer, or supplier name for a more specific answer."
+        "billing notes, payment batches, credit notes, net position, and order coverage. "
+        "Include a reference number, SKU, product, customer, or supplier name for a more specific answer."
     )
 
 

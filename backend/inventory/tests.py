@@ -2,6 +2,7 @@ from io import StringIO
 import json
 import shutil
 import tempfile
+from datetime import timedelta
 from decimal import Decimal
 
 from django.core.management import call_command
@@ -35,6 +36,7 @@ from .models import (
 from .serializers import SaleSerializer
 from .services import (
     SALE_STOCK_DEDUCTED_STATUSES,
+    answer_inventory_question,
     build_finance_segment,
     get_available_stock_layers,
 )
@@ -2794,3 +2796,190 @@ class PurchasePayableSyncTests(APITestCase):
         self.assertEqual(Decimal(line_data["amount"]), Decimal("500"))
         self.assertEqual(Decimal(line_data["purchase_payable_total"]), Decimal("100"))
         self.assertEqual(len(line_data["purchase_cancelled_items"]), 1)
+
+
+class ChatAssistantAlignmentTests(TestCase):
+    def setUp(self):
+        self.today = timezone.localdate()
+        self.customer = Customer.objects.create(company_name="Finance Department")
+        self.supplier = Supplier.objects.create(company_name="Paper Supply Co.")
+        self.product = Product.objects.create(
+            sku="CHAT-1",
+            product_name="Chat Product",
+            stock_base_unit="pcs",
+            default_purchase_unit="pcs",
+            default_sales_unit="pcs",
+            reorder_level=Decimal("5"),
+        )
+
+        self.received_purchase = Purchase.objects.create(
+            reference_no="PO-CHAT-READY",
+            supplier=self.supplier,
+            supplier_name=self.supplier.company_name,
+            transaction_date=self.today,
+            status=Purchase.STATUS_RECEIVED,
+            grand_total=Decimal("10"),
+        )
+        PurchaseItem.objects.create(
+            purchase=self.received_purchase,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("1"),
+            base_quantity=Decimal("1"),
+            unit_cost=Decimal("10"),
+            amount=Decimal("10"),
+        )
+
+        self.pending_purchase = Purchase.objects.create(
+            reference_no="PO-CHAT-INCOMING",
+            supplier=self.supplier,
+            supplier_name=self.supplier.company_name,
+            transaction_date=self.today,
+            status=Purchase.STATUS_ORDERED,
+            grand_total=Decimal("20"),
+        )
+        PurchaseItem.objects.create(
+            purchase=self.pending_purchase,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=PurchaseItem.ITEM_PENDING,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("2"),
+            base_quantity=Decimal("2"),
+            unit_cost=Decimal("10"),
+            amount=Decimal("20"),
+        )
+
+        self.pending_sale = Sale.objects.create(
+            reference_no="TI-CHAT-BACKORDER",
+            customer=self.customer,
+            customer_name=self.customer.company_name,
+            transaction_date=self.today,
+            status=Sale.STATUS_DRAFT,
+            grand_total=Decimal("50"),
+        )
+        sale_item = SaleItem.objects.create(
+            sale=self.pending_sale,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=SaleItem.ITEM_PENDING,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("5"),
+            base_quantity=Decimal("5"),
+            unit_price=Decimal("10"),
+            unit_cost=Decimal("6"),
+            amount=Decimal("50"),
+        )
+
+        self.quotation = Quotation.objects.create(
+            reference_no="QT-CHAT-001",
+            quotation_date=self.today,
+            customer=self.customer,
+            customer_name=self.customer.company_name,
+            grand_total=Decimal("50"),
+        )
+        QuotationItem.objects.create(
+            quotation=self.quotation,
+            product=self.product,
+            position=1,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("5"),
+            base_quantity=Decimal("5"),
+            sale_price=Decimal("10"),
+            cost_price=Decimal("6"),
+        )
+
+        self.billing_note = BillingNote.objects.create(
+            reference_no="BN-CHAT-001",
+            customer=self.customer,
+            customer_name=self.customer.company_name,
+            billing_note_date=self.today,
+            expected_payment_date=self.today - timedelta(days=1),
+            status=BillingNote.STATUS_ISSUED,
+            total_amount=Decimal("300"),
+        )
+        BillingNoteLine.objects.create(
+            billing_note=self.billing_note,
+            sale=self.pending_sale,
+            amount=Decimal("300"),
+        )
+
+        self.payment_batch = PaymentBatch.objects.create(
+            reference_no="PMT-CHAT-001",
+            supplier=self.supplier,
+            supplier_name=self.supplier.company_name,
+            batch_date=self.today,
+            planned_payment_date=self.today + timedelta(days=3),
+            status=PaymentBatch.STATUS_SCHEDULED,
+            total_amount=Decimal("120"),
+        )
+        PaymentBatchLine.objects.create(
+            payment_batch=self.payment_batch,
+            purchase=self.pending_purchase,
+            amount=Decimal("120"),
+        )
+
+        self.credit_note = CreditNote.objects.create(
+            reference_no="CN-CHAT-001",
+            customer=self.customer,
+            customer_name=self.customer.company_name,
+            sale=self.pending_sale,
+            sale_reference_no=self.pending_sale.reference_no,
+            billing_note=self.billing_note,
+            credit_note_date=self.today,
+            status=CreditNote.STATUS_ISSUED,
+            total_amount=Decimal("25"),
+        )
+        CreditNoteLine.objects.create(
+            credit_note=self.credit_note,
+            sale_item=sale_item,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            quantity=Decimal("1"),
+            unit_price=Decimal("25"),
+            amount=Decimal("25"),
+        )
+
+    def test_chat_summarizes_recent_quotations(self):
+        response = answer_inventory_question("Show recent quotations")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertIn("Quotation summary", response["answer"])
+        self.assertIn("QT-CHAT-001", response["answer"])
+
+    def test_chat_summarizes_credit_notes(self):
+        response = answer_inventory_question("Show credit notes")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertIn("Credit note summary", response["answer"])
+        self.assertIn("CN-CHAT-001", response["answer"])
+
+    def test_chat_reports_net_position(self):
+        response = answer_inventory_question("What is our net position?")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertIn("Net position", response["answer"])
+        self.assertIn("AR 300", response["answer"])
+        self.assertIn("AP 120", response["answer"])
+
+    def test_chat_reports_order_coverage_and_gap(self):
+        response = answer_inventory_question("Which customer orders are backordered?")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertIn("Order coverage", response["answer"])
+        self.assertIn("gap 2 units", response["answer"])
