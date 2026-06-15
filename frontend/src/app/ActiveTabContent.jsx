@@ -121,7 +121,10 @@ function ActiveTabContent({
         dashboard={dashboard}
         billingNotes={billingNotes}
         paymentBatches={paymentBatches}
+        sales={sales}
         onNavigate={onDashboardNavigate}
+        focusProductId={dashboardIntent?.tab === "inventory" ? dashboardIntent.focusProductId : null}
+        onIntentConsumed={onConsumeIntent}
       />
     );
   }
@@ -141,6 +144,8 @@ function ActiveTabContent({
         onPurchaseUpdate={handlePurchaseUpdate}
         onPurchaseDelete={handlePurchaseDelete}
         prefillDraft={dashboardIntent?.tab === "purchase-history" ? dashboardIntent.prefill : null}
+        focusPurchaseId={dashboardIntent?.tab === "purchase-history" ? dashboardIntent.focusId : null}
+        statusFilter={dashboardIntent?.tab === "purchase-history" ? dashboardIntent.statusFilter : null}
         onIntentConsumed={onConsumeIntent}
       />
     );

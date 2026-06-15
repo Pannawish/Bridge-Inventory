@@ -1,7 +1,5 @@
 import { formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
-import { useState } from "react";
-import InventoryDetailModal from "./InventoryDetailModal";
 import {
   formatUnits,
   getAvailable,
@@ -23,19 +21,8 @@ function HealthBadge({ health }) {
   );
 }
 
-function MovementBadge({ movement }) {
+function InventoryProductStockRow({ row, health, onShowDetails }) {
   const { t } = useLanguage();
-
-  return (
-    <span className={`inv-move-badge inv-move-${movement}`}>
-      {t(`inventory.movement.${movement}`)}
-    </span>
-  );
-}
-
-function InventoryProductStockRow({ row, health, movement }) {
-  const { t } = useLanguage();
-  const [detailOpen, setDetailOpen] = useState(false);
 
   const unit = row.unit || "";
   const available = getAvailable(row);
@@ -69,7 +56,6 @@ function InventoryProductStockRow({ row, health, movement }) {
           </div>
           <div className="inv-row-badges">
             <HealthBadge health={health} />
-            <MovementBadge movement={movement} />
           </div>
         </section>
 
@@ -131,17 +117,13 @@ function InventoryProductStockRow({ row, health, movement }) {
             <button
               type="button"
               className="secondary-button compact-button inv-row-expand-btn"
-              onClick={() => setDetailOpen(true)}
+              onClick={onShowDetails}
             >
               {t("inventory.showDetails")}
             </button>
           </div>
         </section>
       </div>
-
-      {detailOpen ? (
-        <InventoryDetailModal row={row} health={health} onClose={() => setDetailOpen(false)} />
-      ) : null}
     </article>
   );
 }

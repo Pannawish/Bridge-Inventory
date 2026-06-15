@@ -1,17 +1,14 @@
 /* ════════════════════════════════════════════════════════════════════
-   Operational control-tower dashboard — single viewport, no scroll.
-   The page fills the main-panel content box (flex:1) and lays its two
-   zones out on a grid: operational widgets · order-coverage footer.
-   (KPI figures now live on the Inventory page's control board.)
+   Operational control-tower dashboard. Two stacked zones — operational
+   widgets row · cycling+popular footer row — each sized to its content so
+   nothing clips. The page grows naturally and the window scrolls only when
+   the viewport is too short to show everything. (KPI figures live on the
+   Inventory page's control board.)
    ════════════════════════════════════════════════════════════════════ */
 .dashboard-page {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: min(100%, 1360px);
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) 200px;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
-  overflow: hidden;
 }
 
 .dash-card {
@@ -70,6 +67,20 @@
   min-height: 0;
 }
 
+/* Footer row: Stock Cycling + Popular Products side by side. */
+.dash-footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .dash-footer {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Pager (reorder) */
 .dash-pager {
   display: inline-flex;
@@ -108,10 +119,8 @@
 /* Locked to three equal slots — paging swaps content without reflowing. */
 .dash-reorder-list {
   display: grid;
-  flex: 1;
-  grid-template-rows: repeat(3, 1fr);
+  grid-template-rows: repeat(3, auto);
   gap: 8px;
-  min-height: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -120,8 +129,9 @@
 .dash-reorder-row {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 3px;
-  min-height: 0;
+  min-height: 78px;
 }
 
 .dash-reorder-row.is-empty {
@@ -192,12 +202,15 @@
 .dash-saw-key-item .k-reorder { border-top-color: var(--warning); border-top-style: dashed; }
 .dash-saw-key-item .k-safety { border-top-color: var(--danger); border-top-style: dashed; }
 
-/* The mini sawtooth (.saw-mini, styled in charts.css) fills the slot's spare height. */
+/* The mini sawtooth (.saw-mini, styled in charts.css) renders at a FIXED height
+   so it never collapses (dashboard now grows to content, not a fixed viewport
+   row) and never vertically distorts (the SVG uses preserveAspectRatio="none",
+   so a stretched slot would skew the curve). Any spare height in the card pools
+   below the list instead. */
 .dash-reorder-chart {
   display: flex;
-  flex: 1;
   align-items: stretch;
-  min-height: 0;
+  height: 54px;
 }
 
 .dash-reorder-eta {
@@ -243,9 +256,11 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
 .dash-segbar-part.is-clickable { cursor: pointer; transition: filter 0.12s ease; }
 .dash-segbar-part.is-clickable:hover { filter: brightness(1.08); }
 
-.seg-high { background: var(--accent); }
-.seg-long { background: var(--success); }
-.seg-oneOff { background: var(--warning); }
+.seg-veryFast { background: #157347; }
+.seg-fast { background: #2da44e; }
+.seg-steady { background: #bf8700; }
+.seg-slow { background: #b15c00; }
+.seg-oneOff { background: #6e7781; }
 .seg-ready { background: var(--success); }
 .seg-incoming { background: var(--accent); }
 .seg-gap { background: var(--danger); }
@@ -260,10 +275,9 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
 
 .dash-cycling-legend {
   display: flex;
-  flex: 1;
   flex-direction: column;
-  justify-content: center;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 8px;
   min-height: 0;
   margin: 0;
   padding: 0;
@@ -302,9 +316,11 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   white-space: nowrap;
 }
 
-.dash-cycle-badge.seg-high { background: var(--accent); }
-.dash-cycle-badge.seg-long { background: var(--success); }
-.dash-cycle-badge.seg-oneOff { background: #9a7b16; }
+.dash-cycle-badge.seg-veryFast { background: #157347; }
+.dash-cycle-badge.seg-fast { background: #2da44e; }
+.dash-cycle-badge.seg-steady { background: #bf8700; }
+.dash-cycle-badge.seg-slow { background: #b15c00; }
+.dash-cycle-badge.seg-oneOff { background: #6e7781; }
 
 .dash-cycling-def {
   flex: 1;
@@ -329,9 +345,11 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   font-weight: 800;
 }
 
-.dash-cycling-count.seg-high { background: var(--accent); }
-.dash-cycling-count.seg-long { background: var(--success); }
-.dash-cycling-count.seg-oneOff { background: #9a7b16; }
+.dash-cycling-count.seg-veryFast { background: #157347; }
+.dash-cycling-count.seg-fast { background: #2da44e; }
+.dash-cycling-count.seg-steady { background: #bf8700; }
+.dash-cycling-count.seg-slow { background: #b15c00; }
+.dash-cycling-count.seg-oneOff { background: #6e7781; }
 
 .dash-cycling-chev { color: var(--muted); font-size: 0.9rem; font-weight: 700; }
 
@@ -401,6 +419,13 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
 .dash-pipe-stage.stage-packing.is-live strong { color: #9a7b16; }
 .dash-pipe-stage.stage-delivering.is-live { border-bottom-color: var(--accent); }
 .dash-pipe-stage.stage-delivering.is-live strong { color: var(--accent); }
+
+/* Order-planning (purchase) pipeline stages. */
+.dash-pipe-stage.pstage-draft.is-live { border-bottom-color: var(--muted); }
+.dash-pipe-stage.pstage-ordered.is-live { border-bottom-color: var(--accent); }
+.dash-pipe-stage.pstage-ordered.is-live strong { color: var(--accent); }
+.dash-pipe-stage.pstage-receiving.is-live { border-bottom-color: var(--warning); }
+.dash-pipe-stage.pstage-receiving.is-live strong { color: #9a7b16; }
 
 .dash-do-list {
   display: flex;
@@ -660,7 +685,19 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
   min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dash-pop-row.is-clickable:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .dash-pop-rank {
@@ -778,6 +815,90 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
 .dmt-supplier { color: var(--muted); font-size: 0.76rem; }
 .dmt-metric { color: var(--accent); font-weight: 700; white-space: nowrap; }
 .dmt-go { width: 18px; color: var(--muted); text-align: right; }
+
+/* ── Stock-cycling drill-down: friendly product list ────────────────── */
+.dash-cycle-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-cycle-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.dash-cycle-item:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dash-cycle-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.dash-cycle-id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-cycle-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-cycle-sub {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.dash-cycle-freq {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.dash-cycle-freq strong {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.dash-cycle-freq span {
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.dash-cycle-go {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
 
 /* ── Quick-PO drawer (Zone 1) ───────────────────────────────────────── */
 .dash-drawer {

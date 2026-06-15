@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { withinRange } from "../components/FilterControls";
 import {
-  buildMovementClassifier,
   getBuyQuantity,
   getHealth,
   getStockValue,
@@ -14,7 +13,6 @@ function useInventoryDirectoryFilters({ dashboard, t }) {
   const [search, setSearch] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [healthSet, setHealthSet] = useState(() => new Set());
-  const [movementSet, setMovementSet] = useState(() => new Set());
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [supplierFilter, setSupplierFilter] = useState("all");
   const [valueMin, setValueMin] = useState("");
@@ -28,19 +26,13 @@ function useInventoryDirectoryFilters({ dashboard, t }) {
     [dashboard]
   );
 
-  const classifyMovement = useMemo(
-    () => buildMovementClassifier(stockReport),
-    [stockReport]
-  );
-
   const decoratedRows = useMemo(
     () =>
       stockReport.map((row) => ({
         row,
         health: getHealth(row),
-        movement: classifyMovement(row),
       })),
-    [stockReport, classifyMovement]
+    [stockReport]
   );
 
   const categoryOptions = useMemo(() => {
@@ -80,24 +72,11 @@ function useInventoryDirectoryFilters({ dashboard, t }) {
     return { inventoryValue, attention, approaching, deadCount, deadValue };
   }, [decoratedRows]);
 
-  const movementCounts = useMemo(
-    () =>
-      decoratedRows.reduce(
-        (counts, { movement }) => {
-          counts[movement] = (counts[movement] || 0) + 1;
-          return counts;
-        },
-        { fast: 0, slow: 0, dead: 0 }
-      ),
-    [decoratedRows]
-  );
-
   const filteredRows = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     const daysLimit = daysWithin === "all" ? null : Number(daysWithin);
-    const matches = decoratedRows.filter(({ row, health, movement }) => {
+    const matches = decoratedRows.filter(({ row, health }) => {
       if (healthSet.size && !healthSet.has(health)) return false;
-      if (movementSet.size && !movementSet.has(movement)) return false;
       if (categoryFilter !== "all" && `${row.category ?? ""}`.trim() !== categoryFilter) {
         return false;
       }
@@ -134,13 +113,11 @@ function useInventoryDirectoryFilters({ dashboard, t }) {
     ).map((row) => ({
       row,
       health: getHealth(row),
-      movement: classifyMovement(row),
     }));
   }, [
     decoratedRows,
     search,
     healthSet,
-    movementSet,
     categoryFilter,
     supplierFilter,
     valueMin,
@@ -148,12 +125,10 @@ function useInventoryDirectoryFilters({ dashboard, t }) {
     daysWithin,
     needsReorderOnly,
     sortKey,
-    classifyMovement,
   ]);
 
   const activeFilterCount =
     (healthSet.size ? 1 : 0) +
-    (movementSet.size ? 1 : 0) +
     (categoryFilter !== "all" ? 1 : 0) +
     (supplierFilter !== "all" ? 1 : 0) +
     (valueMin || valueMax ? 1 : 0) +
@@ -170,13 +145,6 @@ function useInventoryDirectoryFilters({ dashboard, t }) {
       key: `health-${value}`,
       label: t(`inventory.health.${value}`),
       onRemove: () => toggleInSet(setHealthSet, value),
-    })
-  );
-  movementSet.forEach((value) =>
-    activeChips.push({
-      key: `movement-${value}`,
-      label: t(`inventory.movement.${value}`),
-      onRemove: () => toggleInSet(setMovementSet, value),
     })
   );
   if (categoryFilter !== "all") {
@@ -233,7 +201,6 @@ function useInventoryDirectoryFilters({ dashboard, t }) {
   function resetFilters() {
     setSearch("");
     setHealthSet(new Set());
-    setMovementSet(new Set());
     setCategoryFilter("all");
     setSupplierFilter("all");
     setValueMin("");
@@ -248,7 +215,6 @@ function useInventoryDirectoryFilters({ dashboard, t }) {
     filterOpen,
     setFilterOpen,
     healthSet,
-    movementSet,
     categoryFilter,
     setCategoryFilter,
     supplierFilter,
@@ -267,14 +233,12 @@ function useInventoryDirectoryFilters({ dashboard, t }) {
     categoryOptions,
     supplierFilterOptions,
     summary,
-    movementCounts,
     filteredRows,
     activeFilterCount,
     quickPresets,
     activeChips,
     resetFilters,
     setHealthSet,
-    setMovementSet,
   };
 }
 

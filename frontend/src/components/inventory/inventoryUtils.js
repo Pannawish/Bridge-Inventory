@@ -62,22 +62,8 @@ export function getHealth(row) {
   return "healthy";
 }
 
-export function buildMovementClassifier(rows) {
-  const sellingDemands = rows.map(getDailyDemand).filter((demand) => demand > 0);
-  const averageDemand = sellingDemands.length
-    ? sellingDemands.reduce((sum, demand) => sum + demand, 0) / sellingDemands.length
-    : 0;
-
-  return (row) => {
-    const demand = getDailyDemand(row);
-    if (demand <= 0) return "dead";
-    return demand >= averageDemand ? "fast" : "slow";
-  };
-}
-
 export const SORT_OPTIONS = ["priority", "demand", "value", "days", "buy"];
 export const HEALTH_KEYS = ["low", "watch", "healthy", "dead"];
-export const MOVEMENT_KEYS = ["fast", "slow", "dead"];
 export const DAYS_OPTIONS = ["7", "14", "30"];
 
 export function sortRows(rows, sortKey) {

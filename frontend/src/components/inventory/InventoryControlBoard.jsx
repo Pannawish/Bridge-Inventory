@@ -13,7 +13,6 @@ import {
   getReorderLevel,
   getStockValue,
   getSupplierOptions,
-  buildMovementClassifier,
 } from "./inventoryUtils";
 
 const isOpenAr = (note) => !["fully_received", "cancelled"].includes(note.status);
@@ -58,23 +57,21 @@ function InventoryControlBoard({ dashboard, billingNotes = [], paymentBatches = 
   const todayStr = cashflow.today || formatDate(new Date());
 
   const stock = useMemo(() => {
-    const classify = buildMovementClassifier(stockReport);
     let inventoryValue = 0;
     let deadValue = 0;
-    const movement = { fast: 0, slow: 0, dead: 0 };
+    const healthCounts = { low: 0, watch: 0, healthy: 0, dead: 0 };
     const lowRows = [];
     const approachingRows = [];
     stockReport.forEach((row) => {
       const value = getStockValue(row);
       inventoryValue += value;
-      const health = getHealth(row);
-      const move = classify(row);
-      movement[move] = (movement[move] || 0) + 1;
-      if (health === "dead") deadValue += value;
+      const rowHealth = getHealth(row);
+      healthCounts[rowHealth] = (healthCounts[rowHealth] || 0) + 1;
+      if (rowHealth === "dead") deadValue += value;
       const reorder = getReorderLevel(row);
       const available = getAvailable(row);
       if (reorder > 0 && available <= reorder) lowRows.push(row);
-      else if (health === "watch") approachingRows.push(row);
+      else if (rowHealth === "watch") approachingRows.push(row);
     });
     const valueRows = [...stockReport].sort((a, b) => getStockValue(b) - getStockValue(a));
     lowRows.sort(
@@ -83,7 +80,7 @@ function InventoryControlBoard({ dashboard, billingNotes = [], paymentBatches = 
     return {
       inventoryValue,
       deadValue,
-      movement,
+      healthCounts,
       lowRows,
       approachingRows,
       valueRows,
@@ -267,20 +264,24 @@ function InventoryControlBoard({ dashboard, billingNotes = [], paymentBatches = 
           onClose={() => setOpenMetric(null)}
         >
           <div className="inv-metric-stats">
-            <div className="inv-metric-stat tone-positive">
-              <strong>{formatUnits(stock.movement.fast)}</strong>
-              <span>{t("inventory.movement.fast")}</span>
+            <div className="inv-metric-stat tone-danger">
+              <strong>{formatUnits(stock.healthCounts.low)}</strong>
+              <span>{t("inventory.health.low")}</span>
             </div>
-            <div className="inv-metric-stat tone-accent">
-              <strong>{formatUnits(stock.movement.slow)}</strong>
-              <span>{t("inventory.movement.slow")}</span>
+            <div className="inv-metric-stat tone-warning">
+              <strong>{formatUnits(stock.healthCounts.watch)}</strong>
+              <span>{t("inventory.health.watch")}</span>
+            </div>
+            <div className="inv-metric-stat tone-positive">
+              <strong>{formatUnits(stock.healthCounts.healthy)}</strong>
+              <span>{t("inventory.health.healthy")}</span>
             </div>
             <div className="inv-metric-stat tone-neutral">
-              <strong>{formatUnits(stock.movement.dead)}</strong>
-              <span>{t("inventory.movement.dead")}</span>
+              <strong>{formatUnits(stock.healthCounts.dead)}</strong>
+              <span>{t("inventory.health.dead")}</span>
             </div>
           </div>
-          <p className="inv-metric-hint">{t("inventory.board.skus.movementHint")}</p>
+          <p className="inv-metric-hint">{t("inventory.board.skus.healthHint")}</p>
         </InventoryMetricModal>
       ) : null}
 

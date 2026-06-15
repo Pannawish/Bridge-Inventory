@@ -3,12 +3,23 @@ import { useLanguage } from "../i18n/LanguageContext";
 import InventoryDirectorySection from "./inventory/InventoryDirectorySection";
 import InventoryControlBoard from "./inventory/InventoryControlBoard";
 import InventoryReferenceModal from "./inventory/InventoryReferenceModal";
+import InventoryDetailModal from "./inventory/InventoryDetailModal";
+import { getHealth } from "./inventory/inventoryUtils";
 import useInventoryDirectoryFilters from "../hooks/useInventoryDirectoryFilters";
 
-function InventoryPage({ dashboard, billingNotes = [], paymentBatches = [], onNavigate }) {
+function InventoryPage({
+  dashboard,
+  billingNotes = [],
+  paymentBatches = [],
+  sales = [],
+  onNavigate,
+  focusProductId = null,
+  onIntentConsumed,
+}) {
   const { t } = useLanguage();
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [referenceOpen, setReferenceOpen] = useState(false);
+  const [detailRow, setDetailRow] = useState(null);
   const {
     search,
     setSearch,
@@ -16,8 +27,6 @@ function InventoryPage({ dashboard, billingNotes = [], paymentBatches = [], onNa
     setFilterOpen,
     healthSet,
     setHealthSet,
-    movementSet,
-    setMovementSet,
     categoryFilter,
     setCategoryFilter,
     supplierFilter,
@@ -44,6 +53,22 @@ function InventoryPage({ dashboard, billingNotes = [], paymentBatches = [], onNa
     dashboard,
     t,
   });
+
+  // Deep-link from the dashboard's Popular / Stock-Cycling widgets: open the
+  // targeted product's detail straight away, then clear the one-shot intent.
+  useEffect(() => {
+    if (!focusProductId) {
+      return;
+    }
+    const target = stockReport.find(
+      (row) => `${row.product_id}` === `${focusProductId}`
+    );
+    if (target) {
+      setDetailRow({ row: target, health: getHealth(target) });
+    }
+    onIntentConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusProductId, stockReport]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -91,8 +116,6 @@ function InventoryPage({ dashboard, billingNotes = [], paymentBatches = [], onNa
         onResetFilters={resetFilters}
         healthSet={healthSet}
         setHealthSet={setHealthSet}
-        movementSet={movementSet}
-        setMovementSet={setMovementSet}
         categoryFilter={categoryFilter}
         onCategoryFilterChange={setCategoryFilter}
         categoryOptions={categoryOptions}
@@ -108,7 +131,17 @@ function InventoryPage({ dashboard, billingNotes = [], paymentBatches = [], onNa
         valueMax={valueMax}
         onValueMaxChange={setValueMax}
         onCloseFilters={() => setFilterOpen(false)}
+        onOpenDetail={setDetailRow}
       />
+
+      {detailRow ? (
+        <InventoryDetailModal
+          row={detailRow.row}
+          health={detailRow.health}
+          sales={sales}
+          onClose={() => setDetailRow(null)}
+        />
+      ) : null}
 
       {referenceOpen ? <InventoryReferenceModal onClose={() => setReferenceOpen(false)} /> : null}
       {showScrollTop ? (

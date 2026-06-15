@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { formatDate } from "../../format";
 import { formatCurrency } from "../products/productUtils";
 import { api } from "../../api";
+import { getItemBaseQuantity } from "../../unitConversion";
 import DocumentRefChip from "../DocumentRefChip";
 import DocumentRefModal from "../DocumentRefModal";
 import { ReorderSawtoothFull } from "../charts/ReorderSawtooth";
@@ -14,6 +15,58 @@ import {
   getDailyDemand,
   getReorderLevel,
 } from "./inventoryUtils";
+
+const ACTIVE_SALE_ITEM = (status) =>
+  status !== "cancelled" && status !== "returned" && status !== "draft";
+
+// The sales orders that consumed this product, newest first, plus a summary
+// (total units, distinct orders, and units/day over the active span). This is
+// the "why is it popular" evidence behind the dashboard ranking.
+function buildSalesActivity(sales, productId) {
+  const entries = [];
+  const orderIds = new Set();
+  let totalUnits = 0;
+  let firstDate = null;
+  let lastDate = null;
+
+  (Array.isArray(sales) ? sales : []).forEach((sale) => {
+    if (!sale || sale.status === "cancelled") return;
+    (sale.items || []).forEach((item, index) => {
+      if (`${item.product_id}` !== `${productId}`) return;
+      const status = item.item_status || item.status || sale.status;
+      if (!ACTIVE_SALE_ITEM(status)) return;
+      const qty = getItemBaseQuantity(item);
+      if (!(qty > 0)) return;
+      entries.push({
+        key: `${sale.id}-${item.id ?? index}`,
+        ref: sale.reference_no || sale.id,
+        date: sale.transaction_date || "",
+        customer: sale.customer_name || "",
+        qty,
+      });
+      totalUnits += qty;
+      orderIds.add(`${sale.id}`);
+      const date = sale.transaction_date;
+      if (date) {
+        if (!firstDate || date < firstDate) firstDate = date;
+        if (!lastDate || date > lastDate) lastDate = date;
+      }
+    });
+  });
+
+  entries.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+
+  let perDay = 0;
+  if (firstDate && lastDate) {
+    const spanDays = Math.max(
+      1,
+      Math.round((new Date(lastDate) - new Date(firstDate)) / 86_400_000) + 1
+    );
+    perDay = totalUnits / spanDays;
+  }
+
+  return { entries, totalUnits, orderCount: orderIds.size, perDay };
+}
 
 const HEALTH_TONE = { low: "danger", watch: "warning", healthy: "positive", dead: "neutral" };
 
@@ -30,7 +83,7 @@ function CalcLine({ label, value, note, highlight }) {
 // Product reorder-point detail — same modal chrome as the purchase/sale
 // TransactionDetailModal: reorder-point graph + the calculation beside it,
 // with the FIFO stock layers below.
-function InventoryDetailModal({ row, health, onClose }) {
+function InventoryDetailModal({ row, health, sales = [], onClose }) {
   const { t } = useLanguage();
   const [layers, setLayers] = useState([]);
   const [layersLoading, setLayersLoading] = useState(false);
@@ -78,6 +131,10 @@ function InventoryDetailModal({ row, health, onClose }) {
   const layersTotal = layers.reduce(
     (sum, layer) => sum + num(layer.available_quantity) * num(layer.base_unit_cost),
     0
+  );
+  const salesActivity = useMemo(
+    () => buildSalesActivity(sales, row.product_id),
+    [sales, row.product_id]
   );
 
   return (
@@ -171,6 +228,52 @@ function InventoryDetailModal({ row, health, onClose }) {
               />
             </div>
           </div>
+
+        <div className="inv-detail-block">
+          <p className="inv-detail-heading">{t("inventory.salesActivity.title")}</p>
+          {salesActivity.entries.length === 0 ? (
+            <p className="empty-copy inv-layers-empty">{t("inventory.salesActivity.empty")}</p>
+          ) : (
+            <>
+              <p className="inv-sales-summary">
+                {t("inventory.salesActivity.summary", {
+                  units: formatUnits(Math.round(salesActivity.totalUnits)),
+                  unit,
+                  orders: formatUnits(salesActivity.orderCount),
+                  perDay: formatUnits(Math.round(salesActivity.perDay * 100) / 100),
+                })}
+              </p>
+              <div className="transaction-table-window">
+                <div className="table-scroll inv-layers-scroll">
+                  <table className="transaction-history-table inv-layers-table">
+                    <thead>
+                      <tr>
+                        <th>{t("inventory.salesActivity.colDate")}</th>
+                        <th>{t("inventory.salesActivity.colRef")}</th>
+                        <th>{t("inventory.salesActivity.colCustomer")}</th>
+                        <th style={{ textAlign: "right" }}>{t("inventory.salesActivity.colQty")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {salesActivity.entries.map((entry) => (
+                        <tr key={entry.key} className="partner-table-row">
+                          <td>{entry.date ? formatDate(entry.date) : "—"}</td>
+                          <td>
+                            <strong>{entry.ref}</strong>
+                          </td>
+                          <td>{entry.customer || "—"}</td>
+                          <td style={{ textAlign: "right" }}>
+                            {formatUnits(entry.qty)} {unit}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="inv-detail-block">
           <p className="inv-detail-heading">{t("inventory.layers.title")}</p>

@@ -1,7 +1,6 @@
 import {
   DAYS_OPTIONS,
   HEALTH_KEYS,
-  MOVEMENT_KEYS,
   SORT_OPTIONS,
   toggleInSet,
 } from "./inventoryUtils";
@@ -21,8 +20,6 @@ function InventoryDirectorySection({
   onResetFilters,
   healthSet,
   setHealthSet,
-  movementSet,
-  setMovementSet,
   categoryFilter,
   onCategoryFilterChange,
   categoryOptions,
@@ -37,6 +34,7 @@ function InventoryDirectorySection({
   onValueMinChange,
   valueMax,
   onValueMaxChange,
+  onOpenDetail,
 }) {
   const { t } = useLanguage();
 
@@ -96,19 +94,6 @@ function InventoryDirectorySection({
       })),
       selectedValues: [...healthSet],
       onToggle: (value) => toggleInSet(setHealthSet, value),
-    },
-    {
-      id: "movement",
-      type: "chipGroup",
-      section: "advanced",
-      span: 2,
-      label: t("inventory.filterMovement"),
-      options: MOVEMENT_KEYS.map((key) => ({
-        value: key,
-        label: t(`inventory.movement.${key}`),
-      })),
-      selectedValues: [...movementSet],
-      onToggle: (value) => toggleInSet(setMovementSet, value),
     },
     {
       id: "days",
@@ -174,12 +159,12 @@ function InventoryDirectorySection({
         <p className="empty-copy">{t("inventory.noMatch")}</p>
       ) : (
         <div className="inv-card-list">
-          {filteredRows.map(({ row, health, movement }) => (
+          {filteredRows.map(({ row, health }) => (
             <InventoryProductStockRow
               key={row.product_id}
               row={row}
               health={health}
-              movement={movement}
+              onShowDetails={() => onOpenDetail({ row, health })}
             />
           ))}
         </div>

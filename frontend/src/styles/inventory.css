@@ -293,31 +293,6 @@
   background: #9aa3b5;
 }
 
-/* ── Movement badge (Fast / Slow / No sales) ────────────── */
-.inv-move-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.76rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.inv-move-fast {
-  color: #0f5a3d;
-  background: #e9fbf2;
-}
-
-.inv-move-slow {
-  color: #7a5b00;
-  background: #fff6e0;
-}
-
-.inv-move-dead {
-  color: #5b6577;
-  background: #eef1f6;
-}
-
 /* ── Formula reference modal ────────────────────────────── */
 .inv-ref-modal {
   width: min(96vw, 900px);
@@ -334,23 +309,171 @@
 
 .inv-ref-stack {
   display: grid;
-  gap: 16px;
-  margin-top: 8px;
+  gap: 22px;
+  margin-top: 14px;
 }
 
-.inv-ref-card {
+.inv-ref-section-head {
+  margin-bottom: 12px;
+}
+
+.inv-ref-section-head h4 {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+
+.inv-ref-section-head p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+/* Definition cards: two-up on wide screens, single column when tight. */
+.inv-ref-terms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.inv-ref-term {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 12px;
   background: var(--panel-muted);
 }
 
-.inv-ref-table th,
-.inv-ref-table td {
-  vertical-align: top;
+.inv-ref-term.is-key {
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel-muted));
 }
 
+.inv-ref-term-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 4px;
+  font-size: 0.94rem;
+  font-weight: 800;
+}
+
+.inv-ref-term-icon {
+  font-size: 1.02rem;
+  line-height: 1;
+}
+
+.inv-ref-term-star {
+  color: #d9a400;
+  font-size: 0.82rem;
+}
+
+.inv-ref-term-plain {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* Visual formula: operand pills with plain operators between them. */
 .inv-ref-formula {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin: 9px 0 0;
+}
+
+.inv-ref-pill {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.inv-ref-op {
   color: var(--muted);
   font-size: 0.82rem;
-  line-height: 1.5;
+  font-weight: 800;
+}
+
+.inv-ref-term.is-key .inv-ref-pill {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.inv-ref-term-eg {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.inv-ref-eg-tag {
+  margin-right: 6px;
+  color: var(--accent);
+  font-weight: 700;
+  font-style: italic;
+}
+
+/* Stock-cycling bands — dots reuse the dashboard seg-* colors. */
+.inv-ref-bands-intro {
+  margin: 14px 0 8px;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.inv-ref-bands {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inv-ref-band {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-muted);
+}
+
+.inv-ref-band-dot {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+.inv-ref-band-name {
+  flex: 0 0 96px;
+  font-weight: 800;
+  font-size: 0.88rem;
+}
+
+.inv-ref-band-rule {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 540px) {
+  .inv-ref-band {
+    flex-wrap: wrap;
+  }
+  .inv-ref-band-name {
+    flex-basis: auto;
+  }
+  .inv-ref-band-rule {
+    flex-basis: 100%;
+  }
 }
 
 .inv-scroll-top-button {
@@ -442,6 +565,13 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.inv-sales-summary {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 600;
 }
 
 .inv-graph-frame {
@@ -632,6 +762,8 @@
 .inv-metric-stat span { color: var(--muted); font-size: 0.72rem; font-weight: 600; }
 .inv-metric-stat.tone-positive strong { color: var(--success); }
 .inv-metric-stat.tone-accent strong { color: var(--accent); }
+.inv-metric-stat.tone-danger strong { color: var(--danger); }
+.inv-metric-stat.tone-warning strong { color: #9a7b16; }
 
 .inv-net-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
 .inv-net-cell {

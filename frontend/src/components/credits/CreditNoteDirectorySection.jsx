@@ -63,6 +63,7 @@ function CreditNoteDirectorySection({
       id: "date",
       type: "daterange",
       section: "primary",
+      span: 2,
       label: t("filterControls.dateRange"),
       from: dateFrom,
       to: dateTo,

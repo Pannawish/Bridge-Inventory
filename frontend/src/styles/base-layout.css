@@ -29,6 +29,13 @@ body,
   overflow-x: hidden;
 }
 
+/* Always reserve the vertical scrollbar gutter so the layout never shifts
+   sideways when a page's content grows/shrinks past one screen (e.g. filtering
+   the inventory list) or when a modal locks background scroll. */
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Lock the background page scroll while any full-screen overlay is open, on
    every page (card popups share .modal-backdrop; the mobile nav uses
    .sidebar-backdrop). */

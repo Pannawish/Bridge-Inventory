@@ -17,6 +17,8 @@ function PurchaseHistoryPage({
   onPurchaseUpdate,
   onPurchaseDelete,
   prefillDraft = null,
+  focusPurchaseId = null,
+  statusFilter = null,
   onIntentConsumed,
 }) {
   const state = usePurchaseHistoryPageState({
@@ -45,6 +47,33 @@ function PurchaseHistoryPage({
     state.setShowNewPurchaseForm(true);
     onIntentConsumed?.();
   }, [prefillDraft]);
+
+  // Deep-link from the dashboard's Order Planning widget: open the targeted PO
+  // straight into its editor, then clear the one-shot intent.
+  useEffect(() => {
+    if (!focusPurchaseId) {
+      return;
+    }
+    const target = (allPurchases || []).find((purchase) => purchase.id === focusPurchaseId);
+    if (target) {
+      state.setShowNewPurchaseForm(false);
+      state.setEditingPurchase(target);
+    }
+    onIntentConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusPurchaseId, allPurchases]);
+
+  // Deep-link from Order Planning's stage chips / purchasing center: pre-filter
+  // the list to a stage (e.g. POs still in Draft) and reveal the filter panel.
+  useEffect(() => {
+    if (!statusFilter || statusFilter.length === 0) {
+      return;
+    }
+    state.setSelectedStatuses(statusFilter);
+    state.setFilterOpen(true);
+    onIntentConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter]);
 
   if (state.showNewPurchaseForm) {
     return (
