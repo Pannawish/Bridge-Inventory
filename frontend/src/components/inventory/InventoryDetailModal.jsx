@@ -1,11 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { formatDate } from "../../format";
-import { formatCurrency } from "../products/productUtils";
-import { api } from "../../api";
 import { getItemBaseQuantity } from "../../unitConversion";
-import DocumentRefChip from "../DocumentRefChip";
-import DocumentRefModal from "../DocumentRefModal";
 import { ReorderSawtoothFull } from "../charts/ReorderSawtooth";
 import {
   num,
@@ -85,40 +81,6 @@ function CalcLine({ label, value, note, highlight }) {
 // with the FIFO stock layers below.
 function InventoryDetailModal({ row, health, sales = [], onClose }) {
   const { t } = useLanguage();
-  const [layers, setLayers] = useState([]);
-  const [layersLoading, setLayersLoading] = useState(false);
-  const [layersError, setLayersError] = useState("");
-  const [docRefModal, setDocRefModal] = useState(null);
-
-  useEffect(() => {
-    if (!row.product_id) return undefined;
-
-    let isMounted = true;
-    async function fetchLayers() {
-      setLayersLoading(true);
-      setLayersError("");
-      try {
-        const data = await api.getProductStockLayers(row.product_id);
-        if (isMounted) {
-          const sorted = (data?.layers || []).sort((a, b) => {
-            const dateA = a.received_date || a.transaction_date || "";
-            const dateB = b.received_date || b.transaction_date || "";
-            return dateA.localeCompare(dateB);
-          });
-          setLayers(sorted);
-        }
-      } catch (err) {
-        if (isMounted) setLayersError(err.message || "Failed to load layers.");
-      } finally {
-        if (isMounted) setLayersLoading(false);
-      }
-    }
-
-    fetchLayers();
-    return () => {
-      isMounted = false;
-    };
-  }, [row.product_id]);
 
   const unit = row.unit || "";
   const available = getAvailable(row);
@@ -128,10 +90,6 @@ function InventoryDetailModal({ row, health, sales = [], onClose }) {
   const days = row.days_until_stockout;
   const leadTime = num(row.average_lead_time_days);
   const safety = num(row.safety_stock);
-  const layersTotal = layers.reduce(
-    (sum, layer) => sum + num(layer.available_quantity) * num(layer.base_unit_cost),
-    0
-  );
   const salesActivity = useMemo(
     () => buildSalesActivity(sales, row.product_id),
     [sales, row.product_id]
@@ -275,89 +233,8 @@ function InventoryDetailModal({ row, health, sales = [], onClose }) {
           )}
         </div>
 
-        <div className="inv-detail-block">
-          <p className="inv-detail-heading">{t("inventory.layers.title")}</p>
-          {layersLoading && <div className="notice-banner inv-layers-notice">{t("common.loading")}</div>}
-          {layersError && <div className="error-banner inv-layers-notice">{layersError}</div>}
-          {!layersLoading && !layersError && layers.length === 0 && (
-            <p className="empty-copy inv-layers-empty">{t("inventory.noLayers")}</p>
-          )}
-          {!layersLoading && !layersError && layers.length > 0 && (
-            <div className="transaction-table-window">
-              <div className="table-scroll inv-layers-scroll">
-                <table className="transaction-history-table inv-layers-table">
-                  <thead>
-                    <tr>
-                      <th>{t("products.supplierColumn")}</th>
-                      <th>{t("products.batchRefColumn")}</th>
-                      <th>{t("products.receivedDateColumn")}</th>
-                      <th style={{ textAlign: "right" }}>{t("products.availableStockColumn")}</th>
-                      <th style={{ textAlign: "right" }}>{t("products.costPerUnitColumn")}</th>
-                      <th style={{ textAlign: "right" }}>{t("products.totalValueColumn")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {layers.map((layer) => (
-                      <tr key={layer.purchase_item_id} className="partner-table-row">
-                        <td>
-                          <strong>{layer.supplier_name || t("common.unknown")}</strong>
-                        </td>
-                        <td>
-                          {layer.purchase_reference_no || layer.purchase_id ? (
-                            <DocumentRefChip
-                              label={layer.purchase_reference_no || layer.purchase_id}
-                              docType="purchase"
-                              onClick={() =>
-                                setDocRefModal({
-                                  docType: "purchase",
-                                  docId: layer.purchase_id,
-                                  referenceNo: layer.purchase_reference_no || layer.purchase_id,
-                                })
-                              }
-                            />
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td>
-                          {layer.received_date ? formatDate(layer.received_date) : formatDate(layer.transaction_date)}
-                        </td>
-                        <td style={{ textAlign: "right" }}>
-                          {formatUnits(layer.available_quantity)} {unit}
-                        </td>
-                        <td style={{ textAlign: "right" }}>{formatCurrency(layer.base_unit_cost)}</td>
-                        <td style={{ textAlign: "right" }} className="layer-total-val">
-                          {formatCurrency(layer.available_quantity * layer.base_unit_cost)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan="5" style={{ textAlign: "right" }}>
-                        <strong>{t("inventory.layers.total")}</strong>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <strong>{formatCurrency(layersTotal)}</strong>
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
-
-      {docRefModal ? (
-        <DocumentRefModal
-          docType={docRefModal.docType}
-          docId={docRefModal.docId}
-          referenceNo={docRefModal.referenceNo}
-          onClose={() => setDocRefModal(null)}
-        />
-      ) : null}
     </>
   );
 }
