@@ -9,8 +9,8 @@ import { ReorderSawtoothMini } from "./charts/ReorderSawtooth";
 // in cycles/year so the bands read as a clean frequency ladder.
 const CYCLE_BANDS = ["veryFast", "fast", "steady", "slow", "oneOff"];
 const CYCLE_THRESHOLDS = { veryFast: 26, fast: 12, steady: 4 }; // cycles/year
-const REORDER_PAGE_SIZE = 3;
-const DISPATCH_LIMIT = 6;
+const REORDER_PAGE_SIZE = 5;
+const DISPATCH_LIMIT = 4;
 const CLOSED_SALE_STATUSES = new Set(["delivered", "cancelled", "returned"]);
 const SALE_STATUS_TONE = {
   draft: "neutral",
@@ -606,6 +606,9 @@ function PopularProductsWidget({ coverage, onOpenProduct }) {
   const [windowKey, setWindowKey] = useState(windows[0]?.key);
   const activeWindow = windows.some((w) => w.key === windowKey) ? windowKey : windows[0]?.key;
   const popular = coverage?.popular?.[activeWindow] || [];
+  // Top seller anchors the per-row magnitude bar (fills the name→qty gap with a
+  // relative-volume cue instead of dead whitespace).
+  const maxUnits = popular.reduce((max, item) => Math.max(max, num(item.units)), 0);
 
   return (
     <section className="dash-card dash-popular">
@@ -632,25 +635,30 @@ function PopularProductsWidget({ coverage, onOpenProduct }) {
         <p className="dash-pop-empty">{t("dashboard.popular.empty")}</p>
       ) : (
         <ul className="dash-pop-list">
-          {popular.map((item, index) => (
-            <li key={item.product_id || index}>
-              <button
-                type="button"
-                className="dash-pop-row is-clickable"
-                onClick={() => onOpenProduct(item)}
-                title={t("dashboard.popular.open")}
-              >
-                <span className="dash-pop-rank">{index + 1}</span>
-                <span className="dash-pop-name" title={item.product_name}>
-                  {item.product_name || "—"}
-                </span>
-                <span className="dash-pop-metric">
-                  {formatUnits(item.units)} {item.unit || ""}
-                </span>
-                <span className="dash-do-go" aria-hidden="true">→</span>
-              </button>
-            </li>
-          ))}
+          {popular.map((item, index) => {
+            const share = maxUnits > 0 ? (num(item.units) / maxUnits) * 100 : 0;
+            return (
+              <li key={item.product_id || index}>
+                <button
+                  type="button"
+                  className="dash-pop-row is-clickable"
+                  style={{ "--bar": `${share}%` }}
+                  onClick={() => onOpenProduct(item)}
+                  title={t("dashboard.popular.open")}
+                >
+                  <span className="dash-pop-bar" aria-hidden="true" />
+                  <span className="dash-pop-rank">{index + 1}</span>
+                  <span className="dash-pop-name" title={item.product_name}>
+                    {item.product_name || "—"}
+                  </span>
+                  <span className="dash-pop-metric">
+                    {formatUnits(item.units)} {item.unit || ""}
+                  </span>
+                  <span className="dash-do-go" aria-hidden="true">→</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
@@ -839,24 +847,26 @@ function Dashboard({ dashboard, sales = [], purchases = [], onNavigate }) {
   return (
     <div className="dashboard-page">
       <div className="dash-grid">
+        <div className="dash-grid-left">
+          <OrderPlanningWidget
+            orders={openPurchases.slice(0, DISPATCH_LIMIT)}
+            totalOpen={openPurchases.length}
+            stageCounts={purchaseStageCounts}
+            onOpenPurchase={openPurchase}
+            onOpenStage={openPurchaseStage}
+            onOpenCenter={() => openPurchaseStage(OPEN_PURCHASE_STATUSES)}
+          />
+          <DeliveryPipelineWidget
+            orders={openOrders.slice(0, DISPATCH_LIMIT)}
+            totalOpen={openOrders.length}
+            stageCounts={stageCounts}
+            delayedSkus={delayedSkus}
+            onOpenSale={openSale}
+            onOpenStage={openStage}
+            onOpenCenter={() => openStage(OPEN_SALE_STATUSES)}
+          />
+        </div>
         <UrgentReorderWidget rows={reorderItems} onQuickOrder={setQuickPo} />
-        <OrderPlanningWidget
-          orders={openPurchases.slice(0, DISPATCH_LIMIT)}
-          totalOpen={openPurchases.length}
-          stageCounts={purchaseStageCounts}
-          onOpenPurchase={openPurchase}
-          onOpenStage={openPurchaseStage}
-          onOpenCenter={() => openPurchaseStage(OPEN_PURCHASE_STATUSES)}
-        />
-        <DeliveryPipelineWidget
-          orders={openOrders.slice(0, DISPATCH_LIMIT)}
-          totalOpen={openOrders.length}
-          stageCounts={stageCounts}
-          delayedSkus={delayedSkus}
-          onOpenSale={openSale}
-          onOpenStage={openStage}
-          onOpenCenter={() => openStage(OPEN_SALE_STATUSES)}
-        />
       </div>
 
       <div className="dash-footer">

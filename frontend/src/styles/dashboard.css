@@ -60,11 +60,28 @@
 .tone-positive { color: var(--success); }
 
 /* ── Operational widget row ─────────────────────────────────────────── */
+/* Left column = Order + Delivery planning stacked; right column = the wider
+   Urgent-Reorder hero. align-items:start lets each side size to its content
+   (no forced stretching / empty pooled space). */
 .dash-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  align-items: start;
   gap: 14px;
   min-height: 0;
+}
+
+.dash-grid-left {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Footer row: Stock Cycling + Popular Products side by side. */
@@ -115,12 +132,12 @@
   text-align: center;
 }
 
-/* Urgent reorder list */
-/* Locked to three equal slots — paging swaps content without reflowing. */
+/* Urgent reorder list (hero) */
+/* Fixed slot count — paging swaps content without reflowing. */
 .dash-reorder-list {
   display: grid;
-  grid-template-rows: repeat(3, auto);
-  gap: 8px;
+  grid-template-rows: repeat(5, auto);
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -130,8 +147,8 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 3px;
-  min-height: 78px;
+  gap: 4px;
+  min-height: 96px;
 }
 
 .dash-reorder-row.is-empty {
@@ -210,7 +227,7 @@
 .dash-reorder-chart {
   display: flex;
   align-items: stretch;
-  height: 54px;
+  height: 72px;
 }
 
 .dash-reorder-eta {
@@ -322,13 +339,16 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
 .dash-cycle-badge.seg-slow { background: #b15c00; }
 .dash-cycle-badge.seg-oneOff { background: #6e7781; }
 
+/* Definition sits immediately after the badge (left-aligned) so the label and
+   its meaning read as one unit; the flexible space pools before the count on
+   the right instead of as a void between badge and text. */
 .dash-cycling-def {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   color: var(--muted);
   font-size: 0.7rem;
-  text-align: right;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -682,12 +702,14 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
 }
 
 .dash-pop-row {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 7px 10px;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
@@ -695,9 +717,26 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   cursor: pointer;
 }
 
+/* Relative-volume bar (#1 seller = full width). Fills the name→qty whitespace
+   with a ranking cue; sits behind the row content via the isolated context. */
+.dash-pop-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: -1;
+  width: var(--bar, 0%);
+  min-width: 6px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  transition: width 0.3s ease;
+}
+
 .dash-pop-row.is-clickable:hover {
   border-color: var(--accent);
-  background: var(--accent-soft);
+}
+
+.dash-pop-row.is-clickable:hover .dash-pop-bar {
+  background: var(--accent);
+  opacity: 0.16;
 }
 
 .dash-pop-rank {
