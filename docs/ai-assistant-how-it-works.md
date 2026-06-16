@@ -90,6 +90,192 @@ In simple terms:
 - filters by date if needed
 - prepares compact rows for the assistant to work with
 
+### Step 2A: How The System Classifies The Question
+
+This is the most important idea:
+
+> The system classifies the question with backend rules first. It does not wait for the AI model to guess the question type by itself.
+
+The backend looks for a few specific signals in the question.
+
+#### A. Keywords
+
+The backend checks whether the question contains words related to:
+
+- stock / reorder / fulfillment
+- customer or supplier summaries
+- receivables / payables / overdue / exception
+- reference lookup / line items
+
+Examples:
+
+- `low stock`
+- `restock`
+- `backordered`
+- `net position`
+- `receivable`
+- `payable`
+- `overdue`
+- `line items`
+
+These signals help decide which supported workflow the question belongs to.
+
+#### B. Date ranges
+
+The backend also checks whether the user included a date range.
+
+It supports explicit dates like:
+
+- `2026-06-01 to 2026-06-14`
+
+and relative periods like:
+
+- `today`
+- `this week`
+- `last week`
+- `this month`
+- `last month`
+
+If a date range exists, the backend uses it when building customer or supplier summaries.
+
+#### C. Partner names
+
+The backend tries to match customer names and supplier names that already exist in the database.
+
+So if the user writes:
+
+- `Summarize customer activity for Finance Department`
+
+the backend tries to match `Finance Department` against the `Customer` table.
+
+If the user writes:
+
+- `Summarize supplier activity for Paper Supply Co.`
+
+the backend tries to match `Paper Supply Co.` against the `Supplier` table.
+
+This is how the system knows whether to build a customer summary or a supplier summary.
+
+#### D. Reference prefixes
+
+The system also checks document-style prefixes.
+
+These prefixes map directly to business transaction types:
+
+- `PO` → Purchase
+- `TI` → Sale
+- `QT` → Quotation
+- `BN` → Billing Note
+- `PMT` → Payment Batch
+- `CN` → Credit Note
+
+So if the question says:
+
+- `Show TI-CHAT-BACKORDER`
+
+the backend knows that this is a sales document question, not a purchase question.
+
+If the question says:
+
+- `Show line items for PO-CHAT-INCOMING`
+
+the backend knows it should inspect purchase data and purchase line items.
+
+---
+
+### Step 2B: How The System Knows Which Tables To Query
+
+After classification, the backend decides which models are relevant.
+
+It does **not** query everything for every question blindly.
+
+Here is the practical mapping:
+
+#### 1. Stock / reorder / fulfillment questions
+
+The backend mainly uses:
+
+- `Product`
+- backend stock report calculations
+- `Purchase` / `PurchaseItem`
+- `Sale` / `SaleItem`
+
+These are used for:
+
+- low stock
+- reorder suggestions
+- available stock
+- order coverage
+- backorder gaps
+
+#### 2. Customer summary questions
+
+The backend mainly uses:
+
+- `Customer`
+- `Sale`
+- `Quotation`
+- `BillingNote`
+- `CreditNote`
+
+These are used to answer:
+
+- total customer activity in a date range
+- recent sales
+- billing note exposure
+- credit note activity
+
+#### 3. Supplier summary questions
+
+The backend mainly uses:
+
+- `Supplier`
+- `Purchase`
+- `Quotation`
+- `PaymentBatch`
+
+These are used to answer:
+
+- total supplier activity in a date range
+- recent purchases
+- payment follow-up
+- supplier-side quotation activity
+
+#### 4. Receivables / payables / exception questions
+
+The backend mainly uses:
+
+- `BillingNote`
+- `PaymentBatch`
+- `PurchaseItem`
+- `SaleItem`
+- dashboard finance and order-coverage calculations
+
+These are used to answer:
+
+- AR
+- AP
+- net position
+- overdue billing notes
+- overdue payment batches
+- delayed purchase lines
+- backorder gaps
+
+#### 5. Reference lookup / line-item detail questions
+
+The backend uses the prefix to choose the right model:
+
+- `PO` → `Purchase`
+- `TI` → `Sale`
+- `QT` → `Quotation`
+- `BN` → `BillingNote`
+- `PMT` → `PaymentBatch`
+- `CN` → `CreditNote`
+
+Then it pulls the matched transaction plus its line items.
+
+That is why a line-item lookup is fast and accurate: the backend already knows which document family to inspect before the answer is built.
+
 ### Step 3: The backend chooses one supported workflow
 
 The backend then decides which kind of answer this question should become.
@@ -108,6 +294,13 @@ If the question is outside the supported scope, the backend returns a structured
 This routing logic is handled in the chat presentation builder in:
 
 - [backend/inventory/services.py](../backend/inventory/services.py)
+
+If you want the simplest product explanation, it is this:
+
+- first classify the question
+- then choose the relevant tables
+- then build a safe summary
+- then optionally let OpenAI improve the wording
 
 ### Step 4: The backend creates a structured answer
 
