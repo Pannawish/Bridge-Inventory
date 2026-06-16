@@ -311,6 +311,11 @@ class Command(BaseCommand):
         for document in SaleDocument.objects.filter(sale__id__startswith="demo-sale-"):
             document.file.delete(save=False)
             document.delete()
+        # PaymentBatchLines PROTECT their purchase, so clear any that reference
+        # demo POs (including lines inside non-demo batches) before deleting.
+        PaymentBatchLine.objects.filter(
+            purchase__id__startswith="demo-po-"
+        ).delete()
         # FIFO allocations PROTECT their purchase items, so clear them (via the
         # sales cascade plus any stragglers) before deleting the purchases.
         SaleItemAllocation.objects.filter(
