@@ -122,7 +122,7 @@ Bridge Inventory is built for a middle-man SME business model:
 ### 2.12 AI Assistant Workflow
 
 - AI assistant reads existing inventory, purchase, sale, quotation, billing note, payment batch, credit note, and dashboard summary data
-- It helps answer operational questions such as low stock, customer or supplier summaries, margins, receivables/payables, overdue issues, trends, and line-item detail by reference
+- It helps answer operational questions such as low stock, customer or supplier summaries, receivables/payables, overdue issues, order coverage, and line-item detail by reference
 - It is an analysis layer, not the source of truth for transactions
 
 ## 3. Compact Diagram Prompt

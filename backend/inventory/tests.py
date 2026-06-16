@@ -2982,21 +2982,13 @@ class ChatAssistantAlignmentTests(TestCase):
             amount=Decimal("25"),
         )
 
-    def test_chat_summarizes_recent_quotations(self):
-        response = answer_inventory_question("Show recent quotations")
+    def test_chat_reports_low_stock_and_restock_scope(self):
+        response = answer_inventory_question("Which items are low stock?")
 
         self.assertEqual(response["used_model"], "local-summary")
-        self.assertEqual(response["presentation"]["title"], "Quotation summary")
-        self.assertIn("Quotation summary", response["answer"])
-        self.assertIn("QT-CHAT-001", response["answer"])
-
-    def test_chat_summarizes_credit_notes(self):
-        response = answer_inventory_question("Show credit notes")
-
-        self.assertEqual(response["used_model"], "local-summary")
-        self.assertEqual(response["presentation"]["title"], "Credit note summary")
-        self.assertIn("Credit note summary", response["answer"])
-        self.assertIn("CN-CHAT-001", response["answer"])
+        self.assertEqual(response["presentation"]["title"], "Restock priorities")
+        self.assertIn("Low-stock items: 1", response["answer"])
+        self.assertIn("Chat Product (CHAT-1)", response["answer"])
 
     def test_chat_reports_net_position(self):
         response = answer_inventory_question("What is our net position?")
@@ -3041,33 +3033,31 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertIn("Purchase count: 2", response["answer"])
         self.assertIn("Scheduled AP: 120", response["answer"])
 
-    def test_chat_reports_margin_and_profitability(self):
+    def test_chat_rejects_margin_and_profitability_as_out_of_scope(self):
         response = answer_inventory_question("Show product margin and profitability")
 
         self.assertEqual(response["used_model"], "local-summary")
-        self.assertEqual(response["presentation"]["title"], "Margin and profitability")
-        self.assertIn("Gross margin", response["answer"])
-        self.assertIn("Chat Product (CHAT-1)", response["answer"])
+        self.assertEqual(response["presentation"]["title"], "Outside current assistant scope")
+        self.assertIn("Outside current assistant scope", response["answer"])
+        self.assertIn("Deep margin or profitability analysis.", response["answer"])
 
-    def test_chat_reports_supplier_performance_and_lead_time(self):
+    def test_chat_rejects_supplier_performance_as_out_of_scope(self):
         response = answer_inventory_question(
             f"Show supplier performance and lead time for {self.supplier.company_name}"
         )
 
         self.assertEqual(response["used_model"], "local-summary")
-        self.assertEqual(response["presentation"]["title"], f"Supplier performance: {self.supplier.company_name}")
-        self.assertIn("Avg lead days: 2", response["answer"])
-        self.assertIn("Delayed units: 2", response["answer"])
+        self.assertEqual(response["presentation"]["title"], "Outside current assistant scope")
+        self.assertIn("Not currently supported", response["answer"])
 
-    def test_chat_reports_customer_buying_trend(self):
+    def test_chat_rejects_customer_buying_trend_as_out_of_scope(self):
         response = answer_inventory_question(
             f"Show buying trend for customer {self.customer.company_name}"
         )
 
         self.assertEqual(response["used_model"], "local-summary")
-        self.assertEqual(response["presentation"]["title"], f"Customer buying trend: {self.customer.company_name}")
-        self.assertIn("Current sales: 50", response["answer"])
-        self.assertIn("Previous sales: 20", response["answer"])
+        self.assertEqual(response["presentation"]["title"], "Outside current assistant scope")
+        self.assertIn("Customer trend analysis", response["answer"])
 
     def test_chat_reports_overdue_and_exception_monitor(self):
         response = answer_inventory_question("Show overdue and exception issues")
@@ -3084,3 +3074,10 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertEqual(response["presentation"]["title"], "Sales line items")
         self.assertIn("Chat Product (CHAT-1)", response["answer"])
         self.assertIn("qty 5 pcs", response["answer"])
+
+    def test_chat_rejects_generic_transaction_summary_as_out_of_scope(self):
+        response = answer_inventory_question("Show recent quotations")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Outside current assistant scope")
+        self.assertIn("Supported workflows only", response["answer"])

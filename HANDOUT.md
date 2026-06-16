@@ -470,7 +470,7 @@ Use this exercise during training sessions:
 | **Collect customer payments** | `Billing Notes` | Group eligible un-billed sales |
 | **Settle supplier bills** | `Payment Batches` | Group eligible un-paid purchases |
 | **Record returned goods** | `Credit Notes` | Issue adjustments from cancelled/returned sales |
-| **Ask questions in plain text** | `AI Chat` | Query stock, customer/supplier summaries, margins, overdue issues, trends, and line-item detail |
+| **Ask questions in plain text** | `AI Chat` | Query stock, customer/supplier summaries, overdue issues, AP/AR status, and line-item detail |
 | **Toggle language** | `Settings` in the sidebar footer | Change system language (English / Thai) |
 
 ---

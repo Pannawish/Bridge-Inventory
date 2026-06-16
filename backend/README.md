@@ -327,11 +327,16 @@ Current coverage includes:
 
 - stock alerts, reorder guidance, and product stock lookups
 - customer and supplier summaries within explicit or relative date ranges
-- purchases, sales, quotations, billing notes, payment batches, and credit notes
 - receivables, payables, net position, order coverage, and backorder gaps
-- product margin/profitability, supplier lead-time performance, customer buying trends
 - overdue and exception monitoring
 - line-item detail by document reference such as `PO-...`, `TI-...`, `QT-...`, `BN-...`, `PMT-...`, and `CN-...`
+
+Not currently in assistant scope:
+
+- deep margin or profitability analysis
+- customer trend analysis
+- supplier performance analytics
+- broad generic reporting outside the core workflows
 
 The assistant is read-only and does not mutate inventory data. It answers from the backend-built inventory context, so it should be treated as an operational analysis layer rather than the source of truth for transaction state.
 

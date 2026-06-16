@@ -3386,185 +3386,6 @@ def build_order_coverage_presentation(context):
     }
 
 
-def build_margin_presentation(context):
-    finance = context["dashboard"]["finance"]
-    products_segment = context["dashboard"].get("products") or build_products_segment(
-        DEFAULT_SEGMENT_PERIOD,
-        today=context["today"],
-    )
-    matching_skus = {row.get("sku") for row in context["stock"]["matching_rows"] if row.get("sku")}
-    matching_skus.update({row.get("sku") for row in context.get("products", []) if row.get("sku")})
-    margin_rows = compute_margin_rows_from_sales_rows(context["sales"], sku_filter=matching_skus)
-    if not margin_rows:
-        margin_rows = [
-            {
-                "product_name": row["product_name"],
-                "sku": row["sku"],
-                "units": row["units"],
-                "revenue": row["revenue"],
-                "cost": row["cost"],
-                "margin": row["margin"],
-                "margin_pct": as_number(
-                    (
-                        Decimal(str(row["margin"])) / Decimal(str(row["revenue"])) * Decimal("100")
-                    ).quantize(Decimal("0.1"))
-                )
-                if Decimal(str(row["revenue"] or 0)) > 0
-                else 0,
-            }
-            for row in products_segment["top_products"]
-        ]
-    total_revenue = sum(Decimal(str(row["revenue"] or 0)) for row in margin_rows)
-    total_cost = sum(Decimal(str(row["cost"] or 0)) for row in margin_rows)
-    total_margin = total_revenue - total_cost
-    margin_pct = (total_margin / total_revenue * Decimal("100")) if total_revenue > 0 else Decimal("0")
-    return {
-        "title": "Margin and profitability",
-        "subtitle": finance["period_label"],
-        "metrics": [
-            chat_metric("Revenue", as_number(total_revenue) if margin_rows else finance["sales_total"]),
-            chat_metric("Estimated cost", as_number(total_cost) if margin_rows else finance["purchases_total"]),
-            chat_metric("Gross margin", as_number(total_margin) if margin_rows else finance["gross_margin"]),
-            chat_metric(
-                "Margin %",
-                as_number(margin_pct.quantize(Decimal("0.1"))) if margin_rows else finance["margin_pct"],
-            ),
-        ],
-        "sections": [
-            chat_section(
-                "Highlights",
-                items=[
-                    f"Gross margin for the dashboard period is {finance['gross_margin']} on sales {finance['sales_total']}.",
-                    f"AR outstanding {finance['ar']['outstanding']}; AP outstanding {finance['ap']['outstanding']}.",
-                ],
-            ),
-            chat_section("Top margin products", records=build_margin_records(margin_rows)),
-        ],
-    }
-
-
-def build_supplier_performance_presentation(context):
-    if not context["matched_suppliers"]:
-        return None
-    supplier_name = context["matched_suppliers"][0]
-    purchase_items = PurchaseItem.objects.select_related("purchase").filter(
-        purchase__supplier_name=supplier_name
-    )
-    if context.get("date_interval"):
-        purchase_items = filter_by_date_interval(
-            purchase_items,
-            "purchase__transaction_date",
-            context["date_interval"],
-        )
-    received_items = purchase_items.filter(item_status=PurchaseItem.ITEM_RECEIVED)
-    pending_items = purchase_items.filter(item_status=PurchaseItem.ITEM_PENDING)
-    delayed_items = pending_items.filter(expected_delivery_date__lt=context["today"])
-    lead_times = []
-    for item in received_items:
-        if item.lead_time_days is not None:
-            lead_times.append(Decimal(str(item.lead_time_days)))
-        elif item.received_date and item.purchase.transaction_date:
-            lead_times.append(Decimal(str((item.received_date - item.purchase.transaction_date).days)))
-    avg_lead = (
-        sum(lead_times, Decimal("0")) / Decimal(str(len(lead_times)))
-        if lead_times
-        else None
-    )
-    supplier_summary = context["partner_summaries"]["suppliers"][0]
-    return {
-        "title": f"Supplier performance: {supplier_name}",
-        "subtitle": supplier_summary["subtitle"],
-        "metrics": [
-            chat_metric("Purchase total", supplier_summary["metrics"][0]["value"]),
-            chat_metric("Avg lead days", as_number(avg_lead.quantize(Decimal('0.1'))) if avg_lead is not None else "n/a"),
-            chat_metric(
-                "Delayed units",
-                as_number(delayed_items.aggregate(total=Sum("base_quantity"))["total"] or Decimal("0")),
-                tone="warning",
-            ),
-            chat_metric("Open PO lines", pending_items.count()),
-        ],
-        "sections": [
-            chat_section(
-                "Highlights",
-                items=[
-                    f"Received lines measured for lead time: {received_items.count()}.",
-                    f"Delayed incoming lines: {delayed_items.count()}.",
-                    f"Scheduled or open payables: {supplier_summary['metrics'][2]['value']}.",
-                ],
-            ),
-            chat_section("Recent purchases", records=build_purchase_records(context["purchases"])),
-            chat_section(
-                "Delayed incoming lines",
-                records=[
-                    chat_record(
-                        item.purchase.reference_no or item.purchase_id,
-                        meta=combine_chat_meta(item.product_name, item.expected_delivery_date, item.item_status),
-                        value=as_number(item.base_quantity),
-                    )
-                    for item in delayed_items[:5]
-                ],
-            ),
-        ],
-    }
-
-
-def build_customer_trend_presentation(context):
-    if not context["matched_customers"]:
-        return None
-    customer_name = context["matched_customers"][0]
-    today = context["today"]
-    if context.get("date_interval"):
-        current_start = context["date_interval"]["start"]
-        current_end = context["date_interval"]["end"]
-    else:
-        current_end = today
-        current_start = today - timedelta(days=29)
-    window_days = max(1, (current_end - current_start).days + 1)
-    previous_end = current_start - timedelta(days=1)
-    previous_start = previous_end - timedelta(days=window_days - 1)
-    current_sales = Sale.objects.exclude(status__in=SALE_INACTIVE_TRANSACTION_STATUSES).filter(
-        customer_name=customer_name,
-        transaction_date__gte=current_start,
-        transaction_date__lte=current_end,
-    )
-    previous_sales = Sale.objects.exclude(status__in=SALE_INACTIVE_TRANSACTION_STATUSES).filter(
-        customer_name=customer_name,
-        transaction_date__gte=previous_start,
-        transaction_date__lte=previous_end,
-    )
-    current_total = current_sales.aggregate(total=Sum("grand_total"))["total"] or Decimal("0")
-    previous_total = previous_sales.aggregate(total=Sum("grand_total"))["total"] or Decimal("0")
-    delta = current_total - previous_total
-    delta_pct = (delta / previous_total * Decimal("100")) if previous_total > 0 else None
-    recent_rows = [serialize_sale_for_chat(sale) for sale in current_sales.prefetch_related("items")[:6]]
-    return {
-        "title": f"Customer buying trend: {customer_name}",
-        "subtitle": f"{current_start.isoformat()} to {current_end.isoformat()}",
-        "metrics": [
-            chat_metric("Current sales", as_number(current_total)),
-            chat_metric("Previous sales", as_number(previous_total)),
-            chat_metric("Change", as_number(delta), tone="success" if delta >= 0 else "warning"),
-            chat_metric(
-                "Change %",
-                as_number(delta_pct.quantize(Decimal("0.1"))) if delta_pct is not None else "n/a",
-                tone="success" if delta >= 0 else "warning",
-            ),
-        ],
-        "sections": [
-            chat_section(
-                "Highlights",
-                items=[
-                    f"Orders in current window: {current_sales.count()}.",
-                    f"Orders in previous window: {previous_sales.count()}.",
-                ],
-            ),
-            chat_section("Recent sales", records=build_sale_records(recent_rows)),
-            chat_section("Top products", records=build_top_product_records(recent_rows)),
-        ],
-    }
-
-
 def build_exception_presentation(context):
     overdue_billing = BillingNote.objects.exclude(
         status__in=(BillingNote.STATUS_FULLY_RECEIVED, BillingNote.STATUS_CANCELLED)
@@ -3671,23 +3492,53 @@ def build_reference_line_item_presentation(context, reference_prefix):
     }
 
 
+def build_out_of_scope_presentation():
+    return {
+        "title": "Outside current assistant scope",
+        "subtitle": "Supported workflows only",
+        "metrics": [
+            chat_metric("Core focus", 4),
+        ],
+        "sections": [
+            chat_section(
+                "This assistant focuses on",
+                items=[
+                    "Stock, reorder, and fulfillment questions.",
+                    "Customer or supplier summaries within a date range.",
+                    "Receivables, payables, overdue exceptions, and order coverage.",
+                    "Reference lookup and line-item detail for existing documents.",
+                ],
+            ),
+            chat_section(
+                "Not currently supported",
+                items=[
+                    "Deep margin or profitability analysis.",
+                    "Customer trend analysis or supplier performance analytics.",
+                    "Broad open-ended reporting outside the core workflows.",
+                ],
+            ),
+        ],
+    }
+
+
 def build_capabilities_presentation(context):
     return {
-        "title": "AI assistant coverage",
+        "title": "AI assistant core scope",
         "subtitle": chat_scope_label(context.get("date_interval"), fallback="Current data"),
         "metrics": [
-            chat_metric("Products", len(context.get("products", [])[:8])),
-            chat_metric("Sales", context["summaries"]["sales"]["count"]),
-            chat_metric("Purchases", context["summaries"]["purchases"]["count"]),
-            chat_metric("Credit notes", context["summaries"]["credit_notes"]["count"]),
+            chat_metric("Core workflows", 4),
+            chat_metric("Customer matches", len(context.get("matched_customers", []))),
+            chat_metric("Supplier matches", len(context.get("matched_suppliers", []))),
+            chat_metric("Reference types", 6),
         ],
         "sections": [
             chat_section(
                 "You can ask",
                 items=[
-                    "Summaries for a customer or supplier within a date range.",
-                    "Stock, restock priorities, quotations, billing notes, and payment batches.",
-                    "Receivables, payables, net position, and order coverage gaps.",
+                    "Stock, reorder, and fulfillment questions.",
+                    "Customer or supplier summaries within a date range.",
+                    "Receivables, payables, overdue exceptions, and order coverage gaps.",
+                    "Reference lookup and line-item detail for PO, TI, QT, BN, PMT, and CN documents.",
                 ],
             )
         ],
@@ -3708,17 +3559,13 @@ def build_chat_presentation(question, context=None):
     )
 
     if any(term in question_text for term in ("margin", "profit", "profitability", "gross margin")):
-        return build_margin_presentation(context)
+        return build_out_of_scope_presentation()
 
     if any(term in question_text for term in ("lead time", "supplier performance", "vendor performance")):
-        supplier_performance = build_supplier_performance_presentation(context)
-        if supplier_performance:
-            return supplier_performance
+        return build_out_of_scope_presentation()
 
     if any(term in question_text for term in ("trend", "buying pattern", "buying trend", "growth")):
-        customer_trend = build_customer_trend_presentation(context)
-        if customer_trend:
-            return customer_trend
+        return build_out_of_scope_presentation()
 
     if any(term in question_text for term in ("overdue", "exception", "late", "delayed")):
         return build_exception_presentation(context)
@@ -3750,59 +3597,8 @@ def build_chat_presentation(question, context=None):
     if "backorder" in question_text or "coverage" in question_text:
         return build_order_coverage_presentation(context)
 
-    if "sale" in question_text:
-        return build_transaction_chat_presentation(
-            "Sales summary",
-            chat_scope_label(context["date_interval"]),
-            context["summaries"]["sales"],
-            context["sales"],
-            build_sale_records,
-        )
-
-    if "purchase" in question_text:
-        return build_transaction_chat_presentation(
-            "Purchase summary",
-            chat_scope_label(context["date_interval"]),
-            context["summaries"]["purchases"],
-            context["purchases"],
-            build_purchase_records,
-        )
-
-    if "quotation" in question_text:
-        return build_transaction_chat_presentation(
-            "Quotation summary",
-            chat_scope_label(context["date_interval"]),
-            context["summaries"]["quotations"],
-            context["quotations"],
-            build_quotation_records,
-        )
-
-    if "billing" in question_text:
-        return build_transaction_chat_presentation(
-            "Billing note summary",
-            chat_scope_label(context["date_interval"]),
-            context["summaries"]["billing_notes"],
-            context["billing_notes"],
-            build_billing_note_records,
-        )
-
-    if "payment" in question_text or "paid" in question_text:
-        return build_transaction_chat_presentation(
-            "Payment batch summary",
-            chat_scope_label(context["date_interval"]),
-            context["summaries"]["payment_batches"],
-            context["payment_batches"],
-            build_payment_batch_records,
-        )
-
-    if "credit" in question_text:
-        return build_transaction_chat_presentation(
-            "Credit note summary",
-            chat_scope_label(context["date_interval"]),
-            context["summaries"]["credit_notes"],
-            context["credit_notes"],
-            build_credit_note_records,
-        )
+    if any(word in question_text for word in ("sale", "purchase", "quotation", "billing", "payment", "credit")):
+        return build_out_of_scope_presentation()
 
     return build_capabilities_presentation(context)
 
@@ -3814,9 +3610,8 @@ def build_local_chat_answer(question, context=None, presentation=None):
     if answer:
         return answer
     return (
-        "I can summarize stock, restock needs, products, sales, purchases, quotations, "
-        "billing notes, payment batches, credit notes, net position, and order coverage. "
-        "Include a reference number, SKU, product, customer, or supplier name for a more specific answer."
+        "I focus on four workflows: stock and fulfillment, customer or supplier summaries, "
+        "receivables and payables with overdue exceptions, and reference lookup with line-item detail."
     )
 
 
@@ -3840,8 +3635,13 @@ def answer_inventory_question(question, request=None):
             instructions=(
                 "You are a read-only inventory assistant for a trading business. "
                 "Answer only from the provided app data. If data is missing, say so clearly. "
-                "Be practical and helpful. When summarizing a supplier or customer, mention the date scope, "
-                "headline totals, outstanding receivables/payables when relevant, and 2 to 5 concrete highlights. "
+                "Be practical and helpful. Stay within four workflows only: "
+                "1) stock and fulfillment, 2) customer or supplier summaries, "
+                "3) receivables/payables, overdue exceptions, and order coverage, "
+                "4) reference lookup and line-item detail. "
+                "If the question is outside that scope, say so clearly and suggest one of the supported workflows. "
+                "When summarizing a supplier or customer, mention the date scope, headline totals, "
+                "outstanding receivables/payables when relevant, and 2 to 5 concrete highlights. "
                 "Format the answer in short readable sections using plain text lines or bullet-style lines."
             ),
             input=(
