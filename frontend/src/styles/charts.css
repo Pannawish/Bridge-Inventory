@@ -172,3 +172,49 @@
   font-size: 0.72rem;
   text-align: center;
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   Reorder-history mini chart (.rh-*) — dashboard Urgent-Reorder tiles.
+   Real last-≤3 purchase orders as a line + a recommended-next-order marker.
+   ════════════════════════════════════════════════════════════════════ */
+.rh-wrap { flex: 1; min-width: 0; min-height: 0; }
+.rh-svg { display: block; width: 100%; height: 100%; }
+
+.rh-grid { stroke: var(--line); stroke-width: 1; opacity: 0.6; }
+.rh-yt { fill: var(--muted); font-size: 8px; text-anchor: end; }
+.rh-xt { fill: var(--muted); font-size: 8px; text-anchor: middle; }
+
+.rh-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.rh-line.tone-danger { stroke: var(--danger); }
+.rh-line.tone-warning { stroke: var(--warning); }
+.rh-line.tone-accent { stroke: var(--accent); }
+.rh-line.tone-positive { stroke: var(--success); }
+.rh-line.tone-neutral { stroke: var(--muted); }
+
+.rh-dot { stroke: #fff; stroke-width: 1.2; }
+.rh-dot.tone-danger { fill: var(--danger); }
+.rh-dot.tone-warning { fill: var(--warning); }
+.rh-dot.tone-accent { fill: var(--accent); }
+.rh-dot.tone-positive { fill: var(--success); }
+.rh-dot.tone-neutral { fill: var(--muted); }
+
+.rh-val { fill: var(--text); font-size: 8.5px; font-weight: 700; text-anchor: middle; }
+
+/* Recommended next order — dashed link + hollow danger marker, emphasised. */
+.rh-rec-link { stroke: var(--danger); stroke-width: 1.5; stroke-dasharray: 3 3; opacity: 0.8; }
+.rh-rec-dot { fill: #fff; stroke: var(--danger); stroke-width: 2; }
+.rh-rec-val { fill: var(--danger); font-size: 9px; font-weight: 800; text-anchor: middle; }
+.rh-rec-xt { fill: var(--danger); font-size: 8px; font-weight: 700; text-anchor: middle; }
+
+.rh-empty {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-align: center;
+}

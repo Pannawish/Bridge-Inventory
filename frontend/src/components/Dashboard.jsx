@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { formatNumber as formatLocaleNumber } from "../format";
+import { formatNumber as formatLocaleNumber, formatDate } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
-import { ReorderSawtoothMini } from "./charts/ReorderSawtooth";
+import { getItemBaseQuantity } from "../unitConversion";
+import { ReorderHistoryMini } from "./charts/ReorderSawtooth";
 
 // Stock-cycling frequency ladder. A product's average orders-per-year (derived
 // from its order history) drops it into one of five bands, from "very fast"
@@ -9,8 +10,8 @@ import { ReorderSawtoothMini } from "./charts/ReorderSawtooth";
 // in cycles/year so the bands read as a clean frequency ladder.
 const CYCLE_BANDS = ["veryFast", "fast", "steady", "slow", "oneOff"];
 const CYCLE_THRESHOLDS = { veryFast: 26, fast: 12, steady: 4 }; // cycles/year
-const REORDER_PAGE_SIZE = 5;
-const DISPATCH_LIMIT = 4;
+const REORDER_PAGE_SIZE = 3;
+const DISPATCH_LIMIT = 12;
 const CLOSED_SALE_STATUSES = new Set(["delivered", "cancelled", "returned"]);
 const SALE_STATUS_TONE = {
   draft: "neutral",
@@ -113,6 +114,25 @@ function classifyCycle(row) {
   return { klass, cyclesPerYear };
 }
 
+// The product's last ≤3 PLACED purchase orders (drafts/cancelled excluded),
+// oldest→newest, as {date, qty} — the real reorder history behind the graph.
+function buildReorderHistory(purchases, productId) {
+  const byPo = [];
+  (Array.isArray(purchases) ? purchases : []).forEach((po) => {
+    if (!po || po.status === "draft" || po.status === "cancelled") return;
+    let qty = 0;
+    (po.items || []).forEach((item) => {
+      if (`${item.product_id}` !== `${productId}`) return;
+      qty += getItemBaseQuantity(item);
+    });
+    if (qty > 0 && po.transaction_date) {
+      byPo.push({ date: po.transaction_date, qty });
+    }
+  });
+  byPo.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  return byPo.slice(-3);
+}
+
 function reorderTone(row) {
   if (row._isCritical) return "danger";
   if (row._days == null) return "accent";
@@ -169,7 +189,7 @@ function DashModal({ eyebrow, title, onClose, headerAction, children }) {
 }
 
 // ── Zone 1 · Urgent reorder (hero) ─────────────────────────────────────
-function UrgentReorderWidget({ rows, onQuickOrder }) {
+function UrgentReorderWidget({ rows, purchases = [], onQuickOrder }) {
   const { t } = useLanguage();
   const [page, setPage] = useState(0);
 
@@ -214,10 +234,9 @@ function UrgentReorderWidget({ rows, onQuickOrder }) {
         <p className="dash-empty">{t("dashboard.reorder.empty")}</p>
       ) : (
         <>
-          <div className="dash-saw-key" aria-hidden="true">
-            <span className="dash-saw-key-item"><i className="k-stock" />{t("dashboard.reorder.key.stock")}</span>
-            <span className="dash-saw-key-item"><i className="k-reorder" />{t("dashboard.reorder.key.reorder")}</span>
-            <span className="dash-saw-key-item"><i className="k-safety" />{t("dashboard.reorder.key.safety")}</span>
+          <div className="dash-rh-key" aria-hidden="true">
+            <span className="dash-rh-key-item"><i className="rhk-hist" />{t("dashboard.reorder.key.history")}</span>
+            <span className="dash-rh-key-item"><i className="rhk-rec" />{t("dashboard.reorder.key.recommend")}</span>
           </div>
           {/* Fixed three slots: paging only swaps content, the layout never shifts. */}
           <ol className="dash-reorder-list">
@@ -231,6 +250,17 @@ function UrgentReorderWidget({ rows, onQuickOrder }) {
               const dailyDemand = num(row.average_daily_demand) || num(row.predicted_7_day_demand) / 7;
               const severity = row._isCritical ? t("dashboard.reorder.out") : t("dashboard.reorder.low");
               const eta = row._days != null ? t("dashboard.reorder.days", { n: formatLocaleNumber(row._days) }) : "—";
+              // When to reorder: urgent rows are already at/below the reorder
+              // point → "Order now"; otherwise project the crossing date.
+              const daysToReorder = dailyDemand > 0 ? Math.max(0, (row._available - row._reorder) / dailyDemand) : 0;
+              const isNow = row._isCritical || row._available <= row._reorder || daysToReorder <= 0;
+              const dueLabel = isNow
+                ? t("dashboard.reorder.orderNow")
+                : t("dashboard.reorder.orderBy", {
+                    date: formatDate(new Date(Date.now() + daysToReorder * 86_400_000).toISOString().slice(0, 10)),
+                  });
+              const recommended = restock > 0 ? { qty: restock, isNow, dueLabel } : null;
+              const history = buildReorderHistory(purchases, row.product_id);
               return (
                 <li className="dash-reorder-row" key={row.product_id || slot}>
                   <div className="dash-reorder-head">
@@ -245,17 +275,10 @@ function UrgentReorderWidget({ rows, onQuickOrder }) {
                       </button>
                     ) : null}
                   </div>
-                  <div
-                    className="dash-reorder-chart"
-                    title={`${formatUnits(row._available)} / ${formatUnits(row._reorder)} ${row.unit || ""}`}
-                  >
-                    <ReorderSawtoothMini
-                      current={row._available}
-                      reorder={row._reorder}
-                      safety={num(row.safety_stock)}
-                      dailyDemand={dailyDemand}
-                      leadTime={num(row.average_lead_time_days)}
-                      restock={restock}
+                  <div className="dash-reorder-chart">
+                    <ReorderHistoryMini
+                      history={history}
+                      recommended={recommended}
                       unit={row.unit || ""}
                       tone={tone}
                     />
@@ -636,7 +659,10 @@ function PopularProductsWidget({ coverage, onOpenProduct }) {
       ) : (
         <ul className="dash-pop-list">
           {popular.map((item, index) => {
-            const share = maxUnits > 0 ? (num(item.units) / maxUnits) * 100 : 0;
+            // sqrt scale: keeps the long tail visible (a dominant #1 would
+            // otherwise flatten ranks 2-5 to slivers) so the bar fills the
+            // name→qty space across every row, not just the top one.
+            const share = maxUnits > 0 ? Math.sqrt(num(item.units) / maxUnits) * 100 : 0;
             return (
               <li key={item.product_id || index}>
                 <button
@@ -846,35 +872,33 @@ function Dashboard({ dashboard, sales = [], purchases = [], onNavigate }) {
 
   return (
     <div className="dashboard-page">
-      <div className="dash-grid">
-        <div className="dash-grid-left">
-          <OrderPlanningWidget
-            orders={openPurchases.slice(0, DISPATCH_LIMIT)}
-            totalOpen={openPurchases.length}
-            stageCounts={purchaseStageCounts}
-            onOpenPurchase={openPurchase}
-            onOpenStage={openPurchaseStage}
-            onOpenCenter={() => openPurchaseStage(OPEN_PURCHASE_STATUSES)}
-          />
-          <DeliveryPipelineWidget
-            orders={openOrders.slice(0, DISPATCH_LIMIT)}
-            totalOpen={openOrders.length}
-            stageCounts={stageCounts}
-            delayedSkus={delayedSkus}
-            onOpenSale={openSale}
-            onOpenStage={openStage}
-            onOpenCenter={() => openStage(OPEN_SALE_STATUSES)}
+      <UrgentReorderWidget rows={reorderItems} purchases={purchases} onQuickOrder={setQuickPo} />
+
+      <div className="dash-col-right">
+        <OrderPlanningWidget
+          orders={openPurchases.slice(0, DISPATCH_LIMIT)}
+          totalOpen={openPurchases.length}
+          stageCounts={purchaseStageCounts}
+          onOpenPurchase={openPurchase}
+          onOpenStage={openPurchaseStage}
+          onOpenCenter={() => openPurchaseStage(OPEN_PURCHASE_STATUSES)}
+        />
+        <DeliveryPipelineWidget
+          orders={openOrders.slice(0, DISPATCH_LIMIT)}
+          totalOpen={openOrders.length}
+          stageCounts={stageCounts}
+          delayedSkus={delayedSkus}
+          onOpenSale={openSale}
+          onOpenStage={openStage}
+          onOpenCenter={() => openStage(OPEN_SALE_STATUSES)}
+        />
+        <div className="dash-bottom">
+          <StockCyclingWidget tagged={cyclingTagged} onOpenBand={setCyclingBand} />
+          <PopularProductsWidget
+            coverage={coverage}
+            onOpenProduct={(item) => openProductInInventory(item.product_id)}
           />
         </div>
-        <UrgentReorderWidget rows={reorderItems} onQuickOrder={setQuickPo} />
-      </div>
-
-      <div className="dash-footer">
-        <StockCyclingWidget tagged={cyclingTagged} onOpenBand={setCyclingBand} />
-        <PopularProductsWidget
-          coverage={coverage}
-          onOpenProduct={(item) => openProductInInventory(item.product_id)}
-        />
       </div>
 
       {quickPo ? (

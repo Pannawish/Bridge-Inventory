@@ -43,9 +43,10 @@ from inventory.services import (
 VAT_RATE = Decimal("0.07")
 CENT = Decimal("0.01")
 
-# Two years of operational history so every prediction window (daily demand,
-# lead time, cycling interval, reorder point) has real data behind it.
-HISTORY_DAYS = 730
+# Three years of operational history so every prediction window (daily demand,
+# lead time, cycling interval, reorder point) and the dashboard reorder-history
+# graph (last 3 reorders per product) has a deep, real track record behind it.
+HISTORY_DAYS = 1095
 
 # ── Product behaviour archetypes ─────────────────────────────────────────
 # Each product is assigned a demand/replenishment archetype so the seeded
@@ -60,6 +61,9 @@ HISTORY_DAYS = 730
 #   one_off      — exactly one sale order ever (one-off sourcing)
 #   dead         — stocked long ago, zero sales ever (dead stock)
 #   new          — first purchased ~25 days ago (short history)
+#   fresh        — just-launched SKU: a few recent sales but NO purchase order
+#                  ever placed → urgent with empty reorder history (exercises
+#                  the dashboard's "No reorder history yet" graph state)
 #   oversold     — allocated sales exceed received stock (negative raw stock)
 #   backorder    — open customer demand exceeds stock + incoming POs
 PROFILE_PARAMS = {
@@ -73,6 +77,7 @@ PROFILE_PARAMS = {
     "one_off": {"sale_gap": None, "po_gap": None, "cover": None, "lead": (10, 25), "final": "skip"},
     "dead": {"sale_gap": None, "po_gap": None, "cover": None, "lead": (7, 20), "final": "skip"},
     "new": {"sale_gap": (6, 10), "po_gap": (16, 22), "cover": (24, 34), "lead": (2, 5), "final": "healthy", "start_ago": 25},
+    "fresh": {"sale_gap": None, "po_gap": None, "cover": None, "lead": (3, 7), "final": "skip"},
     "oversold": {"sale_gap": (12, 22), "po_gap": (42, 60), "cover": (40, 60), "lead": (5, 12), "final": "oversold"},
     "backorder": {"sale_gap": (30, 60), "po_gap": (90, 150), "cover": (100, 150), "lead": (10, 24), "final": "backorder"},
 }
@@ -94,6 +99,7 @@ SKU_PROFILES = {
     "MKR-WB-BK": ("staple_low", 12, 36),
     "LBL-THERM-80": ("staple_low", 12, 48),
     "CRT-TAPE-5M": ("staple_low", 12, 36),
+    "PEN-GEL-07": ("fresh", 18, 48),
     "WHITEBOARD-ERASER": ("staple_out", 6, 24),
     "COFFEE-FILTER": ("staple_out", 100, 300),
     "NB-A4-120-TH": ("watch", 10, 30),
@@ -335,6 +341,7 @@ class Command(BaseCommand):
             ("Blue Pens", "Blue ink pens for daily issue.", "Pens"),
             ("Black Pens", "Black ink pens for daily issue.", "Pens"),
             ("Red Pens", "Red ink pens for corrections and marking.", "Pens"),
+            ("Gel Pens", "Gel ink pens, assorted colors.", "Pens"),
             ("Pencils", "Graphite pencils and related writing tools.", "Writing Instruments"),
             ("Presentation Markers", "Markers and erasers for training rooms.", "Writing Tools"),
             ("Whiteboard Markers", "Colored whiteboard markers.", "Presentation Markers"),
@@ -532,6 +539,7 @@ class Command(BaseCommand):
             ("MKR-WB-BK", "Whiteboard Marker Black", "Writing Tools", "pcs", "box", "pcs", 50, 14, 25, [("box", 12, True, True)]),
             ("HLT-SET-4", "Highlighter Set 4 Colors", "Writing Tools", "set", "carton", "set", 35, 38, 65, [("carton", 48, True, False)]),
             ("CRT-TAPE-5M", "Correction Tape 5m", "Writing Tools", "pcs", "box", "pcs", 40, 18, 29, [("box", 24, True, True)]),
+            ("PEN-GEL-07", "Gel Pen 0.7mm Assorted", "Writing Tools", "pcs", "box", "pcs", 60, 6.5, 13, [("box", 12, True, True)]),
             ("STK-NOTE-3X3", "Sticky Notes 3x3", "Paper Goods", "pad", "pack", "pad", 70, 16, 28, [("pack", 12, True, True)]),
             ("A4-80G-RM", "A4 Copy Paper 80gsm", "Paper Goods", "ream", "carton", "ream", 65, 108, 145, [("carton", 5, True, True)]),
             ("A3-80G-RM", "A3 Copy Paper 80gsm", "Paper Goods", "ream", "carton", "ream", 20, 220, 295, [("carton", 5, True, True)]),
@@ -584,6 +592,7 @@ class Command(BaseCommand):
             "MKR-WB-BK": "Whiteboard Markers",
             "HLT-SET-4": "Presentation Markers",
             "CRT-TAPE-5M": "Correction Supplies",
+            "PEN-GEL-07": "Gel Pens",
             "STK-NOTE-3X3": "Adhesive Notes",
             "A4-80G-RM": "A4 Copy Paper",
             "A3-80G-RM": "A3 Copy Paper",
@@ -703,13 +712,13 @@ class Command(BaseCommand):
         return profile_name, PROFILE_PARAMS[profile_name], qty_lo, qty_hi
 
     def cost_drift(self, rng, day_offset):
-        """Unit costs rise ~12% across the two years (older FIFO layers are
+        """Unit costs rise ~13% across the seeded history (older FIFO layers are
         cheaper), with per-order noise so supplier best/last costs differ."""
         progress = day_offset / HISTORY_DAYS
         return decimal(0.88 + 0.13 * progress + rng.uniform(-0.03, 0.03))
 
     def build_simulation_plan(self, rng, products, suppliers, customers):
-        """Walk each product through a two-year timeline of replenishment
+        """Walk each product through a three-year timeline of replenishment
         receipts and demand events according to its archetype. Returns flat
         event lists; document bucketing happens in seed_purchases/seed_sales."""
         today = timezone.localdate()
@@ -732,13 +741,29 @@ class Command(BaseCommand):
             mean_qty = (qty_lo + qty_hi) / 2 or 1
 
             if profile_name == "dead":
-                # Stocked twice long ago, never sold.
-                for ago in (rng.randint(560, 640), rng.randint(400, 480)):
+                # Stocked twice long ago (1.5–2.8 yrs back), never sold.
+                for ago in (rng.randint(840, 1010), rng.randint(560, 700)):
                     receipt_date = today - timedelta(days=ago)
                     po_events.append(self.plan_po_event(
                         rng, product, sources, receipt_date, today,
                         qty_base=rng.randint(20, 60), lead=params["lead"],
                     ))
+                continue
+
+            if profile_name == "fresh":
+                # Just-launched SKU: a handful of recent sale orders, but
+                # procurement has NOT placed a single PO yet → ends oversold and
+                # urgent with an empty reorder history (the dashboard graph shows
+                # "No reorder history yet" + an Order-now recommendation).
+                cursor = today - timedelta(days=rng.randint(28, 40))
+                while cursor <= today - timedelta(days=1):
+                    sale_events.append({
+                        "product": product,
+                        "customer": rng.choice(buyers),
+                        "date": cursor,
+                        "qty_base": rng.randint(qty_lo, qty_hi),
+                    })
+                    cursor += timedelta(days=rng.randint(6, 11))
                 continue
 
             if profile_name == "one_off":

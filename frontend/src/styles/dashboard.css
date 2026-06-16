@@ -1,14 +1,59 @@
 /* ════════════════════════════════════════════════════════════════════
-   Operational control-tower dashboard. Two stacked zones — operational
-   widgets row · cycling+popular footer row — each sized to its content so
-   nothing clips. The page grows naturally and the window scrolls only when
-   the viewport is too short to show everything. (KPI figures live on the
-   Inventory page's control board.)
+   Operational control-tower dashboard — a fixed SINGLE SCREEN (no outer
+   scroll). Left half = the Urgent-Reorder hero (3 reorder-history tiles);
+   right half = Order Planning · Delivery Planning · [Stock Cycling | Popular].
+   The page is locked to the viewport height; only the PO/SO lists scroll
+   internally. Narrow screens fall back to a stacked, scrollable layout.
    ════════════════════════════════════════════════════════════════════ */
 .dashboard-page {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 14px;
+  height: calc(100vh - 56px); /* main-panel has 28px top/bottom padding */
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Right half: Order Planning · Delivery Planning · bottom (cycling|popular). */
+.dash-col-right {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 14px;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Bottom band of the right half: Stock Cycling beside Popular Products. */
+.dash-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Narrow screens: abandon the single-screen lock, stack and scroll normally.
+   The reorder tiles need an explicit min-height once the page height is no
+   longer fixed (otherwise the flex:1 charts collapse to zero). */
+@media (max-width: 1100px) {
+  .dashboard-page {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+  .dash-col-right {
+    grid-template-rows: none;
+    grid-auto-rows: auto;
+  }
+  .dash-bottom {
+    grid-template-columns: 1fr;
+  }
+  .dash-reorder-list {
+    grid-template-rows: none;
+    grid-auto-rows: minmax(150px, auto);
+  }
+  .dash-reorder-chart { min-height: 150px; }
+  .dash-do-list { max-height: 260px; }
 }
 
 .dash-card {
@@ -59,45 +104,6 @@
 .tone-danger { color: var(--danger); }
 .tone-positive { color: var(--success); }
 
-/* ── Operational widget row ─────────────────────────────────────────── */
-/* Left column = Order + Delivery planning stacked; right column = the wider
-   Urgent-Reorder hero. align-items:start lets each side size to its content
-   (no forced stretching / empty pooled space). */
-.dash-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
-  align-items: start;
-  gap: 14px;
-  min-height: 0;
-}
-
-.dash-grid-left {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-width: 0;
-}
-
-@media (max-width: 900px) {
-  .dash-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Footer row: Stock Cycling + Popular Products side by side. */
-.dash-footer {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  min-height: 0;
-}
-
-@media (max-width: 900px) {
-  .dash-footer {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* Pager (reorder) */
 .dash-pager {
   display: inline-flex;
@@ -132,12 +138,14 @@
   text-align: center;
 }
 
-/* Urgent reorder list (hero) */
-/* Fixed slot count — paging swaps content without reflowing. */
+/* Urgent reorder list (hero) — 3 equal tiles filling the full-height column.
+   Paging swaps content; the three rows always split the available height. */
 .dash-reorder-list {
   display: grid;
-  grid-template-rows: repeat(5, auto);
-  gap: 10px;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -146,9 +154,8 @@
 .dash-reorder-row {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   gap: 4px;
-  min-height: 96px;
+  min-height: 0;
 }
 
 .dash-reorder-row.is-empty {
@@ -190,15 +197,15 @@
   white-space: nowrap;
 }
 
-/* Sawtooth inventory-model legend (one row, shared by all charts below). */
-.dash-saw-key {
+/* Reorder-history legend: past orders (line+dot) vs the recommended next one. */
+.dash-rh-key {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
-  margin: 0 0 8px;
+  gap: 4px 14px;
+  margin: 0 0 6px;
 }
 
-.dash-saw-key-item {
+.dash-rh-key-item {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -207,27 +214,23 @@
   font-weight: 600;
 }
 
-.dash-saw-key-item i {
+.dash-rh-key-item i {
   display: inline-block;
-  width: 12px;
-  height: 0;
-  border-top-width: 2px;
-  border-top-style: solid;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
 }
 
-.dash-saw-key-item .k-stock { border-top-color: var(--accent); border-top-style: solid; }
-.dash-saw-key-item .k-reorder { border-top-color: var(--warning); border-top-style: dashed; }
-.dash-saw-key-item .k-safety { border-top-color: var(--danger); border-top-style: dashed; }
+.dash-rh-key-item .rhk-hist { background: var(--accent); }
+.dash-rh-key-item .rhk-rec { background: #fff; border: 1.5px dashed var(--danger); }
 
-/* The mini sawtooth (.saw-mini, styled in charts.css) renders at a FIXED height
-   so it never collapses (dashboard now grows to content, not a fixed viewport
-   row) and never vertically distorts (the SVG uses preserveAspectRatio="none",
-   so a stretched slot would skew the curve). Any spare height in the card pools
-   below the list instead. */
+/* Chart fills the tile; ReorderHistoryMini uses preserveAspectRatio="meet"
+   so it scales without distortion regardless of tile size. */
 .dash-reorder-chart {
   display: flex;
   align-items: stretch;
-  height: 72px;
+  flex: 1;
+  min-height: 0;
 }
 
 .dash-reorder-eta {
@@ -260,8 +263,8 @@
 /* ── Stock cycling segmentation ─────────────────────────────────────── */
 .dash-segbar {
   display: flex;
-  height: 14px;
-  margin-bottom: 14px;
+  height: 9px;
+  margin-bottom: 10px;
   border-radius: 999px;
   background: var(--panel-muted);
   overflow: hidden;
@@ -293,20 +296,23 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
 .dash-cycling-legend {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: 8px;
+  justify-content: center;
+  gap: 5px;
+  flex: 1;
   min-height: 0;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.dash-cycling-legend li { display: flex; }
+
 .dash-cycling-row {
   display: flex;
   width: 100%;
   align-items: center;
-  gap: 8px;
-  padding: 4px 6px;
+  gap: 7px;
+  padding: 3px 6px;
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;
@@ -339,12 +345,13 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
 .dash-cycle-badge.seg-slow { background: #b15c00; }
 .dash-cycle-badge.seg-oneOff { background: #6e7781; }
 
-/* Definition sits immediately after the badge (left-aligned) so the label and
-   its meaning read as one unit; the flexible space pools before the count on
-   the right instead of as a void between badge and text. */
+/* Definition sits immediately after the badge (shrink-to-fit, left-aligned) so
+   the label + its meaning read as one tight unit; the count is pinned right via
+   margin-left:auto, killing the big void the user flagged. */
 .dash-cycling-def {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
+  margin-right: 6px;
   overflow: hidden;
   color: var(--muted);
   font-size: 0.7rem;
@@ -356,12 +363,13 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
 .dash-cycling-count {
   display: inline-grid;
   place-items: center;
-  min-width: 24px;
-  height: 22px;
+  min-width: 22px;
+  height: 20px;
+  margin-left: auto;
   padding: 0 6px;
   border-radius: 999px;
   color: #fff;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 800;
 }
 
@@ -456,7 +464,8 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   margin: 0;
   padding: 0;
   list-style: none;
-  overflow: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .dash-do-row {
@@ -694,11 +703,13 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 4px;
+  justify-content: center;
+  gap: 3px;
   margin: 0;
   padding: 0;
   list-style: none;
   min-height: 0;
+  overflow-y: auto;
 }
 
 .dash-pop-row {
@@ -706,10 +717,10 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   isolation: isolate;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   min-width: 0;
-  padding: 7px 10px;
+  padding: 6px 9px;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
@@ -1097,8 +1108,24 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   background: #fff8f9;
 }
 
-/* Tighten the control-tower grid on shorter laptops so it never scrolls. */
-@media (max-height: 780px) {
-  .dashboard-page { grid-template-rows: minmax(0, 1fr) 182px; gap: 10px; }
+/* On short viewports the single-screen lock would clip content (5 cycling bands,
+   pipelines, 3 reorder tiles can't all shrink indefinitely). Below ~760px tall,
+   release the height lock and let the page scroll normally instead of clipping. */
+@media (max-height: 760px) {
+  .dashboard-page {
+    height: auto;
+    min-height: calc(100vh - 56px);
+    overflow: visible;
+  }
+  .dash-col-right {
+    grid-template-rows: none;
+    grid-auto-rows: auto;
+  }
+  .dash-reorder-list {
+    grid-template-rows: none;
+    grid-auto-rows: minmax(140px, auto);
+  }
+  .dash-reorder-chart { min-height: 140px; }
+  .dash-do-list { max-height: 240px; }
   .dash-card-head h3 { font-size: 0.96rem; }
 }

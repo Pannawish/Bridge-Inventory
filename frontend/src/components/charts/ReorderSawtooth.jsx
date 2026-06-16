@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { formatNumber } from "../../format";
+import { formatNumber, formatDate } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 
 // ════════════════════════════════════════════════════════════════════════
@@ -135,6 +135,100 @@ export function ReorderSawtoothMini({ tone = "accent", unit = "", ...params }) {
       {demand > 0 ? (
         <span className={`saw-date${dueNow ? " is-now" : ""}`}>{dateLabel}</span>
       ) : null}
+    </div>
+  );
+}
+
+// Round a raw step up to a "nice" value (1 / 2 / 2.5 / 5 / 10 × 10ⁿ) so the
+// quantity axis lands on readable gridlines (10,20,30… or 50,100,150…).
+function niceStep(raw) {
+  if (!(raw > 0)) return 1;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw / pow;
+  const nice = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10;
+  return nice * pow;
+}
+
+// ── Reorder history (dashboard) ───────────────────────────────────────────
+// REAL procurement history, not a projection: the product's last ≤3 purchase
+// orders plotted as a line (x = order date, y = units ordered), plus a distinct
+// "recommended next order" marker showing how much to reorder and when ("Order
+// now" or a due date). Falls back to a friendly note when never ordered.
+export function ReorderHistoryMini({ history = [], recommended = null, unit = "", tone = "accent" }) {
+  const { t } = useLanguage();
+  const fmt = (v) => formatNumber(Math.round(num(v)));
+
+  const points = (Array.isArray(history) ? history : []).slice(-3);
+  const hasRec = !!recommended && num(recommended.qty) > 0;
+
+  if (points.length === 0 && !hasRec) {
+    return <div className="rh-empty">{t("dashboard.reorder.noHistory")}</div>;
+  }
+
+  const W = 300;
+  const H = 108;
+  const m = { l: 42, r: 26, t: 18, b: 24 };
+  const innerW = W - m.l - m.r;
+  const innerH = H - m.t - m.b;
+  const plotBottom = m.t + innerH;
+
+  // Columns: one slot per historical order + a trailing slot for the rec.
+  const cols = points.length + (hasRec ? 1 : 0);
+  const slotX = (i) => (cols <= 1 ? m.l + innerW / 2 : m.l + (i / (cols - 1)) * innerW);
+
+  const qtys = points.map((p) => num(p.qty));
+  if (hasRec) qtys.push(num(recommended.qty));
+  const peak = Math.max(...qtys, 1);
+  const step = niceStep(peak / 4);
+  let yMax = Math.ceil(peak / step) * step;
+  if (yMax <= peak) yMax += step; // headroom so the top value label never clips
+  const py = (v) => m.t + innerH - (clamp(v, 0, yMax) / yMax) * innerH;
+
+  const yTicks = [];
+  for (let v = 0; v <= yMax + 0.001; v += step) yTicks.push(Math.round(v));
+
+  const histPts = points.map((p, i) => ({ x: slotX(i), y: py(num(p.qty)), date: p.date, qty: p.qty }));
+  const linePts = histPts.map((pt) => `${pt.x},${pt.y}`).join(" ");
+  const recX = hasRec ? slotX(cols - 1) : null;
+  const recY = hasRec ? py(num(recommended.qty)) : null;
+  const lastHist = histPts[histPts.length - 1];
+
+  return (
+    <div className="rh-wrap">
+      <svg className="rh-svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label={t("dashboard.reorder.title")}>
+        {yTicks.map((v) => (
+          <g key={v}>
+            <line className="rh-grid" x1={m.l} y1={py(v)} x2={W - m.r} y2={py(v)} />
+            <text className="rh-yt" x={m.l - 5} y={py(v) + 3}>{fmt(v)}</text>
+          </g>
+        ))}
+
+        {/* dashed connector from the last real order to the recommended next one */}
+        {hasRec && lastHist ? (
+          <line className="rh-rec-link" x1={lastHist.x} y1={lastHist.y} x2={recX} y2={recY} />
+        ) : null}
+
+        {/* history line + dots + value labels */}
+        {histPts.length > 1 ? (
+          <polyline className={`rh-line tone-${tone}`} points={linePts} vectorEffect="non-scaling-stroke" />
+        ) : null}
+        {histPts.map((pt, i) => (
+          <g key={`h${i}`}>
+            <circle className={`rh-dot tone-${tone}`} cx={pt.x} cy={pt.y} r="3.4" />
+            <text className="rh-val" x={pt.x} y={pt.y - 7}>{fmt(pt.qty)}</text>
+            <text className="rh-xt" x={pt.x} y={plotBottom + 15}>{formatDate(pt.date)}</text>
+          </g>
+        ))}
+
+        {/* recommended next order — distinct hollow marker + "+qty" + when */}
+        {hasRec ? (
+          <g className={`rh-rec${recommended.isNow ? " is-now" : ""}`}>
+            <circle className="rh-rec-dot" cx={recX} cy={recY} r="4.2" />
+            <text className="rh-rec-val" x={recX} y={recY - 7}>+{fmt(recommended.qty)}</text>
+            <text className="rh-rec-xt" x={recX} y={plotBottom + 15}>{recommended.dueLabel}</text>
+          </g>
+        ) : null}
+      </svg>
     </div>
   );
 }

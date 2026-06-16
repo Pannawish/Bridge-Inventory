@@ -518,11 +518,14 @@ export const translations = {
         quickOrder: "Quick PO",
         orderBy: "Order by {date}",
         orderNow: "Order now",
+        noHistory: "No reorder history yet",
         key: {
           stock: "Stock",
           reorder: "Reorder pt",
           safety: "Safety",
           lead: "Lead time",
+          history: "Past orders",
+          recommend: "Reorder now",
         },
       },
       quickPo: {
@@ -2594,11 +2597,14 @@ export const translations = {
         quickOrder: "สั่งด่วน",
         orderBy: "สั่งภายใน {date}",
         orderNow: "สั่งเลย",
+        noHistory: "ยังไม่มีประวัติการสั่งซื้อ",
         key: {
           stock: "สต็อก",
           reorder: "จุดสั่งซื้อ",
           safety: "สต็อกสำรอง",
           lead: "เวลานำ",
+          history: "ที่สั่งมาแล้ว",
+          recommend: "สั่งซื้อตอนนี้",
         },
       },
       quickPo: {
