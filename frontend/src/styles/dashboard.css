@@ -170,42 +170,88 @@
   gap: 8px;
 }
 
-.dash-emergency {
+/* Reuse the Inventory health badge verbatim, just a touch more compact so it
+   fits the tile head beside the name + Quick PO button. */
+.dash-reorder-head .inv-health-badge {
   flex-shrink: 0;
-  width: 40px;
-  padding: 2px 0;
-  border-radius: 4px;
-  color: #fff;
-  font-size: 0.62rem;
-  font-weight: 800;
-  text-align: center;
-  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  font-size: 0.7rem;
 }
 
-.dash-emergency.tone-danger { background: var(--danger); }
-.dash-emergency.tone-warning { background: var(--warning); color: #7a5e08; }
-.dash-emergency.tone-accent { background: var(--accent); }
 
-.dash-reorder-name {
+/* Product name doubles as a deep-link into the Inventory page (full graph). */
+.dash-reorder-name.is-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   flex: 1;
   min-width: 0;
-  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--text);
   font-size: 0.86rem;
   font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dash-reorder-nametext {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Reorder-history legend: past orders (line+dot) vs the recommended next one. */
-.dash-rh-key {
+.dash-reorder-namego {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.dash-reorder-name.is-link:hover { color: var(--accent); }
+.dash-reorder-name.is-link:hover .dash-reorder-namego { opacity: 1; color: var(--accent); }
+
+/* Header-right cluster: the "to replenish all" KPI sits beside the pager. */
+.dash-reorder-headright {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dash-replenish-kpi {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.1;
+}
+
+.dash-replenish-kpi em {
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.dash-replenish-kpi strong {
+  color: var(--accent-deep, var(--accent));
+  font-size: 0.96rem;
+  font-weight: 800;
+}
+
+/* Sawtooth legend: what the three reference marks on each tile graph mean. */
+.dash-saw-key {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 14px;
   margin: 0 0 6px;
 }
 
-.dash-rh-key-item {
+.dash-saw-key-item {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -214,18 +260,37 @@
   font-weight: 600;
 }
 
-.dash-rh-key-item i {
+.dash-saw-key-item i {
   display: inline-block;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
+  width: 12px;
+  height: 0;
+  border-top-width: 2px;
+  border-top-style: solid;
 }
 
-.dash-rh-key-item .rhk-hist { background: var(--accent); }
-.dash-rh-key-item .rhk-rec { background: #fff; border: 1.5px dashed var(--danger); }
+.dash-saw-key-item .sk-now { border-top-color: var(--text); }
+.dash-saw-key-item .sk-rop { border-top-color: var(--warning); border-top-style: dashed; }
+.dash-saw-key-item .sk-ss { border-top-color: var(--danger); border-top-style: dashed; }
 
-/* Chart fills the tile; ReorderHistoryMini uses preserveAspectRatio="meet"
-   so it scales without distortion regardless of tile size. */
+/* Meta line under the tile head: cover/stockout eta + recommended order qty. */
+.dash-reorder-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dash-reorder-qty {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chart fills the tile; ReorderSawtoothMini scales to its container. */
 .dash-reorder-chart {
   display: flex;
   align-items: stretch;
@@ -235,10 +300,8 @@
 
 .dash-reorder-eta {
   flex-shrink: 0;
-  min-width: 30px;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  text-align: right;
 }
 
 .dash-reorder-eta.tone-danger { color: var(--danger); }
@@ -1018,6 +1081,50 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   font-size: 0.74rem;
   font-style: normal;
   font-weight: 700;
+}
+
+/* Context strip now shows just On hand + Reorder pt (Cover left removed). */
+.dash-drawer-context.is-2col { grid-template-columns: 1fr 1fr; }
+
+/* "Already on the way" — an open PO is inbound, so the buyer can trim the qty. */
+.dash-drawer-incoming {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 7px 10px;
+  border: 1px solid #cfe6d6;
+  border-radius: 4px;
+  background: #eefbf2;
+  color: #0f5a3d;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.dash-drawer-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.dash-drawer-select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+
+/* "+N% vs cheapest" warning when a pricier supplier than the best is chosen. */
+.dash-drawer-warn {
+  color: var(--danger);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* Helper lines under the qty / price fields (pack, cover, brings-to, last buy). */
+.dash-drawer-meta {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 600;
 }
 
 .dash-drawer-total {

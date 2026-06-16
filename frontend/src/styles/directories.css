@@ -71,6 +71,24 @@
   min-width: 0;
 }
 
+/* Dense variant (Payment Batches / Billing Notes / Credit Notes): fields keep a
+   natural, compact width and pack to the LEFT instead of stretching across the
+   row — the right side is then free for just the Reset button. */
+.uf-dense .uf-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.uf-dense .uf-field {
+  width: 210px;
+  flex: 0 0 auto;
+}
+
+/* The from–to date range needs a little more room than a single control. */
+.uf-dense .uf-field--daterange {
+  width: 300px;
+}
+
 .uf-actions {
   display: flex;
   align-items: flex-end;
@@ -143,6 +161,14 @@
   background: transparent;
   font-size: 0.95rem;
   color: var(--text);
+}
+
+/* On the dense pages the date field is wide, so cap each date input to just
+   "dd/mm/yyyy" + the native calendar icon and left-align them — the icon then
+   hugs the date instead of drifting to the far right. (Scoped to .uf-dense so
+   the shared Sales/Purchase filters are untouched.) */
+.uf-dense .uf-daterange input {
+  flex: 0 1 132px;
 }
 
 .uf-daterange-sep,

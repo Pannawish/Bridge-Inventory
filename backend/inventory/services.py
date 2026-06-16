@@ -1134,6 +1134,26 @@ def apply_sale_status_to_items(sale):
     sale.items.update(**updates)
 
 
+def build_purchase_pack(product):
+    # The product's default buying unit and how many base units it holds (a "box"
+    # of 12, a "ream" of 500, …). Lets the Quick-PO drawer round an order up to
+    # whole packs and show the pack equivalent. factor == 1 means it's bought in
+    # the base unit, so no rounding applies.
+    base_unit = product.stock_base_unit
+    purchase_unit = product.default_purchase_unit or base_unit
+    factor = Decimal("1")
+    if purchase_unit and purchase_unit != base_unit:
+        for conversion in product.unit_conversions.all():
+            if (
+                conversion.unit == purchase_unit
+                and conversion.allow_purchase
+                and conversion.factor_to_base
+            ):
+                factor = conversion.factor_to_base
+                break
+    return {"unit": purchase_unit, "factor": as_number(factor)}
+
+
 def create_empty_stock_row(product):
     return {
         "product_id": product.id,
@@ -1144,6 +1164,7 @@ def create_empty_stock_row(product):
             or (product.category.name if product.category else "")
         ),
         "unit": product.stock_base_unit,
+        "purchase_pack": build_purchase_pack(product),
         "reorder_level": product.reorder_level or Decimal("0"),
         "predicted_7_day_demand": Decimal("0"),
         "received_purchase_units": Decimal("0"),
@@ -1201,6 +1222,9 @@ def build_supplier_options(supplier_costs):
             "last_cost": as_number(entry["last_cost"]),
             "best_cost": as_number(entry["best_cost"]),
             "order_count": entry["order_count"],
+            # When this supplier last sold us the product, so the Quick-PO drawer
+            # can show "last bought dd/mm/yy" beside each supplier's price.
+            "last_date": entry["last_date"].isoformat() if entry.get("last_date") else None,
         }
         for name, entry in supplier_costs.items()
     ]
@@ -1213,7 +1237,9 @@ def build_stock_report():
     today = timezone.localdate()
     product_rows = {
         product.id: create_empty_stock_row(product)
-        for product in Product.objects.select_related("category").all()
+        for product in Product.objects.select_related("category")
+        .prefetch_related("unit_conversions")
+        .all()
     }
 
     purchase_items = PurchaseItem.objects.select_related("purchase", "product").filter(
@@ -1328,6 +1354,7 @@ def build_stock_report():
                 "sku": row["sku"],
                 "category": row["category"],
                 "unit": row["unit"],
+                "purchase_pack": row["purchase_pack"],
                 "current_stock": as_number(available_stock),
                 "available_stock": as_number(available_stock),
                 "reorder_level": as_number(reorder_level),

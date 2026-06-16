@@ -125,6 +125,7 @@ function BillingNoteDirectorySection({
       </section>
 
       <UniversalFilter
+        className="uf-dense"
         search={{
           value: searchTerm,
           onChange: onSearchTermChange,

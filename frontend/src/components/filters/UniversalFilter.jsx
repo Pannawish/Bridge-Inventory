@@ -34,6 +34,7 @@ function UniversalFilter({
   activeChips = [],
   onReset,
   labels = {},
+  className = "",
   children = null,
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -44,7 +45,7 @@ function UniversalFilter({
   const advancedActiveCount = advancedFields.filter(isFieldActive).length;
 
   return (
-    <section className="section-card uf-card">
+    <section className={`section-card uf-card${className ? ` ${className}` : ""}`}>
       <div className="uf-toolbar">
         <label className="uf-search">
           <SearchIcon />
@@ -144,7 +145,7 @@ function UniversalFilter({
 function FilterField({ field }) {
   const style = field.span ? { gridColumn: `span ${field.span}` } : undefined;
   return (
-    <div className="uf-field" style={style}>
+    <div className={`uf-field uf-field--${field.type}`} style={style}>
       <span className="uf-label">{field.label}</span>
       <FieldControl field={field} />
     </div>
