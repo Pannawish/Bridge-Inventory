@@ -39,7 +39,7 @@ export const translations = {
         creditNote: "Credit note",
       },
       messages: {
-        chatIntro: "Ask for stock alerts, customer or supplier summaries, or date-range business activity.",
+        chatIntro: "Ask about stock and fulfillment, partner summaries, AP/AR exceptions, or a document reference.",
         purchaseTransactionSaved: "Purchase transaction saved.",
         salesTransactionSaved: "Sales transaction saved.",
         salesTransactionSavedAsDraft: "Sales transaction saved as draft. {reason}",
@@ -733,15 +733,18 @@ export const translations = {
     chat: {
       eyebrow: "Natural Language Query",
       title: "AI Inventory Assistant",
+      scopeNote:
+        "Focused on 4 workflows: stock and fulfillment, partner summaries, AP/AR and exceptions, and document lookup.",
       exampleLabel: "Example:",
-      prompt1: "Summarize customer activity for Acme Co. from 2026-06-01 to 2026-06-14",
-      prompt2: "Summarize supplier activity for Apex Supply this month",
-      prompt3: "Which items are low stock and what should I restock first?",
+      prompt1: "Which items are low stock and what should I restock first?",
+      prompt2: "Summarize customer activity for Finance Department from 2026-06-01 to 2026-06-14",
+      prompt3: "Show overdue and exception issues",
+      prompt4: "Show line items for TI-CHAT-BACKORDER",
       you: "You",
       assistant: "Assistant",
       model: "Model: {model}",
       generating: "Generating answer...",
-      placeholder: "Ask about stock, a supplier or customer, a reference number, or a date range.",
+      placeholder: "Ask about stock, one customer or supplier, AP/AR issues, or a document reference.",
       askButton: "Ask Assistant",
     },
     stockIssues: {
@@ -2132,7 +2135,7 @@ export const translations = {
         creditNote: "ใบลดหนี้",
       },
       messages: {
-        chatIntro: "ถามเรื่องแจ้งเตือนสต็อก สรุปลูกค้าหรือผู้จัดจำหน่าย หรือกิจกรรมทางธุรกิจตามช่วงวันที่",
+        chatIntro: "ถามเรื่องสต็อกและการเติมสินค้า สรุปลูกค้าหรือผู้จัดจำหน่าย ปัญหา AR/AP หรือเลขเอกสารอ้างอิง",
         purchaseTransactionSaved: "บันทึกรายการสั่งซื้อแล้ว",
         salesTransactionSaved: "บันทึกรายการขายแล้ว",
         salesTransactionSavedAsDraft: "บันทึกรายการขายเป็นฉบับร่างแล้ว {reason}",
@@ -2825,15 +2828,18 @@ export const translations = {
     chat: {
       eyebrow: "ค้นหาด้วยภาษาธรรมชาติ",
       title: "ผู้ช่วย AI คลังสินค้า",
+      scopeNote:
+        "โฟกัส 4 งานหลัก: สต็อกและการจ่ายสินค้า, สรุปลูกค้าหรือผู้จัดจำหน่าย, AR/AP และปัญหาค้าง, และการเปิดดูเอกสาร",
       exampleLabel: "ตัวอย่าง:",
-      prompt1: "สรุปกิจกรรมของลูกค้า Acme Co. ระหว่าง 2026-06-01 ถึง 2026-06-14",
-      prompt2: "สรุปกิจกรรมของผู้จัดจำหน่าย Apex Supply ในเดือนนี้",
-      prompt3: "สินค้าใดมีสต็อกต่ำ และควรเติมตัวใดก่อน?",
+      prompt1: "สินค้าใดมีสต็อกต่ำ และควรเติมตัวใดก่อน?",
+      prompt2: "สรุปกิจกรรมของลูกค้า Finance Department ระหว่าง 2026-06-01 ถึง 2026-06-14",
+      prompt3: "แสดงรายการค้างและข้อยกเว้น",
+      prompt4: "แสดงรายการสินค้าใน TI-CHAT-BACKORDER",
       you: "คุณ",
       assistant: "ผู้ช่วย",
       model: "โมเดล: {model}",
       generating: "กำลังสร้างคำตอบ...",
-      placeholder: "ถามเกี่ยวกับสต็อก ลูกค้าหรือผู้จัดจำหน่าย เลขอ้างอิง หรือช่วงวันที่",
+      placeholder: "ถามเรื่องสต็อก ลูกค้าหรือผู้จัดจำหน่าย ปัญหา AR/AP หรือเลขเอกสารอ้างอิง",
       askButton: "ถามผู้ช่วย",
     },
     stockIssues: {

@@ -24,6 +24,7 @@ function ChatPanel({ messages, onAsk, busy }) {
         <div>
           <p className="eyebrow">{t("chat.eyebrow")}</p>
           <h3>{t("chat.title")}</h3>
+          <p className="chat-scope-note">{t("chat.scopeNote")}</p>
         </div>
       </div>
 
@@ -37,6 +38,9 @@ function ChatPanel({ messages, onAsk, busy }) {
         </button>
         <button type="button" className="prompt-chip" onClick={() => setQuestion(t("chat.prompt3"))}>
           {t("chat.prompt3")}
+        </button>
+        <button type="button" className="prompt-chip" onClick={() => setQuestion(t("chat.prompt4"))}>
+          {t("chat.prompt4")}
         </button>
       </div>
 
