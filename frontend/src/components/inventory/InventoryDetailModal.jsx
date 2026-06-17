@@ -1,8 +1,16 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { formatDate } from "../../format";
-import { getItemBaseQuantity } from "../../unitConversion";
-import { ReorderSawtoothFull } from "../charts/ReorderSawtooth";
+import { ReorderProjectionFull } from "../charts/ReorderProjection";
+import {
+  REORDER_WINDOWS,
+  DEFAULT_REORDER_WINDOW,
+  getReorderWindow,
+  buildStockHistory,
+  collectProductSales,
+  startOfToday,
+  dayKey,
+} from "./reorderHistory";
 import {
   num,
   formatUnits,
@@ -11,58 +19,6 @@ import {
   getDailyDemand,
   getReorderLevel,
 } from "./inventoryUtils";
-
-const ACTIVE_SALE_ITEM = (status) =>
-  status !== "cancelled" && status !== "returned" && status !== "draft";
-
-// The sales orders that consumed this product, newest first, plus a summary
-// (total units, distinct orders, and units/day over the active span). This is
-// the "why is it popular" evidence behind the dashboard ranking.
-function buildSalesActivity(sales, productId) {
-  const entries = [];
-  const orderIds = new Set();
-  let totalUnits = 0;
-  let firstDate = null;
-  let lastDate = null;
-
-  (Array.isArray(sales) ? sales : []).forEach((sale) => {
-    if (!sale || sale.status === "cancelled") return;
-    (sale.items || []).forEach((item, index) => {
-      if (`${item.product_id}` !== `${productId}`) return;
-      const status = item.item_status || item.status || sale.status;
-      if (!ACTIVE_SALE_ITEM(status)) return;
-      const qty = getItemBaseQuantity(item);
-      if (!(qty > 0)) return;
-      entries.push({
-        key: `${sale.id}-${item.id ?? index}`,
-        ref: sale.reference_no || sale.id,
-        date: sale.transaction_date || "",
-        customer: sale.customer_name || "",
-        qty,
-      });
-      totalUnits += qty;
-      orderIds.add(`${sale.id}`);
-      const date = sale.transaction_date;
-      if (date) {
-        if (!firstDate || date < firstDate) firstDate = date;
-        if (!lastDate || date > lastDate) lastDate = date;
-      }
-    });
-  });
-
-  entries.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-
-  let perDay = 0;
-  if (firstDate && lastDate) {
-    const spanDays = Math.max(
-      1,
-      Math.round((new Date(lastDate) - new Date(firstDate)) / 86_400_000) + 1
-    );
-    perDay = totalUnits / spanDays;
-  }
-
-  return { entries, totalUnits, orderCount: orderIds.size, perDay };
-}
 
 const HEALTH_TONE = { low: "danger", watch: "warning", healthy: "positive", dead: "neutral" };
 
@@ -79,8 +35,10 @@ function CalcLine({ label, value, note, highlight }) {
 // Product reorder-point detail — same modal chrome as the purchase/sale
 // TransactionDetailModal: reorder-point graph + the calculation beside it,
 // with the FIFO stock layers below.
-function InventoryDetailModal({ row, health, sales = [], onClose }) {
+function InventoryDetailModal({ row, health, sales = [], purchases = [], onClose }) {
   const { t } = useLanguage();
+  const [windowKey, setWindowKey] = useState(DEFAULT_REORDER_WINDOW);
+  const window = getReorderWindow(windowKey);
 
   const unit = row.unit || "";
   const available = getAvailable(row);
@@ -90,10 +48,25 @@ function InventoryDetailModal({ row, health, sales = [], onClose }) {
   const days = row.days_until_stockout;
   const leadTime = num(row.average_lead_time_days);
   const safety = num(row.safety_stock);
-  const salesActivity = useMemo(
-    () => buildSalesActivity(sales, row.product_id),
-    [sales, row.product_id]
+
+  // The timeframe drives both the projection slope and the sales list below.
+  const productSales = useMemo(
+    () => collectProductSales({ productId: row.product_id, sales, windowDays: window.days }),
+    [sales, row.product_id, window.days]
   );
+  const velocity = productSales.perDay;
+  const historyPoints = useMemo(() => {
+    const fromDate = window.days
+      ? dayKey(new Date(startOfToday().getTime() - window.days * 86_400_000))
+      : null;
+    return buildStockHistory({
+      productId: row.product_id,
+      purchases,
+      sales,
+      currentStock: available,
+      fromDate,
+    });
+  }, [purchases, sales, row.product_id, available, window.days]);
 
   return (
     <>
@@ -118,15 +91,30 @@ function InventoryDetailModal({ row, health, sales = [], onClose }) {
         </div>
 
         <div className="inv-detail-graphwrap">
-          <p className="inv-detail-heading">{t("inventory.graph.title")}</p>
+          <div className="inv-graph-head">
+            <p className="inv-detail-heading">{t("inventory.graph.title")}</p>
+            <div className="rp-timeframe" role="group" aria-label={t("inventory.graph.timeframe")}>
+              {REORDER_WINDOWS.map((w) => (
+                <button
+                  key={w.key}
+                  type="button"
+                  className={`rp-tf-btn${w.key === windowKey ? " is-active" : ""}`}
+                  onClick={() => setWindowKey(w.key)}
+                >
+                  {w.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="inv-graph-frame">
-            <ReorderSawtoothFull
+            <ReorderProjectionFull
+              historyPoints={historyPoints}
               current={available}
               reorder={reorder}
               safety={safety}
-              dailyDemand={demand}
+              velocity={velocity > 0 ? velocity : demand}
               leadTime={leadTime}
-              restock={buy}
+              orderQty={buy}
               unit={unit}
               tone={HEALTH_TONE[health] || "accent"}
             />
@@ -188,17 +176,20 @@ function InventoryDetailModal({ row, health, sales = [], onClose }) {
           </div>
 
         <div className="inv-detail-block">
-          <p className="inv-detail-heading">{t("inventory.salesActivity.title")}</p>
-          {salesActivity.entries.length === 0 ? (
+          <div className="inv-graph-head">
+            <p className="inv-detail-heading">{t("inventory.salesActivity.title")}</p>
+            <span className="inv-sales-window">{window.label}</span>
+          </div>
+          {productSales.entries.length === 0 ? (
             <p className="empty-copy inv-layers-empty">{t("inventory.salesActivity.empty")}</p>
           ) : (
             <>
               <p className="inv-sales-summary">
                 {t("inventory.salesActivity.summary", {
-                  units: formatUnits(Math.round(salesActivity.totalUnits)),
+                  units: formatUnits(Math.round(productSales.totalUnits)),
                   unit,
-                  orders: formatUnits(salesActivity.orderCount),
-                  perDay: formatUnits(Math.round(salesActivity.perDay * 100) / 100),
+                  orders: formatUnits(productSales.orderCount),
+                  perDay: formatUnits(Math.round(productSales.perDay * 100) / 100),
                 })}
               </p>
               <div className="transaction-table-window">
@@ -213,7 +204,7 @@ function InventoryDetailModal({ row, health, sales = [], onClose }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {salesActivity.entries.map((entry) => (
+                      {productSales.entries.map((entry) => (
                         <tr key={entry.key} className="partner-table-row">
                           <td>{entry.date ? formatDate(entry.date) : "—"}</td>
                           <td>

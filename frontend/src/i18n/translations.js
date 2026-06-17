@@ -264,6 +264,9 @@ export const translations = {
         statusReorder: "At / below reorder",
         statusSafety: "Below safety stock",
         hoverHint: "Hover the line to read projected stock on any date",
+        timeframe: "Timeframe",
+        regionPast: "History (actual)",
+        regionFuture: "Projection",
       },
       calc: {
         title: "How these numbers are calculated",
@@ -289,7 +292,7 @@ export const translations = {
         total: "Total available value",
       },
       salesActivity: {
-        title: "Sales activity — why it ranks",
+        title: "Sales history (used in the calculation)",
         summary: "Sold {units} {unit} across {orders} orders · ~{perDay}/day",
         empty: "No sales recorded yet.",
         colDate: "Date",
@@ -2352,6 +2355,9 @@ export const translations = {
         statusReorder: "ถึง/ต่ำกว่าจุดสั่งซื้อ",
         statusSafety: "ต่ำกว่าสต็อกสำรอง",
         hoverHint: "เลื่อนเมาส์บนเส้นเพื่อดูสต็อกคาดการณ์แต่ละวัน",
+        timeframe: "ช่วงเวลา",
+        regionPast: "ประวัติจริง",
+        regionFuture: "คาดการณ์",
       },
       calc: {
         title: "ที่มาของการคำนวณ",
@@ -2376,7 +2382,7 @@ export const translations = {
         title: "ชั้นสต็อก (FIFO) — รายการรับเข้าที่ประกอบเป็นสต็อกปัจจุบัน",
       },
       salesActivity: {
-        title: "กิจกรรมการขาย — ทำไมจึงติดอันดับ",
+        title: "ประวัติการขาย (ที่ใช้คำนวณ)",
         summary: "ขายไป {units} {unit} จาก {orders} ออเดอร์ · ~{perDay}/วัน",
         empty: "ยังไม่มียอดขาย",
         colDate: "วันที่",

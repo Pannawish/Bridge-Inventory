@@ -290,7 +290,7 @@
   white-space: nowrap;
 }
 
-/* Chart fills the tile; ReorderSawtoothMini scales to its container. */
+/* Chart fills the tile; ReorderProjectionMini scales to its container. */
 .dash-reorder-chart {
   display: flex;
   align-items: stretch;

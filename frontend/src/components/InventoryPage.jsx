@@ -27,6 +27,7 @@ function InventoryPage({
   billingNotes = [],
   paymentBatches = [],
   sales = [],
+  purchases = [],
   onNavigate,
   focusProductId = null,
   onIntentConsumed,
@@ -203,6 +204,7 @@ function InventoryPage({
           row={detailRow.row}
           health={detailRow.health}
           sales={sales}
+          purchases={purchases}
           onClose={() => setDetailRow(null)}
         />
       ) : null}

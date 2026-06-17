@@ -122,6 +122,7 @@ function ActiveTabContent({
         billingNotes={billingNotes}
         paymentBatches={paymentBatches}
         sales={sales}
+        purchases={purchases}
         onNavigate={onDashboardNavigate}
         focusProductId={dashboardIntent?.tab === "inventory" ? dashboardIntent.focusProductId : null}
         onIntentConsumed={onConsumeIntent}

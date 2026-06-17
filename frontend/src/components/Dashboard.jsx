@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { formatNumber as formatLocaleNumber } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
 import { getHealth } from "./inventory/inventoryUtils";
-import { ReorderSawtoothMini } from "./charts/ReorderSawtooth";
+import { ReorderProjectionMini } from "./charts/ReorderProjection";
+import { buildRecentStockHistory } from "./inventory/reorderHistory";
 import QuickPoDrawer from "./purchase/QuickPoDrawer";
 
 // Same health → graph-tone mapping the Inventory page uses, so a product reads
@@ -171,7 +172,7 @@ function DashModal({ eyebrow, title, onClose, headerAction, children }) {
 // it (Approaching reorder), urgent first. Uses the same health labels/colours
 // as the Inventory page so a SKU reads identically in both places, and each
 // tile carries a minimal version of the inventory reorder-point graph.
-function ReorderPlanningWidget({ rows, replenishCost, onQuickOrder, onOpenProduct }) {
+function ReorderPlanningWidget({ rows, replenishCost, purchases, sales, onQuickOrder, onOpenProduct }) {
   const { t } = useLanguage();
   const [page, setPage] = useState(0);
 
@@ -279,13 +280,20 @@ function ReorderPlanningWidget({ rows, replenishCost, onQuickOrder, onOpenProduc
                     ) : null}
                   </div>
                   <div className="dash-reorder-chart">
-                    <ReorderSawtoothMini
+                    <ReorderProjectionMini
+                      historyPoints={buildRecentStockHistory({
+                        productId: row.product_id,
+                        purchases,
+                        sales,
+                        currentStock: row._available,
+                        cycles: 3,
+                      })}
                       current={row._available}
                       reorder={row._reorder}
                       safety={num(row.safety_stock)}
-                      dailyDemand={num(row.average_daily_demand) || num(row.predicted_7_day_demand) / 7}
+                      velocity={num(row.average_daily_demand) || num(row.predicted_7_day_demand) / 7}
                       leadTime={num(row.average_lead_time_days)}
-                      restock={restock}
+                      orderQty={restock}
                       unit={row.unit || ""}
                       tone={tone}
                     />
@@ -781,6 +789,8 @@ function Dashboard({ dashboard, sales = [], purchases = [], onNavigate }) {
       <ReorderPlanningWidget
         rows={reorderItems}
         replenishCost={replenishCost}
+        purchases={purchases}
+        sales={sales}
         onQuickOrder={setQuickPo}
         onOpenProduct={(row) => openProductInInventory(row.product_id)}
       />
