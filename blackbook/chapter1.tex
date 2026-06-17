@@ -1,0 +1,88 @@
+\chapter{INTRODUCTION}
+
+\section{Background}
+Inventory management is a critical function for small and family-run businesses, particularly for middle-man companies that must track purchases, sales, and product stock across multiple suppliers. However, many existing inventory management systems are complex, feature-heavy, and designed for professional corporate users. As a result, elderly business owners or non-technical staff often struggle to use these systems effectively. This challenge is also experienced in my own family business, where existing software tools prove difficult to operate despite repeated training. These limitations highlight the need for a simpler, more intuitive system that better aligns with the abilities and workflow of small middle-man operations.
+
+Current inventory systems such as EazyStock, Zoho Inventory, and QuickBooks provide stock tracking and document management features, but they often require monthly subscription fees and lack user-friendly interfaces for older users. Additionally, most available solutions do not integrate the full range of documents and operational processes that middle-man businesses rely on, such as purchase requisitions, purchase orders, delivery orders, tax invoices, receipts, and credit or debit notes. These businesses also require real-time visibility of stock, clear tracking of process statuses, and the ability to calculate essential inventory values such as reorder points, safety stock, and optimal order quantity.
+
+Furthermore, although some commercial systems include basic chatbot functions, they cannot retrieve detailed operational data or answer business-specific questions. There is a clear gap for an AI-assisted interface that allows users—especially elderly or non-technical staff—to ask questions in natural language and receive information directly from the system’s backend data. Such a conversational tool can simplify access to stock information, document status, process tracking, and inventory calculations without requiring navigation through complex menus.
+
+Therefore, this project aims to develop a user-friendly inventory management system tailored to the workflow of middle-man businesses. The system records purchase and sales transactions, tracks process status, manages and links essential business documents, displays warehouse stock in real time, and supports the calculation of key inventory formulas. In addition, the project integrates an AI chatbot using the ChatGPT API to allow users to request specific information from the system through natural language queries. Developing this system provides a cost-effective, easy-to-use solution that improves daily operations while reducing reliance on expensive commercial software.
+
+\section{Objective}
+\begin{enumerate}
+	\item To develop a system that records purchase and sales transactions, including the current status of each process, with an attachment file function that links all supporting documents directly to the corresponding transactions. 
+	\item To develop an inventory management system that displays the overall product stock in the warehouse and provides tools for calculating essential inventory
+	\item To integrate an AI chatbot using the ChatGPT API that connects to the system’s backend data, allowing users to request specific information through natural language queries.
+\end{enumerate}
+
+\section{Scope}
+\begin{enumerate}
+	\item The scope of this project includes the development of a system capable of recording purchase and sales transactions and tracking the status of all operational processes. This includes stages such as quotation, pending approval, in-transit delivery, quality checking, completed processes, and cancelled transactions. The system provides a file-upload mechanism that allows users to attach and link supporting documents directly to each transaction. All essential business documents—such as Purchase Requisitions (PR), Purchase Orders (PO), Delivery Orders (DO), Goods Received Notes (GRN), invoices, receipts, and credit or debit notes—are supported and stored systematically within the database to ensure accurate reference and operational transparency.
+	
+	\item The inventory management component of the system displays the available stock within the warehouse and provides real-time visibility into stock movement and overall inventory status. The system incorporates several calculation tools to support inventory planning and decision-making. These include the Reorder Point (ROP), Safety Stock, Economic Order Quantity (EOQ), Order-Up-To Level under the P-System, and Z-Score for service-level determination. By computing these values numerically and presenting them to the user, the system assists in managing inventory efficiently and maintaining optimal stock levels.
+	
+	\item The project also integrates an AI chatbot designed to connect directly to the database and retrieve specific information for calculation and operational decision support. Users interact with the chatbot through text-based natural language queries, enabling them to extract precise information from the system based on their needs. The chatbot does not process images or voice messages; instead, it focuses solely on text commands to access relevant data such as stock quantities, document information, and transaction details. This provides a simplified, user-friendly method for accessing system information without navigating complex interfaces.
+	
+	\item Limitations: Restrict project validation to the use of simulated transactional data, excluding high-volume concurrent user testing or live production environment performance metrics. Limit the audit trail functionality solely to the Activity Log of document status changes.
+	
+	
+	\item Ranges of Data, Date, and Time: Support an unlimited range of historical data in the design; however, validate reporting using a simulated 12-month transactional history. All critical stock, credit, and costing calculations operate on a real-time basis following any document posting.
+	
+	
+	\item Platform(s)/Device(s) Used in This Project: The project utilizes a Three-Tier Web Architecture. The data layer employs MySQL as the Relational Database Management System (RDBMS), which serves as the reliable platform for storing and managing structured data relationships. The backend logic is handled by Django, while the client interface is built with React.js. The system is optimized primarily for desktop web browsers to support complex data entry and reporting workflows effectively.
+\end{enumerate}
+
+\section{Expected Results}
+\noindent\hspace{1.5em}
+\begin{enumerate}
+	\item The expected result of this project is the development of a functional inventory management system that can record purchase and sales transactions, track the status of each process, and link all supporting documents directly to their corresponding transactions. The system is expected to provide an up-to-date view of stock levels in the warehouse after user approval of each transaction, together with clear traceability of documents and process history. In addition, the system should be able to calculate key inventory values—such as Reorder Point (ROP), Safety Stock, Economic Order Quantity (EOQ), Order-Up-To Level under the P-System, and Z-Score—based on correctly structured and consistent data stored in the database.
+	\item The project also aims to enhance user accessibility by integrating an AI chatbot that allows elderly or non-technical users to retrieve information from the system through natural language text queries. The chatbot is expected to return accurate data from the database, using the right parameters needed for the inventory calculation formulas defined in the system. Overall, the completed system is expected to make daily operations easier, reduce manual checking, and support better-informed decisions without relying on complex commercial software.
+	
+\end{enumerate}
+
+\section{Timeline}
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}	
+
+\begin{table}[!ht]
+	\footnotesize
+	\sloppy
+	\centering
+	\caption{Project Timeline}
+	\label{tab: your-table} %for cross-reference
+	\begin{tabular}{|p{2.5cm}|c|c|c|c|c|c|c|c|c|}
+		
+		\hline
+		% HEADER ROW 1: Timeline (Spans the 9 month columns)
+		\multicolumn{1}{|c|}{} & \multicolumn{9}{c|}{\textbf{Timeline}} \\ \cline{2-10}
+		
+		% HEADER ROW 2: Years (Spans 4 columns for 2024 and 5 for 2025)
+		\multicolumn{1}{|c|}{} & \multicolumn{4}{c|}{\textbf{2024}} & \multicolumn{5}{c|}{\textbf{2025}} \\ \cline{2-10}
+		
+		% HEADER ROW 3: Months (Includes the multirow command for 'Plan' column)
+		\multicolumn{1}{|c|}{\multirow{-3}{2cm}{\textbf{Plan}}} & \textbf{Sep} & \textbf{Oct} & \textbf{Nov} & \textbf{Dec} & \textbf{Jan} & \textbf{Feb} & \textbf{Mar} & \textbf{Apr} & \textbf{May} \\ \hline
+		
+		1: Initiation & 
+		\cellcolor[HTML]{00FF00} & & & & & & & & \\ \hline
+		2: Data Analyze & & 
+		\cellcolor[HTML]{FFFF00} & & & & & & & \\ \hline
+		3: Requirements & & & 
+		\cellcolor[HTML]{FFFF00} & & & & & & \\ \hline
+		4: Data Setup & & & & 
+		\cellcolor[HTML]{FFFF00} & & & & & \\ \hline
+		5: Development & & & & & 
+		\cellcolor[HTML]{FFFF00} &
+		\cellcolor[HTML]{FFFF00} & & & \\ \hline
+		6: Integration & & & & & & 
+		\cellcolor[HTML]{FFFF00} & & &\\ \hline
+		7: User Test& & & & & & & 
+		\cellcolor[HTML]{FFFF00} & & \\ \hline
+		8: Final Draft & & & & & & & & 
+		\cellcolor[HTML]{FFFF00} & \\ \hline
+		9:  Submittion & & & & & & & & & 
+		\cellcolor[HTML]{FFFF00} \\ \hline
+		
+	\end{tabular}
+\end{table}

@@ -1,0 +1,150 @@
+%!TEX TS-program = xelatex
+%!TEX encoding = UTF-8 Unicode
+
+%============ Logs ===========================
+\newcommand{\version}{ver 2.1}
+%=============================================
+
+\documentclass{mahidol_thesis}
+%====== Add the packages here ===============
+\usepackage{multirow}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{subcaption}
+\usepackage{lscape}
+\usepackage{amsmath}
+\usepackage{lipsum} %Generate dummy text for testing
+ %====== List of Coding Color Style ==============
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+%\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{backcolour}{rgb}{1,1,1}
+%=======================
+
+%====== Path to Figure Directories ===============
+\graphicspath{{./figures/chap1/}{./figures/chap2/}{./figures/chap3/}{./figures/chap4/}{./figures/chap5/}{./figures/chap6/}{./figures/appendix/}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Thesis Meta Data (edit each field)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Thesis Title 
+\newcommand{\thesisTitle}{Inventory Management}
+\newcommand{\thesisTitleTH}{ชื่อวิทยานิพนธ์}
+
+%Thesis Keywords
+\newcommand{\thesisKeywordsTH}{ ลาเท็ก / วิทยานิพนธ์ (\~{}5 คำ)}
+\newcommand{\thesisKeywords}{ LaTeX / Thesis (\~{}5 words)}
+
+\newcommand{\totalPageTH}{๒๘}   %Total pages (See. the total number in English Acknowledgement Page then fill up here!)
+%\newcommand{\totalPageTH}{\pageref{LastPage}}
+
+%First Author name
+\newcommand{\thesisFirstTitleName}{Mr.}
+\newcommand{\thesisFirstAuthorName}{Pibhu}
+\newcommand{\thesisFirstAuthorLastName}{Chitburanachart}
+\newcommand{\thesisFirstTitleNameTH}{นาย}
+\newcommand{\thesisFirstAuthorNameTH}{พิภู}
+\newcommand{\thesisFirstAuthorLastNameTH}{จิตบูรณะชาติ}
+\newcommand{\thesisFirstAuthorID}{6580195}
+\newcommand{\thesisFirstAuthorBD}{29 August 2004}
+\newcommand{\thesisFirstAuthorBP}{Bangkok, Thailand}
+\newcommand{\thesisFirstAuthorHC}{Mahidol International College}
+\newcommand{\thesisFirstAuthorTel}{098 494 7984}
+\newcommand{\thesisFirstAuthorEmail}{Pibhu22@gmail.com}
+
+%Second Author name
+\newcommand{\thesisSecondTitleName}{Mr.}		%Comment all if you don't have second author
+\newcommand{\thesisSecondAuthorName}{Pannawish}
+\newcommand{\thesisSecondAuthorLastName}{Kriengyakul}
+\newcommand{\thesisSecondTitleNameTH}{นาย }
+\newcommand{\thesisSecondAuthorNameTH}{ปัณณวิชญ์}
+\newcommand{\thesisSecondAuthorLastNameTH}{เกรียงยะกุล}
+\newcommand{\thesisSecondAuthorID}{6580117}
+\newcommand{\thesisSecondAuthorBD}{17 April 2003}
+\newcommand{\thesisSecondAuthorBP}{Bangkok, Thailand}
+\newcommand{\thesisSecondAuthorHC}{Mahidol International College}
+\newcommand{\thesisSecondAuthorTel}{0989705604}
+\newcommand{\thesisSecondAuthorEmail}{peto03.tcs@gmail.com}
+
+%Third Author name
+\newcommand{\thesisThirdTitleName}{Mr.}			%Comment all if you don't have third author
+\newcommand{\thesisThirdAuthorName}{Akkhrawin}
+\newcommand{\thesisThirdAuthorLastName}{Nair}
+\newcommand{\thesisThirdTitleNameTH}{นาย}
+\newcommand{\thesisThirdAuthorNameTH}{อัครวินทร์}
+\newcommand{\thesisThirdAuthorLastNameTH}{แนร์}
+\newcommand{\thesisThirdAuthorID}{6580013}
+\newcommand{\thesisThirdAuthorBD}{22 September 2002}
+\newcommand{\thesisThirdAuthorBP}{Bangkok, Thailand}
+\newcommand{\thesisThirdAuthorHC}{Mahidol International College}
+\newcommand{\thesisThirdAuthorTel}{0987819644}
+\newcommand{\thesisThirdAuthorEmail}{akkhrawin22@gmail.com}
+
+
+%Month, year and date of thesis publication
+\newcommand{\thesisGradDateTH}{15 กรกฎาคม 2567}  %Graduate Date/Month/Year
+\newcommand{\thesisGradDate}{July 15, 2024} %Graduated Year
+\newcommand{\thesisAcademicYear}{2026} %Academic Year
+\newcommand{\thesisAcademicYearTH}{๒๕๖๙} %Academic Year
+
+%Department
+\newcommand{\thesisDepENG}{Computer Engineering}
+\newcommand{\thesisDepTH}{วิศวกรรมคอมพิวเตอร์}
+
+%Advisor name
+\newcommand{\thesisAdv}{Asst. Prof. Mingmanas Sivaraksa}		%with title name
+\newcommand{\thesisAdvTH}{ผศ.ดร. มิ่งมานัส ศิวรักษ์ }		%with title name
+\newcommand{\advDegree}{Ph.D. (Data Science),\\ Ph.D. (Computer Engineering)}
+
+%Thesis Committees
+\newcommand{\Chair}{\thesisAdv}
+\newcommand{\ChairDegree}{\advDegree}
+\newcommand{\committeeI}{Committee 1}
+\newcommand{\committeeIDegree}{Ph.D. (Computer Engineering)}
+\newcommand{\committeeII}{Committee 2}
+\newcommand{\committeeIIDegree}{Ph.D. (Computer Engineering)}
+\newcommand{\committeeIII}{Committee 3}
+\newcommand{\committeeIIIDegree}{Ph.D. (Computer Science)}
+
+\begin{document}
+%---- Cover Page Section ------
+\coverpageENG
+\coverpageENGTwo
+\entitlepageOne
+\entitlepageTwo
+%---- Front Page Section ------
+\pagestyle{front}
+\frontmatter
+\biography
+\acknowledgement{acknowledgement.tex}
+\abstractTH{abstractTH.tex}
+\abstractENG{abstractENG.tex}
+\tableofcontents
+\newpage
+\listoftables
+\newpage
+\listoffigures
+%---- Body -----
+\pagestyle{chapter}
+\mainmatter
+\pagestyle{fancy}
+\input{chapter1.tex}
+\input{chapter2.tex}
+\input{chapter3.tex}
+\input{chapter4.tex}
+\input{chapter5.tex}
+\newpage
+%---- Bibliography -----
+\pagestyle{bibliography}
+\bibliography{references} 
+\bibliographystyle{abbrvnat}
+\label{lastpage}
+\newpage
+%---- Appendix ----
+%\coverAppendix
+%\pagestyle{appendix}
+%\appendix
+%\input{AppendixA.tex}
+
+\end{document}
