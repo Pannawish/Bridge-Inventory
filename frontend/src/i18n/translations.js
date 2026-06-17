@@ -158,6 +158,7 @@ export const translations = {
         cancelled: "Cancelled",
         returned: "Returned",
       },
+      defaultBranch: "Head Quarter",
     },
     quotationDetail: {
       stockColumn: "Stock",
@@ -2245,6 +2246,7 @@ export const translations = {
         cancelled: "ยกเลิก",
         returned: "คืนสินค้า",
       },
+      defaultBranch: "สำนักงานใหญ่",
     },
     quotationDetail: {
       stockColumn: "สต็อก",

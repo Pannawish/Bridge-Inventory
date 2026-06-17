@@ -978,18 +978,20 @@
 .product-history-table-window .product-history-transaction-table,
 .product-history-table-window .transaction-history-table-purchase,
 .product-history-table-window .transaction-history-table-sale {
-  width: max-content;
-  min-width: 1312px;
-  table-layout: auto;
+  /* Fill the panel to the right edge and divide the width by fixed proportions
+     so the purchase and sales tables line up and stay balanced at any width. */
+  width: 100%;
+  min-width: 1120px;
+  table-layout: fixed;
 }
 
 .product-history-table-window th,
 .product-history-table-window td {
-  overflow: visible;
+  overflow: hidden;
   padding: 8px 6px;
   font-size: 0.8rem;
   line-height: 1.22;
-  text-overflow: initial;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -1000,44 +1002,94 @@
   text-overflow: ellipsis;
 }
 
+/* Currency columns read right-aligned so figures of any length line up on a
+   shared right edge — Unit Cost/Price, both Base Cost columns and Amount match
+   across the purchase and sales tables. */
+.product-history-table-window .product-history-num {
+  text-align: right;
+}
+
+.product-history-table-window th.product-history-num .compact-column-heading {
+  align-items: flex-end;
+  text-align: right;
+}
+
+/* Discounts column is centered in both tables. */
+.product-history-table-window .product-history-mid {
+  text-align: center;
+}
+
+.product-history-table-window .product-history-mid .tx-discount-breakdown {
+  width: fit-content;
+  margin: 0 auto;
+}
+
+/* Shared leading columns — identical proportions in both tables so the purchase
+   and sales rows align from the left edge through Unit cost/price. */
 .product-history-col-index {
-  width: 44px;
+  width: 3%;
 }
 
 .product-history-col-reference {
-  width: 116px;
+  width: 9%;
 }
 
 .product-history-col-party {
-  width: 150px;
+  width: 13%;
 }
 
 .product-history-col-date {
-  width: 100px;
+  width: 7%;
 }
 
 .product-history-col-qty {
-  width: 102px;
+  width: 7%;
 }
 
-.product-history-col-money {
-  width: 100px;
+.product-history-col-unit {
+  width: 8%;
 }
 
-.product-history-col-base-cost {
-  width: 86px;
+/* Trailing columns — purchase carries the two extra base-cost columns, so each
+   table splits the remaining 46% across its own count of trailing columns. */
+.transaction-history-table-purchase .product-history-col-base-cost {
+  width: 7%;
 }
 
-.product-history-col-discount {
-  width: 98px;
+.transaction-history-table-purchase .product-history-col-discount {
+  width: 8%;
 }
 
-.product-history-col-status {
-  width: 132px;
+.transaction-history-table-purchase .product-history-col-amount {
+  width: 8%;
 }
 
-.product-history-col-action {
-  width: 78px;
+.transaction-history-table-purchase .product-history-col-status {
+  width: 9%;
+}
+
+.transaction-history-table-purchase .product-history-col-action {
+  width: 7%;
+}
+
+.transaction-history-table-sale .product-history-col-empty {
+  width: 7%;
+}
+
+.transaction-history-table-sale .product-history-col-discount {
+  width: 8%;
+}
+
+.transaction-history-table-sale .product-history-col-amount {
+  width: 8%;
+}
+
+.transaction-history-table-sale .product-history-col-status {
+  width: 9%;
+}
+
+.transaction-history-table-sale .product-history-col-action {
+  width: 7%;
 }
 
 .product-detail-section .list-pagination {

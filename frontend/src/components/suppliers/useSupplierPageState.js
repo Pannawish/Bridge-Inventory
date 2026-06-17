@@ -238,7 +238,7 @@ export function useSupplierPageState({
 
   function handleCreateSupplier() {
     setFormErrors({});
-    setDraftSupplier(createSupplier());
+    setDraftSupplier(createSupplier({ branches: [t("common.defaultBranch")] }));
     setIsDraftSupplierDirty(false);
   }
 

@@ -242,7 +242,7 @@ export function useCustomerPageState({
 
   function handleCreateCustomer() {
     setFormErrors({});
-    setDraftCustomer(createCustomer());
+    setDraftCustomer(createCustomer({ branches: [t("common.defaultBranch")] }));
     setIsDraftCustomerDirty(false);
   }
 

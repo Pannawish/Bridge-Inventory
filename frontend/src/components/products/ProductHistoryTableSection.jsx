@@ -67,11 +67,11 @@ function ProductHistoryTableSection({
                     <col className="product-history-col-date" />
                     <col className="product-history-col-qty" />
                     <col className="product-history-col-qty" />
-                    <col className="product-history-col-money" />
-                    <col className="product-history-col-base-cost" />
+                    <col className="product-history-col-unit" />
                     <col className="product-history-col-base-cost" />
                     <col className="product-history-col-discount" />
-                    <col className="product-history-col-money" />
+                    <col className="product-history-col-base-cost" />
+                    <col className="product-history-col-amount" />
                     <col className="product-history-col-status" />
                     <col className="product-history-col-action" />
                   </colgroup>
@@ -83,19 +83,19 @@ function ProductHistoryTableSection({
                       <th>{t("products.purchaseColDate")}</th>
                       <th>{t("products.purchaseColQty")}</th>
                       <th>{t("products.purchaseColBaseQty")}</th>
-                      <th>{t("products.purchaseColUnitCost")}</th>
-                      <th>
+                      <th className="product-history-num">{t("products.purchaseColUnitCost")}</th>
+                      <th className="product-history-num">
                         <span className="compact-column-heading">
                           <span>{t("products.purchaseColBaseCostBefore")}</span>
                         </span>
                       </th>
-                      <th>
+                      <th className="product-history-mid">{t("products.purchaseColDiscounts")}</th>
+                      <th className="product-history-num">
                         <span className="compact-column-heading">
                           <span>{t("products.purchaseColBaseCostAfter")}</span>
                         </span>
                       </th>
-                      <th>{t("products.purchaseColDiscounts")}</th>
-                      <th>{t("products.purchaseColAmount")}</th>
+                      <th className="product-history-num">{t("products.purchaseColAmount")}</th>
                       <th>{t("products.purchaseColStatus")}</th>
                       <th />
                     </tr>
@@ -117,17 +117,17 @@ function ProductHistoryTableSection({
                           <td>{formatDate(purchase.transaction_date)}</td>
                           <td>{quantityDetails.enteredLabel}</td>
                           <td>{quantityDetails.baseLabel}</td>
-                          <td>
+                          <td className="product-history-num">
                             {item.unit_cost !== undefined && item.unit_cost !== null
                               ? formatCurrency(item.unit_cost)
                               : "—"}
                           </td>
-                          <td>{formatOptionalCurrency(computePurchaseBaseUnitCostBeforeDiscount(item))}</td>
-                          <td>{formatOptionalCurrency(computePurchaseBaseUnitCostAfterDiscount(item, purchase))}</td>
-                          <td>
+                          <td className="product-history-num">{formatOptionalCurrency(computePurchaseBaseUnitCostBeforeDiscount(item))}</td>
+                          <td className="product-history-mid">
                             <DiscountBreakdown item={item} transaction={purchase} />
                           </td>
-                          <td>{formatCurrency(computeItemAmount(item, purchase))}</td>
+                          <td className="product-history-num">{formatOptionalCurrency(computePurchaseBaseUnitCostAfterDiscount(item, purchase))}</td>
+                          <td className="product-history-num">{formatCurrency(computeItemAmount(item, purchase))}</td>
                           <td>
                             <span className={`status-badge status-${displayStatus}`}>
                               {getStatusLabel(t, displayStatus)}
@@ -156,9 +156,11 @@ function ProductHistoryTableSection({
                     <col className="product-history-col-date" />
                     <col className="product-history-col-qty" />
                     <col className="product-history-col-qty" />
-                    <col className="product-history-col-money" />
+                    <col className="product-history-col-unit" />
+                    <col className="product-history-col-empty" />
                     <col className="product-history-col-discount" />
-                    <col className="product-history-col-money" />
+                    <col className="product-history-col-empty" />
+                    <col className="product-history-col-amount" />
                     <col className="product-history-col-status" />
                     <col className="product-history-col-action" />
                   </colgroup>
@@ -170,9 +172,11 @@ function ProductHistoryTableSection({
                       <th>{t("products.saleColDate")}</th>
                       <th>{t("products.saleColQty")}</th>
                       <th>{t("products.saleColBaseQty")}</th>
-                      <th>{t("products.saleColUnitPrice")}</th>
-                      <th>{t("products.saleColDiscounts")}</th>
-                      <th>{t("products.saleColAmount")}</th>
+                      <th className="product-history-num">{t("products.saleColUnitPrice")}</th>
+                      <th />
+                      <th className="product-history-mid">{t("products.saleColDiscounts")}</th>
+                      <th />
+                      <th className="product-history-num">{t("products.saleColAmount")}</th>
                       <th>{t("products.saleColStatus")}</th>
                       <th />
                     </tr>
@@ -192,15 +196,17 @@ function ProductHistoryTableSection({
                           <td>{formatDate(sale.transaction_date)}</td>
                           <td>{quantityDetails.enteredLabel}</td>
                           <td>{quantityDetails.baseLabel}</td>
-                          <td>
+                          <td className="product-history-num">
                             {item.unit_price !== undefined && item.unit_price !== null
                               ? formatCurrency(item.unit_price)
                               : "—"}
                           </td>
-                          <td>
+                          <td />
+                          <td className="product-history-mid">
                             <DiscountBreakdown item={item} transaction={sale} />
                           </td>
-                          <td>{formatCurrency(computeItemAmount(item, sale))}</td>
+                          <td />
+                          <td className="product-history-num">{formatCurrency(computeItemAmount(item, sale))}</td>
                           <td>
                             <span className={`status-badge status-${displayStatus}`}>
                               {getStatusLabel(t, displayStatus)}
