@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  17 JUN 2026 11:35
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  17 JUN 2026 11:40
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1362,12 +1362,12 @@ CHAPTER 1.
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10> not avail
 able
-(Font)              size <12> substituted on input line 66.
+(Font)              size <12> substituted on input line 56.
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <5> not availa
 ble
-(Font)              size <12> substituted on input line 71.
+(Font)              size <12> substituted on input line 61.
 
 ) (chapter3.tex
 
@@ -1608,7 +1608,7 @@ LaTeX Font Warning: Size substitutions with differences
 Here is how much of TeX's memory you used:
  24266 strings out of 402990
  513052 string characters out of 5447323
- 1096111 words of memory out of 5000000
+ 1094115 words of memory out of 5000000
  52541 multiletter control sequences out of 15000+600000
  633752 words of font info for 101 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
