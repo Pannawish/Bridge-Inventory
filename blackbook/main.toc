@@ -4,10 +4,10 @@
 \contentsline {chapter}{BIOGRAPHY}{i}{}%
 \contentsline {chapter}{ACKNOWLEDGEMENT}{iii}{}%
 \contentsline {chapter}{ABSTRACT (THAI)}{iv}{}%
-\contentsline {chapter}{ABSTRACT (ENGLISH)}{vi}{}%
-\contentsline {chapter}{CONTENTS}{viii}{}%
-\contentsline {chapter}{LIST OF TABLES}{x}{}%
-\contentsline {chapter}{LIST OF FIGURES}{xi}{}%
+\contentsline {chapter}{ABSTRACT (ENGLISH)}{v}{}%
+\contentsline {chapter}{CONTENTS}{vii}{}%
+\contentsline {chapter}{LIST OF TABLES}{ix}{}%
+\contentsline {chapter}{LIST OF FIGURES}{x}{}%
 \contentsline {chapter}{\numberline {1}INTRODUCTION}{1}{}%
 \contentsline {section}{\numberline {1.1}Background}{1}{}%
 \contentsline {section}{\numberline {1.2}Objective}{2}{}%

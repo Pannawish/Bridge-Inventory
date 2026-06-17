@@ -33,27 +33,27 @@ The system uses a three-tier web architecture. The frontend runs as a React sing
 
 \begin{figure}[H]
 \centering
+\resizebox{0.68\textwidth}{!}{
 \begin{tikzpicture}[
 	>=Stealth,
 	font=\small,
-	mainbox/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=3.5cm, minimum height=0.95cm, fill=gray!10},
-	servicebox/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=3.5cm, minimum height=0.95cm, fill=blue!8},
-	databox/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=3.5cm, minimum height=0.95cm, fill=green!10},
-	sidebox/.style={rectangle, rounded corners=2pt, draw=black, dashed, align=center, text width=3cm, minimum height=0.85cm, fill=yellow!12}
+	mainbox/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=5.1cm, minimum height=1cm, fill=gray!10},
+	servicebox/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=5.1cm, minimum height=1cm, fill=blue!8},
+	databox/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=5.1cm, minimum height=1cm, fill=green!10},
+	sidebox/.style={rectangle, rounded corners=2pt, draw=black, dashed, align=center, text width=5.1cm, minimum height=0.95cm, fill=yellow!12}
 ]
-	\node[mainbox] (frontend) at (0,0) {React + Vite\\Frontend SPA};
-	\node[mainbox] (api) at (0,-1.9) {Django REST Framework\\API Layer};
-	\node[servicebox] (services) at (0,-3.8) {Business Services\\Validation, Stock, Finance};
-	\node[databox] (mysql) at (0,-5.7) {MySQL\\Relational Database};
-	\node[sidebox] (auth) at (4.8,-0.95) {Simple JWT\\Login and Refresh};
-	\node[sidebox] (assistant) at (4.8,-4.75) {Read-only\\Text Assistant};
+	\node[mainbox] (frontend) at (0,0) {React + Vite Frontend};
+	\node[mainbox] (api) at (0,-2.1) {Django REST Framework API\\JWT Login and Refresh};
+	\node[servicebox] (services) at (0,-4.2) {Backend Services\\Validation, Stock, Finance};
+	\node[databox] (mysql) at (0,-6.3) {MySQL Database};
+	\node[sidebox] (assistant) at (6.4,-6.3) {Read-only Assistant\\Supported Query Workflows};
 	
-	\draw[->, thick] (frontend) -- node[right]{REST requests} (api);
+	\draw[->, thick] (frontend) -- (api);
 	\draw[->, thick] (api) -- (services);
-	\draw[->, thick] (services) -- node[right]{Django ORM} (mysql);
-	\draw[->, thick] (auth.west) -- ++(-0.8,0) |- node[pos=0.3, right]{Bearer token} (api.east);
+	\draw[->, thick] (services) -- (mysql);
 	\draw[->, dashed, thick] (services.east) -- (assistant.west);
 \end{tikzpicture}
+}
 \caption{System architecture overview}
 \label{fig:system-architecture-overview}
 \end{figure}
@@ -139,39 +139,54 @@ The quotation workflow allows users to prepare commercial proposals before creat
 
 \begin{figure}[H]
 \centering
+\resizebox{0.92\textwidth}{!}{
 \begin{tikzpicture}[
 	>=Stealth,
 	font=\scriptsize,
-	workflowstep/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=2.7cm, minimum height=0.85cm, fill=gray!10},
-	process/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.7cm, minimum height=0.85cm, fill=blue!8},
-	finance/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.7cm, minimum height=0.85cm, fill=green!10},
-	report/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.7cm, minimum height=0.85cm, fill=yellow!15}
+	master/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=3.6cm, minimum height=0.95cm, fill=blue!12},
+	action/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.9cm, minimum height=0.85cm, fill=blue!18},
+	decision/.style={diamond, draw=black, thick, align=center, aspect=2.1, text width=2.2cm, inner sep=2pt, fill=yellow!25},
+	stock/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=2.9cm, minimum height=0.85cm, fill=magenta!12},
+	financeg/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.9cm, minimum height=0.85cm, fill=green!18},
+	financer/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.9cm, minimum height=0.85cm, fill=red!12},
+	report/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.9cm, minimum height=0.85cm, fill=cyan!14},
+	assistant/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.6cm, minimum height=0.85cm, fill=violet!12}
 ]
-	\node[workflowstep] (master) at (0,0) {Master Data\\Products, Partners};
-	\node[process] (quote) at (0,-1.7) {Quotation};
-	\node[process] (purchase) at (-3.6,-3.5) {Purchase};
-	\node[process] (sale) at (3.6,-3.5) {Sale};
-	\node[process] (stock) at (0,-5.3) {Received Stock\\FIFO Layers};
-	\node[finance] (payment) at (-3.6,-7.1) {Payment Batch\\Payable};
-	\node[finance] (billing) at (3.6,-7.1) {Billing Note\\Receivable};
-	\node[finance] (credit) at (0,-8.9) {Credit Note\\Cancelled or Returned};
-	\node[report] (dashboard) at (0,-10.7) {Dashboard\\Inventory Review};
-	\node[report] (chat) at (0,-12.5) {Assistant\\Read-only Query};
+	\node[master] (master) at (0,0) {Master Data\\Categories / Products / Suppliers / Customers};
+	\node[action] (quotation) at (0,-1.9) {Quotation};
+	\node[decision] (check) at (0,-4.2) {Stock\\Sufficiency\\Check};
+	\node[action] (purchase) at (-4.3,-6.6) {Purchase Order};
+	\node[action] (sale) at (4.3,-6.6) {Sale Order};
+	\node[action] (received) at (-4.3,-8.8) {Received Purchase Items};
+	\node[stock] (available) at (0,-8.8) {Available Stock};
+	\node[action] (fulfilled) at (4.3,-8.8) {Packed / Shipped /\\Delivered Sale Items};
+	\node[financeg] (billing) at (4.3,-11.0) {Billing Notes};
+	\node[financeg] (payment) at (-4.3,-11.0) {Payment Batches};
+	\node[financer] (credit) at (7.9,-11.0) {Credit Notes};
+	\node[report] (dashboard) at (0,-11.0) {Dashboard};
+	\node[assistant] (ai) at (0,-13.2) {AI Assistant};
 	
-	\draw[->, thick] (master) -- (quote);
-	\draw[->, thick] (quote) -- node[above left]{convert} (purchase);
-	\draw[->, thick] (quote) -- node[above right]{convert} (sale);
-	\draw[->, thick] (purchase) -- node[above right]{receive} (stock);
-	\draw[->, thick] (stock) -- node[above left]{validate} (sale);
-	\draw[->, thick] (sale) -- (billing);
+	\draw[->, thick] (master) -- (quotation);
+	\draw[->, thick] (master.south west) .. controls (-3.8,-1.2) and (-4.3,-4.6) .. (purchase.north);
+	\draw[->, thick] (master.south east) .. controls (3.8,-1.2) and (4.3,-4.6) .. (sale.north);
+	\draw[->, thick] (quotation) -- (check);
+	\draw[->, thick] (check.west) -- node[above, sloped]{Short stock} (purchase.north east);
+	\draw[->, thick] (check.east) -- node[above, sloped]{Enough stock} (sale.north west);
+	\draw[->, thick] (purchase) -- (received);
+	\draw[->, thick] (received.east) -- (available.west);
+	\draw[->, thick] (available.east) -- (sale.west);
+	\draw[->, thick] (sale) -- (fulfilled);
+	\draw[->, thick] (fulfilled) -- (billing);
 	\draw[->, thick] (purchase) -- (payment);
-	\draw[->, thick] (sale) |- (credit);
-	\draw[->, thick] (stock) -- (dashboard);
-	\draw[->, thick] (billing) |- (dashboard);
-	\draw[->, thick] (payment) |- (dashboard);
-	\draw[->, thick] (credit) -- (dashboard);
-	\draw[->, thick] (dashboard) -- (chat);
+	\draw[->, thick] (fulfilled.east) -- (credit.west);
+	\draw[->, thick] (received.south) -- ++(0,-0.45) -| (dashboard.west);
+	\draw[->, thick] (fulfilled.south) -- ++(0,-0.45) -| (dashboard.east);
+	\draw[->, thick] (billing.west) -- ++(-0.9,0) |- (dashboard.east);
+	\draw[->, thick] (payment.east) -- ++(0.9,0) |- (dashboard.west);
+	\draw[->, thick] (credit.south) -- ++(0,-0.45) -| (dashboard.east);
+	\draw[->, thick] (dashboard) -- (ai);
 \end{tikzpicture}
+}
 \caption{Business workflow design}
 \label{fig:business-workflow-design}
 \end{figure}

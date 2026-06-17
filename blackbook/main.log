@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  17 JUN 2026 11:17
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  17 JUN 2026 11:35
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1296,131 +1296,14 @@ Missing character: There is no ร in font Times New Roman/OT:script=latn;langua
 e=dflt;!
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/b/n' will be
 (Font)              scaled to size 18.62003pt on input line 123.
-(abstractTH.tex
-Missing character: There is no ข in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no า in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ย in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ไ in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ป in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ข in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no น in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no า in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ด in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no เ in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ล in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ็ in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ก in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no แ in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ล in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ะ in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ข in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no น in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no า in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ด in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ก in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ล in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no า in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ง in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-
-Underfull \hbox (badness 10000) in paragraph at lines 1--2
-[]\TU/THSarabun(0)/m/n/12 โครงงานนี้นำเสนอการออกแบบและพัฒนาระบบจัดการสินค้าคงคล
-ังสำหรับธุรกิจซื้อมา\TU/TimesNewRoman(0)/m/n/12 -
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1--2
-\TU/TimesNewRoman(0)/m/n/12 ขายไปขนาดเล็กและขนาดกลาง \TU/THSarabun(0)/m/n/12 ระ
-บบนี้รองรับกระบวนการทำงานของธุรกิจ
- []
-
-
-Underfull \hbox (badness 5189) in paragraph at lines 3--4
-[]\TU/THSarabun(0)/m/n/12 ระบบถูกพัฒนาในรูปแบบเว็บแอปพลิเคชันสามชั้น โดยใช้ \TU
-/TimesNewRoman(0)/m/n/12 React \TU/THSarabun(0)/m/n/12 และ \TU/TimesNewRoman(0)
-/m/n/12 Vite \TU/THSarabun(0)/m/n/12 สำหรับ
- []
-
-
-Underfull \hbox (badness 1990) in paragraph at lines 3--4
-\TU/THSarabun(0)/m/n/12 ส่วนติดต่อผู้ใช้ ใช้ \TU/TimesNewRoman(0)/m/n/12 Django
- \TU/THSarabun(0)/m/n/12 และ \TU/TimesNewRoman(0)/m/n/12 Django REST Framework 
-\TU/THSarabun(0)/m/n/12 สำหรับระบบหลังบ้าน และใช้
- []
-
-
-Underfull \hbox (badness 8094) in paragraph at lines 5--6
-\TU/THSarabun(0)/m/n/12 จำนวนสินค้าที่รับเข้าจากรายการซื้อ หักด้วยจำนวนสินค้าที
-่ถูกผูกไว้กับรายการขาย แทนการบันทึก
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 5--6
-\TU/THSarabun(0)/m/n/12 สต็อกเป็นค่าคงที่ในข้อมูลสินค้า ระบบตรวจสอบสต็อกในฝั่งเ
-ซิร์ฟเวอร์ก่อนให้รายการขายเปลี่ยนเป็น
- []
-
-
-Underfull \hbox (badness 3209) in paragraph at lines 5--6
-\TU/THSarabun(0)/m/n/12 เชื่อมต่อสำหรับตรวจสอบสิทธิ์ของรายการที่สามารถนำไปสร้าง
-ใบวางบิล ชุดการชำระเงิน และใบลด
- []
-
-Missing character: There is no ข in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no า in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ย in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ไ in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-Missing character: There is no ป in font Times New Roman/OT:script=latn;languag
-e=dflt;!
-)
+(abstractTH.tex)
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/b/n' will be
 (Font)              scaled to size 15.96002pt on input line 123.
-
-Underfull \hbox (badness 6445) in paragraph at lines 7--123
-[]\TU/THSarabun(0)/m/n/12 ผลลัพธ์ของโครงงานคือระบบจัดการสินค้าคงคลังบนเว็บที่สา
-มารถเชื่อมโยงงานจัดซื้อ งาน
- []
-
-
-Underfull \hbox (badness 4765) in paragraph at lines 7--123
-\TU/THSarabun(0)/m/n/12 การทำงานประจำวันของธุรกิจซื้อมา\TU/TimesNewRoman(0)/m/n
-/12 -ขายไป \TU/THSarabun(0)/m/n/12 และสามารถพัฒนาต่อยอดได้ในอนาคต เช่น การ
- []
-
 
 
 [4
 
-]
-
-[5] (abstractENG.tex)
+] (abstractENG.tex)
 Underfull \hbox (badness 1087) in paragraph at lines 7--124
 []\TU/TimesNewRoman(0)/m/n/12 The result is a functional web-based inventory ma
 nagement system that
@@ -1433,13 +1316,13 @@ Underfull \hbox (badness 10000) in paragraph at lines 7--124
 
 
 
-[6
+[5
 
 ]
 
-[7] (main.toc
+[6] (main.toc
 
-[8
+[7
 
 
 ])
@@ -1448,13 +1331,13 @@ Underfull \hbox (badness 10000) in paragraph at lines 7--124
 
 
 
-[9] (main.lot)
+[8] (main.lot)
 \tf@lot=\write6
 \openout6 = `main.lot'.
 
 
 
-[10
+[9
 
 ] (main.lof)
 \tf@lof=\write7
@@ -1462,7 +1345,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 7--124
 
 
 
-[11
+[10
 
 ] (chapter1.tex
 CHAPTER 1.
@@ -1518,43 +1401,49 @@ payment
 
 ]
 
+LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10.95> not av
+ailable
+(Font)              size <12> substituted on input line 56.
+
+
+
 [6]
-Underfull \hbox (badness 3780) in paragraph at lines 75--75
+Underfull \hbox (badness 3780) in paragraph at lines 73--73
 \TU/TimesNewRoman(0)/m/n/12 board, inventory, transactions, finance
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 75--75
+Underfull \hbox (badness 10000) in paragraph at lines 73--73
 []|\TU/TimesNewRoman(0)/m/n/12 Django REST
  []
 
 
-Underfull \hbox (badness 1406) in paragraph at lines 75--75
+Underfull \hbox (badness 1406) in paragraph at lines 73--73
 \TU/TimesNewRoman(0)/m/n/12 ters, pagination, eligibility checks, and
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 75--75
+Underfull \hbox (badness 10000) in paragraph at lines 73--73
 []|\TU/TimesNewRoman(0)/m/n/12 Business logic
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 75--75
+Underfull \hbox (badness 10000) in paragraph at lines 73--73
 []|\TU/TimesNewRoman(0)/m/n/12 Django service
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 75--75
+Underfull \hbox (badness 10000) in paragraph at lines 73--73
 []|\TU/TimesNewRoman(0)/m/n/12 MySQL through
  []
 
 
-Underfull \hbox (badness 1033) in paragraph at lines 75--75
+Underfull \hbox (badness 1033) in paragraph at lines 73--73
 []|\TU/TimesNewRoman(0)/m/n/12 Stores normalized master data, transac-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 75--75
+Underfull \hbox (badness 10000) in paragraph at lines 73--73
 []|\TU/TimesNewRoman(0)/m/n/12 Authentication
  []
 
@@ -1565,81 +1454,76 @@ Underfull \hbox (badness 10000) in paragraph at lines 75--75
 [8]
 
 [9]
-Underfull \hbox (badness 10000) in paragraph at lines 134--134
+Underfull \hbox (badness 10000) in paragraph at lines 132--132
 []|\TU/TimesNewRoman(0)/m/n/12 /api/products/, /api/
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 134--134
+Underfull \hbox (badness 10000) in paragraph at lines 132--132
 []|\TU/TimesNewRoman(0)/m/n/12 /api/suppliers/, /api/
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 134--134
+Underfull \hbox (badness 10000) in paragraph at lines 132--132
 []|\TU/TimesNewRoman(0)/m/n/12 /api/purchases/, /api/
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 134--134
+Underfull \hbox (badness 10000) in paragraph at lines 132--132
 []|\TU/TimesNewRoman(0)/m/n/12 /api/dashboard/, /api/
  []
 
 
 
 [10]
-Overfull \hbox (10.44598pt too wide) in paragraph at lines 178--179
- [][] 
- []
-
-
 
 [11]
-Underfull \hbox (badness 10000) in paragraph at lines 207--207
+Underfull \hbox (badness 10000) in paragraph at lines 218--218
 []|\TU/TimesNewRoman(0)/m/n/12 Stock validation
  []
 
 
-Underfull \hbox (badness 4582) in paragraph at lines 229--229
+Underfull \hbox (badness 4582) in paragraph at lines 240--240
 []|\TU/TimesNewRoman(0)/b/n/12 Tool or Technol-
  []
 
 
-Underfull \hbox (badness 5189) in paragraph at lines 229--229
+Underfull \hbox (badness 5189) in paragraph at lines 240--240
 []|\TU/TimesNewRoman(0)/m/n/12 Provides the web backend, ORM,
  []
 
 
-Underfull \hbox (badness 1226) in paragraph at lines 229--229
+Underfull \hbox (badness 1226) in paragraph at lines 240--240
 \TU/TimesNewRoman(0)/m/n/12 settings, migrations, and application
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 229--229
+Underfull \hbox (badness 10000) in paragraph at lines 240--240
 []|\TU/TimesNewRoman(0)/m/n/12 Django REST
  []
 
 
-Underfull \hbox (badness 5077) in paragraph at lines 229--229
+Underfull \hbox (badness 5077) in paragraph at lines 240--240
 []|\TU/TimesNewRoman(0)/m/n/12 Provides serializers, viewsets, API
  []
 
 
-Underfull \hbox (badness 4634) in paragraph at lines 229--229
+Underfull \hbox (badness 4634) in paragraph at lines 240--240
 []|\TU/TimesNewRoman(0)/m/n/12 Backend chat ser-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 229--229
+Underfull \hbox (badness 10000) in paragraph at lines 240--240
 []|\TU/TimesNewRoman(0)/m/n/12 Builds compact backend context
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 229--229
+Underfull \hbox (badness 10000) in paragraph at lines 240--240
 \TU/TimesNewRoman(0)/m/n/12 for supported read-only assistant
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 229--229
+Underfull \hbox (badness 10000) in paragraph at lines 240--240
 []|\TU/TimesNewRoman(0)/m/n/12 Django TestCase
  []
 
@@ -1722,12 +1606,12 @@ LaTeX Font Warning: Size substitutions with differences
 
  ) 
 Here is how much of TeX's memory you used:
- 24242 strings out of 402990
- 512775 string characters out of 5447323
- 1092449 words of memory out of 5000000
- 52519 multiletter control sequences out of 15000+600000
- 633736 words of font info for 99 fonts, out of 8000000 for 9000
+ 24266 strings out of 402990
+ 513052 string characters out of 5447323
+ 1096111 words of memory out of 5000000
+ 52541 multiletter control sequences out of 15000+600000
+ 633752 words of font info for 101 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 88i,13n,107p,705b,895s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 88i,13n,107p,705b,962s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (42 pages).
+Output written on main.pdf (41 pages).
