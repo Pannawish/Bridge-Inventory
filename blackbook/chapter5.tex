@@ -1,10 +1,61 @@
-\chapter{Conclusion}
-This chapter summarizes all of your work. It typically starts with the brief explanation of of what you do such as the objective of your work, design, data, experiment results, key findings, interpretation of your experiment and/or result. The obstacles of your work can also be discussed and finally followed by future work. 
+\chapter{CONCLUSION}
 
-\section{Conclusion}
-...
-\section{Obstacles}
-...
+\section{Brief Project Overview}
+The Inventory Management System is a full-stack web application developed for SME trading businesses that purchase products from suppliers and resell them to customers. The system supports product and partner master data, purchase workflows, sales workflows, quotation preparation, inventory control, billing notes, payment batches, credit notes, dashboard reporting, and AI-assisted text queries.
+
+The project was implemented using a React and Vite frontend, a Django REST Framework backend, and a MySQL relational database. The system emphasizes backend-authoritative validation so that stock, eligibility, and financial workflows remain consistent even when requests are made directly to the API.
+
+\section{Objective Summary}
+The project objectives focused on recording purchase and sales transactions, showing inventory stock information, and integrating an AI chatbot connected to backend data. The implemented system satisfies these objectives through transaction modules, stock calculation services, dashboard and inventory pages, and a text-based inventory assistant.
+
+% TODO: Review this section after the final objective wording is approved by the project authors and supervisor.
+
+\section{System Design Summary}
+The system was designed using a three-tier architecture. The React frontend provides a tabbed user interface for operational work. The Django REST Framework backend exposes REST APIs, serializers, filters, pagination, authentication endpoints, eligibility endpoints, and dashboard endpoints. The MySQL database stores normalized master data, transaction line items, finance documents, stock allocation records, and historical snapshot fields.
+
+The design separates master records from transaction records. Products, categories, suppliers, and customers are managed independently, while purchases, sales, quotations, billing notes, payment batches, and credit notes reference those records and preserve snapshot values for audit readability.
+
+\section{Implementation Summary}
+The frontend implementation includes pages for dashboard, inventory, AI chat, purchase history, sales history, quotations, billing notes, payment batches, credit notes, products, categories, suppliers, customers, and settings. It also includes a centralized API client, authentication context, translation dictionaries, reusable directory filters, pagination controls, and mock-data fallback behavior.
+
+The backend implementation includes Django models, migrations, serializers, viewsets, business services, pagination, authentication views, management commands, and tests. The most important backend services include stock metric calculation, FIFO allocation, sale stock validation, purchase payable recalculation, payment batch synchronization, dashboard segment generation, and AI assistant context preparation.
+
+\section{Result Summary}
+The implemented result is a functional inventory management system that connects purchasing, sales, finance, and stock visibility. Purchases create available stock only when purchase items are received. Sales reduce stock only when sale items reach packed, shipped, or delivered statuses. The system validates stock availability before allowing sales to commit unavailable quantities.
+
+The system also supports receivable and payable workflows. Billing notes are created from eligible sales, payment batches are created from eligible purchases, and credit notes are created from eligible cancelled or returned sale lines. The dashboard and AI assistant provide summary views and natural-language access to operational data.
+
+\section{Key Findings}
+Several key findings were identified during implementation:
+
+\begin{enumerate}
+	\item Stock should be derived from transaction status rather than manually stored as a product field.
+	\item Backend validation is necessary because frontend checks alone cannot protect direct API calls.
+	\item FIFO stock allocation provides a practical method for connecting sales cost to received purchase layers.
+	\item Eligibility endpoints reduce duplicate billing, duplicate payment grouping, and invalid credit-note creation.
+	\item Historical snapshot fields are necessary for preserving the readability of old business documents.
+	\item AI-assisted text queries can improve access to operational information, but they must be grounded in backend data to avoid unsupported answers.
+\end{enumerate}
+
+\section{Obstacles and Challenges}
+The main challenge was coordinating many related business workflows without allowing inconsistent data. Purchases, sales, billing notes, payment batches, and credit notes are not isolated modules. A status change in one workflow can affect stock, payable amounts, receivable eligibility, or credit-note eligibility.
+
+Another challenge was balancing frontend usability with backend authority. The frontend needed to be simple enough for daily use while the backend still had to enforce strict validation. This required duplicated awareness of some concepts in the UI, but final authority remained in serializers and service functions.
+
+The project also required careful database design. The schema needed normalized relationships for maintainability while preserving historical snapshot fields for business-document accuracy. Removing snapshot fields would simplify the schema but would weaken audit readability.
+
+% TODO: Add human-observed obstacles from development meetings, supervisor feedback, or user testing if available.
+
 \section{Future Work}
-...
+Future work should focus on improving evaluation evidence, extending inventory planning calculations, and strengthening operational controls.
 
+\begin{enumerate}
+	\item Add final approved screenshots and user testing results to the report.
+	\item Run and record final backend checks, migration checks, backend tests, frontend build checks, and security audit results.
+	\item Implement and validate EOQ, Z-score, and full P-system calculations if they remain part of the final project objective.
+	\item Add a dedicated audit-log model for document status changes and important financial workflow updates.
+	\item Add role-based permissions if the system is deployed for multiple staff roles.
+	\item Expand production performance testing with larger datasets and concurrent users.
+	\item Improve AI assistant evaluation by comparing answers against expected backend records.
+	\item Add more formal reporting exports for management, accounting, and inventory review.
+\end{enumerate}

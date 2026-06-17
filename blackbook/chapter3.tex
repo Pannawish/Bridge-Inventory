@@ -1,27 +1,230 @@
 \chapter{METHODOLOGY}
 
-Describe what you did so that others can follow to recreate your work/system/experiment proposed in this project.
-You should provide addiquet details about your work, system, algorithm, or design. This includes technical methods used (e.g., machine learning techniques, library, tools), data collection and preparation/pre-Processing, hyperparameter configurations, measurements, evaluation approaches or techniques used to evaluate your work performance. (It is recommended to writing this chapter after completing CH2 Literature Review)
+This chapter explains how the Inventory Management System was designed and developed. The methodology is based on the implemented source code, including the React frontend, Django REST Framework backend, MySQL database configuration, REST API communication layer, business services, and backend test suite.
 
-\section{System Design}
-\noindent\hspace{2.2em}You may start with an overview of your system/algorithm design by using the followings:
-\begin{itemize}
-    \item Flowchart
-    \item System, Design, or Block Diagram
-    \item Phedu Code
-    \item Others (figures or even tables)
-    \begin{figure}[!htbp]
-    	\centering
-    	\includegraphics[width = 0.35\textwidth]{paragraph.png}
-    	\caption{Paragraph arrangement (example)}
-    	\label{fig:paragraph}
-    \end{figure}
-\end{itemize}
+\section{System Development Approach}
+The system was developed as a full-stack web application for SME trading businesses. The development approach separated the project into three main layers: a client-side user interface, a backend API and business logic layer, and a relational database layer. This structure allowed the frontend to focus on user interaction while the backend remained responsible for data validation, stock calculation, transaction eligibility, and financial workflow enforcement.
 
-\section{Data}
+The project followed an incremental development approach. Master data modules were implemented first because products, categories, suppliers, and customers are required by later transaction workflows. After that, purchase and sales workflows were added, followed by quotations, billing notes, payment batches, credit notes, dashboard summaries, and the AI inventory assistant.
 
-\section{Methods}
+\section{Requirement Analysis}
+The requirement analysis was based on the daily operation of a middle-man SME trading business. The main requirement was to support the relationship between incoming stock from suppliers and outgoing sales to customers. The system therefore needed to maintain master records, record transaction documents, validate stock availability, track status changes, and summarize receivables and payables.
 
-\section{Hyperparameter Configurations}
+\begin{table}[H]
+	\centering
+	\caption{Requirement Summary}
+	\label{tab:requirement-summary}
+	\begin{tabularx}{\textwidth}{|p{3.3cm}|X|}
+		\hline
+		\textbf{Requirement Area} & \textbf{Implemented Response} \\ \hline
+		Master data & Categories, products, suppliers, and customers are implemented as reusable records. \\ \hline
+		Inventory visibility & Product stock is calculated from received purchase items and committed sale items. \\ \hline
+		Purchasing & Purchase orders store supplier details, line items, receiving status, documents, VAT totals, discounts, and payable amount. \\ \hline
+		Sales & Sales records store customer details, line items, delivery status, documents, VAT totals, discounts, and links to billing or credit notes. \\ \hline
+		Quotations & Quotations store normalized line items, validity settings, supplier options, and links to derived purchase or sales records. \\ \hline
+		Receivables and payables & Billing notes track customer receivables, while payment batches track supplier payables. \\ \hline
+		Returns and cancellations & Credit notes are created from eligible cancelled or returned sale lines. \\ \hline
+		AI support & A text-based assistant answers operational questions from backend data and optional OpenAI integration. \\ \hline
+	\end{tabularx}
+\end{table}
 
-\section{Performace Evaluation}
+\section{System Architecture}
+The system uses a three-tier web architecture. The frontend runs as a React single-page application. It communicates with the backend through REST API calls. The backend is implemented with Django and Django REST Framework and stores data in MySQL.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+	>=Stealth,
+	node distance=1.2cm and 1.1cm,
+	layer/.style={rectangle, draw=black, thick, align=center, minimum width=3.1cm, minimum height=1cm, fill=gray!10},
+	service/.style={rectangle, draw=black, align=center, minimum width=2.7cm, minimum height=0.9cm, fill=blue!8},
+	data/.style={cylinder, shape border rotate=90, draw=black, align=center, aspect=0.25, minimum width=2.5cm, minimum height=1.1cm, fill=green!10},
+	ext/.style={rectangle, draw=black, dashed, align=center, minimum width=2.6cm, minimum height=0.9cm, fill=yellow!12}
+]
+	\node[layer] (frontend) {React + Vite\\Frontend SPA};
+	\node[layer, right=of frontend] (api) {Django REST\\Framework API};
+	\node[data, right=of api] (mysql) {MySQL\\Database};
+	\node[service, below=of api] (services) {Backend Services\\Validation, Stock, Finance};
+	\node[service, above=of api] (auth) {Simple JWT\\Login and Refresh};
+	\node[ext, below=of mysql] (openai) {Optional OpenAI\\Assistant Model};
+	
+	\draw[->, thick] (frontend) -- node[above]{REST JSON/FormData} (api);
+	\draw[->, thick] (api) -- node[above]{Django ORM} (mysql);
+	\draw[->, thick] (api) -- (services);
+	\draw[->, thick] (services) -- (mysql);
+	\draw[->, thick] (frontend) |- node[pos=0.25, left]{Bearer token} (auth);
+	\draw[->, thick] (auth) -- (api);
+	\draw[->, dashed, thick] (services) -- (openai);
+\end{tikzpicture}
+\caption{System architecture overview}
+\label{fig:system-architecture-overview}
+\end{figure}
+
+\begin{table}[H]
+	\centering
+	\caption{Architecture Components}
+	\label{tab:architecture-components}
+	\begin{tabularx}{\textwidth}{|p{3cm}|p{3.3cm}|X|}
+		\hline
+		\textbf{Layer} & \textbf{Implementation} & \textbf{Responsibility} \\ \hline
+		Presentation layer & React and Vite & Provides tabbed user interfaces for dashboard, inventory, transactions, finance documents, master data, and AI chat. \\ \hline
+		API layer & Django REST Framework & Exposes REST endpoints, serializers, filters, pagination, eligibility checks, and validation errors. \\ \hline
+		Business logic layer & Django service functions & Calculates stock, FIFO allocation, dashboard metrics, payable totals, finance summaries, and AI assistant context. \\ \hline
+		Data layer & MySQL through Django ORM & Stores normalized master data, transactions, line items, document links, finance records, and historical snapshot fields. \\ \hline
+		Authentication layer & Simple JWT & Supports login, access token refresh, and authenticated user profile retrieval. \\ \hline
+	\end{tabularx}
+\end{table}
+
+\section{Frontend Methodology}
+The frontend was implemented with React components, hooks, and helper modules. The application shell is organized around tabs that load the main pages: dashboard, inventory, AI chat, purchases, payment batches, quotations, sales, billing notes, credit notes, products, categories, suppliers, and customers.
+
+API communication is centralized in the frontend API client. This client builds query strings, sends JSON or form-data payloads, attaches bearer tokens when available, refreshes expired access tokens, and dispatches an authentication-expired event when refresh fails. Data loading is organized through hooks that request dashboard data, lookup data, paginated lists, and eligibility results.
+
+The frontend also maintains mock-data fallback behavior. If the backend is unavailable, parts of the application can still show mock data for development or demonstration. This fallback behavior is intentionally separate from backend-authoritative validation.
+
+The user interface uses compact forms, directory tables, status controls, detail modals, and document reference components. User-facing labels are rendered through the language helper and translation dictionaries to support English and Thai text.
+
+\section{Backend Methodology}
+The backend was implemented as a Django project with one main inventory application. Django REST Framework viewsets expose CRUD endpoints for the primary resources, while function-based API views provide dashboard summaries, lookup lists, eligibility lists, product history, stock layers, and chat responses.
+
+Serializers transform request payloads into model records and apply domain validation. For purchases and sales, serializers normalize line items, calculate base quantities, handle file uploads, update documents, and delegate stock or payable synchronization to backend service functions. Viewsets apply common search, status, date, party, product, amount, and VAT filters.
+
+Backend services contain the main business calculations. These include stock metric snapshots, available stock layers, FIFO allocation, sale stock validation, purchase payable total recalculation, payment batch total synchronization, dashboard segment generation, and AI assistant context creation.
+
+\section{Database Design Methodology}
+The database was designed as a relational schema managed by Django migrations. Core master data is separated from transaction data. Categories, products, suppliers, and customers are maintained as master records, while purchases, sales, quotations, billing notes, payment batches, and credit notes reference them through foreign keys where appropriate.
+
+The schema also preserves historical snapshot fields. For example, purchase and sale line items keep product names, SKUs, prices, quantities, and totals. Purchase and sale headers keep supplier or customer names. These fields allow historical business documents to remain readable even if a master record is later edited or disabled.
+
+\begin{table}[H]
+	\centering
+	\caption{Primary Database Model Groups}
+	\label{tab:database-model-groups}
+	\begin{tabularx}{\textwidth}{|p{3.2cm}|X|}
+		\hline
+		\textbf{Group} & \textbf{Models} \\ \hline
+		Master data & \texttt{Category}, \texttt{Supplier}, \texttt{Customer}, \texttt{Product}, \texttt{ProductPicture}, \texttt{ProductUnitConversion}, \texttt{ProductSupplier} \\ \hline
+		Purchasing & \texttt{Purchase}, \texttt{PurchaseItem}, \texttt{PurchaseDocument} \\ \hline
+		Sales & \texttt{Sale}, \texttt{SaleItem}, \texttt{SaleItemAllocation}, \texttt{SaleDocument} \\ \hline
+		Quotation & \texttt{Quotation}, \texttt{QuotationItem}, \texttt{QuotationItemSupplier} \\ \hline
+		Finance & \texttt{BillingNote}, \texttt{BillingNoteLine}, \texttt{PaymentBatch}, \texttt{PaymentBatchLine}, \texttt{CreditNote}, \texttt{CreditNoteLine} \\ \hline
+	\end{tabularx}
+\end{table}
+
+\section{API Design}
+The API follows REST principles for primary resources and specialized endpoints for operational summaries. CRUD resources are exposed through Django REST Framework routers. Additional endpoints are used where a simple resource endpoint is not sufficient, such as dashboard summaries, lookup lists, stock layers, product transaction history, eligibility checks, and chat.
+
+Pagination is opt-in. If a list endpoint is called without a page parameter, it can return a plain array for compatibility with existing frontend code. If a page parameter is provided, the response includes \texttt{count}, \texttt{next}, \texttt{previous}, \texttt{page}, \texttt{page\_size}, \texttt{total\_pages}, and \texttt{results}.
+
+\begin{table}[H]
+	\centering
+	\caption{Selected API Endpoint Groups}
+	\label{tab:api-endpoint-groups}
+	\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+		\hline
+		\textbf{Endpoint Group} & \textbf{Purpose} \\ \hline
+		\texttt{/api/products/}, \texttt{/api/categories/} & Product and category master data management. \\ \hline
+		\texttt{/api/suppliers/}, \texttt{/api/customers/} & Business partner master data management. \\ \hline
+		\texttt{/api/purchases/}, \texttt{/api/sales/} & Purchase and sales transaction workflows. \\ \hline
+		\texttt{/api/quotations/} & Quotation records and normalized quotation items. \\ \hline
+		\texttt{/api/billing-notes/}, \texttt{/api/payment-batches/}, \texttt{/api/credit-notes/} & Receivable, payable, and credit-note workflows. \\ \hline
+		\texttt{/api/eligibility/...} & Server-side lists of transactions eligible for billing notes, payment batches, or credit notes. \\ \hline
+		\texttt{/api/dashboard/}, \texttt{/api/dashboard/segment/} & Dashboard summaries and segmented reporting. \\ \hline
+		\texttt{/api/chat/} & Text-based AI inventory assistant. \\ \hline
+	\end{tabularx}
+\end{table}
+
+\section{Business Workflow Design}
+The main workflow begins with master data. Products are categorized and connected to suppliers and customers through transaction records. Purchases create incoming stock layers when line items are received. Sales consume stock only when line items reach packed, shipped, or delivered statuses. This prevents draft or pending orders from reducing available stock.
+
+The quotation workflow allows users to prepare commercial proposals before creating purchase or sales records. Billing notes are created only from eligible shipped or delivered sales that are not already attached to an active billing note. Payment batches are created only from eligible received or partially received purchases that are not already attached to an active payment batch. Credit notes are created from cancelled or returned sale items that have not already been credited.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+	>=Stealth,
+	node distance=1cm and 0.9cm,
+	step/.style={rectangle, draw=black, thick, align=center, minimum width=2.45cm, minimum height=0.85cm, fill=gray!10},
+	process/.style={rectangle, draw=black, align=center, minimum width=2.45cm, minimum height=0.85cm, fill=blue!8},
+	finance/.style={rectangle, draw=black, align=center, minimum width=2.45cm, minimum height=0.85cm, fill=green!10},
+	report/.style={rectangle, draw=black, align=center, minimum width=2.45cm, minimum height=0.85cm, fill=yellow!15}
+]
+	\node[step] (master) {Master Data\\Products, Partners};
+	\node[process, right=of master] (quote) {Quotation};
+	\node[process, below=of quote] (purchase) {Purchase};
+	\node[process, right=of purchase] (stock) {Received Stock\\FIFO Layers};
+	\node[process, above=of stock] (sale) {Sale\\Packed/Shipped/Delivered};
+	\node[finance, right=of sale] (billing) {Billing Note\\Receivable};
+	\node[finance, right=of purchase] (payment) {Payment Batch\\Payable};
+	\node[finance, right=of stock] (credit) {Credit Note\\Cancelled/Returned};
+	\node[report, below=of stock] (dashboard) {Dashboard\\Inventory Review};
+	\node[report, right=of dashboard] (chat) {AI Assistant\\Text Query};
+	
+	\draw[->, thick] (master) -- (quote);
+	\draw[->, thick] (master) |- (purchase);
+	\draw[->, thick] (master) |- (sale);
+	\draw[->, thick] (quote) -- node[right]{convert} (purchase);
+	\draw[->, thick] (quote) -- node[above]{convert} (sale);
+	\draw[->, thick] (purchase) -- (stock);
+	\draw[->, thick] (stock) -- node[right]{validate stock} (sale);
+	\draw[->, thick] (sale) -- (billing);
+	\draw[->, thick] (purchase) -- (payment);
+	\draw[->, thick] (sale) |- (credit);
+	\draw[->, thick] (stock) -- (dashboard);
+	\draw[->, thick] (billing) |- (dashboard);
+	\draw[->, thick] (payment) |- (dashboard);
+	\draw[->, thick] (credit) -- (dashboard);
+	\draw[->, thick] (dashboard) -- (chat);
+\end{tikzpicture}
+\caption{Business workflow design}
+\label{fig:business-workflow-design}
+\end{figure}
+
+\section{Validation and Security Design}
+Validation is enforced primarily on the backend. The frontend provides usability checks, but the backend is the authoritative layer for stock validation, active product validation, percentage discount limits, document eligibility, purchase payable synchronization, sale allocation validity, and delete restrictions.
+
+Security is implemented with JSON Web Tokens through Simple JWT. The backend exposes login and refresh endpoints. The frontend stores tokens in local storage or session storage depending on the login option and automatically refreshes access tokens when needed. The authenticated profile endpoint requires authentication. Full API-wide authentication can be enabled through the \texttt{INVENTORY\_REQUIRE\_AUTH} environment setting.
+
+The backend also includes production-oriented safety settings. It requires a non-default secret key when debug mode is disabled, restricts CORS origins through configuration, and uses Django's ORM and serializers instead of ad hoc SQL construction.
+
+\section{Testing Methodology}
+The backend test suite validates important business behavior using Django and Django REST Framework test cases. The tests cover pagination, product picture upload, operational data clearing, sale stock validation, sale item allocation, purchase item status behavior, relational quotation storage, reference number generation, eligibility endpoints, credit notes, operational seed data, quotation supplier options, payable synchronization, and AI assistant alignment.
+
+\begin{table}[H]
+	\centering
+	\caption{Testing Summary}
+	\label{tab:testing-summary}
+	\begin{tabularx}{\textwidth}{|p{3.5cm}|X|}
+		\hline
+		\textbf{Test Area} & \textbf{Purpose} \\ \hline
+		Pagination tests & Confirm that unpaginated and paginated list responses behave correctly. \\ \hline
+		Stock validation tests & Confirm that sales cannot commit more stock than available received layers. \\ \hline
+		Allocation tests & Confirm FIFO and manual stock allocation behavior. \\ \hline
+		Status tests & Confirm purchase and sale document statuses follow line item status rules. \\ \hline
+		Eligibility tests & Confirm billing note, payment batch, and credit note selection rules. \\ \hline
+		Financial tests & Confirm payable totals and linked payment batch amounts stay synchronized. \\ \hline
+		AI assistant tests & Confirm that chat responses align with backend operational data. \\ \hline
+	\end{tabularx}
+\end{table}
+
+% TODO: Insert the final executed test results, build result, and audit result after the final verification run.
+
+\section{Tools and Technologies Used}
+\begin{table}[H]
+	\centering
+	\caption{Tools and Technologies}
+	\label{tab:tools-technologies}
+	\begin{tabularx}{\textwidth}{|p{3.5cm}|p{3.4cm}|X|}
+		\hline
+		\textbf{Category} & \textbf{Tool or Technology} & \textbf{Use in Project} \\ \hline
+		Frontend framework & React 18 & Builds the single-page application interface. \\ \hline
+		Frontend build tool & Vite & Provides local development and production build tooling. \\ \hline
+		Backend framework & Django 5 & Provides the web backend, ORM, settings, migrations, and application structure. \\ \hline
+		API framework & Django REST Framework & Provides serializers, viewsets, API views, parsing, responses, and tests. \\ \hline
+		Authentication & Simple JWT & Provides access and refresh token authentication. \\ \hline
+		Database & MySQL & Stores relational business records and transaction history. \\ \hline
+		AI integration & OpenAI Python package & Supports optional OpenAI-powered assistant responses when configured. \\ \hline
+		Styling & CSS modules by domain file & Provides compact inventory application styling. \\ \hline
+		Testing & Django TestCase and DRF APITestCase & Validates backend business behavior and API behavior. \\ \hline
+	\end{tabularx}
+\end{table}

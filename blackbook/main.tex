@@ -12,6 +12,8 @@
 \usepackage{subcaption}
 \usepackage{lscape}
 \usepackage{amsmath}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
 \usepackage{lipsum} %Generate dummy text for testing
  %====== List of Coding Color Style ==============
 \definecolor{codegreen}{rgb}{0,0.6,0}
@@ -34,7 +36,7 @@
 
 %Thesis Keywords
 \newcommand{\thesisKeywordsTH}{ ลาเท็ก / วิทยานิพนธ์ (\~{}5 คำ)}
-\newcommand{\thesisKeywords}{ LaTeX / Thesis (\~{}5 words)}
+\newcommand{\thesisKeywords}{ Inventory Management / SME Trading / Django REST Framework / React / MySQL / AI Assistant}
 
 \newcommand{\totalPageTH}{๒๘}   %Total pages (See. the total number in English Acknowledgement Page then fill up here!)
 %\newcommand{\totalPageTH}{\pageref{LastPage}}
@@ -100,11 +102,11 @@
 %Thesis Committees
 \newcommand{\Chair}{\thesisAdv}
 \newcommand{\ChairDegree}{\advDegree}
-\newcommand{\committeeI}{Committee 1}
+\newcommand{\committeeI}{Committee 1} % TODO: Replace with actual committee member name.
 \newcommand{\committeeIDegree}{Ph.D. (Computer Engineering)}
-\newcommand{\committeeII}{Committee 2}
+\newcommand{\committeeII}{Committee 2} % TODO: Replace with actual committee member name.
 \newcommand{\committeeIIDegree}{Ph.D. (Computer Engineering)}
-\newcommand{\committeeIII}{Committee 3}
+\newcommand{\committeeIII}{Committee 3} % TODO: Replace with actual committee member name.
 \newcommand{\committeeIIIDegree}{Ph.D. (Computer Science)}
 
 \begin{document}
@@ -130,7 +132,8 @@
 \mainmatter
 \pagestyle{fancy}
 \input{chapter1.tex}
-\input{chapter2.tex}
+% TODO: Chapter 2 Literature Review is intentionally skipped for now.
+%\input{chapter2.tex}
 \input{chapter3.tex}
 \input{chapter4.tex}
 \input{chapter5.tex}

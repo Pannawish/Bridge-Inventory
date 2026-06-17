@@ -1,86 +1,92 @@
-This is XeTeX, Version 3.141592653-2.6-0.999997 (TeX Live 2025) (preloaded format=xelatex 2025.9.26)  4 DEC 2025 00:07
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  17 JUN 2026 10:55
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**main.tex
-(./main.tex
-LaTeX2e <2024-11-01> patch level 2
-L3 programming layer <2025-01-18>
-(./mahidol_thesis.cls
+**./main.tex
+(main.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-11-06>
+(mahidol_thesis.cls
 Document Class: mahidol_thesis 2023/05/29 v0.01 Mahidol Undergrad Thesis class
-(/usr/local/texlive/2025/texmf-dist/tex/latex/base/book.cls
-Document Class: book 2024/06/29 v1.4n Standard LaTeX document class
-(/usr/local/texlive/2025/texmf-dist/tex/latex/base/bk12.clo
-File: bk12.clo 2024/06/29 v1.4n Standard LaTeX file (size option)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/base/book.cls
+Document Class: book 2025/01/22 v1.4n Standard LaTeX document class
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/base/bk12.clo
+File: bk12.clo 2025/01/22 v1.4n Standard LaTeX file (size option)
 )
-\c@part=\count192
-\c@chapter=\count193
-\c@section=\count194
-\c@subsection=\count195
-\c@subsubsection=\count196
-\c@paragraph=\count197
-\c@subparagraph=\count198
-\c@figure=\count199
-\c@table=\count266
+\c@part=\count271
+\c@chapter=\count272
+\c@section=\count273
+\c@subsection=\count274
+\c@subsubsection=\count275
+\c@paragraph=\count276
+\c@subparagraph=\count277
+\c@figure=\count278
+\c@table=\count279
 \abovecaptionskip=\skip49
 \belowcaptionskip=\skip50
-\bibindent=\dimen141
+\bibindent=\dimen148
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/geometry/geometry.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/geomet
+ry/geometry.sty
 Package: geometry 2020/01/02 v5.9 Page Geometry
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics/keyval.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/graphics/keyval.s
+ty
 Package: keyval 2022/05/29 v1.15 key=value parser (DPC)
 \KV@toks@=\toks17
 )
-(/usr/local/texlive/2025/texmf-dist/tex/generic/iftex/ifvtex.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/iftex/ifvtex.st
+y
 Package: ifvtex 2019/10/25 v1.7 ifvtex legacy package. Use iftex instead.
 
-(/usr/local/texlive/2025/texmf-dist/tex/generic/iftex/iftex.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/iftex/iftex.sty
 Package: iftex 2024/12/12 v1.0g TeX engine tests
 ))
-\Gm@cnth=\count267
-\Gm@cntv=\count268
-\c@Gm@tempcnt=\count269
-\Gm@bindingoffset=\dimen142
-\Gm@wd@mp=\dimen143
-\Gm@odd@mp=\dimen144
-\Gm@even@mp=\dimen145
-\Gm@layoutwidth=\dimen146
-\Gm@layoutheight=\dimen147
-\Gm@layouthoffset=\dimen148
-\Gm@layoutvoffset=\dimen149
+\Gm@cnth=\count280
+\Gm@cntv=\count281
+\c@Gm@tempcnt=\count282
+\Gm@bindingoffset=\dimen149
+\Gm@wd@mp=\dimen150
+\Gm@odd@mp=\dimen151
+\Gm@even@mp=\dimen152
+\Gm@layoutwidth=\dimen153
+\Gm@layoutheight=\dimen154
+\Gm@layouthoffset=\dimen155
+\Gm@layoutvoffset=\dimen156
 \Gm@dimlist=\toks18
+
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/geomet
+ry/geometry.cfg))
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/etoolbox/etoolbox
+.sty
+Package: etoolbox 2025/10/02 v2.5m e-TeX tools for LaTeX (JAW)
+\etb@tempcnta=\count283
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/etoolbox/etoolbox.sty
-Package: etoolbox 2025/02/11 v2.5l e-TeX tools for LaTeX (JAW)
-\etb@tempcnta=\count270
-)
-(/usr/local/texlive/2025/texmf-dist/tex/latex/tools/multicol.sty
-Package: multicol 2024/09/14 v1.9i multicolumn formatting (FMi)
-\c@tracingmulticols=\count271
-\mult@box=\box52
-\multicol@leftmargin=\dimen150
-\c@unbalance=\count272
-\c@collectmore=\count273
-\doublecol@number=\count274
-\multicoltolerance=\count275
-\multicolpretolerance=\count276
-\full@width=\dimen151
-\page@free=\dimen152
-\premulticols=\dimen153
-\postmulticols=\dimen154
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/tools/multicol.st
+y
+Package: multicol 2025/10/21 v2.0b multicolumn formatting (FMi)
+\c@tracingmulticols=\count284
+\mult@box=\box53
+\multicol@leftmargin=\dimen157
+\c@unbalance=\count285
+\c@collectmore=\count286
+\doublecol@number=\count287
+\multicoltolerance=\count288
+\multicolpretolerance=\count289
+\full@width=\dimen158
+\page@free=\dimen159
+\premulticols=\dimen160
+\postmulticols=\dimen161
 \multicolsep=\skip51
 \multicolbaselineskip=\skip52
-\partial@page=\box53
-\last@line=\box54
-\mc@boxedresult=\box55
-\maxbalancingoverflow=\dimen155
-\mult@rightbox=\box56
-\mult@grightbox=\box57
-\mult@firstbox=\box58
-\mult@gfirstbox=\box59
-\@tempa=\box60
+\partial@page=\box54
+\last@line=\box55
+\mc@boxedresult=\box56
+\maxbalancingoverflow=\dimen162
+\mult@rightbox=\box57
+\mult@grightbox=\box58
+\mult@firstbox=\box59
+\mult@gfirstbox=\box60
 \@tempa=\box61
 \@tempa=\box62
 \@tempa=\box63
@@ -116,17 +122,20 @@ Package: multicol 2024/09/14 v1.9i multicolumn formatting (FMi)
 \@tempa=\box93
 \@tempa=\box94
 \@tempa=\box95
-\c@minrows=\count277
-\c@columnbadness=\count278
-\c@finalcolumnbadness=\count279
-\last@try=\dimen156
-\multicolovershoot=\dimen157
-\multicolundershoot=\dimen158
-\mult@nat@firstbox=\box96
-\colbreak@box=\box97
-\mc@col@check@num=\count280
+\@tempa=\box96
+\c@minrows=\count290
+\c@columnbadness=\count291
+\c@finalcolumnbadness=\count292
+\last@try=\dimen163
+\multicolovershoot=\dimen164
+\multicolundershoot=\dimen165
+\mult@nat@firstbox=\box97
+\colbreak@box=\box98
+\mc@col@check@num=\count293
+\g__mc_curr_col_int=\count294
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/fancyhdr/fancyhdr.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/fancyh
+dr/fancyhdr.sty
 Package: fancyhdr 2025/02/07 v5.2 Extensive control of page headers and footers
 
 \f@nch@headwidth=\skip53
@@ -145,20 +154,23 @@ Package: fancyhdr 2025/02/07 v5.2 Extensive control of page headers and footers
 \f@nch@widthR=\skip66
 \@temptokenb=\toks19
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/fancybox/fancybox.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/fancyb
+ox/fancybox.sty
 Package: fancybox 2010/05/15 1.4
 
 Style option: `fancybox' v1.4 <2010/05/15> (tvz)
-\@fancybox=\box98
-\shadowsize=\dimen159
-\@Sbox=\box99
+\@fancybox=\box99
+\shadowsize=\dimen166
+\@Sbox=\box100
 \do@VerbBox=\toks20
 \the@fancyput=\toks21
 \this@fancyput=\toks22
 \EndVerbatimTokens=\toks23
 \Verbatim@Outfile=\write3
 \Verbatim@Infile=\read2
-) (/usr/local/texlive/2025/texmf-dist/tex/latex/sectsty/sectsty.sty
+)
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/sectst
+y/sectsty.sty
 Package: sectsty 2002/02/25 v2.0.2 Commands to change all sectional heading sty
 les
 
@@ -170,7 +182,9 @@ LaTeX Warning: Command \underbar  has changed.
 LaTeX Warning: Command \underline  has changed.
                Check if current package is valid.
 
-) (/usr/local/texlive/2025/texmf-dist/tex/latex/tocloft/tocloft.sty
+)
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/toclof
+t/tocloft.sty
 Package: tocloft 2017/08/31 v2.3i parameterised ToC, etc., typesetting
 Package tocloft Info: The document has chapter divisions on input line 51.
 \cftparskip=\skip67
@@ -202,248 +216,290 @@ Package tocloft Info: The document has chapter divisions on input line 51.
 \cftbeforefigskip=\skip93
 \cftfigindent=\skip94
 \cftfignumwidth=\skip95
-\c@lofdepth=\count281
-\c@lotdepth=\count282
+\c@lofdepth=\count295
+\c@lotdepth=\count296
 \cftbeforelottitleskip=\skip96
 \cftafterlottitleskip=\skip97
 \cftbeforetabskip=\skip98
 \cfttabindent=\skip99
 \cfttabnumwidth=\skip100
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/caption/caption.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/captio
+n/caption.sty
 Package: caption 2023/08/05 v3.6o Customizing captions (AR)
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/caption/caption3.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/captio
+n/caption3.sty
 Package: caption3 2023/07/31 v2.4d caption3 kernel (AR)
-\caption@tempdima=\dimen160
-\captionmargin=\dimen161
-\caption@leftmargin=\dimen162
-\caption@rightmargin=\dimen163
-\caption@width=\dimen164
-\caption@indent=\dimen165
-\caption@parindent=\dimen166
-\caption@hangindent=\dimen167
+\caption@tempdima=\dimen167
+\captionmargin=\dimen168
+\caption@leftmargin=\dimen169
+\caption@rightmargin=\dimen170
+\caption@width=\dimen171
+\caption@indent=\dimen172
+\caption@parindent=\dimen173
+\caption@hangindent=\dimen174
 Package caption Info: Standard document class detected.
 )
-\c@caption@flags=\count283
-\c@continuedfloat=\count284
+\c@caption@flags=\count297
+\c@continuedfloat=\count298
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/fontspec/fontspec.sty
-(/usr/local/texlive/2025/texmf-dist/tex/latex/l3packages/xparse/xparse.sty
-(/usr/local/texlive/2025/texmf-dist/tex/latex/l3kernel/expl3.sty
-Package: expl3 2025-01-18 L3 programming layer (loader) 
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/fontspec/fontspec
+.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/l3packages/xparse
+/xparse.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/l3kernel/expl3.st
+y
+Package: expl3 2025-11-06 L3 programming layer (loader) 
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/l3backend/l3backend-xetex.def
-File: l3backend-xetex.def 2024-05-08 L3 backend support: XeTeX
-\g__graphics_track_int=\count285
-\l__pdf_internal_box=\box100
-\g__pdf_backend_annotation_int=\count286
-\g__pdf_backend_link_int=\count287
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/l3backend/l3backe
+nd-xetex.def
+File: l3backend-xetex.def 2025-10-09 L3 backend support: XeTeX
+\g__graphics_track_int=\count299
+\g__pdfannot_backend_int=\count300
+\g__pdfannot_backend_link_int=\count301
 ))
-Package: xparse 2024-08-16 L3 Experimental document command parser
+Package: xparse 2025-10-09 L3 Experimental document command parser
 )
-Package: fontspec 2024/05/11 v2.9e Font selection for XeLaTeX and LuaLaTeX
+Package: fontspec 2025/09/29 v2.9g Font selection for XeLaTeX and LuaLaTeX
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/fontspec/fontspec-xetex.sty
-Package: fontspec-xetex 2024/05/11 v2.9e Font selection for XeLaTeX and LuaLaTe
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/fontspec/fontspec
+-xetex.sty
+Package: fontspec-xetex 2025/09/29 v2.9g Font selection for XeLaTeX and LuaLaTe
 X
-\l__fontspec_script_int=\count288
-\l__fontspec_language_int=\count289
-\l__fontspec_strnum_int=\count290
-\l__fontspec_tmp_int=\count291
-\l__fontspec_tmpa_int=\count292
-\l__fontspec_tmpb_int=\count293
-\l__fontspec_tmpc_int=\count294
-\l__fontspec_em_int=\count295
-\l__fontspec_emdef_int=\count296
-\l__fontspec_strong_int=\count297
-\l__fontspec_strongdef_int=\count298
-\l__fontspec_tmpa_dim=\dimen168
-\l__fontspec_tmpb_dim=\dimen169
-\l__fontspec_tmpc_dim=\dimen170
+\l__fontspec_script_int=\count302
+\l__fontspec_language_int=\count303
+\l__fontspec_strnum_int=\count304
+\l__fontspec_tmp_int=\count305
+\l__fontspec_tmpa_int=\count306
+\l__fontspec_tmpb_int=\count307
+\l__fontspec_tmpc_int=\count308
+\l__fontspec_em_int=\count309
+\l__fontspec_emdef_int=\count310
+\l__fontspec_strong_int=\count311
+\l__fontspec_strongdef_int=\count312
+\l__fontspec_tmpa_dim=\dimen175
+\l__fontspec_tmpb_dim=\dimen176
+\l__fontspec_tmpc_dim=\dimen177
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/base/fontenc.sty
-Package: fontenc 2021/04/29 v2.0v Standard LaTeX package
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/base/fontenc.sty
+Package: fontenc 2025/07/18 v2.1d Standard LaTeX package
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/fontspec/fontspec.cfg)))
-(/usr/local/texlive/2025/texmf-dist/tex/latex/base/ifthen.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/fontspec/fontspec
+.cfg)))
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/base/ifthen.sty
 Package: ifthen 2024/03/16 v1.1e Standard LaTeX ifthen package (DPC)
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/setspace/setspace.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/setspa
+ce/setspace.sty
 Package: setspace 2022/12/04 v6.7b set line spacing
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics/graphicx.sty
-Package: graphicx 2021/09/16 v1.2d Enhanced LaTeX Graphics (DPC,SPQR)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/graphics/graphicx
+.sty
+Package: graphicx 2024/12/31 v1.2e Enhanced LaTeX Graphics (DPC,SPQR)
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics/graphics.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/graphics/graphics
+.sty
 Package: graphics 2024/08/06 v1.4g Standard LaTeX Graphics (DPC,SPQR)
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics/trig.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/graphics/trig.sty
 Package: trig 2023/12/02 v1.11 sin cos tan (DPC)
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics-cfg/graphics.cfg
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/graphics-cfg/grap
+hics.cfg
 File: graphics.cfg 2016/06/04 v1.11 sample graphics configuration
 )
 Package graphics Info: Driver file: xetex.def on input line 106.
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics-def/xetex.def
-File: xetex.def 2022/09/22 v5.0n Graphics/color driver for xetex
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/graphics-def/xete
+x.def
+File: xetex.def 2025/11/01 v5.0p Graphics/color driver for xetex
 ))
-\Gin@req@height=\dimen171
-\Gin@req@width=\dimen172
+\Gin@req@height=\dimen178
+\Gin@req@width=\dimen179
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/lastpage/lastpage.sty
-Package: lastpage 2025/01/27 v2.1e lastpage: 2.09 or 2e? (HMM)
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/lastpa
+ge/lastpage.sty
+Package: lastpage 2025/08/14 v2.1h lastpage: 2.09 or 2e? (HMM)
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/lastpage/lastpage2e.sty
-Package: lastpage2e 2025/01/27 v2.1e Decide which 2e lastpage version to use (H
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/lastpa
+ge/lastpage2e.sty
+Package: lastpage2e 2025/08/14 v2.1h Decide which 2e lastpage version to use (H
 MM)
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/lastpage/lastpagemodern.sty
-Package: lastpagemodern 2025-01-27 v2.1e Refers to last page's name (HMM; JPG)
-\c@lastpagecount=\count299
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/lastpa
+ge/lastpagemodern.sty
+Package: lastpagemodern 2025-08-14 v2.1h Refers to last page's name (HMM; JPG)
+\c@lastpagecount=\count313
 ) 
-)) (/usr/local/texlive/2025/texmf-dist/tex/latex/refcount/refcount.sty
+))
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/refcou
+nt/refcount.sty
 Package: refcount 2019/12/15 v3.6 Data extraction from label references (HO)
 
-(/usr/local/texlive/2025/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/generic/ltxc
+mds/ltxcmds.sty
 Package: ltxcmds 2023-12-04 v1.26 LaTeX kernel commands for general use (HO)
 )
-(/usr/local/texlive/2025/texmf-dist/tex/generic/infwarerr/infwarerr.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/generic/infw
+arerr/infwarerr.sty
 Package: infwarerr 2019/12/03 v1.5 Providing info/warning/error messages (HO)
 ))
-(/usr/local/texlive/2025/texmf-dist/tex/latex/titlesec/titlesec.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/titles
+ec/titlesec.sty
 Package: titlesec 2025/01/04 v2.17 Sectioning titles
 \ttl@box=\box101
 \beforetitleunit=\skip101
 \aftertitleunit=\skip102
-\ttl@plus=\dimen173
-\ttl@minus=\dimen174
+\ttl@plus=\dimen180
+\ttl@minus=\dimen181
 \ttl@toksa=\toks24
-\titlewidth=\dimen175
-\titlewidthlast=\dimen176
-\titlewidthfirst=\dimen177
+\titlewidth=\dimen182
+\titlewidthlast=\dimen183
+\titlewidthfirst=\dimen184
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/tools/indentfirst.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/tools/indentfirst
+.sty
 Package: indentfirst 2023/07/02 v1.03 Indent first paragraph (DPC)
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/enumitem/enumitem.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/enumit
+em/enumitem.sty
 Package: enumitem 2025/02/06 v3.11 Customized lists
 \labelindent=\skip103
-\enit@outerparindent=\dimen178
+\enit@outerparindent=\dimen185
 \enit@toks=\toks25
 \enit@inbox=\box102
-\enit@count@id=\count300
-\enitdp@description=\count301
+\enit@count@id=\count314
+\enitdp@description=\count315
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/tocbibind/tocbibind.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/tocbib
+ind/tocbibind.sty
 Package: tocbibind 2010/10/13 v1.5k extra ToC listings
 Package tocbibind Info: The document has chapter divisions on input line 50.
 
 
 Package tocbibind Note: Using chapter style headings, unless overridden.
 
-) (/usr/local/texlive/2025/texmf-dist/tex/latex/tools/tabularx.sty
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/tools/tabularx.st
+y
 Package: tabularx 2023/12/11 v2.12a `tabularx' package (DPC)
-
-(/usr/local/texlive/2025/texmf-dist/tex/latex/tools/array.sty
-Package: array 2024/10/17 v2.6g Tabular extension package (FMi)
-\col@sep=\dimen179
+ (/Library/Application Support/MiKTeX/texmfs/install/tex/latex/tools/array.sty
+Package: array 2025/09/25 v2.6n Tabular extension package (FMi)
+\col@sep=\dimen186
 \ar@mcellbox=\box103
-\extrarowheight=\dimen180
+\extrarowheight=\dimen187
 \NC@list=\toks26
 \extratabsurround=\skip104
 \backup@length=\skip105
 \ar@cellbox=\box104
 )
-\TX@col@width=\dimen181
-\TX@old@table=\dimen182
-\TX@old@col=\dimen183
-\TX@target=\dimen184
-\TX@delta=\dimen185
-\TX@cols=\count302
+\TX@col@width=\dimen188
+\TX@old@table=\dimen189
+\TX@old@col=\dimen190
+\TX@target=\dimen191
+\TX@delta=\dimen192
+\TX@cols=\count316
 \TX@ftn=\toks27
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/polyglossia/polyglossia.sty
-Package: polyglossia 2025/01/31 v2.4 Modern multilingual typesetting with XeLaT
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/polygl
+ossia/polyglossia.sty
+Package: polyglossia 2025/09/22 v2.8 Modern multilingual typesetting with XeLaT
 eX and LuaLaTeX
-\l_xpg_alias_keyvals_int=\count303
+\l_xpg_alias_keyvals_int=\count317
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/polyglossia/gloss-latex.ldf
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/polygl
+ossia/gloss-latex.ldf
 File: gloss-latex.ldf polyglossia: module for default language
 ))
-(/usr/local/texlive/2025/texmf-dist/tex/latex/base/latexsym.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/base/latexsym.sty
 Package: latexsym 1998/08/17 v2.2e Standard LaTeX package (lasy symbols)
 \symlasy=\mathgroup4
 LaTeX Font Info:    Overwriting symbol font `lasy' in version `bold'
 (Font)                  U/lasy/m/n --> U/lasy/b/n on input line 52.
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/listings/listings.sty
-\lst@mode=\count304
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/listings/listings
+.sty
+\lst@mode=\count318
 \lst@gtempboxa=\box105
 \lst@token=\toks28
-\lst@length=\count305
-\lst@currlwidth=\dimen186
-\lst@column=\count306
-\lst@pos=\count307
-\lst@lostspace=\dimen187
-\lst@width=\dimen188
-\lst@newlines=\count308
-\lst@lineno=\count309
-\lst@maxwidth=\dimen189
+\lst@length=\count319
+\lst@currlwidth=\dimen193
+\lst@column=\count320
+\lst@pos=\count321
+\lst@lostspace=\dimen194
+\lst@width=\dimen195
+\lst@newlines=\count322
+\lst@lineno=\count323
+\lst@maxwidth=\dimen196
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstpatch.sty
-File: lstpatch.sty 2024/09/23 1.10c (Carsten Heinz)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/listings/lstpatch
+.sty
+File: lstpatch.sty 2025/11/14 1.11b (Carsten Heinz)
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstmisc.sty
-File: lstmisc.sty 2024/09/23 1.10c (Carsten Heinz)
-\c@lstnumber=\count310
-\lst@skipnumbers=\count311
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/listings/lstmisc.
+sty
+File: lstmisc.sty 2025/11/14 1.11b (Carsten Heinz)
+\c@lstnumber=\count324
+\lst@skipnumbers=\count325
 \lst@framebox=\box106
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/listings/listings.cfg
-File: listings.cfg 2024/09/23 1.10c listings configuration
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/listings/listings
+.cfg
+File: listings.cfg 2025/11/14 1.11b listings configuration
 ))
-Package: listings 2024/09/23 1.10c (Carsten Heinz)
+Package: listings 2025/11/14 1.11b (Carsten Heinz)
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/float/float.sty
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/float/
+float.sty
 Package: float 2001/11/08 v1.3d Float enhancements (AL)
-\c@float@type=\count312
+\c@float@type=\count326
 \float@exts=\toks29
 \float@box=\box107
 \@float@everytoks=\toks30
 \@floatcapt=\box108
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/pbox/pbox.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/pbox/p
+box.sty
 Package: pbox 2011/12/07 v1.2 Dynamic parboxes
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/tools/calc.sty
-Package: calc 2023/07/08 v4.3 Infix arithmetic (KKT,FJ)
-\calc@Acount=\count313
-\calc@Bcount=\count314
-\calc@Adimen=\dimen190
-\calc@Bdimen=\dimen191
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/tools/calc.sty
+Package: calc 2025/03/01 v4.3b Infix arithmetic (KKT,FJ)
+\calc@Acount=\count327
+\calc@Bcount=\count328
+\calc@Adimen=\dimen197
+\calc@Bdimen=\dimen198
 \calc@Askip=\skip106
 \calc@Bskip=\skip107
-LaTeX Info: Redefining \setlength on input line 80.
-LaTeX Info: Redefining \addtolength on input line 81.
-\calc@Ccount=\count315
+LaTeX Info: Redefining \setlength on input line 86.
+LaTeX Info: Redefining \addtolength on input line 87.
+\calc@Ccount=\count329
 \calc@Cskip=\skip108
 )
 \pb@xlen=\skip109
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/natbib/natbib.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/natbib
+/natbib.sty
 Package: natbib 2010/09/13 8.31b (PWD, AO)
 \bibhang=\skip110
 \bibsep=\skip111
 LaTeX Info: Redefining \cite on input line 694.
-\c@NAT@ctr=\count316
+\c@NAT@ctr=\count330
 )
-(/usr/local/texlive/2025/texmf-dist/tex/xelatex/ucharclasses/ucharclasses.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/xelatex/ucha
+rclasses/ucharclasses.sty
 Package: ucharclasses 2022/10/20 v2.6.0 Unicode block character classes for XeL
 aTeX
 
-(/usr/local/texlive/2025/texmf-dist/tex/generic/iftex/ifxetex.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/iftex/ifxetex.s
+ty
 Package: ifxetex 2019/10/25 v0.7 ifxetex legacy package. Use iftex instead.
 )
 \AlphabeticPresentationFormsClass=\XeTeXcharclass1
@@ -547,7 +603,8 @@ Package fontspec Info:
 
 
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/polyglossia/gloss-english.ldf
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/polygl
+ossia/gloss-english.ldf
 File: gloss-english.ldf polyglossia: module for English
 )
 
@@ -558,22 +615,25 @@ Package polyglossia Info: Default language is english
 \lotPrefix=\skip114
 \appendixToCPrefix=\skip115
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/multirow/multirow.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/multir
+ow/multirow.sty
 Package: multirow 2024/11/12 v2.9 Span multiple rows of a table
 \multirow@colwidth=\skip116
-\multirow@cntb=\count317
+\multirow@cntb=\count331
 \multirow@dima=\skip117
-\bigstrutjot=\dimen192
+\bigstrutjot=\dimen199
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/xcolor/xcolor.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/xcolor/xcolor.sty
 Package: xcolor 2024/09/29 v3.02 LaTeX color extensions (UK)
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics-cfg/color.cfg
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/graphics-cfg/colo
+r.cfg
 File: color.cfg 2016/01/02 v1.6 sample color configuration
 )
 Package xcolor Info: Driver file: xetex.def on input line 274.
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics/mathcolor.ltx)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/graphics/mathcolo
+r.ltx)
 Package xcolor Info: Model `cmy' substituted by `cmy0' on input line 1349.
 Package xcolor Info: Model `RGB' extended on input line 1365.
 Package xcolor Info: Model `HTML' substituted by `rgb' on input line 1367.
@@ -583,50 +643,59 @@ Package xcolor Info: Model `HSB' substituted by `hsb' on input line 1370.
 Package xcolor Info: Model `Gray' substituted by `gray' on input line 1371.
 Package xcolor Info: Model `wave' substituted by `hsb' on input line 1372.
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/colortbl/colortbl.sty
-Package: colortbl 2024/07/06 v1.0i Color table columns (DPC)
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/colort
+bl/colortbl.sty
+Package: colortbl 2024/10/29 v1.0k Color table columns (DPC)
 \everycr=\toks31
 \minrowclearance=\skip118
-\rownum=\count318
+\rownum=\count332
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/caption/subcaption.sty
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/captio
+n/subcaption.sty
 Package: subcaption 2023/07/28 v1.6b Sub-captions (AR)
 Package caption Info: New subtype `subfigure' on input line 238.
-\c@subfigure=\count319
+\c@subfigure=\count333
 Package caption Info: New subtype `subtable' on input line 238.
-\c@subtable=\count320
+\c@subtable=\count334
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics/lscape.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/graphics/lscape.s
+ty
 Package: lscape 2020/05/28 v3.02 Landscape Pages (DPC)
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/amsmath/amsmath.sty
-Package: amsmath 2024/11/05 v2.17t AMS math features
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/amsmath/amsmath.s
+ty
+Package: amsmath 2025/07/09 v2.17z AMS math features
 \@mathmargin=\skip119
 
 For additional information on amsmath, use the `?' option.
-(/usr/local/texlive/2025/texmf-dist/tex/latex/amsmath/amstext.sty
-Package: amstext 2021/08/26 v2.01 AMS text
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/amsmath/amsgen.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/amsmath/amstext.s
+ty
+Package: amstext 2024/11/17 v2.01 AMS text
+
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/amsmath/amsgen.st
+y
 File: amsgen.sty 1999/11/30 v2.0 generic functions
 \@emptytoks=\toks32
-\ex@=\dimen193
+\ex@=\dimen256
 ))
-(/usr/local/texlive/2025/texmf-dist/tex/latex/amsmath/amsbsy.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/amsmath/amsbsy.st
+y
 Package: amsbsy 1999/11/29 v1.2d Bold Symbols
-\pmbraise@=\dimen194
+\pmbraise@=\dimen257
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/amsmath/amsopn.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/amsmath/amsopn.st
+y
 Package: amsopn 2022/04/08 v2.04 operator names
 )
-\inf@bad=\count321
+\inf@bad=\count335
 LaTeX Info: Redefining \frac on input line 233.
-\uproot@=\count322
-\leftroot@=\count323
+\uproot@=\count336
+\leftroot@=\count337
 LaTeX Info: Redefining \overline on input line 398.
 LaTeX Info: Redefining \colon on input line 409.
-\classnum@=\count324
-\DOTSCASE@=\count325
+\classnum@=\count338
+\DOTSCASE@=\count339
 LaTeX Info: Redefining \ldots on input line 495.
 LaTeX Info: Redefining \dots on input line 498.
 LaTeX Info: Redefining \cdots on input line 619.
@@ -636,47 +705,50 @@ LaTeX Info: Redefining \big on input line 721.
 LaTeX Info: Redefining \Big on input line 722.
 LaTeX Info: Redefining \bigg on input line 723.
 LaTeX Info: Redefining \Bigg on input line 724.
-\big@size=\dimen195
+\big@size=\dimen258
 LaTeX Font Info:    Redeclaring font encoding OML on input line 742.
 LaTeX Font Info:    Redeclaring font encoding OMS on input line 743.
-\macc@depth=\count326
+\macc@depth=\count340
 LaTeX Info: Redefining \bmod on input line 904.
 LaTeX Info: Redefining \pmod on input line 909.
 LaTeX Info: Redefining \smash on input line 939.
 LaTeX Info: Redefining \relbar on input line 969.
 LaTeX Info: Redefining \Relbar on input line 970.
-\c@MaxMatrixCols=\count327
+\c@MaxMatrixCols=\count341
 \dotsspace@=\muskip17
-\c@parentequation=\count328
-\dspbrk@lvl=\count329
+\c@parentequation=\count342
+\dspbrk@lvl=\count343
 \tag@help=\toks33
-\row@=\count330
-\column@=\count331
-\maxfields@=\count332
+\row@=\count344
+\column@=\count345
+\maxfields@=\count346
 \andhelp@=\toks34
-\eqnshift@=\dimen196
-\alignsep@=\dimen197
-\tagshift@=\dimen198
-\tagwidth@=\dimen199
-\totwidth@=\dimen256
-\lineht@=\dimen257
+\eqnshift@=\dimen259
+\alignsep@=\dimen260
+\tagshift@=\dimen261
+\tagwidth@=\dimen262
+\totwidth@=\dimen263
+\lineht@=\dimen264
 \@envbody=\toks35
 \multlinegap=\skip120
 \multlinetaggap=\skip121
 \mathdisplay@stack=\toks36
-LaTeX Info: Redefining \[ on input line 2953.
-LaTeX Info: Redefining \] on input line 2954.
+LaTeX Info: Redefining \[ on input line 2950.
+LaTeX Info: Redefining \] on input line 2951.
 )
-(/usr/local/texlive/2025/texmf-dist/tex/latex/lipsum/lipsum.sty
-(/usr/local/texlive/2025/texmf-dist/tex/latex/l3packages/l3keys2e/l3keys2e.sty
-Package: l3keys2e 2024-08-16 LaTeX2e option processing using LaTeX3 keys
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/lipsum
+/lipsum.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/l3packages/l3keys
+2e/l3keys2e.sty
+Package: l3keys2e 2025-10-09 LaTeX2e option processing using LaTeX3 keys
 )
 Package: lipsum 2021-09-20 v2.7 150 paragraphs of Lorem Ipsum dummy text
-\g__lipsum_par_int=\count333
-\l__lipsum_a_int=\count334
-\l__lipsum_b_int=\count335
-(/usr/local/texlive/2025/texmf-dist/tex/latex/lipsum/lipsum.ltd.tex))
-(./main.aux)
+\g__lipsum_par_int=\count347
+\l__lipsum_a_int=\count348
+\l__lipsum_b_int=\count349
+
+(/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/lipsum
+/lipsum.ltd.tex)) (main.aux)
 \openout1 = `main.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 110.
@@ -799,7 +871,7 @@ LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
 (Font)                  OT1/cmss/bx/n --> TU/lmss/b/n on input line 110.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
 (Font)                  OT1/cmtt/m/n --> TU/lmtt/b/n on input line 110.
-\c@lstlisting=\count336
+\c@lstlisting=\count350
 File: ./figures/MU_Logo-BW.png Graphic file (type bmp)
 <./figures/MU_Logo-BW.png>
 LaTeX Font Info:    Calculating math sizes for size <14> on input line 112.
@@ -820,7 +892,7 @@ ble
 
 LaTeX Font Info:    Trying to load font information for U+lasy on input line 11
 2.
-(/usr/local/texlive/2025/texmf-dist/tex/latex/base/ulasy.fd
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/base/ulasy.fd
 File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 )
 
@@ -850,7 +922,7 @@ File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 
 [2
 
-] (./acknowledgement.tex)
+] (acknowledgement.tex)
 Underfull \hbox (badness 10000) in paragraph at lines 5--120
 
  []
@@ -883,20 +955,20 @@ Underfull \hbox (badness 10000) in paragraph at lines 120--120
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/m/n' will be
 (Font)              scaled to size 15.96002pt on input line 121.
 
-Missing character: There is no ด (U+0E14) in font Times New Roman/OT:script=lat
-n;language=dflt;!
-Missing character: There is no ร (U+0E23) in font Times New Roman/OT:script=lat
-n;language=dflt;!
+Missing character: There is no ด in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ร in font Times New Roman/OT:script=latn;languag
+e=dflt;!
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/b/n' will be
 (Font)              scaled to size 18.62003pt on input line 121.
-(./abstractTH.tex)
+(abstractTH.tex)
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/b/n' will be
 (Font)              scaled to size 15.96002pt on input line 121.
 
 
 [4
 
-] (./abstractENG.tex
+] (abstractENG.tex
 
 [5
 
@@ -907,7 +979,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 9--122
 
 
 
-[6] (./main.toc
+[6] (main.toc
 
 [7
 
@@ -918,7 +990,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 9--122
 
 
 
-[8] (./main.lot)
+[8] (main.lot)
 \tf@lot=\write5
 \openout5 = `main.lot'.
 
@@ -926,7 +998,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 9--122
 
 [9
 
-] (./main.lof)
+] (main.lof)
 \tf@lof=\write6
 \openout6 = `main.lof'.
 
@@ -934,7 +1006,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 9--122
 
 [10
 
-] (./chapter1.tex
+] (chapter1.tex
 CHAPTER 1.
 
 
@@ -946,76 +1018,307 @@ CHAPTER 1.
 [2]
 
 [3]
+Underfull \hbox (badness 10000) in paragraph at lines 70--70
+[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
+ []
 
-LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10> not avail
-able
-(Font)              size <12> substituted on input line 50.
+
+Underfull \hbox (badness 1521) in paragraph at lines 70--70
+[]|\TU/TimesNewRoman(0)/m/n/12 Analyze master data, purchasing, sales,
+ []
 
 
-LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <5> not availa
-ble
-(Font)              size <12> substituted on input line 55.
+Underfull \hbox (badness 10000) in paragraph at lines 70--70
+[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
+ []
 
-) (./chapter2.tex
+
+Underfull \hbox (badness 10000) in paragraph at lines 70--70
+[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
+ []
+
+
+Underfull \hbox (badness 2005) in paragraph at lines 70--70
+[]|\TU/TimesNewRoman(0)/m/n/12 Core implementa-
+ []
+
+
+Underfull \hbox (badness 2253) in paragraph at lines 70--70
+[]|\TU/TimesNewRoman(0)/m/n/12 Implement master data, products, cate-
+ []
+
+
+Underfull \hbox (badness 2318) in paragraph at lines 70--70
+\TU/TimesNewRoman(0)/m/n/12 gories, suppliers, customers, purchases,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 70--70
+[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 70--70
+[]|\TU/TimesNewRoman(0)/m/n/12 Finance and
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 70--70
+\TU/TimesNewRoman(0)/m/n/12 inventory imple-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 70--70
+[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 70--70
+[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 70--70
+[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
+ []
+
+
+Underfull \hbox (badness 4819) in paragraph at lines 70--70
+[]|\TU/TimesNewRoman(0)/m/n/12 Prepare project documentation, screen-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 70--70
+[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
+ []
+
+) (chapter3.tex
 
 [4]
 
 [5]
 CHAPTER 2.
 
+Underfull \hbox (badness 10000) in paragraph at lines 28--28
+[]|\TU/TimesNewRoman(0)/b/n/12 Requirement
+ []
+
+
+Underfull \hbox (badness 1622) in paragraph at lines 28--28
+[]|\TU/TimesNewRoman(0)/m/n/12 Categories, products, suppliers, and customers a
+re imple-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 28--28
+[]|\TU/TimesNewRoman(0)/m/n/12 Receivables and
+ []
+
+
+Underfull \hbox (badness 3612) in paragraph at lines 28--28
+[]|\TU/TimesNewRoman(0)/m/n/12 Billing notes track customer receivables, while 
+payment
+ []
+
+
 
 [6
 
 ]
+Underfull \hbox (badness 3780) in paragraph at lines 53--53
+\TU/TimesNewRoman(0)/m/n/12 board, inventory, transactions, finance
+ []
 
-[7]) (./chapter3.tex
+
+Underfull \hbox (badness 10000) in paragraph at lines 53--53
+[]|\TU/TimesNewRoman(0)/m/n/12 Django REST
+ []
+
+
+Underfull \hbox (badness 1406) in paragraph at lines 53--53
+\TU/TimesNewRoman(0)/m/n/12 ters, pagination, eligibility checks, and
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 53--53
+[]|\TU/TimesNewRoman(0)/m/n/12 Business logic
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 53--53
+[]|\TU/TimesNewRoman(0)/m/n/12 Django service
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 53--53
+[]|\TU/TimesNewRoman(0)/m/n/12 MySQL through
+ []
+
+
+Underfull \hbox (badness 1033) in paragraph at lines 53--53
+[]|\TU/TimesNewRoman(0)/m/n/12 Stores normalized master data, transac-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 53--53
+[]|\TU/TimesNewRoman(0)/m/n/12 Authentication
+ []
+
+
+
+[7]
 
 [8]
-CHAPTER 3.
-File: ./figures/chap1/paragraph.png Graphic file (type bmp)
-<./figures/chap1/paragraph.png>
-) (./chapter4.tex
 
-[9
+[9]
+Underfull \hbox (badness 10000) in paragraph at lines 112--112
+[]|\TU/TimesNewRoman(0)/m/n/12 /api/products/, /api/
+ []
 
-]
+
+Underfull \hbox (badness 10000) in paragraph at lines 112--112
+[]|\TU/TimesNewRoman(0)/m/n/12 /api/suppliers/, /api/
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 112--112
+[]|\TU/TimesNewRoman(0)/m/n/12 /api/purchases/, /api/
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 112--112
+[]|\TU/TimesNewRoman(0)/m/n/12 /api/dashboard/, /api/
+ []
+
+
 
 [10]
-CHAPTER 4.
-) (./chapter5.tex
 
-[11
+[11]
+Underfull \hbox (badness 10000) in paragraph at lines 151--151
+[]|\TU/TimesNewRoman(0)/m/n/12 Stock validation
+ []
+
+
+
+[12]
+Underfull \hbox (badness 4582) in paragraph at lines 173--173
+[]|\TU/TimesNewRoman(0)/b/n/12 Tool or Technol-
+ []
+
+
+Underfull \hbox (badness 5189) in paragraph at lines 173--173
+[]|\TU/TimesNewRoman(0)/m/n/12 Provides the web backend, ORM,
+ []
+
+
+Underfull \hbox (badness 1226) in paragraph at lines 173--173
+\TU/TimesNewRoman(0)/m/n/12 settings, migrations, and application
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 173--173
+[]|\TU/TimesNewRoman(0)/m/n/12 Django REST
+ []
+
+
+Underfull \hbox (badness 5077) in paragraph at lines 173--173
+[]|\TU/TimesNewRoman(0)/m/n/12 Provides serializers, viewsets, API
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 173--173
+[]|\TU/TimesNewRoman(0)/m/n/12 OpenAI Python
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 173--173
+[]|\TU/TimesNewRoman(0)/m/n/12 Supports optional OpenAI-powered
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 173--173
+[]|\TU/TimesNewRoman(0)/m/n/12 Django TestCase
+ []
+
+) (chapter4.tex
+
+[13]
+
+[14]
+CHAPTER 3.
+
+Underfull \hbox (badness 1852) in paragraph at lines 28--28
+[]|\TU/TimesNewRoman(0)/m/n/12 Shows operational summaries, segmented
+ []
+
+
+Underfull \hbox (badness 2435) in paragraph at lines 28--28
+\TU/TimesNewRoman(0)/m/n/12 supplier options, validity dates, payment
+ []
+
+
+Underfull \hbox (badness 1496) in paragraph at lines 28--28
+\TU/TimesNewRoman(0)/m/n/12 chases, status tracking, paid lines, dates,
+ []
+
+
+
+[15
 
 ]
-CHAPTER 5.
-)
+Overfull \vbox (310.28255pt too high) has occurred while \output is active []
 
-[12
 
-] (./main.bbl)
 
-[13
+[16]
+
+[17]
+
+[18]
+
+[19]
+
+[20]
+
+[21]) (chapter5.tex
+
+[22]
+CHAPTER 4.
+
+
+[23
+
+]
+
+[24]
+
+[25])
+
+[26] (main.bbl)
+
+[27
 
 ] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
-(./main.aux)
+(main.aux)
  ***********
-LaTeX2e <2024-11-01> patch level 2
-L3 programming layer <2025-01-18>
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-11-06>
  ***********
 
 
 LaTeX Font Warning: Size substitutions with differences
-(Font)              up to 7.0pt have occurred.
+(Font)              up to 6.0pt have occurred.
 
  ) 
 Here is how much of TeX's memory you used:
- 13196 strings out of 473832
- 273089 string characters out of 5729481
- 849023 words of memory out of 5000000
- 36015 multiletter control sequences out of 15000+600000
- 564844 words of font info for 94 fonts, out of 8000000 for 9000
+ 13150 strings out of 402990
+ 268991 string characters out of 5447323
+ 868469 words of memory out of 5000000
+ 41637 multiletter control sequences out of 15000+600000
+ 633387 words of font info for 95 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 94i,12n,107p,1354b,586s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 88i,13n,107p,775b,591s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (27 pages).
+Output written on main.pdf (41 pages).
