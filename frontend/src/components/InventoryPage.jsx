@@ -1,11 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "../i18n/LanguageContext";
 import InventoryDirectorySection from "./inventory/InventoryDirectorySection";
 import InventoryControlBoard from "./inventory/InventoryControlBoard";
 import InventoryReferenceModal from "./inventory/InventoryReferenceModal";
 import InventoryDetailModal from "./inventory/InventoryDetailModal";
-import { getHealth } from "./inventory/inventoryUtils";
+import QuickPoDrawer from "./purchase/QuickPoDrawer";
+import { getAvailable, getHealth, getReorderLevel } from "./inventory/inventoryUtils";
 import useInventoryDirectoryFilters from "../hooks/useInventoryDirectoryFilters";
+
+// Build the items a Purchase-Order prefill expects (same shape the dashboard
+// Quick PO hands off), so a reorder raised from the inventory card lands in the
+// Purchase form identically to one raised from the dashboard.
+function toPrefillItem(row, qty, unitCost) {
+  return {
+    product_id: row.product_id,
+    product_name: row.product_name,
+    sku: row.sku || "",
+    unit: row.unit || "",
+    quantity: qty > 0 ? qty : 1,
+    unit_cost: unitCost ?? row.unit_cost ?? row.average_unit_cost ?? "",
+  };
+}
 
 function InventoryPage({
   dashboard,
@@ -20,6 +35,8 @@ function InventoryPage({
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [referenceOpen, setReferenceOpen] = useState(false);
   const [detailRow, setDetailRow] = useState(null);
+  const [quickPoRow, setQuickPoRow] = useState(null);
+  const directoryRef = useRef(null);
   const {
     search,
     setSearch,
@@ -53,6 +70,41 @@ function InventoryPage({
     dashboard,
     t,
   });
+
+  // Jump from the Inventory-value drill-down into the manage list, pre-filtered
+  // to a single health band and sorted by value, then scroll it into view.
+  const applyHealthFilter = (band) => {
+    setHealthSet(new Set([band]));
+    setSortKey("value");
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        directoryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  };
+
+  // Open the shared Quick PO drawer for a card (Low / Approaching only), deriving
+  // the available/reorder figures the drawer reads.
+  const handleCreatePo = (row) => {
+    setQuickPoRow({
+      ...row,
+      _available: getAvailable(row),
+      _reorder: getReorderLevel(row),
+    });
+  };
+
+  const handleQuickPoConfirm = ({ vendor, qty, price }) => {
+    if (quickPoRow) {
+      onNavigate?.({
+        tab: "purchase-history",
+        prefill: {
+          supplier_name: vendor || "",
+          items: [toPrefillItem(quickPoRow, qty, price === "" ? quickPoRow.unit_cost : price)],
+        },
+      });
+    }
+    setQuickPoRow(null);
+  };
 
   // Deep-link from the dashboard's Popular / Stock-Cycling widgets: open the
   // targeted product's detail straight away, then clear the one-shot intent.
@@ -98,9 +150,11 @@ function InventoryPage({
         billingNotes={billingNotes}
         paymentBatches={paymentBatches}
         onNavigate={onNavigate}
+        onApplyHealthFilter={applyHealthFilter}
         onOpenReference={() => setReferenceOpen(true)}
       />
 
+      <div ref={directoryRef} className="inventory-directory-anchor">
       <InventoryDirectorySection
         search={search}
         onSearchChange={setSearch}
@@ -132,7 +186,17 @@ function InventoryPage({
         onValueMaxChange={setValueMax}
         onCloseFilters={() => setFilterOpen(false)}
         onOpenDetail={setDetailRow}
+        onCreatePo={handleCreatePo}
       />
+      </div>
+
+      {quickPoRow ? (
+        <QuickPoDrawer
+          row={quickPoRow}
+          onClose={() => setQuickPoRow(null)}
+          onConfirm={handleQuickPoConfirm}
+        />
+      ) : null}
 
       {detailRow ? (
         <InventoryDetailModal

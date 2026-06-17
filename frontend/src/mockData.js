@@ -1292,7 +1292,9 @@ function buildPaymentBatchSummary(paymentBatches) {
 }
 
 function buildMockCashflow(billingNotes, paymentBatches) {
-  const HORIZON_WEEKS = 6;
+  const HORIZON_MONTHS = 6;
+  const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthStart = (base, n) => new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + n, 1));
   const openAR = billingNotes.filter(
     (note) => !["fully_received", "cancelled"].includes(note.status)
   );
@@ -1329,14 +1331,17 @@ function buildMockCashflow(billingNotes, paymentBatches) {
       net: money(overdueAr - overdueAp),
     },
   ];
-  for (let week = 0; week < HORIZON_WEEKS; week += 1) {
-    const start = addDays(TODAY, 7 * week);
-    const end = addDays(TODAY, 7 * week + 6);
+  for (let month = 0; month < HORIZON_MONTHS; month += 1) {
+    const bucketMonth = monthStart(TODAY, month);
+    // First month runs from today (earlier-due amounts sit in Overdue); the rest
+    // are whole calendar months.
+    const start = month === 0 ? TODAY : bucketMonth;
+    const end = addDays(monthStart(TODAY, month + 1), -1);
     const arIn = bucketSum(openAR, "expected_payment_date", formatDate(start), formatDate(end));
     const apOut = bucketSum(openAP, "planned_payment_date", formatDate(start), formatDate(end));
     buckets.push({
-      key: formatDate(start),
-      label: `${start.getUTCDate()}/${start.getUTCMonth() + 1}`,
+      key: formatDate(bucketMonth),
+      label: `${MONTH_NAMES[bucketMonth.getUTCMonth()]} ${bucketMonth.getUTCFullYear()}`,
       is_overdue: false,
       ar_in: arIn,
       ap_out: apOut,
@@ -1346,7 +1351,7 @@ function buildMockCashflow(billingNotes, paymentBatches) {
 
   return {
     today: formatDate(TODAY),
-    horizon_weeks: HORIZON_WEEKS,
+    horizon_months: HORIZON_MONTHS,
     buckets,
     ar_total_open: arTotal,
     ap_total_open: apTotal,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CreatePaymentBatchModal from "./payments/CreatePaymentBatchModal";
 import PaymentBatchDirectorySection from "./payments/PaymentBatchDirectorySection";
 import PaymentBatchDetailModal from "./payments/PaymentBatchDetailModal";
@@ -18,6 +18,8 @@ function PaymentBatchPage({
   onCreatePaymentBatch,
   onUpdatePaymentBatch,
   onDeletePaymentBatch,
+  focusId = null,
+  onIntentConsumed,
 }) {
   const { t } = useLanguage();
   const [creating, setCreating] = useState(false);
@@ -80,6 +82,19 @@ function PaymentBatchPage({
     return { outstanding, overdue, paid };
   }, [allPaymentBatches]);
   const summary = serverSummary || computedSummary;
+
+  // Deep-link from the Inventory AP drill-down: open the targeted batch's detail
+  // card straight away (the same view as its row "View" action), then clear the
+  // one-shot intent so it doesn't re-open on the next render.
+  useEffect(() => {
+    if (!focusId) return;
+    const target = (Array.isArray(allPaymentBatches) ? allPaymentBatches : []).find(
+      (batch) => `${batch.id}` === `${focusId}`
+    );
+    if (target) setActiveBatch(target);
+    onIntentConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, allPaymentBatches]);
 
   async function handleCreate(payload) {
     const saved = await onCreatePaymentBatch?.(payload);

@@ -35,6 +35,7 @@ function InventoryDirectorySection({
   valueMax,
   onValueMaxChange,
   onOpenDetail,
+  onCreatePo,
 }) {
   const { t } = useLanguage();
 
@@ -165,6 +166,7 @@ function InventoryDirectorySection({
               row={row}
               health={health}
               onShowDetails={() => onOpenDetail({ row, health })}
+              onCreatePo={onCreatePo ? () => onCreatePo(row) : undefined}
             />
           ))}
         </div>

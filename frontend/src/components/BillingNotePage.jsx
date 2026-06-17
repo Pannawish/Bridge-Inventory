@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import BillingNoteDetailModal from "./billing/BillingNoteDetailModal";
 import BillingNoteDirectorySection from "./billing/BillingNoteDirectorySection";
 import BillingNoteEditForm from "./billing/BillingNoteEditForm";
@@ -18,6 +18,8 @@ function BillingNotePage({
   onCreateBillingNote,
   onUpdateBillingNote,
   onDeleteBillingNote,
+  focusId = null,
+  onIntentConsumed,
 }) {
   const { t } = useLanguage();
   const [creating, setCreating] = useState(false);
@@ -80,6 +82,19 @@ function BillingNotePage({
     return { outstanding, overdue, received };
   }, [allBillingNotes]);
   const summary = serverSummary || computedSummary;
+
+  // Deep-link from the Inventory AR drill-down: open the targeted note's detail
+  // card straight away (the same view as its row "View" action), then clear the
+  // one-shot intent so it doesn't re-open on the next render.
+  useEffect(() => {
+    if (!focusId) return;
+    const target = (Array.isArray(allBillingNotes) ? allBillingNotes : []).find(
+      (note) => `${note.id}` === `${focusId}`
+    );
+    if (target) setActiveBillingNote(target);
+    onIntentConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, allBillingNotes]);
 
   async function handleCreate(payload) {
     const saved = await onCreateBillingNote?.(payload);

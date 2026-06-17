@@ -2016,7 +2016,7 @@ def build_products_segment(period, today=None):
     }
 
 
-CASHFLOW_FORECAST_WEEKS = 6
+CASHFLOW_FORECAST_MONTHS = 6
 ORDER_COVERAGE_POPULAR_LIMIT = 5
 # Look-back windows for the "popular products" panel, 1 day … 3 years (max).
 POPULAR_WINDOWS = (
@@ -2029,14 +2029,24 @@ POPULAR_WINDOWS = (
 )
 
 
+def _add_months(d, months):
+    """Return ``d`` shifted by ``months`` whole months, snapped to the 1st."""
+    total = d.month - 1 + months
+    year = d.year + total // 12
+    month = total % 12 + 1
+    return d.replace(year=year, month=month, day=1)
+
+
 def build_cashflow_segment(period=None, today=None):
     """Forward-looking cash forecast for the dashboard footer.
 
     Buckets open receivables (money in, by ``expected_payment_date``) and open
     payables (money out, by ``planned_payment_date``) into an Overdue bucket
-    plus the next ``CASHFLOW_FORECAST_WEEKS`` weekly windows, so a middle-man
-    trader can spot the weeks where cash dips before it bites. Also returns
-    point-in-time open balances consumed by the dashboard KPI ribbon.
+    plus the next ``CASHFLOW_FORECAST_MONTHS`` calendar months, so a middle-man
+    trader can spot the months where cash dips before it bites. The first month
+    runs from today to month-end (earlier-due amounts sit in Overdue); the rest
+    are whole calendar months. Also returns point-in-time open balances consumed
+    by the dashboard KPI ribbon.
 
     Open AR/AP mirror the definitions used by :func:`build_finance_segment`.
     ``period`` is accepted for a uniform segment-builder signature but ignored —
@@ -2087,15 +2097,19 @@ def build_cashflow_segment(period=None, today=None):
             "net": as_number(overdue_ar - overdue_ap),
         }
     ]
-    for week in range(CASHFLOW_FORECAST_WEEKS):
-        start = today + timedelta(days=7 * week)
-        end = start + timedelta(days=6)
+    month_start = today.replace(day=1)
+    for month in range(CASHFLOW_FORECAST_MONTHS):
+        bucket_month = _add_months(month_start, month)
+        # First month runs from today (earlier-due amounts are already in
+        # Overdue); later months span the whole calendar month.
+        start = today if month == 0 else bucket_month
+        end = _add_months(month_start, month + 1) - timedelta(days=1)
         ar_in = _sum_due(ar_by_date, start, end)
         ap_out = _sum_due(ap_by_date, start, end)
         buckets.append(
             {
-                "key": start.isoformat(),
-                "label": f"{start.day}/{start.month}",
+                "key": bucket_month.isoformat(),
+                "label": bucket_month.strftime("%b %Y"),
                 "is_overdue": False,
                 "ar_in": as_number(ar_in),
                 "ap_out": as_number(ap_out),
@@ -2105,7 +2119,7 @@ def build_cashflow_segment(period=None, today=None):
 
     return {
         "today": today.isoformat(),
-        "horizon_weeks": CASHFLOW_FORECAST_WEEKS,
+        "horizon_months": CASHFLOW_FORECAST_MONTHS,
         "buckets": buckets,
         "ar_total_open": as_number(ar_total_open),
         "ap_total_open": as_number(ap_total_open),

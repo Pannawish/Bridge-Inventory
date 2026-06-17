@@ -21,8 +21,9 @@ function HealthBadge({ health }) {
   );
 }
 
-function InventoryProductStockRow({ row, health, onShowDetails }) {
+function InventoryProductStockRow({ row, health, onShowDetails, onCreatePo }) {
   const { t } = useLanguage();
+  const needsReorder = health === "low" || health === "watch";
 
   const unit = row.unit || "";
   const available = getAvailable(row);
@@ -114,6 +115,15 @@ function InventoryProductStockRow({ row, health, onShowDetails }) {
           </div>
           {supplierNote ? <p className="inv-row-note">{supplierNote}</p> : null}
           <div className="inv-row-expand-bar">
+            {onCreatePo && needsReorder ? (
+              <button
+                type="button"
+                className="primary-button compact-button inv-row-po-btn"
+                onClick={onCreatePo}
+              >
+                {t("inventory.card.createPo")}
+              </button>
+            ) : null}
             <button
               type="button"
               className="secondary-button compact-button inv-row-expand-btn"

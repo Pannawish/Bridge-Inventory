@@ -210,6 +210,8 @@ function ActiveTabContent({
         onCreateBillingNote={handleBillingNoteCreate}
         onUpdateBillingNote={handleBillingNoteUpdate}
         onDeleteBillingNote={handleBillingNoteDelete}
+        focusId={dashboardIntent?.tab === "billing-notes" ? dashboardIntent.focusId : null}
+        onIntentConsumed={onConsumeIntent}
       />
     );
   }
@@ -228,6 +230,8 @@ function ActiveTabContent({
         onCreatePaymentBatch={handlePaymentBatchCreate}
         onUpdatePaymentBatch={handlePaymentBatchUpdate}
         onDeletePaymentBatch={handlePaymentBatchDelete}
+        focusId={dashboardIntent?.tab === "payment-batches" ? dashboardIntent.focusId : null}
+        onIntentConsumed={onConsumeIntent}
       />
     );
   }
