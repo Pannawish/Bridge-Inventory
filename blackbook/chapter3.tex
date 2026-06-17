@@ -144,12 +144,12 @@ The quotation workflow allows users to prepare commercial proposals before creat
 \begin{tikzpicture}[
 	>=Stealth,
 	node distance=1cm and 0.9cm,
-	step/.style={rectangle, draw=black, thick, align=center, minimum width=2.45cm, minimum height=0.85cm, fill=gray!10},
+	workflowstep/.style={rectangle, draw=black, thick, align=center, minimum width=2.45cm, minimum height=0.85cm, fill=gray!10},
 	process/.style={rectangle, draw=black, align=center, minimum width=2.45cm, minimum height=0.85cm, fill=blue!8},
 	finance/.style={rectangle, draw=black, align=center, minimum width=2.45cm, minimum height=0.85cm, fill=green!10},
 	report/.style={rectangle, draw=black, align=center, minimum width=2.45cm, minimum height=0.85cm, fill=yellow!15}
 ]
-	\node[step] (master) {Master Data\\Products, Partners};
+	\node[workflowstep] (master) {Master Data\\Products, Partners};
 	\node[process, right=of master] (quote) {Quotation};
 	\node[process, below=of quote] (purchase) {Purchase};
 	\node[process, right=of purchase] (stock) {Received Stock\\FIFO Layers};

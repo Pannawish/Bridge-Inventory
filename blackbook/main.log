@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  17 JUN 2026 11:13
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  17 JUN 2026 11:15
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1409,6 +1409,12 @@ Underfull \hbox (badness 6445) in paragraph at lines 7--123
  []
 
 
+Underfull \hbox (badness 4765) in paragraph at lines 7--123
+\TU/THSarabun(0)/m/n/12 การทำงานประจำวันของธุรกิจซื้อมา\TU/TimesNewRoman(0)/m/n
+/12 -ขายไป \TU/THSarabun(0)/m/n/12 และสามารถพัฒนาต่อยอดได้ในอนาคต เช่น การ
+ []
+
+
 
 [4
 
@@ -1557,6 +1563,8 @@ Underfull \hbox (badness 10000) in paragraph at lines 75--75
 [7]
 
 [8]
+
+[9]
 Underfull \hbox (badness 10000) in paragraph at lines 134--134
 []|\TU/TimesNewRoman(0)/m/n/12 /api/products/, /api/
  []
@@ -1578,7 +1586,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 134--134
 
 
 
-[9]
+[10]
 
 ! Package pgfkeys Error: The key '/tikz/step' requires a value. I am going to i
 gnore this key.
@@ -1613,8 +1621,6 @@ Overfull \hbox (68.8206pt too wide) in paragraph at lines 178--179
 
 
 
-[10]
-
 [11]
 Underfull \hbox (badness 10000) in paragraph at lines 207--207
 []|\TU/TimesNewRoman(0)/m/n/12 Stock validation
@@ -1646,13 +1652,18 @@ Underfull \hbox (badness 5077) in paragraph at lines 229--229
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 229--229
-[]|\TU/TimesNewRoman(0)/m/n/12 OpenAI Python
+Underfull \hbox (badness 4634) in paragraph at lines 229--229
+[]|\TU/TimesNewRoman(0)/m/n/12 Backend chat ser-
  []
 
 
 Underfull \hbox (badness 10000) in paragraph at lines 229--229
-[]|\TU/TimesNewRoman(0)/m/n/12 Supports optional OpenAI-powered
+[]|\TU/TimesNewRoman(0)/m/n/12 Builds compact backend context
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 229--229
+\TU/TimesNewRoman(0)/m/n/12 for supported read-only assistant
  []
 
 
@@ -1682,11 +1693,16 @@ Underfull \hbox (badness 1496) in paragraph at lines 28--28
  []
 
 
+Underfull \hbox (badness 1253) in paragraph at lines 28--28
+\TU/TimesNewRoman(0)/m/n/12 and payable exceptions, and reference or
+ []
+
+
 
 [14
 
 ]
-Overfull \vbox (310.28255pt too high) has occurred while \output is active []
+Overfull \vbox (375.53255pt too high) has occurred while \output is active []
 
 
 
@@ -1700,23 +1716,25 @@ Overfull \vbox (310.28255pt too high) has occurred while \output is active []
 
 [19]
 
-[20]) (chapter5.tex
+[20]
 
-[21]
+[21]) (chapter5.tex
+
+[22]
 CHAPTER 4.
 
 
-[22
+[23
 
 ]
 
-[23]
+[24]
 
-[24])
+[25])
 
-[25] (main.bbl)
+[26] (main.bbl)
 
-[26
+[27
 
 ] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
@@ -1730,14 +1748,17 @@ L3 programming layer <2025-11-06>
 LaTeX Font Warning: Size substitutions with differences
 (Font)              up to 7.0pt have occurred.
 
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
  ) 
 Here is how much of TeX's memory you used:
- 24241 strings out of 402990
+ 24240 strings out of 402990
  512716 string characters out of 5447323
- 1091449 words of memory out of 5000000
- 52518 multiletter control sequences out of 15000+600000
+ 1092449 words of memory out of 5000000
+ 52517 multiletter control sequences out of 15000+600000
  633736 words of font info for 99 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  88i,13n,107p,705b,895s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (41 pages).
+Output written on main.pdf (42 pages).
