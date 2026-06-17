@@ -5,7 +5,7 @@ This chapter explains how the Inventory Management System was designed and devel
 \section{System Development Approach}
 The system was developed as a full-stack web application for SME trading businesses. The development approach separated the project into three main layers: a client-side user interface, a backend API and business logic layer, and a relational database layer. This structure allowed the frontend to focus on user interaction while the backend remained responsible for data validation, stock calculation, transaction eligibility, and financial workflow enforcement.
 
-The project followed an incremental development approach. Master data modules were implemented first because products, categories, suppliers, and customers are required by later transaction workflows. After that, purchase and sales workflows were added, followed by quotations, billing notes, payment batches, credit notes, dashboard summaries, and the AI inventory assistant.
+The project followed an incremental development approach. Master data modules were implemented first because products, categories, suppliers, and customers are required by later transaction workflows. After that, purchase and sales workflows were added, followed by quotations, billing notes, payment batches, credit notes, dashboard summaries, and the read-only inventory assistant.
 
 \section{Requirement Analysis}
 The requirement analysis was based on the daily operation of a middle-man SME trading business. The main requirement was to support the relationship between incoming stock from suppliers and outgoing sales to customers. The system therefore needed to maintain master records, record transaction documents, validate stock availability, track status changes, and summarize receivables and payables.
@@ -24,7 +24,7 @@ The requirement analysis was based on the daily operation of a middle-man SME tr
 		Quotations & Quotations store normalized line items, validity settings, supplier options, and links to derived purchase or sales records. \\ \hline
 		Receivables and payables & Billing notes track customer receivables, while payment batches track supplier payables. \\ \hline
 		Returns and cancellations & Credit notes are created from eligible cancelled or returned sale lines. \\ \hline
-		AI support & A text-based assistant answers operational questions from backend data and optional OpenAI integration. \\ \hline
+		AI support & A text-based assistant answers supported read-only questions from backend data. Its current scope is limited to stock and fulfillment, partner summaries, receivable and payable exceptions, and reference or line-item lookup. \\ \hline
 	\end{tabularx}
 \end{table}
 
@@ -46,7 +46,7 @@ The system uses a three-tier web architecture. The frontend runs as a React sing
 	\node[data, right=of api] (mysql) {MySQL\\Database};
 	\node[service, below=of api] (services) {Backend Services\\Validation, Stock, Finance};
 	\node[service, above=of api] (auth) {Simple JWT\\Login and Refresh};
-	\node[ext, below=of mysql] (openai) {Optional OpenAI\\Assistant Model};
+	\node[ext, below=of mysql] (assistant) {Read-only\\Text Assistant};
 	
 	\draw[->, thick] (frontend) -- node[above]{REST JSON/FormData} (api);
 	\draw[->, thick] (api) -- node[above]{Django ORM} (mysql);
@@ -54,7 +54,7 @@ The system uses a three-tier web architecture. The frontend runs as a React sing
 	\draw[->, thick] (services) -- (mysql);
 	\draw[->, thick] (frontend) |- node[pos=0.25, left]{Bearer token} (auth);
 	\draw[->, thick] (auth) -- (api);
-	\draw[->, dashed, thick] (services) -- (openai);
+	\draw[->, dashed, thick] (services) -- (assistant);
 \end{tikzpicture}
 \caption{System architecture overview}
 \label{fig:system-architecture-overview}
@@ -69,7 +69,7 @@ The system uses a three-tier web architecture. The frontend runs as a React sing
 		\textbf{Layer} & \textbf{Implementation} & \textbf{Responsibility} \\ \hline
 		Presentation layer & React and Vite & Provides tabbed user interfaces for dashboard, inventory, transactions, finance documents, master data, and AI chat. \\ \hline
 		API layer & Django REST Framework & Exposes REST endpoints, serializers, filters, pagination, eligibility checks, and validation errors. \\ \hline
-		Business logic layer & Django service functions & Calculates stock, FIFO allocation, dashboard metrics, payable totals, finance summaries, and AI assistant context. \\ \hline
+		Business logic layer & Django service functions & Calculates stock, FIFO allocation, dashboard metrics, payable totals, finance summaries, and assistant context for supported read-only questions. \\ \hline
 		Data layer & MySQL through Django ORM & Stores normalized master data, transactions, line items, document links, finance records, and historical snapshot fields. \\ \hline
 		Authentication layer & Simple JWT & Supports login, access token refresh, and authenticated user profile retrieval. \\ \hline
 	\end{tabularx}
@@ -89,7 +89,7 @@ The backend was implemented as a Django project with one main inventory applicat
 
 Serializers transform request payloads into model records and apply domain validation. For purchases and sales, serializers normalize line items, calculate base quantities, handle file uploads, update documents, and delegate stock or payable synchronization to backend service functions. Viewsets apply common search, status, date, party, product, amount, and VAT filters.
 
-Backend services contain the main business calculations. These include stock metric snapshots, available stock layers, FIFO allocation, sale stock validation, purchase payable total recalculation, payment batch total synchronization, dashboard segment generation, and AI assistant context creation.
+Backend services contain the main business calculations. These include stock metric snapshots, available stock layers, FIFO allocation, sale stock validation, purchase payable total recalculation, payment batch total synchronization, dashboard segment generation, and context creation for the supported assistant workflows.
 
 \section{Database Design Methodology}
 The database was designed as a relational schema managed by Django migrations. Core master data is separated from transaction data. Categories, products, suppliers, and customers are maintained as master records, while purchases, sales, quotations, billing notes, payment batches, and credit notes reference them through foreign keys where appropriate.
@@ -130,7 +130,7 @@ Pagination is opt-in. If a list endpoint is called without a page parameter, it 
 		\texttt{/api/billing-notes/}, \texttt{/api/payment-batches/}, \texttt{/api/credit-notes/} & Receivable, payable, and credit-note workflows. \\ \hline
 		\texttt{/api/eligibility/...} & Server-side lists of transactions eligible for billing notes, payment batches, or credit notes. \\ \hline
 		\texttt{/api/dashboard/}, \texttt{/api/dashboard/segment/} & Dashboard summaries and segmented reporting. \\ \hline
-		\texttt{/api/chat/} & Text-based AI inventory assistant. \\ \hline
+		\texttt{/api/chat/} & Text-based read-only assistant for supported inventory, finance, partner-summary, and reference-lookup questions. \\ \hline
 	\end{tabularx}
 \end{table}
 
@@ -158,7 +158,7 @@ The quotation workflow allows users to prepare commercial proposals before creat
 	\node[finance, right=of purchase] (payment) {Payment Batch\\Payable};
 	\node[finance, right=of stock] (credit) {Credit Note\\Cancelled/Returned};
 	\node[report, below=of stock] (dashboard) {Dashboard\\Inventory Review};
-	\node[report, right=of dashboard] (chat) {AI Assistant\\Text Query};
+	\node[report, right=of dashboard] (chat) {Assistant\\Read-only Query};
 	
 	\draw[->, thick] (master) -- (quote);
 	\draw[->, thick] (master) |- (purchase);
@@ -188,7 +188,7 @@ Security is implemented with JSON Web Tokens through Simple JWT. The backend exp
 The backend also includes production-oriented safety settings. It requires a non-default secret key when debug mode is disabled, restricts CORS origins through configuration, and uses Django's ORM and serializers instead of ad hoc SQL construction.
 
 \section{Testing Methodology}
-The backend test suite validates important business behavior using Django and Django REST Framework test cases. The tests cover pagination, product picture upload, operational data clearing, sale stock validation, sale item allocation, purchase item status behavior, relational quotation storage, reference number generation, eligibility endpoints, credit notes, operational seed data, quotation supplier options, payable synchronization, and AI assistant alignment.
+The backend test suite validates important business behavior using Django and Django REST Framework test cases. The tests cover pagination, product picture upload, operational data clearing, sale stock validation, sale item allocation, purchase item status behavior, relational quotation storage, reference number generation, eligibility endpoints, credit notes, operational seed data, quotation supplier options, payable synchronization, and assistant response alignment.
 
 \begin{table}[H]
 	\centering
@@ -203,7 +203,7 @@ The backend test suite validates important business behavior using Django and Dj
 		Status tests & Confirm purchase and sale document statuses follow line item status rules. \\ \hline
 		Eligibility tests & Confirm billing note, payment batch, and credit note selection rules. \\ \hline
 		Financial tests & Confirm payable totals and linked payment batch amounts stay synchronized. \\ \hline
-		AI assistant tests & Confirm that chat responses align with backend operational data. \\ \hline
+		Assistant tests & Confirm that supported chat responses align with backend operational data. \\ \hline
 	\end{tabularx}
 \end{table}
 
@@ -223,7 +223,7 @@ The backend test suite validates important business behavior using Django and Dj
 		API framework & Django REST Framework & Provides serializers, viewsets, API views, parsing, responses, and tests. \\ \hline
 		Authentication & Simple JWT & Provides access and refresh token authentication. \\ \hline
 		Database & MySQL & Stores relational business records and transaction history. \\ \hline
-		AI integration & OpenAI Python package & Supports optional OpenAI-powered assistant responses when configured. \\ \hline
+		Assistant integration & Backend chat service & Builds compact backend context for supported read-only assistant responses. \\ \hline
 		Styling & CSS modules by domain file & Provides compact inventory application styling. \\ \hline
 		Testing & Django TestCase and DRF APITestCase & Validates backend business behavior and API behavior. \\ \hline
 	\end{tabularx}

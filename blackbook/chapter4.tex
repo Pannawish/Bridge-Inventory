@@ -3,7 +3,7 @@
 This chapter reports the results of the implemented Inventory Management System. The results are based on the current source code and implemented workflows. Screenshots are represented as placeholders so that final approved application screenshots can be inserted later.
 
 \section{Main System Features}
-The completed system provides a web-based inventory management application for SME trading operations. The implemented functionality covers master data, inventory control, purchasing, sales, quotations, finance documents, dashboard reporting, and AI-assisted text queries.
+The completed system provides a web-based inventory management application for SME trading operations. The implemented functionality covers master data, inventory control, purchasing, sales, quotations, finance documents, dashboard reporting, and limited read-only assistant text queries.
 
 \begin{table}[H]
 	\centering
@@ -24,7 +24,7 @@ The completed system provides a web-based inventory management application for S
 		Billing Notes & Supports receivable grouping from eligible sales, status tracking, received lines, dates, bank reference, and credit note summaries. & Implemented \\ \hline
 		Payment Batches & Supports payable grouping from eligible purchases, status tracking, paid lines, dates, bank reference, and synchronized payable amounts. & Implemented \\ \hline
 		Credit Notes & Supports credit notes for eligible cancelled or returned sale lines. & Implemented \\ \hline
-		AI Chat & Supports text-based inventory questions using backend data and optional OpenAI integration. & Implemented \\ \hline
+		AI Chat & Supports selected read-only text questions using backend data: stock and fulfillment, customer or supplier summaries, receivable and payable exceptions, and reference or line-item lookup. It does not create or update records. & Implemented \\ \hline
 	\end{tabularx}
 \end{table}
 
@@ -89,8 +89,8 @@ The following figures show the planned screenshot positions for the final report
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of AI inventory assistant chat response.}}
-\caption{AI inventory assistant}
+\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of a supported read-only assistant response, such as stock status or reference lookup.}}
+\caption{Read-only inventory assistant}
 \label{fig:ai-inventory-assistant}
 \end{figure}
 
@@ -118,8 +118,8 @@ The finance workflow consists of billing notes, payment batches, and credit note
 
 The backend provides eligibility endpoints to ensure that only valid transactions can be selected. For example, active billing note lines prevent the same sale from being selected again for another active billing note. Active payment batch lines prevent the same purchase from being selected again for another active payment batch.
 
-\subsection{Dashboard and AI Assistant Results}
-The dashboard backend provides overall and segmented operational summaries. These include stock report rows, finance information, product movement, trends, cashflow, and order coverage. The AI assistant uses backend data to answer text questions about inventory, transactions, partner summaries, receivables, payables, exceptions, references, and stock position.
+\subsection{Dashboard and Assistant Results}
+The dashboard backend provides overall and segmented operational summaries. These include stock report rows, finance information, product movement, trends, cashflow, and order coverage. The assistant uses backend data for a limited set of read-only text queries: stock and fulfillment, customer or supplier summaries, receivable and payable exceptions, and reference or line-item lookup. It is not implemented as a general-purpose chatbot and does not create or modify records.
 
 \section{Implemented Features Table}
 \begin{table}[H]
@@ -137,7 +137,7 @@ The dashboard backend provides overall and segmented operational summaries. Thes
 		Manual allocation & Sale item payloads may include allocation requests, which are validated against stock layers. \\ \hline
 		Eligibility filtering & Backend eligibility endpoints return valid sales for billing notes, valid purchases for payment batches, and valid sale lines for credit notes. \\ \hline
 		Normalized quotations & Quotation API exposes items while database stores quotation lines and supplier options in relational tables. \\ \hline
-		AI assistant & Chat endpoint builds inventory context and returns text responses for operational questions. \\ \hline
+		Assistant & Chat endpoint builds compact backend context and returns text responses for supported read-only operational questions. \\ \hline
 	\end{tabularx}
 \end{table}
 
@@ -153,7 +153,7 @@ The first objective was to record purchase and sales transactions with status tr
 
 The second objective was to provide inventory visibility. This objective is met through backend-derived stock calculations, product metrics, stock layers, product history, inventory pages, reorder levels, and dashboard stock summaries. However, formulas such as EOQ, Z-score, and complete P-system calculations were not identified in the current codebase and should be treated as future work unless implemented later.
 
-The third objective was to integrate an AI chatbot connected to backend data. This objective is met by the chat endpoint and frontend chat panel. The assistant answers text-based operational questions from backend inventory context and can use OpenAI integration when configured.
+The third objective was to integrate an AI chatbot connected to backend data. This objective is met within the current implemented scope by the chat endpoint and frontend chat panel. The assistant answers only supported read-only text questions from backend context: stock and fulfillment, partner summaries, receivable and payable exceptions, and reference or line-item lookup.
 
 \section{Limitations Found During Development}
 The implementation has several limitations that should be considered in the final evaluation:

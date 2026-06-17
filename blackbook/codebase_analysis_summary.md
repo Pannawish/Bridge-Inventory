@@ -50,7 +50,7 @@ This summary was prepared from the current repository implementation before writ
 - Payment batches group eligible received purchases for payables tracking.
 - Credit notes are generated from cancelled or returned sale lines that have not already been credited.
 - Dashboard and inventory pages summarize stock position, demand, purchase pipeline, receivables, payables, cashflow, product trends, and order coverage.
-- The AI inventory assistant answers text questions using backend-derived operational context and can optionally use OpenAI when configured.
+- The AI inventory assistant is a read-only text helper for a limited set of workflows: stock and fulfillment, customer or supplier summaries, receivables/payables and exceptions, and reference or line-item lookup.
 
 ## Implemented features
 

@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  17 JUN 2026 10:55
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  17 JUN 2026 11:13
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -736,6 +736,341 @@ LaTeX Info: Redefining \Relbar on input line 970.
 LaTeX Info: Redefining \[ on input line 2950.
 LaTeX Info: Redefining \] on input line 2951.
 )
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/pgf/frontendlayer
+/tikz.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/pgf/basiclayer/pg
+f.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/pgf/utilities/pgf
+rcs.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/utilities/p
+gfutil-common.tex
+\pgfutil@everybye=\toks37
+\pgfutil@tempdima=\dimen265
+\pgfutil@tempdimb=\dimen266
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/utilities/p
+gfutil-latex.def
+\pgfutil@abb=\box111
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/utilities/p
+gfrcs.code.tex
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/pgf.revisio
+n.tex)
+Package: pgfrcs 2025-08-29 v3.1.11a (3.1.11a)
+))
+Package: pgf 2025-08-29 v3.1.11a (3.1.11a)
+
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/pgf/basiclayer/pg
+fcore.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/pgf/systemlayer/p
+gfsys.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/systemlayer
+/pgfsys.code.tex
+Package: pgfsys 2025-08-29 v3.1.11a (3.1.11a)
+
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/utilities/p
+gfkeys.code.tex
+\pgfkeys@pathtoks=\toks38
+\pgfkeys@temptoks=\toks39
+
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/utilities/p
+gfkeyslibraryfiltered.code.tex
+\pgfkeys@tmptoks=\toks40
+))
+\pgf@x=\dimen267
+\pgf@y=\dimen268
+\pgf@xa=\dimen269
+\pgf@ya=\dimen270
+\pgf@xb=\dimen271
+\pgf@yb=\dimen272
+\pgf@xc=\dimen273
+\pgf@yc=\dimen274
+\pgf@xd=\dimen275
+\pgf@yd=\dimen276
+\w@pgf@writea=\write4
+\r@pgf@reada=\read3
+\c@pgf@counta=\count347
+\c@pgf@countb=\count348
+\c@pgf@countc=\count349
+\c@pgf@countd=\count350
+\t@pgf@toka=\toks41
+\t@pgf@tokb=\toks42
+\t@pgf@tokc=\toks43
+\pgf@sys@id@count=\count351
+
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/systemlayer
+/pgf.cfg
+File: pgf.cfg 2025-08-29 v3.1.11a (3.1.11a)
+)
+Driver file for pgf: pgfsys-xetex.def
+
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/systemlayer
+/pgfsys-xetex.def
+File: pgfsys-xetex.def 2025-08-29 v3.1.11a (3.1.11a)
+
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/systemlayer
+/pgfsys-dvipdfmx.def
+File: pgfsys-dvipdfmx.def 2025-08-29 v3.1.11a (3.1.11a)
+
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/systemlayer
+/pgfsys-common-pdf.def
+File: pgfsys-common-pdf.def 2025-08-29 v3.1.11a (3.1.11a)
+)
+\pgfsys@objnum=\count352
+)))
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/systemlayer
+/pgfsyssoftpath.code.tex
+File: pgfsyssoftpath.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgfsyssoftpath@smallbuffer@items=\count353
+\pgfsyssoftpath@bigbuffer@items=\count354
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/systemlayer
+/pgfsysprotocol.code.tex
+File: pgfsysprotocol.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+))
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcore.code.tex
+Package: pgfcore 2025-08-29 v3.1.11a (3.1.11a)
+
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+h.code.tex
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+hutil.code.tex)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+hparser.code.tex
+\pgfmath@dimen=\dimen277
+\pgfmath@count=\count355
+\pgfmath@box=\box112
+\pgfmath@toks=\toks44
+\pgfmath@stack@operand=\toks45
+\pgfmath@stack@operation=\toks46
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+hfunctions.code.tex)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+hfunctions.basic.code.tex)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+hfunctions.trigonometric.code.tex)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+hfunctions.random.code.tex)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+hfunctions.comparison.code.tex)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+hfunctions.base.code.tex)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+hfunctions.round.code.tex)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+hfunctions.misc.code.tex)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+hfunctions.integerarithmetics.code.tex)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+hcalc.code.tex)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+hfloat.code.tex
+\c@pgfmathroundto@lastzeros=\count356
+))
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfint
+.code.tex)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcorepoints.code.tex
+File: pgfcorepoints.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgf@picminx=\dimen278
+\pgf@picmaxx=\dimen279
+\pgf@picminy=\dimen280
+\pgf@picmaxy=\dimen281
+\pgf@pathminx=\dimen282
+\pgf@pathmaxx=\dimen283
+\pgf@pathminy=\dimen284
+\pgf@pathmaxy=\dimen285
+\pgf@xx=\dimen286
+\pgf@xy=\dimen287
+\pgf@yx=\dimen288
+\pgf@yy=\dimen289
+\pgf@zx=\dimen290
+\pgf@zy=\dimen291
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcorepathconstruct.code.tex
+File: pgfcorepathconstruct.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgf@path@lastx=\dimen292
+\pgf@path@lasty=\dimen293
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcorepathusage.code.tex
+File: pgfcorepathusage.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgf@shorten@end@additional=\dimen294
+\pgf@shorten@start@additional=\dimen295
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcorescopes.code.tex
+File: pgfcorescopes.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgfpic=\box113
+\pgf@hbox=\box114
+\pgf@layerbox@main=\box115
+\pgf@picture@serial@count=\count357
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcoregraphicstate.code.tex
+File: pgfcoregraphicstate.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgflinewidth=\dimen296
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcoretransformations.code.tex
+File: pgfcoretransformations.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgf@pt@x=\dimen297
+\pgf@pt@y=\dimen298
+\pgf@pt@temp=\dimen299
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcorequick.code.tex
+File: pgfcorequick.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcoreobjects.code.tex
+File: pgfcoreobjects.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcorepathprocessing.code.tex
+File: pgfcorepathprocessing.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcorearrows.code.tex
+File: pgfcorearrows.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgfarrowsep=\dimen300
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcoreshade.code.tex
+File: pgfcoreshade.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgf@max=\dimen301
+\pgf@sys@shading@range@num=\count358
+\pgf@shadingcount=\count359
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcoreimage.code.tex
+File: pgfcoreimage.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcoreexternal.code.tex
+File: pgfcoreexternal.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgfexternal@startupbox=\box116
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcorelayers.code.tex
+File: pgfcorelayers.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcoretransparency.code.tex
+File: pgfcoretransparency.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcorepatterns.code.tex
+File: pgfcorepatterns.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/basiclayer/
+pgfcorerdf.code.tex
+File: pgfcorerdf.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)))
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/modules/pgf
+moduleshapes.code.tex
+File: pgfmoduleshapes.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgfnodeparttextbox=\box117
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/modules/pgf
+moduleplot.code.tex
+File: pgfmoduleplot.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/pgf/compatibility
+/pgfcomp-version-0-65.sty
+Package: pgfcomp-version-0-65 2025-08-29 v3.1.11a (3.1.11a)
+\pgf@nodesepstart=\dimen302
+\pgf@nodesepend=\dimen303
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/pgf/compatibility
+/pgfcomp-version-1-18.sty
+Package: pgfcomp-version-1-18 2025-08-29 v3.1.11a (3.1.11a)
+))
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/pgf/utilities/pgf
+for.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/pgf/utilities/pgf
+keys.sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/utilities/p
+gfkeys.code.tex))
+(/Library/Application Support/MiKTeX/texmfs/install/tex/latex/pgf/math/pgfmath.
+sty
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/math/pgfmat
+h.code.tex))
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/utilities/p
+gffor.code.tex
+Package: pgffor 2025-08-29 v3.1.11a (3.1.11a)
+\pgffor@iter=\dimen304
+\pgffor@skip=\dimen305
+\pgffor@stack=\toks47
+\pgffor@toks=\toks48
+))
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/frontendlay
+er/tikz/tikz.code.tex
+Package: tikz 2025-08-29 v3.1.11a (3.1.11a)
+
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/libraries/p
+gflibraryplothandlers.code.tex
+File: pgflibraryplothandlers.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgf@plot@mark@count=\count360
+\pgfplotmarksize=\dimen306
+)
+\tikz@lastx=\dimen307
+\tikz@lasty=\dimen308
+\tikz@lastxsaved=\dimen309
+\tikz@lastysaved=\dimen310
+\tikz@lastmovetox=\dimen311
+\tikz@lastmovetoy=\dimen312
+\tikzleveldistance=\dimen313
+\tikzsiblingdistance=\dimen314
+\tikz@figbox=\box118
+\tikz@figbox@bg=\box119
+\tikz@tempbox=\box120
+\tikz@tempbox@bg=\box121
+\tikztreelevel=\count361
+\tikznumberofchildren=\count362
+\tikznumberofcurrentchild=\count363
+\tikz@fig@count=\count364
+
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/modules/pgf
+modulematrix.code.tex
+File: pgfmodulematrix.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgfmatrixcurrentrow=\count365
+\pgfmatrixcurrentcolumn=\count366
+\pgf@matrix@numberofcolumns=\count367
+)
+\tikz@expandcount=\count368
+
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/frontendlay
+er/tikz/libraries/tikzlibrarytopaths.code.tex
+File: tikzlibrarytopaths.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)))
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/libraries/p
+gflibraryarrows.meta.code.tex
+File: pgflibraryarrows.meta.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgfarrowinset=\dimen315
+\pgfarrowlength=\dimen316
+\pgfarrowwidth=\dimen317
+\pgfarrowlinewidth=\dimen318
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/frontendlay
+er/tikz/libraries/tikzlibrarypositioning.code.tex
+File: tikzlibrarypositioning.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/frontendlay
+er/tikz/libraries/tikzlibraryshapes.geometric.code.tex
+File: tikzlibraryshapes.geometric.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/libraries/s
+hapes/pgflibraryshapes.geometric.code.tex
+File: pgflibraryshapes.geometric.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+))
+(/Library/Application Support/MiKTeX/texmfs/install/tex/generic/pgf/frontendlay
+er/tikz/libraries/tikzlibraryfit.code.tex
+File: tikzlibraryfit.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)
 (/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/lipsum
 /lipsum.sty
 (/Library/Application Support/MiKTeX/texmfs/install/tex/latex/l3packages/l3keys
@@ -743,30 +1078,30 @@ LaTeX Info: Redefining \] on input line 2951.
 Package: l3keys2e 2025-10-09 LaTeX2e option processing using LaTeX3 keys
 )
 Package: lipsum 2021-09-20 v2.7 150 paragraphs of Lorem Ipsum dummy text
-\g__lipsum_par_int=\count347
-\l__lipsum_a_int=\count348
-\l__lipsum_b_int=\count349
+\g__lipsum_par_int=\count369
+\l__lipsum_a_int=\count370
+\l__lipsum_b_int=\count371
 
 (/Users/peto/Library/Application Support/MiKTeX/texmfs/install/tex/latex/lipsum
 /lipsum.ltd.tex)) (main.aux)
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 110.
-LaTeX Font Info:    ... okay on input line 110.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 110.
-LaTeX Font Info:    ... okay on input line 110.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 110.
-LaTeX Font Info:    ... okay on input line 110.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 110.
-LaTeX Font Info:    ... okay on input line 110.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 110.
-LaTeX Font Info:    ... okay on input line 110.
-LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 110.
-LaTeX Font Info:    ... okay on input line 110.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 110.
-LaTeX Font Info:    ... okay on input line 110.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 110.
-LaTeX Font Info:    ... okay on input line 110.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 112.
+LaTeX Font Info:    ... okay on input line 112.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 112.
+LaTeX Font Info:    ... okay on input line 112.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 112.
+LaTeX Font Info:    ... okay on input line 112.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 112.
+LaTeX Font Info:    ... okay on input line 112.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 112.
+LaTeX Font Info:    ... okay on input line 112.
+LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 112.
+LaTeX Font Info:    ... okay on input line 112.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 112.
+LaTeX Font Info:    ... okay on input line 112.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 112.
+LaTeX Font Info:    ... okay on input line 112.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: xetex
@@ -813,85 +1148,85 @@ Package fontspec Info:
 
 \symlegacymaths=\mathgroup5
 LaTeX Font Info:    Overwriting symbol font `legacymaths' in version `bold'
-(Font)                  OT1/cmr/m/n --> OT1/cmr/bx/n on input line 110.
-LaTeX Font Info:    Redeclaring math accent \acute on input line 110.
-LaTeX Font Info:    Redeclaring math accent \grave on input line 110.
-LaTeX Font Info:    Redeclaring math accent \ddot on input line 110.
-LaTeX Font Info:    Redeclaring math accent \tilde on input line 110.
-LaTeX Font Info:    Redeclaring math accent \bar on input line 110.
-LaTeX Font Info:    Redeclaring math accent \breve on input line 110.
-LaTeX Font Info:    Redeclaring math accent \check on input line 110.
-LaTeX Font Info:    Redeclaring math accent \hat on input line 110.
-LaTeX Font Info:    Redeclaring math accent \dot on input line 110.
-LaTeX Font Info:    Redeclaring math accent \mathring on input line 110.
-LaTeX Font Info:    Redeclaring math symbol \Gamma on input line 110.
-LaTeX Font Info:    Redeclaring math symbol \Delta on input line 110.
-LaTeX Font Info:    Redeclaring math symbol \Theta on input line 110.
-LaTeX Font Info:    Redeclaring math symbol \Lambda on input line 110.
-LaTeX Font Info:    Redeclaring math symbol \Xi on input line 110.
-LaTeX Font Info:    Redeclaring math symbol \Pi on input line 110.
-LaTeX Font Info:    Redeclaring math symbol \Sigma on input line 110.
-LaTeX Font Info:    Redeclaring math symbol \Upsilon on input line 110.
-LaTeX Font Info:    Redeclaring math symbol \Phi on input line 110.
-LaTeX Font Info:    Redeclaring math symbol \Psi on input line 110.
-LaTeX Font Info:    Redeclaring math symbol \Omega on input line 110.
-LaTeX Font Info:    Redeclaring math symbol \mathdollar on input line 110.
-LaTeX Font Info:    Redeclaring symbol font `operators' on input line 110.
+(Font)                  OT1/cmr/m/n --> OT1/cmr/bx/n on input line 112.
+LaTeX Font Info:    Redeclaring math accent \acute on input line 112.
+LaTeX Font Info:    Redeclaring math accent \grave on input line 112.
+LaTeX Font Info:    Redeclaring math accent \ddot on input line 112.
+LaTeX Font Info:    Redeclaring math accent \tilde on input line 112.
+LaTeX Font Info:    Redeclaring math accent \bar on input line 112.
+LaTeX Font Info:    Redeclaring math accent \breve on input line 112.
+LaTeX Font Info:    Redeclaring math accent \check on input line 112.
+LaTeX Font Info:    Redeclaring math accent \hat on input line 112.
+LaTeX Font Info:    Redeclaring math accent \dot on input line 112.
+LaTeX Font Info:    Redeclaring math accent \mathring on input line 112.
+LaTeX Font Info:    Redeclaring math symbol \Gamma on input line 112.
+LaTeX Font Info:    Redeclaring math symbol \Delta on input line 112.
+LaTeX Font Info:    Redeclaring math symbol \Theta on input line 112.
+LaTeX Font Info:    Redeclaring math symbol \Lambda on input line 112.
+LaTeX Font Info:    Redeclaring math symbol \Xi on input line 112.
+LaTeX Font Info:    Redeclaring math symbol \Pi on input line 112.
+LaTeX Font Info:    Redeclaring math symbol \Sigma on input line 112.
+LaTeX Font Info:    Redeclaring math symbol \Upsilon on input line 112.
+LaTeX Font Info:    Redeclaring math symbol \Phi on input line 112.
+LaTeX Font Info:    Redeclaring math symbol \Psi on input line 112.
+LaTeX Font Info:    Redeclaring math symbol \Omega on input line 112.
+LaTeX Font Info:    Redeclaring math symbol \mathdollar on input line 112.
+LaTeX Font Info:    Redeclaring symbol font `operators' on input line 112.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `normal' on input line 110.
+(Font)              `operators' in the math version `normal' on input line 112.
 
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
 (Font)                  OT1/cmr/m/n --> TU/TimesNewRoman(1)/m/n on input line 1
-10.
+12.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `bold' on input line 110.
+(Font)              `operators' in the math version `bold' on input line 112.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
 (Font)                  OT1/cmr/bx/n --> TU/TimesNewRoman(1)/m/n on input line 
-110.
+112.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
 (Font)                  TU/TimesNewRoman(1)/m/n --> TU/TimesNewRoman(1)/m/n on 
-input line 110.
+input line 112.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
 (Font)                  OT1/cmr/m/it --> TU/TimesNewRoman(1)/m/it on input line
- 110.
+ 112.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
 (Font)                  OT1/cmr/bx/n --> TU/TimesNewRoman(1)/b/n on input line 
-110.
+112.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `normal'
-(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 110.
+(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 112.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `normal'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 110.
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 112.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
 (Font)                  TU/TimesNewRoman(1)/m/n --> TU/TimesNewRoman(1)/b/n on 
-input line 110.
+input line 112.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
 (Font)                  OT1/cmr/bx/it --> TU/TimesNewRoman(1)/b/it on input lin
-e 110.
+e 112.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  OT1/cmss/bx/n --> TU/lmss/b/n on input line 110.
+(Font)                  OT1/cmss/bx/n --> TU/lmss/b/n on input line 112.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/b/n on input line 110.
-\c@lstlisting=\count350
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/b/n on input line 112.
+\c@lstlisting=\count372
 File: ./figures/MU_Logo-BW.png Graphic file (type bmp)
 <./figures/MU_Logo-BW.png>
-LaTeX Font Info:    Calculating math sizes for size <14> on input line 112.
+LaTeX Font Info:    Calculating math sizes for size <14> on input line 114.
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <14> not avail
 able
-(Font)              size <12> substituted on input line 112.
+(Font)              size <12> substituted on input line 114.
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <9.79996> not 
 available
-(Font)              size <12> substituted on input line 112.
+(Font)              size <12> substituted on input line 114.
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <7> not availa
 ble
-(Font)              size <12> substituted on input line 112.
+(Font)              size <12> substituted on input line 114.
 
 LaTeX Font Info:    Trying to load font information for U+lasy on input line 11
-2.
+4.
 (/Library/Application Support/MiKTeX/texmfs/install/tex/latex/base/ulasy.fd
 File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 )
@@ -923,27 +1258,27 @@ File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 [2
 
 ] (acknowledgement.tex)
-Underfull \hbox (badness 10000) in paragraph at lines 5--120
+Underfull \hbox (badness 10000) in paragraph at lines 5--122
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 5--120
+Underfull \hbox (badness 10000) in paragraph at lines 5--122
 
  []
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <8> not availa
 ble
-(Font)              size <12> substituted on input line 120.
+(Font)              size <12> substituted on input line 122.
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <6> not availa
 ble
-(Font)              size <12> substituted on input line 120.
+(Font)              size <12> substituted on input line 122.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 120--120
+Underfull \hbox (badness 10000) in paragraph at lines 122--122
 
  []
 
@@ -953,58 +1288,175 @@ Underfull \hbox (badness 10000) in paragraph at lines 120--120
 
 ]
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/m/n' will be
-(Font)              scaled to size 15.96002pt on input line 121.
+(Font)              scaled to size 15.96002pt on input line 123.
 
 Missing character: There is no ด in font Times New Roman/OT:script=latn;languag
 e=dflt;!
 Missing character: There is no ร in font Times New Roman/OT:script=latn;languag
 e=dflt;!
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/b/n' will be
-(Font)              scaled to size 18.62003pt on input line 121.
-(abstractTH.tex)
+(Font)              scaled to size 18.62003pt on input line 123.
+(abstractTH.tex
+Missing character: There is no ข in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no า in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ย in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ไ in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ป in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ข in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no น in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no า in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ด in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no เ in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ล in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ็ in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ก in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no แ in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ล in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ะ in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ข in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no น in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no า in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ด in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ก in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ล in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no า in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ง in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+
+Underfull \hbox (badness 10000) in paragraph at lines 1--2
+[]\TU/THSarabun(0)/m/n/12 โครงงานนี้นำเสนอการออกแบบและพัฒนาระบบจัดการสินค้าคงคล
+ังสำหรับธุรกิจซื้อมา\TU/TimesNewRoman(0)/m/n/12 -
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1--2
+\TU/TimesNewRoman(0)/m/n/12 ขายไปขนาดเล็กและขนาดกลาง \TU/THSarabun(0)/m/n/12 ระ
+บบนี้รองรับกระบวนการทำงานของธุรกิจ
+ []
+
+
+Underfull \hbox (badness 5189) in paragraph at lines 3--4
+[]\TU/THSarabun(0)/m/n/12 ระบบถูกพัฒนาในรูปแบบเว็บแอปพลิเคชันสามชั้น โดยใช้ \TU
+/TimesNewRoman(0)/m/n/12 React \TU/THSarabun(0)/m/n/12 และ \TU/TimesNewRoman(0)
+/m/n/12 Vite \TU/THSarabun(0)/m/n/12 สำหรับ
+ []
+
+
+Underfull \hbox (badness 1990) in paragraph at lines 3--4
+\TU/THSarabun(0)/m/n/12 ส่วนติดต่อผู้ใช้ ใช้ \TU/TimesNewRoman(0)/m/n/12 Django
+ \TU/THSarabun(0)/m/n/12 และ \TU/TimesNewRoman(0)/m/n/12 Django REST Framework 
+\TU/THSarabun(0)/m/n/12 สำหรับระบบหลังบ้าน และใช้
+ []
+
+
+Underfull \hbox (badness 8094) in paragraph at lines 5--6
+\TU/THSarabun(0)/m/n/12 จำนวนสินค้าที่รับเข้าจากรายการซื้อ หักด้วยจำนวนสินค้าที
+่ถูกผูกไว้กับรายการขาย แทนการบันทึก
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 5--6
+\TU/THSarabun(0)/m/n/12 สต็อกเป็นค่าคงที่ในข้อมูลสินค้า ระบบตรวจสอบสต็อกในฝั่งเ
+ซิร์ฟเวอร์ก่อนให้รายการขายเปลี่ยนเป็น
+ []
+
+
+Underfull \hbox (badness 3209) in paragraph at lines 5--6
+\TU/THSarabun(0)/m/n/12 เชื่อมต่อสำหรับตรวจสอบสิทธิ์ของรายการที่สามารถนำไปสร้าง
+ใบวางบิล ชุดการชำระเงิน และใบลด
+ []
+
+Missing character: There is no ข in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no า in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ย in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ไ in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+Missing character: There is no ป in font Times New Roman/OT:script=latn;languag
+e=dflt;!
+)
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/b/n' will be
-(Font)              scaled to size 15.96002pt on input line 121.
+(Font)              scaled to size 15.96002pt on input line 123.
+
+Underfull \hbox (badness 6445) in paragraph at lines 7--123
+[]\TU/THSarabun(0)/m/n/12 ผลลัพธ์ของโครงงานคือระบบจัดการสินค้าคงคลังบนเว็บที่สา
+มารถเชื่อมโยงงานจัดซื้อ งาน
+ []
+
 
 
 [4
 
-] (abstractENG.tex
+]
 
-[5
+[5] (abstractENG.tex)
+Underfull \hbox (badness 1087) in paragraph at lines 7--124
+[]\TU/TimesNewRoman(0)/m/n/12 The result is a functional web-based inventory ma
+nagement system that
+ []
 
-])
-Underfull \hbox (badness 10000) in paragraph at lines 9--122
+
+Underfull \hbox (badness 10000) in paragraph at lines 7--124
 
  []
 
 
 
-[6] (main.toc
+[6
 
-[7
+]
+
+[7] (main.toc
+
+[8
 
 
 ])
-\tf@toc=\write4
-\openout4 = `main.toc'.
+\tf@toc=\write5
+\openout5 = `main.toc'.
 
 
 
-[8] (main.lot)
-\tf@lot=\write5
-\openout5 = `main.lot'.
-
-
-
-[9
-
-] (main.lof)
-\tf@lof=\write6
-\openout6 = `main.lof'.
+[9] (main.lot)
+\tf@lot=\write6
+\openout6 = `main.lot'.
 
 
 
 [10
+
+] (main.lof)
+\tf@lof=\write7
+\openout7 = `main.lof'.
+
+
+
+[11
 
 ] (chapter1.tex
 CHAPTER 1.
@@ -1018,85 +1470,19 @@ CHAPTER 1.
 [2]
 
 [3]
-Underfull \hbox (badness 10000) in paragraph at lines 70--70
-[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
- []
+
+LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10> not avail
+able
+(Font)              size <12> substituted on input line 66.
 
 
-Underfull \hbox (badness 1521) in paragraph at lines 70--70
-[]|\TU/TimesNewRoman(0)/m/n/12 Analyze master data, purchasing, sales,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 70--70
-[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 70--70
-[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
- []
-
-
-Underfull \hbox (badness 2005) in paragraph at lines 70--70
-[]|\TU/TimesNewRoman(0)/m/n/12 Core implementa-
- []
-
-
-Underfull \hbox (badness 2253) in paragraph at lines 70--70
-[]|\TU/TimesNewRoman(0)/m/n/12 Implement master data, products, cate-
- []
-
-
-Underfull \hbox (badness 2318) in paragraph at lines 70--70
-\TU/TimesNewRoman(0)/m/n/12 gories, suppliers, customers, purchases,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 70--70
-[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 70--70
-[]|\TU/TimesNewRoman(0)/m/n/12 Finance and
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 70--70
-\TU/TimesNewRoman(0)/m/n/12 inventory imple-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 70--70
-[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 70--70
-[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 70--70
-[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
- []
-
-
-Underfull \hbox (badness 4819) in paragraph at lines 70--70
-[]|\TU/TimesNewRoman(0)/m/n/12 Prepare project documentation, screen-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 70--70
-[]|\TU/TimesNewRoman(0)/m/n/12 TODO: Insert
- []
+LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <5> not availa
+ble
+(Font)              size <12> substituted on input line 71.
 
 ) (chapter3.tex
 
 [4]
-
-[5]
 CHAPTER 2.
 
 Underfull \hbox (badness 10000) in paragraph at lines 28--28
@@ -1122,45 +1508,47 @@ payment
 
 
 
-[6
+[5
 
 ]
-Underfull \hbox (badness 3780) in paragraph at lines 53--53
+
+[6]
+Underfull \hbox (badness 3780) in paragraph at lines 75--75
 \TU/TimesNewRoman(0)/m/n/12 board, inventory, transactions, finance
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 53--53
+Underfull \hbox (badness 10000) in paragraph at lines 75--75
 []|\TU/TimesNewRoman(0)/m/n/12 Django REST
  []
 
 
-Underfull \hbox (badness 1406) in paragraph at lines 53--53
+Underfull \hbox (badness 1406) in paragraph at lines 75--75
 \TU/TimesNewRoman(0)/m/n/12 ters, pagination, eligibility checks, and
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 53--53
+Underfull \hbox (badness 10000) in paragraph at lines 75--75
 []|\TU/TimesNewRoman(0)/m/n/12 Business logic
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 53--53
+Underfull \hbox (badness 10000) in paragraph at lines 75--75
 []|\TU/TimesNewRoman(0)/m/n/12 Django service
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 53--53
+Underfull \hbox (badness 10000) in paragraph at lines 75--75
 []|\TU/TimesNewRoman(0)/m/n/12 MySQL through
  []
 
 
-Underfull \hbox (badness 1033) in paragraph at lines 53--53
+Underfull \hbox (badness 1033) in paragraph at lines 75--75
 []|\TU/TimesNewRoman(0)/m/n/12 Stores normalized master data, transac-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 53--53
+Underfull \hbox (badness 10000) in paragraph at lines 75--75
 []|\TU/TimesNewRoman(0)/m/n/12 Authentication
  []
 
@@ -1169,25 +1557,58 @@ Underfull \hbox (badness 10000) in paragraph at lines 53--53
 [7]
 
 [8]
-
-[9]
-Underfull \hbox (badness 10000) in paragraph at lines 112--112
+Underfull \hbox (badness 10000) in paragraph at lines 134--134
 []|\TU/TimesNewRoman(0)/m/n/12 /api/products/, /api/
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 112--112
+Underfull \hbox (badness 10000) in paragraph at lines 134--134
 []|\TU/TimesNewRoman(0)/m/n/12 /api/suppliers/, /api/
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 112--112
+Underfull \hbox (badness 10000) in paragraph at lines 134--134
 []|\TU/TimesNewRoman(0)/m/n/12 /api/purchases/, /api/
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 112--112
+Underfull \hbox (badness 10000) in paragraph at lines 134--134
 []|\TU/TimesNewRoman(0)/m/n/12 /api/dashboard/, /api/
+ []
+
+
+
+[9]
+
+! Package pgfkeys Error: The key '/tikz/step' requires a value. I am going to i
+gnore this key.
+
+See the pgfkeys package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.152 ^^I\node[step]
+                     (master) {Master Data\\Products, Partners};
+This error message was generated by an \errmessage
+command, so I can't give any explicit help.
+Pretend that you're Hercule Poirot: Examine all clues,
+and deduce the truth by order and method.
+
+
+! LaTeX Error: Not allowed in LR mode.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.152 ^^I\node[step] (master) {Master Data\\P
+                                             roducts, Partners};
+You've lost some text.  Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+Overfull \hbox (68.8206pt too wide) in paragraph at lines 178--179
+ [][] 
  []
 
 
@@ -1195,57 +1616,55 @@ Underfull \hbox (badness 10000) in paragraph at lines 112--112
 [10]
 
 [11]
-Underfull \hbox (badness 10000) in paragraph at lines 151--151
+Underfull \hbox (badness 10000) in paragraph at lines 207--207
 []|\TU/TimesNewRoman(0)/m/n/12 Stock validation
  []
 
 
-
-[12]
-Underfull \hbox (badness 4582) in paragraph at lines 173--173
+Underfull \hbox (badness 4582) in paragraph at lines 229--229
 []|\TU/TimesNewRoman(0)/b/n/12 Tool or Technol-
  []
 
 
-Underfull \hbox (badness 5189) in paragraph at lines 173--173
+Underfull \hbox (badness 5189) in paragraph at lines 229--229
 []|\TU/TimesNewRoman(0)/m/n/12 Provides the web backend, ORM,
  []
 
 
-Underfull \hbox (badness 1226) in paragraph at lines 173--173
+Underfull \hbox (badness 1226) in paragraph at lines 229--229
 \TU/TimesNewRoman(0)/m/n/12 settings, migrations, and application
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 173--173
+Underfull \hbox (badness 10000) in paragraph at lines 229--229
 []|\TU/TimesNewRoman(0)/m/n/12 Django REST
  []
 
 
-Underfull \hbox (badness 5077) in paragraph at lines 173--173
+Underfull \hbox (badness 5077) in paragraph at lines 229--229
 []|\TU/TimesNewRoman(0)/m/n/12 Provides serializers, viewsets, API
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 173--173
+Underfull \hbox (badness 10000) in paragraph at lines 229--229
 []|\TU/TimesNewRoman(0)/m/n/12 OpenAI Python
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 173--173
+Underfull \hbox (badness 10000) in paragraph at lines 229--229
 []|\TU/TimesNewRoman(0)/m/n/12 Supports optional OpenAI-powered
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 173--173
+Underfull \hbox (badness 10000) in paragraph at lines 229--229
 []|\TU/TimesNewRoman(0)/m/n/12 Django TestCase
  []
 
 ) (chapter4.tex
 
-[13]
+[12]
 
-[14]
+[13]
 CHAPTER 3.
 
 Underfull \hbox (badness 1852) in paragraph at lines 28--28
@@ -1264,12 +1683,14 @@ Underfull \hbox (badness 1496) in paragraph at lines 28--28
 
 
 
-[15
+[14
 
 ]
 Overfull \vbox (310.28255pt too high) has occurred while \output is active []
 
 
+
+[15]
 
 [16]
 
@@ -1279,25 +1700,23 @@ Overfull \vbox (310.28255pt too high) has occurred while \output is active []
 
 [19]
 
-[20]
+[20]) (chapter5.tex
 
-[21]) (chapter5.tex
-
-[22]
+[21]
 CHAPTER 4.
 
 
-[23
+[22
 
 ]
 
-[24]
+[23]
 
-[25])
+[24])
 
-[26] (main.bbl)
+[25] (main.bbl)
 
-[27
+[26
 
 ] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
@@ -1309,16 +1728,16 @@ L3 programming layer <2025-11-06>
 
 
 LaTeX Font Warning: Size substitutions with differences
-(Font)              up to 6.0pt have occurred.
+(Font)              up to 7.0pt have occurred.
 
  ) 
 Here is how much of TeX's memory you used:
- 13150 strings out of 402990
- 268991 string characters out of 5447323
- 868469 words of memory out of 5000000
- 41637 multiletter control sequences out of 15000+600000
- 633387 words of font info for 95 fonts, out of 8000000 for 9000
+ 24241 strings out of 402990
+ 512716 string characters out of 5447323
+ 1091449 words of memory out of 5000000
+ 52518 multiletter control sequences out of 15000+600000
+ 633736 words of font info for 99 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 88i,13n,107p,775b,591s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 88i,13n,107p,705b,895s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
 Output written on main.pdf (41 pages).

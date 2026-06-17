@@ -1,12 +1,12 @@
 \chapter{CONCLUSION}
 
 \section{Brief Project Overview}
-The Inventory Management System is a full-stack web application developed for SME trading businesses that purchase products from suppliers and resell them to customers. The system supports product and partner master data, purchase workflows, sales workflows, quotation preparation, inventory control, billing notes, payment batches, credit notes, dashboard reporting, and AI-assisted text queries.
+The Inventory Management System is a full-stack web application developed for SME trading businesses that purchase products from suppliers and resell them to customers. The system supports product and partner master data, purchase workflows, sales workflows, quotation preparation, inventory control, billing notes, payment batches, credit notes, dashboard reporting, and limited read-only assistant text queries.
 
 The project was implemented using a React and Vite frontend, a Django REST Framework backend, and a MySQL relational database. The system emphasizes backend-authoritative validation so that stock, eligibility, and financial workflows remain consistent even when requests are made directly to the API.
 
 \section{Objective Summary}
-The project objectives focused on recording purchase and sales transactions, showing inventory stock information, and integrating an AI chatbot connected to backend data. The implemented system satisfies these objectives through transaction modules, stock calculation services, dashboard and inventory pages, and a text-based inventory assistant.
+The project objectives focused on recording purchase and sales transactions, showing inventory stock information, and integrating an AI chatbot connected to backend data. The implemented system satisfies these objectives through transaction modules, stock calculation services, dashboard and inventory pages, and a text-based assistant limited to supported read-only operational summaries.
 
 % TODO: Review this section after the final objective wording is approved by the project authors and supervisor.
 
@@ -18,12 +18,12 @@ The design separates master records from transaction records. Products, categori
 \section{Implementation Summary}
 The frontend implementation includes pages for dashboard, inventory, AI chat, purchase history, sales history, quotations, billing notes, payment batches, credit notes, products, categories, suppliers, customers, and settings. It also includes a centralized API client, authentication context, translation dictionaries, reusable directory filters, pagination controls, and mock-data fallback behavior.
 
-The backend implementation includes Django models, migrations, serializers, viewsets, business services, pagination, authentication views, management commands, and tests. The most important backend services include stock metric calculation, FIFO allocation, sale stock validation, purchase payable recalculation, payment batch synchronization, dashboard segment generation, and AI assistant context preparation.
+The backend implementation includes Django models, migrations, serializers, viewsets, business services, pagination, authentication views, management commands, and tests. The most important backend services include stock metric calculation, FIFO allocation, sale stock validation, purchase payable recalculation, payment batch synchronization, dashboard segment generation, and context preparation for supported assistant questions.
 
 \section{Result Summary}
 The implemented result is a functional inventory management system that connects purchasing, sales, finance, and stock visibility. Purchases create available stock only when purchase items are received. Sales reduce stock only when sale items reach packed, shipped, or delivered statuses. The system validates stock availability before allowing sales to commit unavailable quantities.
 
-The system also supports receivable and payable workflows. Billing notes are created from eligible sales, payment batches are created from eligible purchases, and credit notes are created from eligible cancelled or returned sale lines. The dashboard and AI assistant provide summary views and natural-language access to operational data.
+The system also supports receivable and payable workflows. Billing notes are created from eligible sales, payment batches are created from eligible purchases, and credit notes are created from eligible cancelled or returned sale lines. The dashboard provides summary views, while the assistant provides read-only responses for a limited set of supported operational questions.
 
 \section{Key Findings}
 Several key findings were identified during implementation:
@@ -34,7 +34,7 @@ Several key findings were identified during implementation:
 	\item FIFO stock allocation provides a practical method for connecting sales cost to received purchase layers.
 	\item Eligibility endpoints reduce duplicate billing, duplicate payment grouping, and invalid credit-note creation.
 	\item Historical snapshot fields are necessary for preserving the readability of old business documents.
-	\item AI-assisted text queries can improve access to operational information, but they must be grounded in backend data to avoid unsupported answers.
+	\item AI-assisted text queries are useful only when kept within their current supported scope and grounded in backend data.
 \end{enumerate}
 
 \section{Obstacles and Challenges}
@@ -56,6 +56,6 @@ Future work should focus on improving evaluation evidence, extending inventory p
 	\item Add a dedicated audit-log model for document status changes and important financial workflow updates.
 	\item Add role-based permissions if the system is deployed for multiple staff roles.
 	\item Expand production performance testing with larger datasets and concurrent users.
-	\item Improve AI assistant evaluation by comparing answers against expected backend records.
+	\item Improve assistant evaluation by comparing supported answers against expected backend records.
 	\item Add more formal reporting exports for management, accounting, and inventory review.
 \end{enumerate}

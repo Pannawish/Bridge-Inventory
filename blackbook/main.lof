@@ -1,13 +1,13 @@
 \thispagestyle {front}
 \noindent \bfseries {Figure}\hfill {\bfseries Page}\par 
 \contentsline {figure}{\numberline {2.1}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces System architecture overview}}{7}{}%
-\contentsline {figure}{\numberline {2.2}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Business workflow design}}{12}{}%
-\contentsline {figure}{\numberline {3.1}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Inventory dashboard}}{17}{}%
-\contentsline {figure}{\numberline {3.2}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Inventory control page}}{17}{}%
-\contentsline {figure}{\numberline {3.3}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Product management form}}{17}{}%
-\contentsline {figure}{\numberline {3.4}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Purchase workflow}}{17}{}%
-\contentsline {figure}{\numberline {3.5}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Sales workflow}}{17}{}%
-\contentsline {figure}{\numberline {3.6}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Quotation entry}}{17}{}%
-\contentsline {figure}{\numberline {3.7}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Billing note workflow}}{17}{}%
-\contentsline {figure}{\numberline {3.8}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Payment batch workflow}}{17}{}%
-\contentsline {figure}{\numberline {3.9}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces AI inventory assistant}}{18}{}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Business workflow design}}{11}{}%
+\contentsline {figure}{\numberline {3.1}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Inventory dashboard}}{16}{}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Inventory control page}}{16}{}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Product management form}}{16}{}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Purchase workflow}}{16}{}%
+\contentsline {figure}{\numberline {3.5}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Sales workflow}}{16}{}%
+\contentsline {figure}{\numberline {3.6}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Quotation entry}}{16}{}%
+\contentsline {figure}{\numberline {3.7}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Billing note workflow}}{16}{}%
+\contentsline {figure}{\numberline {3.8}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Payment batch workflow}}{16}{}%
+\contentsline {figure}{\numberline {3.9}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces AI inventory assistant}}{17}{}%

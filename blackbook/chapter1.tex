@@ -5,16 +5,16 @@ Small and medium-sized trading businesses often operate as intermediaries betwee
 
 Many small businesses still depend on spreadsheets, paper records, manual document folders, or general-purpose accounting tools. These methods may be workable for a small number of products, but they become difficult to control when the business must track multiple suppliers, product units, transaction statuses, cancelled lines, delayed purchases, customer billing, and supplier payments. Manual workflows also make it difficult to answer operational questions quickly, such as which products are low in stock, which sales can be billed, which purchases are ready for payment, or whether a sale can be fulfilled from available received stock.
 
-The Inventory Management System was developed to address these practical workflow problems for an SME trading environment. The implemented system uses a React frontend, a Django REST Framework backend, and a MySQL relational database. Its design focuses on master data management, purchasing, sales, quotations, billing notes, payment batches, credit notes, dashboard summaries, stock validation, and AI-assisted text queries. The backend is responsible for authoritative validation and stock calculations, while the frontend provides a compact web interface for daily operational work.
+The Inventory Management System was developed to address these practical workflow problems for an SME trading environment. The implemented system uses a React frontend, a Django REST Framework backend, and a MySQL relational database. Its design focuses on master data management, purchasing, sales, quotations, billing notes, payment batches, credit notes, dashboard summaries, stock validation, and read-only text queries for selected operational information. The backend is responsible for authoritative validation and stock calculations, while the frontend provides a compact web interface for daily operational work.
 
-The project also includes an AI-assisted inventory chat feature. Instead of requiring users to manually navigate every page, the assistant allows users to ask text questions about stock, transactions, partner summaries, receivables, payables, and business exceptions. The codebase supports local backend-derived answers and can use an OpenAI model when the required API configuration is supplied.
+The project also includes an AI-assisted inventory chat feature with a limited scope. It is a read-only helper that can summarize supported backend data; it does not create, edit, approve, cancel, or override transactions. Its current supported areas are stock and fulfillment questions, customer or supplier summaries, receivables and payables with exception checks, and reference or line-item lookup.
 
 \section{Objective}
 % TODO: The project authors provided this objective section. Review and adjust the final wording if the project scope changes.
 \begin{enumerate}
 	\item To develop a system that records purchase and sales transactions, including the current status of each process, with an attachment file function that links all supporting documents directly to the corresponding transactions.
 	\item To develop an inventory management system that displays the overall product stock in the warehouse and provides tools for calculating essential inventory information.
-	\item To integrate an AI chatbot using the ChatGPT API that connects to the system's backend data, allowing users to request specific information through natural language queries.
+	\item To integrate an AI chatbot using the ChatGPT API that connects to the system's backend data, allowing users to request supported operational summaries through text queries.
 \end{enumerate}
 
 \section{Scope}
@@ -37,7 +37,7 @@ The scope of this project is limited to the implemented Inventory Management Sys
 	
 	\item \textbf{Authentication and access flow:} The backend includes JWT login, refresh, and authenticated user profile endpoints. The frontend supports login, token refresh, logout, and guest mode. Backend-wide authentication enforcement is controlled by the \texttt{INVENTORY\_REQUIRE\_AUTH} setting.
 	
-	\item \textbf{AI-assisted operation:} The system includes a text-based AI inventory assistant endpoint. It answers inventory and transaction questions using backend operational data and can use an OpenAI model when an API key is configured.
+	\item \textbf{AI-assisted operation:} The system includes a text-based inventory assistant endpoint. Its current scope is read-only support for stock and fulfillment questions, customer or supplier summaries, receivables and payables with exception checks, and reference or line-item lookup.
 \end{enumerate}
 
 The following items are outside the confirmed implemented scope and should not be claimed as completed unless additional implementation or evidence is added:
@@ -53,7 +53,7 @@ The following items are outside the confirmed implemented scope and should not b
 \section{Expected Results}
 The expected result of this project is a functional web-based inventory management system that can record purchase and sales transactions, track the status of each process, and link supporting documents directly to their corresponding transactions. The system is expected to provide an up-to-date view of stock levels based on received purchase quantities and committed sale quantities, together with clear traceability between products, suppliers, customers, purchases, sales, quotations, billing notes, payment batches, and credit notes.
 
-The system is also expected to improve operational accessibility by providing dashboard summaries and an AI-assisted text interface. Users should be able to retrieve important business information such as product stock, transaction status, receivables, payables, partner summaries, and stock exceptions without manually searching every module. Overall, the completed system is expected to reduce manual checking, improve stock visibility, and support better day-to-day decision making for an SME trading business.
+The system is also expected to improve operational accessibility by providing dashboard summaries and a limited AI-assisted text interface. Users should be able to retrieve supported information such as product stock, selected transaction references, receivables, payables, partner summaries, and stock exceptions without manually searching every module. Overall, the completed system is expected to reduce manual checking, improve stock visibility, and support better day-to-day decision making for an SME trading business.
 
 % TODO: If EOQ, Z-score, P-system, or additional inventory formulas are implemented later, add them to this expected results section with matching evidence in Chapter 4.
 
