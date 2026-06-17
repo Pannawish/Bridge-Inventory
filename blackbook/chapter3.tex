@@ -35,26 +35,24 @@ The system uses a three-tier web architecture. The frontend runs as a React sing
 \centering
 \begin{tikzpicture}[
 	>=Stealth,
-	node distance=1.2cm and 1.1cm,
-	layer/.style={rectangle, draw=black, thick, align=center, minimum width=3.1cm, minimum height=1cm, fill=gray!10},
-	service/.style={rectangle, draw=black, align=center, minimum width=2.7cm, minimum height=0.9cm, fill=blue!8},
-	data/.style={cylinder, shape border rotate=90, draw=black, align=center, aspect=0.25, minimum width=2.5cm, minimum height=1.1cm, fill=green!10},
-	ext/.style={rectangle, draw=black, dashed, align=center, minimum width=2.6cm, minimum height=0.9cm, fill=yellow!12}
+	font=\small,
+	mainbox/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=3.5cm, minimum height=0.95cm, fill=gray!10},
+	servicebox/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=3.5cm, minimum height=0.95cm, fill=blue!8},
+	databox/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=3.5cm, minimum height=0.95cm, fill=green!10},
+	sidebox/.style={rectangle, rounded corners=2pt, draw=black, dashed, align=center, text width=3cm, minimum height=0.85cm, fill=yellow!12}
 ]
-	\node[layer] (frontend) {React + Vite\\Frontend SPA};
-	\node[layer, right=of frontend] (api) {Django REST\\Framework API};
-	\node[data, right=of api] (mysql) {MySQL\\Database};
-	\node[service, below=of api] (services) {Backend Services\\Validation, Stock, Finance};
-	\node[service, above=of api] (auth) {Simple JWT\\Login and Refresh};
-	\node[ext, below=of mysql] (assistant) {Read-only\\Text Assistant};
+	\node[mainbox] (frontend) at (0,0) {React + Vite\\Frontend SPA};
+	\node[mainbox] (api) at (0,-1.9) {Django REST Framework\\API Layer};
+	\node[servicebox] (services) at (0,-3.8) {Business Services\\Validation, Stock, Finance};
+	\node[databox] (mysql) at (0,-5.7) {MySQL\\Relational Database};
+	\node[sidebox] (auth) at (4.8,-0.95) {Simple JWT\\Login and Refresh};
+	\node[sidebox] (assistant) at (4.8,-4.75) {Read-only\\Text Assistant};
 	
-	\draw[->, thick] (frontend) -- node[above]{REST JSON/FormData} (api);
-	\draw[->, thick] (api) -- node[above]{Django ORM} (mysql);
+	\draw[->, thick] (frontend) -- node[right]{REST requests} (api);
 	\draw[->, thick] (api) -- (services);
-	\draw[->, thick] (services) -- (mysql);
-	\draw[->, thick] (frontend) |- node[pos=0.25, left]{Bearer token} (auth);
-	\draw[->, thick] (auth) -- (api);
-	\draw[->, dashed, thick] (services) -- (assistant);
+	\draw[->, thick] (services) -- node[right]{Django ORM} (mysql);
+	\draw[->, thick] (auth.west) -- ++(-0.8,0) |- node[pos=0.3, right]{Bearer token} (api.east);
+	\draw[->, dashed, thick] (services.east) -- (assistant.west);
 \end{tikzpicture}
 \caption{System architecture overview}
 \label{fig:system-architecture-overview}
@@ -143,30 +141,28 @@ The quotation workflow allows users to prepare commercial proposals before creat
 \centering
 \begin{tikzpicture}[
 	>=Stealth,
-	node distance=1cm and 0.9cm,
-	workflowstep/.style={rectangle, draw=black, thick, align=center, minimum width=2.45cm, minimum height=0.85cm, fill=gray!10},
-	process/.style={rectangle, draw=black, align=center, minimum width=2.45cm, minimum height=0.85cm, fill=blue!8},
-	finance/.style={rectangle, draw=black, align=center, minimum width=2.45cm, minimum height=0.85cm, fill=green!10},
-	report/.style={rectangle, draw=black, align=center, minimum width=2.45cm, minimum height=0.85cm, fill=yellow!15}
+	font=\scriptsize,
+	workflowstep/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=2.7cm, minimum height=0.85cm, fill=gray!10},
+	process/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.7cm, minimum height=0.85cm, fill=blue!8},
+	finance/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.7cm, minimum height=0.85cm, fill=green!10},
+	report/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.7cm, minimum height=0.85cm, fill=yellow!15}
 ]
-	\node[workflowstep] (master) {Master Data\\Products, Partners};
-	\node[process, right=of master] (quote) {Quotation};
-	\node[process, below=of quote] (purchase) {Purchase};
-	\node[process, right=of purchase] (stock) {Received Stock\\FIFO Layers};
-	\node[process, above=of stock] (sale) {Sale\\Packed/Shipped/Delivered};
-	\node[finance, right=of sale] (billing) {Billing Note\\Receivable};
-	\node[finance, right=of purchase] (payment) {Payment Batch\\Payable};
-	\node[finance, right=of stock] (credit) {Credit Note\\Cancelled/Returned};
-	\node[report, below=of stock] (dashboard) {Dashboard\\Inventory Review};
-	\node[report, right=of dashboard] (chat) {Assistant\\Read-only Query};
+	\node[workflowstep] (master) at (0,0) {Master Data\\Products, Partners};
+	\node[process] (quote) at (0,-1.7) {Quotation};
+	\node[process] (purchase) at (-3.6,-3.5) {Purchase};
+	\node[process] (sale) at (3.6,-3.5) {Sale};
+	\node[process] (stock) at (0,-5.3) {Received Stock\\FIFO Layers};
+	\node[finance] (payment) at (-3.6,-7.1) {Payment Batch\\Payable};
+	\node[finance] (billing) at (3.6,-7.1) {Billing Note\\Receivable};
+	\node[finance] (credit) at (0,-8.9) {Credit Note\\Cancelled or Returned};
+	\node[report] (dashboard) at (0,-10.7) {Dashboard\\Inventory Review};
+	\node[report] (chat) at (0,-12.5) {Assistant\\Read-only Query};
 	
 	\draw[->, thick] (master) -- (quote);
-	\draw[->, thick] (master) |- (purchase);
-	\draw[->, thick] (master) |- (sale);
-	\draw[->, thick] (quote) -- node[right]{convert} (purchase);
-	\draw[->, thick] (quote) -- node[above]{convert} (sale);
-	\draw[->, thick] (purchase) -- (stock);
-	\draw[->, thick] (stock) -- node[right]{validate stock} (sale);
+	\draw[->, thick] (quote) -- node[above left]{convert} (purchase);
+	\draw[->, thick] (quote) -- node[above right]{convert} (sale);
+	\draw[->, thick] (purchase) -- node[above right]{receive} (stock);
+	\draw[->, thick] (stock) -- node[above left]{validate} (sale);
 	\draw[->, thick] (sale) -- (billing);
 	\draw[->, thick] (purchase) -- (payment);
 	\draw[->, thick] (sale) |- (credit);
