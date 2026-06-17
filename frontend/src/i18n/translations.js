@@ -603,12 +603,12 @@ export const translations = {
         stage: {
           draft: "Draft",
           ordered: "Ordered",
-          receiving: "Receiving",
+          receiving: "Partially Received",
         },
         status: {
           draft: "Draft",
           ordered: "Ordered",
-          partially_received: "Receiving",
+          partially_received: "Partially Received",
         },
       },
       popular: {
@@ -2690,12 +2690,12 @@ export const translations = {
         stage: {
           draft: "ร่าง",
           ordered: "สั่งแล้ว",
-          receiving: "กำลังรับเข้า",
+          receiving: "รับบางส่วน",
         },
         status: {
           draft: "ร่าง",
           ordered: "สั่งแล้ว",
-          partially_received: "กำลังรับเข้า",
+          partially_received: "รับบางส่วน",
         },
       },
       popular: {
