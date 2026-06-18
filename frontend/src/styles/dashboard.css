@@ -275,27 +275,35 @@
 /* Meta line under the tile head: cover/stockout eta + recommended order qty. */
 .dash-reorder-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
+  gap: 3px 10px;
   min-width: 0;
 }
 
-.dash-reorder-qty {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-overflow: ellipsis;
+/* Recommended restock — the headline action, in confident green. */
+.dash-reorder-restock {
+  color: #0f7a4d;
+  font-size: 0.74rem;
+  font-weight: 800;
   white-space: nowrap;
 }
 
-/* Chart fills the tile; ReorderProjectionMini scales to its container. */
+/* Safety stock — the reassuring buffer, in a softer sage green. */
+.dash-reorder-safety {
+  color: #6f9e83;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Holds the ReorderProjectionMini, which measures this box and renders its SVG
+   at the real pixel size so it fills the fixed tile without distorting text. */
 .dash-reorder-chart {
   display: flex;
-  align-items: stretch;
   flex: 1;
   min-height: 0;
+  margin-top: 4px;
 }
 
 .dash-reorder-eta {

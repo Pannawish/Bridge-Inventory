@@ -1,145 +1,76 @@
 /* ════════════════════════════════════════════════════════════════════
-   Shared reorder-point "sawtooth" charts.
-   .saw-mini  — dashboard tile: minimal trajectory + "order by" date marker
-   .saw-full  — inventory detail: full-width analysis chart w/ hover crosshair
+   Reorder-point projection chart (.rp-*) — "Today in the middle".
+   Real stock history (solid) on the left, dashed forecast on the right, a
+   dense 10×N grid, clean threshold lines + dot markers, and a bottom-right
+   data/legend card that holds every number. One renderer, two sizes:
+     .rp-full  — inventory detail (interactive crosshair + legend card)
+     .rp-mini  — dashboard tile (compact, no hover/legend)
    ════════════════════════════════════════════════════════════════════ */
-.saw { display: block; width: 100%; }
+.rp-chart { position: relative; width: 100%; }
+.rp-svg { display: block; width: 100%; }
+.rp-full .rp-svg { height: auto; }
+.rp-full .rp-svg.is-interactive { cursor: crosshair; }
+.rp-mini { width: 100%; height: 100%; min-height: 0; }
+.rp-mini .rp-svg { height: 100%; }
 
-/* Stock trajectory (the teeth) */
+/* Grid + axes */
+.rp-grid { stroke: var(--line); stroke-width: 1; opacity: 0.7; }
+.saw-axis { stroke: var(--line-strong); stroke-width: 1; }
+.rp-yt { fill: var(--muted); font-size: 10px; font-weight: 600; text-anchor: end; }
+.rp-mini .rp-yt { font-size: 8px; }
+.rp-xt { fill: var(--muted); font-size: 9px; font-weight: 600; text-anchor: end; }
+.rp-xt.is-today { fill: var(--text); font-weight: 800; }
+.rp-mini .rp-xt { font-size: 7.5px; }
+
+/* Future (projection) region tint */
+.rp-future-band { fill: var(--accent); opacity: 0.04; }
+
+/* Stock trajectory — real history (solid), tone follows health. */
 .saw-line { fill: none; stroke-width: 2; stroke-linejoin: round; }
 .saw-line.tone-danger { stroke: var(--danger); }
 .saw-line.tone-warning { stroke: var(--warning); }
 .saw-line.tone-accent { stroke: var(--accent); }
 .saw-line.tone-positive { stroke: var(--success); }
 .saw-line.tone-neutral { stroke: var(--muted); }
-
-/* Safety-stock zone + reference lines */
-.saw-ss-band { fill: var(--danger); opacity: 0.07; }
-.saw-ss { stroke: var(--danger); stroke-width: 1; stroke-dasharray: 4 3; opacity: 0.75; }
-.saw-rop { stroke: var(--warning); stroke-width: 1; stroke-dasharray: 4 3; opacity: 0.9; }
-
-/* "Now" current-stock marker */
-.saw-now-guide { stroke-width: 1; stroke-dasharray: 2 2; opacity: 0.45; }
-.saw-now-guide.tone-danger { stroke: var(--danger); }
-.saw-now-guide.tone-warning { stroke: var(--warning); }
-.saw-now-guide.tone-accent { stroke: var(--accent); }
-.saw-now-guide.tone-positive { stroke: var(--success); }
-.saw-now-guide.tone-neutral { stroke: var(--muted); }
-
-.saw-now { stroke: #fff; stroke-width: 1.2; }
-.saw-now.tone-danger { fill: var(--danger); }
-.saw-now.tone-warning { fill: var(--warning); }
-.saw-now.tone-accent { fill: var(--accent); }
-.saw-now.tone-positive { fill: var(--success); }
-.saw-now.tone-neutral { fill: var(--muted); }
-
-/* ── Mini (dashboard) ────────────────────────────────────────────────── */
-.rp-mini-wrap { position: relative; flex: 1; min-width: 0; height: 100%; }
-.rp-mini { position: absolute; inset: 0; width: 100%; height: 100%; }
 .rp-mini .saw-line { stroke-width: 1.8; }
 
-/* Value labels pinned to the reference lines / current dot. */
-.saw-tag {
-  position: absolute;
-  transform: translateY(-50%);
-  padding: 0 4px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.86);
-  font-size: 0.6rem;
-  font-weight: 800;
-  line-height: 1.35;
-  white-space: nowrap;
-  pointer-events: none;
-}
-.saw-tag.is-now { left: 7px; }
-.saw-tag.is-rop { right: 4px; color: #9a7b16; }
-.saw-tag.is-ss { right: 4px; color: var(--danger); }
-.saw-tag.is-now.tone-danger { color: var(--danger); }
-.saw-tag.is-now.tone-warning { color: #9a7b16; }
-.saw-tag.is-now.tone-accent { color: var(--accent); }
-.saw-tag.is-now.tone-positive { color: var(--success); }
-.saw-tag.is-now.tone-neutral { color: var(--muted); }
+/* Forecast — same tone, dashed to signal it's projected not measured. */
+.rp-proj { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-dasharray: 5 4; opacity: 0.9; }
+.rp-proj.tone-danger { stroke: var(--danger); }
+.rp-proj.tone-warning { stroke: var(--warning); }
+.rp-proj.tone-accent { stroke: var(--accent); }
+.rp-proj.tone-positive { stroke: var(--success); }
+.rp-proj.tone-neutral { stroke: var(--muted); }
+.rp-mini .rp-proj { stroke-width: 1.8; }
 
-/* "Order by <date>" chip overlaid at the bottom-centre of the mini chart
-   (centred so it clears the edge-hugging value tags). */
-.saw-date {
-  position: absolute;
-  left: 50%;
-  bottom: -1px;
-  transform: translateX(-50%);
-  padding: 0 4px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.86);
-  color: #9a7b16;
-  font-size: 0.56rem;
-  font-weight: 800;
-  white-space: nowrap;
-  pointer-events: none;
-}
-.saw-date.is-now { color: var(--danger); }
-
-/* ── Full (inventory detail) — analysis chart ────────────────────────── */
-.saw-analysis { position: relative; width: 100%; }
-.saw-full { height: auto; cursor: crosshair; }
-
-.saw-axis { stroke: var(--line-strong); stroke-width: 1; }
-.saw-grid { stroke: var(--line); stroke-width: 1; }
-.saw-axis-label {
-  fill: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-  text-anchor: middle;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-/* Threshold lines */
+/* Threshold reference lines (no inline numbers — values live in the card). */
+.saw-ss-band { fill: var(--danger); opacity: 0.07; }
+.saw-ss { stroke: var(--danger); stroke-width: 1; stroke-dasharray: 4 3; opacity: 0.8; }
+.saw-rop { stroke: var(--warning); stroke-width: 1; stroke-dasharray: 4 3; opacity: 0.9; }
 .saw-peak { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 1 4; opacity: 0.5; }
 
-/* Lead-time band + label */
-.saw-lead-band { fill: var(--accent); opacity: 0.05; }
-.saw-lead-label { fill: var(--accent); font-size: 10px; font-weight: 700; text-anchor: middle; }
+/* Today centre divider */
+.rp-today { stroke: var(--text); stroke-width: 1.4; opacity: 0.5; }
+.rp-mini .rp-today { stroke-width: 1; opacity: 0.4; }
 
-/* "If not ordered" stockout risk projection */
-.saw-risk { fill: none; stroke: var(--danger); stroke-width: 1.5; stroke-dasharray: 3 3; opacity: 0.7; }
+/* Decision dot markers (clean, no attached text) */
+.rp-mark { stroke: #fff; stroke-width: 1.5; }
+.rp-mini .rp-mark { stroke-width: 1.1; }
+.rp-mark.is-order { fill: var(--warning); }
+.rp-mark.is-restock { fill: var(--accent); }
+.rp-mark.is-now.tone-danger { fill: var(--danger); }
+.rp-mark.is-now.tone-warning { fill: var(--warning); }
+.rp-mark.is-now.tone-accent { fill: var(--accent); }
+.rp-mark.is-now.tone-positive { fill: var(--success); }
+.rp-mark.is-now.tone-neutral { fill: var(--muted); }
 
-/* Left-axis quantity tick labels */
-.saw-yt { fill: var(--muted); font-size: 10px; font-weight: 600; text-anchor: end; }
-
-/* Right-gutter threshold names */
-.saw-name { font-size: 10.5px; font-weight: 700; text-anchor: start; }
-.saw-name.is-peak { fill: var(--accent); opacity: 0.8; }
-.saw-name.is-reorder { fill: #9a7b16; }
-.saw-name.is-safety { fill: var(--danger); }
-
-.saw-restock-label { fill: var(--accent); font-size: 10px; font-weight: 700; text-anchor: start; }
-
-/* Bottom date markers */
-.saw-marker line { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.4; }
-.saw-marker-role { font-size: 10px; font-weight: 800; text-anchor: middle; fill: var(--text); }
-.saw-marker-date { font-size: 9.5px; font-weight: 600; text-anchor: middle; fill: var(--muted); }
-.saw-marker.is-order line { stroke: var(--warning); opacity: 0.8; }
-.saw-marker.is-order .saw-marker-role { fill: #9a7b16; }
-.saw-marker.is-stockout line { stroke: var(--danger); opacity: 0.7; }
-.saw-marker.is-stockout .saw-marker-role { fill: var(--danger); }
-.saw-marker.is-restock line { stroke: var(--accent); opacity: 0.6; }
-.saw-marker.is-restock .saw-marker-role { fill: var(--accent); }
-
-.saw-now-label { font-size: 11px; font-weight: 800; }
-.saw-now-label.tone-danger { fill: var(--danger); }
-.saw-now-label.tone-warning { fill: #9a7b16; }
-.saw-now-label.tone-accent { fill: var(--accent); }
-.saw-now-label.tone-positive { fill: var(--success); }
-.saw-now-label.tone-neutral { fill: var(--muted); }
-
-/* Hover crosshair */
+/* ── Hover crosshair + floating tooltip (full only) ──────────────────── */
 .saw-cross line { stroke: var(--text); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.4; }
 .saw-cross-dot { stroke: #fff; stroke-width: 1.5; }
 .saw-cross-dot.is-healthy { fill: var(--success); }
 .saw-cross-dot.is-reorder { fill: var(--warning); }
 .saw-cross-dot.is-safety { fill: var(--danger); }
 
-/* Floating hover tooltip (TradingView-style) */
 .saw-tip {
   position: absolute;
   z-index: 5;
@@ -169,49 +100,3 @@
   font-size: 0.72rem;
   text-align: center;
 }
-
-/* ════════════════════════════════════════════════════════════════════
-   Projection chart (.rp-*) — "Today in the middle".
-   Real history (solid) on the left, dashed forecast on the right, with a
-   centred Today divider and the "Order by" decision marker.
-   ════════════════════════════════════════════════════════════════════ */
-/* Future projection line — same tone as the real history, dashed to signal a
-   forecast rather than measured data. */
-.rp-proj { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-dasharray: 5 4; opacity: 0.9; }
-.rp-proj.tone-danger { stroke: var(--danger); }
-.rp-proj.tone-warning { stroke: var(--warning); }
-.rp-proj.tone-accent { stroke: var(--accent); }
-.rp-proj.tone-positive { stroke: var(--success); }
-.rp-proj.tone-neutral { stroke: var(--muted); }
-.rp-mini .rp-proj { stroke-width: 1.8; }
-
-/* Future region tint */
-.rp-future-band { fill: var(--accent); opacity: 0.03; }
-
-/* Today centre divider + labels */
-.rp-today { stroke: var(--text); stroke-width: 1.4; opacity: 0.5; }
-.rp-mini .rp-today { stroke-width: 1; opacity: 0.4; }
-.rp-today-role { font-size: 10px; font-weight: 800; text-anchor: middle; fill: var(--text); }
-.rp-today-date { font-size: 9.5px; font-weight: 600; text-anchor: middle; fill: var(--muted); }
-
-/* Region captions (History / Projection) */
-.rp-region {
-  font-size: 10px;
-  font-weight: 700;
-  text-anchor: middle;
-  fill: var(--muted);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-/* "Order by" highlighted marker — the WHEN. */
-.rp-orderby line { stroke: var(--warning); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.7; }
-.rp-orderby-dot { fill: var(--warning); stroke: #fff; stroke-width: 1.6; }
-.rp-orderby-role { font-size: 10px; font-weight: 800; text-anchor: middle; fill: #9a7b16; }
-.rp-orderby-date { font-size: 9.5px; font-weight: 700; text-anchor: middle; fill: #9a7b16; }
-.rp-ordernow { font-size: 11px; font-weight: 800; text-anchor: start; fill: var(--danger); }
-
-/* Diagonal dd/mm/yy date ticks */
-.rp-date-tick { font-size: 9px; font-weight: 600; text-anchor: end; fill: var(--muted); }
-.rp-date-tick.is-order { fill: #9a7b16; font-weight: 700; }
-.rp-date-tick.is-restock { fill: var(--accent); font-weight: 700; }

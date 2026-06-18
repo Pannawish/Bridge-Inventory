@@ -10,14 +10,18 @@ import { getItemBaseQuantity } from "../../unitConversion";
 
 const MS_PER_DAY = 86_400_000;
 
-// Selectable timeframes. Only ratios our data can actually back are exposed;
-// `days: null` means "all history". Longer ratios (1Y/3Y/5Y) can be appended
-// here later once enough history exists — every consumer reads this list.
+// Selectable timeframes. Each includes every confirmed transaction from today
+// back through its window. NOTE: with only ~months of data the 1Y+ windows
+// currently surface the same (all available) history — they're here so the view
+// deepens automatically as real history accrues.
 export const REORDER_WINDOWS = [
   { key: "1m", label: "1M", days: 30 },
   { key: "3m", label: "3M", days: 90 },
   { key: "6m", label: "6M", days: 180 },
-  { key: "all", label: "All", days: null },
+  { key: "1y", label: "1Y", days: 365 },
+  { key: "2y", label: "2Y", days: 730 },
+  { key: "3y", label: "3Y", days: 1095 },
+  { key: "5y", label: "5Y", days: 1825 },
 ];
 
 export const DEFAULT_REORDER_WINDOW = "3m";
@@ -94,39 +98,47 @@ export function collectStockEvents({ productId, purchases = [], sales = [] }) {
 }
 
 // Real stock-on-hand curve from `fromDate` (or first event) up to today, ANCHORED
-// to the known current stock and walked backward so the final point is exact.
-// Returns [{ date: "YYYY-MM-DD", qty }] — connect linearly for the depletion ramps.
+// to the known current stock so the final point is exact. Rendered as a true
+// sawtooth: purchase receipts are vertical UP jumps, sales are downward slopes.
+// Returns [{ date: "YYYY-MM-DD", qty }].
 export function buildStockHistory({ productId, purchases, sales, currentStock, fromDate = null }) {
-  const events = collectStockEvents({ productId, purchases, sales });
   const today = startOfToday();
+  // Only events up to today contribute to the on-hand-now anchor.
+  const events = collectStockEvents({ productId, purchases, sales }).filter((e) => e.date <= today);
   const cur = Math.max(0, num(currentStock));
-
-  let run = 0;
-  const cum = events.map((e) => {
-    run += e.delta;
-    return { date: e.date, after: run };
-  });
-  const baseLevel = cur - run; // level before the very first event
+  const total = events.reduce((s, e) => s + e.delta, 0);
+  const baseLevel = cur - total; // level before the very first event
 
   const from = toDate(fromDate) || events[0]?.date || today;
+  const points = [];
+  const push = (date, level) => points.push({ date: dayKey(date), qty: Math.max(0, level) });
 
-  // Fold any events before the window start into the opening level.
-  let preCount = 0;
-  while (preCount < cum.length && cum[preCount].date < from) preCount += 1;
-  const levelAtFrom = baseLevel + (preCount > 0 ? cum[preCount - 1].after : 0);
+  let lvl = baseLevel;
+  let opened = false;
+  events.forEach((e) => {
+    const before = lvl;
+    lvl += e.delta;
+    if (e.date < from) return; // folded into the opening level
+    if (!opened) {
+      push(from, before); // carry the pre-window level to the window start
+      opened = true;
+    }
+    if (e.kind === "in") {
+      // receipt → vertical jump up (hold the level, then jump)
+      push(e.date, before);
+      push(e.date, lvl);
+    } else {
+      // sale → slope down to the new level
+      push(e.date, lvl);
+    }
+  });
 
-  const points = [{ date: dayKey(from), qty: Math.max(0, levelAtFrom) }];
-  for (let i = preCount; i < cum.length; i += 1) {
-    if (cum[i].date > today) break;
-    points.push({ date: dayKey(cum[i].date), qty: Math.max(0, baseLevel + cum[i].after) });
-  }
+  if (!opened) push(from, lvl); // no in-window events: flat at the carried level
 
   const last = points[points.length - 1];
-  if (last.date === dayKey(today)) {
-    last.qty = cur;
-  } else {
-    points.push({ date: dayKey(today), qty: cur });
-  }
+  if (last.date === dayKey(today)) last.qty = cur;
+  else push(today, cur);
+
   return points;
 }
 
@@ -178,16 +190,62 @@ export function collectProductSales({ productId, sales = [], windowDays = null, 
 
   entries.sort((a, b) => String(b.date).localeCompare(String(a.date)));
 
-  // Short windows read as a recent rate (÷ the whole horizon, so quiet days
-  // count); "All" divides by the active span to match the backend's lifetime
-  // average daily demand.
+  // Velocity = units ÷ the days actually covered (earliest in-window sale →
+  // today), capped at the window length. This keeps the rate honest when the
+  // window is longer than the history we actually have (e.g. a 1Y window over
+  // 5 months of data divides by ~150 days, not 365).
   let perDay = 0;
-  if (windowDays) {
-    perDay = totalUnits / windowDays;
-  } else if (firstDate && lastDate) {
-    const spanDays = Math.max(1, daysBetween(firstDate, lastDate) + 1);
-    perDay = totalUnits / spanDays;
+  if (entries.length && firstDate) {
+    const coverDays = Math.max(1, Math.min(windowDays || Infinity, daysBetween(firstDate, today) + 1));
+    perDay = totalUnits / coverDays;
   }
 
   return { entries, totalUnits, orderCount: orderIds.size, perDay };
+}
+
+// Received purchase lines for one product inside a timeframe window — the
+// lead-time proof shown above the sales history. Each entry carries its
+// realised lead time (order date → received date).
+export function collectProductPurchases({ productId, purchases = [], windowDays = null, today = startOfToday() }) {
+  const pid = `${productId}`;
+  const cutoff = windowDays ? new Date(today.getTime() - (windowDays - 1) * MS_PER_DAY) : null;
+
+  const entries = [];
+  const orderIds = new Set();
+  let totalUnits = 0;
+  let leadSum = 0;
+  let leadCount = 0;
+
+  (Array.isArray(purchases) ? purchases : []).forEach((purchase) => {
+    if (!purchase) return;
+    (purchase.items || []).forEach((item, index) => {
+      if (`${item.product_id}` !== pid) return;
+      if (getStoredPurchaseItemStatus(item, purchase.status) !== "received") return;
+      const recv = toDate(item.received_date || purchase.transaction_date);
+      if (!recv) return;
+      if (cutoff && recv < cutoff) return;
+      const qty = getItemBaseQuantity(item);
+      if (!(qty > 0)) return;
+      const ordered = toDate(purchase.transaction_date);
+      const leadDays = ordered ? Math.max(0, daysBetween(ordered, recv)) : null;
+      entries.push({
+        key: `${purchase.id}-${item.id ?? index}`,
+        ref: purchase.reference_no || purchase.id,
+        date: item.received_date || purchase.transaction_date || "",
+        supplier: purchase.supplier_name || "",
+        qty,
+        leadDays,
+      });
+      totalUnits += qty;
+      orderIds.add(`${purchase.id}`);
+      if (leadDays != null) {
+        leadSum += leadDays;
+        leadCount += 1;
+      }
+    });
+  });
+
+  entries.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const avgLead = leadCount > 0 ? leadSum / leadCount : 0;
+  return { entries, totalUnits, orderCount: orderIds.size, avgLead };
 }

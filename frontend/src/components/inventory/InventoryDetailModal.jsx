@@ -8,6 +8,7 @@ import {
   getReorderWindow,
   buildStockHistory,
   collectProductSales,
+  collectProductPurchases,
   startOfToday,
   dayKey,
 } from "./reorderHistory";
@@ -22,9 +23,12 @@ import {
 
 const HEALTH_TONE = { low: "danger", watch: "warning", healthy: "positive", dead: "neutral" };
 
-function CalcLine({ label, value, note, highlight }) {
+// `accent` color-codes the card's left border to match the matching line/marker
+// in the graph above (e.g. safety = dashed red, reorder = dashed amber, restock
+// = solid green) so the calculation reads as the graph's legend.
+function CalcLine({ label, value, note, accent }) {
   return (
-    <div className={`inv-calc-line${highlight ? " is-key" : ""}`}>
+    <div className={`inv-calc-line${accent ? ` acc-${accent}` : ""}`}>
       <span className="inv-calc-label">{label}</span>
       <strong className="inv-calc-value">{value}</strong>
       {note ? <span className="inv-calc-note">{note}</span> : null}
@@ -53,6 +57,10 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onClose
   const productSales = useMemo(
     () => collectProductSales({ productId: row.product_id, sales, windowDays: window.days }),
     [sales, row.product_id, window.days]
+  );
+  const productPurchases = useMemo(
+    () => collectProductPurchases({ productId: row.product_id, purchases, windowDays: window.days }),
+    [purchases, row.product_id, window.days]
   );
   const velocity = productSales.perDay;
   const historyPoints = useMemo(() => {
@@ -125,25 +133,30 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onClose
           <p className="inv-detail-heading">{t("inventory.calc.title")}</p>
           <div className="inv-calc-list inv-calc-grid">
               <CalcLine
+                accent="stock"
                 label={t("inventory.calc.onHand")}
                 value={t("inventory.unitsValue", { qty: formatUnits(available), unit })}
               />
               <CalcLine
+                accent="demand"
                 label={t("inventory.calc.dailyDemand")}
                 value={demand > 0 ? `${formatUnits(Math.round(demand * 100) / 100)} ${unit}` : "—"}
                 note={t("inventory.calc.dailyDemandNote")}
               />
               <CalcLine
+                accent="lead"
                 label={t("inventory.calc.leadTime")}
                 value={leadTime > 0 ? t("inventory.calc.daysValue", { days: formatUnits(leadTime) }) : "—"}
                 note={t("inventory.calc.leadTimeNote")}
               />
               <CalcLine
+                accent="lead"
                 label={t("inventory.calc.leadDemand")}
                 value={t("inventory.unitsValue", { qty: formatUnits(Math.round(demand * leadTime)), unit })}
                 note={t("inventory.calc.leadDemandNote")}
               />
               <CalcLine
+                accent="safety"
                 label={t("inventory.calc.safetyStock")}
                 value={t("inventory.unitsValue", { qty: formatUnits(safety), unit })}
                 note={
@@ -153,12 +166,13 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onClose
                 }
               />
               <CalcLine
-                highlight
+                accent="reorder"
                 label={t("inventory.calc.reorderPoint")}
                 value={t("inventory.unitsValue", { qty: formatUnits(reorder), unit })}
                 note={t("inventory.calc.reorderPointNote")}
               />
               <CalcLine
+                accent="risk"
                 label={t("inventory.calc.daysLeft")}
                 value={
                   days === null || days === undefined
@@ -168,12 +182,68 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onClose
                 note={t("inventory.calc.daysLeftNote")}
               />
               <CalcLine
+                accent="restock"
                 label={t("inventory.calc.recommendedBuy")}
                 value={buy > 0 ? t("inventory.unitsValue", { qty: formatUnits(buy), unit }) : t("inventory.card.noBuy")}
                 note={t("inventory.calc.recommendedBuyNote")}
               />
             </div>
           </div>
+
+        <div className="inv-detail-block">
+          <div className="inv-graph-head">
+            <p className="inv-detail-heading">{t("inventory.purchaseHistory.title")}</p>
+            <span className="inv-sales-window">{window.label}</span>
+          </div>
+          {productPurchases.entries.length === 0 ? (
+            <p className="empty-copy inv-layers-empty">{t("inventory.purchaseHistory.empty")}</p>
+          ) : (
+            <>
+              <p className="inv-sales-summary">
+                {t("inventory.purchaseHistory.summary", {
+                  units: formatUnits(Math.round(productPurchases.totalUnits)),
+                  unit,
+                  orders: formatUnits(productPurchases.orderCount),
+                  lead: formatUnits(Math.round(productPurchases.avgLead * 10) / 10),
+                })}
+              </p>
+              <div className="transaction-table-window">
+                <div className="table-scroll inv-layers-scroll">
+                  <table className="transaction-history-table inv-layers-table">
+                    <thead>
+                      <tr>
+                        <th>{t("inventory.purchaseHistory.colDate")}</th>
+                        <th>{t("inventory.purchaseHistory.colRef")}</th>
+                        <th>{t("inventory.purchaseHistory.colSupplier")}</th>
+                        <th style={{ textAlign: "right" }}>{t("inventory.purchaseHistory.colLead")}</th>
+                        <th style={{ textAlign: "right" }}>{t("inventory.purchaseHistory.colQty")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {productPurchases.entries.map((entry) => (
+                        <tr key={entry.key} className="partner-table-row">
+                          <td>{entry.date ? formatDate(entry.date) : "—"}</td>
+                          <td>
+                            <strong>{entry.ref}</strong>
+                          </td>
+                          <td>{entry.supplier || "—"}</td>
+                          <td style={{ textAlign: "right" }}>
+                            {entry.leadDays != null
+                              ? t("inventory.calc.daysValue", { days: formatUnits(entry.leadDays) })
+                              : "—"}
+                          </td>
+                          <td style={{ textAlign: "right" }}>
+                            {formatUnits(entry.qty)} {unit}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="inv-detail-block">
           <div className="inv-graph-head">

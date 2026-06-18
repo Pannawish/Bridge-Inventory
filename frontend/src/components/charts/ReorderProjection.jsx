@@ -1,21 +1,33 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatNumber } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
-import {
-  startOfToday,
-  toDate,
-  daysBetween,
-} from "../inventory/reorderHistory";
+import { startOfToday, toDate, daysBetween } from "../inventory/reorderHistory";
+
+// Measure a container so the mini can render its SVG at the real pixel size and
+// fill a fixed-height dashboard tile without distorting axis text.
+function useSize(ref) {
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver((entries) => {
+      const cr = entries[0].contentRect;
+      setSize({ w: Math.round(cr.width), h: Math.round(cr.height) });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return size;
+}
 
 // ════════════════════════════════════════════════════════════════════════
-// Reorder-point projection charts — "Today in the middle".
+// Reorder-point projection chart — "Today in the middle", dense 10×10 grid.
 //   LEFT  = the product's REAL reconstructed stock-on-hand history.
 //   RIGHT = the next action: project down at the window velocity, mark the
 //           "Order by" date where it meets the reorder point, then a vertical
 //           jump (+order qty) up to the order-up-to level.
-// Two renderers share one model:
-//   • ReorderProjectionMini — dashboard tile (last ≤3 cycles, no axes/hover)
-//   • ReorderProjectionFull — inventory detail (dated axes + hover crosshair)
+// The canvas stays clean (lines + dot markers only); every number lives in the
+// bottom-right data card. One renderer, two sizes (full / mini).
 // ════════════════════════════════════════════════════════════════════════
 
 function num(value) {
@@ -43,9 +55,19 @@ function fmtDMY(date) {
   return `${dd}/${mm}/${yy}`;
 }
 
+// Round a raw max up to a "nice" cap (1 / 2 / 2.5 / 5 × 10ⁿ) so the 10 quantity
+// ticks land on readable values and the sawtooth peaks never clip the top.
+function niceMax(raw) {
+  const r = raw > 0 ? raw : 1;
+  const pow = Math.pow(10, Math.floor(Math.log10(r)));
+  const n = r / pow;
+  const nice = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10;
+  return nice * pow;
+}
+
 // Resolve the forward projection from today's figures + the chosen window's
-// velocity. The reorder/safety/order-qty come from the row and stay fixed; only
-// the SLOPE (velocity) changes with the timeframe.
+// velocity. Reorder/safety/order-qty stay fixed; only the slope (velocity)
+// changes with the timeframe.
 export function buildProjection({ current, reorder, safety, velocity, leadTime, orderQty }) {
   const cur = Math.max(0, num(current));
   const rop = Math.max(0, num(reorder));
@@ -69,8 +91,6 @@ export function buildProjection({ current, reorder, safety, velocity, leadTime, 
   const verts = hasDemand
     ? [
         [0, cur],
-        // reorder waypoint only while we're still above it (skip the odd upward
-        // step when stock is already due to order)
         ...(cur > rop ? [[dReorder, rop]] : []),
         [dArrive, levelAtArrive],
         [dArrive, orderUpTo],
@@ -87,16 +107,15 @@ export function buildProjection({ current, reorder, safety, velocity, leadTime, 
   };
 }
 
-function yMaxFor(model, historyPoints) {
-  const histPeak = (historyPoints || []).reduce((mx, p) => Math.max(mx, num(p.qty)), 0);
-  return Math.max(model.orderUpTo, model.cur, model.rop / 0.85, histPeak * 1.08, 1);
-}
+const VARIANTS = {
+  full: { W: 960, H: 430, m: { l: 58, r: 20, t: 24, b: 64 }, yDiv: 10, xLabelEvery: 1, hover: true },
+  mini: { W: 640, H: 210, m: { l: 40, r: 14, t: 12, b: 40 }, yDiv: 5, xLabelEvery: 2, hover: false },
+};
 
-// ── Mini (dashboard tile) ─────────────────────────────────────────────────
-// Minimal version: real history on the left half, the next-action jump on the
-// right, a centred Today divider, and the reorder/safety reference lines. No
-// axes, no hover — just the shape + the two value tags.
-export function ReorderProjectionMini({
+// Shared renderer. `variant` controls size, grid density, hover and the
+// bottom-right data card.
+function ProjectionChart({
+  variant = "full",
   historyPoints = [],
   current,
   reorder,
@@ -108,157 +127,65 @@ export function ReorderProjectionMini({
   tone = "accent",
 }) {
   const { t } = useLanguage();
-  const model = buildProjection({ current, reorder, safety, velocity, leadTime, orderQty });
-  const fmt = (v) => formatNumber(Math.round(num(v)));
-
-  const W = 300;
-  const H = 96;
-  const m = { l: 6, r: 30, t: 12, b: 16 };
-  const innerW = W - m.l - m.r;
-  const innerH = H - m.t - m.b;
-  const plotBottom = m.t + innerH;
-  const midX = m.l + innerW * 0.5;
-
-  const yMax = yMaxFor(model, historyPoints);
-  const py = (v) => m.t + innerH - (clamp(v, 0, yMax) / yMax) * innerH;
-
-  const today = startOfToday();
-  const points = Array.isArray(historyPoints) ? historyPoints : [];
-  const histStart = points.length ? toDate(points[0].date) : today;
-  const spanDays = Math.max(1, daysBetween(histStart, today));
-  const pxPast = (dateStr) => m.l + (daysBetween(histStart, dateStr) / spanDays) * (midX - m.l);
-  const pxFut = (day) => midX + (day / model.futureDays) * (m.l + innerW - midX);
-
-  const pastLine = points.map((p) => `${pxPast(p.date)},${py(p.qty)}`).join(" ");
-  const futLine = model.verts.map(([d, v]) => `${pxFut(d)},${py(v)}`).join(" ");
-
-  const ssY = py(model.ss);
-  const ropY = py(model.rop);
-  const curY = py(model.cur);
-  const topPct = (yPx) => `${clamp((yPx / H) * 100, 7, 93)}%`;
-
-  const dueLabel = model.dueNow
-    ? t("inventory.graph.orderNow")
-    : t("inventory.graph.orderBy");
-
-  return (
-    <div className="rp-mini-wrap">
-      <svg className="rp-mini" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
-        {model.ss > 0 ? (
-          <rect className="saw-ss-band" x={m.l} y={ssY} width={innerW} height={Math.max(0, plotBottom - ssY)} />
-        ) : null}
-        {model.rop > 0 ? <line className="saw-rop" x1={m.l} y1={ropY} x2={m.l + innerW} y2={ropY} /> : null}
-        {model.ss > 0 ? <line className="saw-ss" x1={m.l} y1={ssY} x2={m.l + innerW} y2={ssY} /> : null}
-
-        {/* Today divider */}
-        <line className="rp-today" x1={midX} y1={m.t} x2={midX} y2={plotBottom} />
-
-        {/* real history (solid) + projection (dashed) */}
-        {points.length > 1 ? (
-          <polyline className={`saw-line tone-${tone}`} points={pastLine} vectorEffect="non-scaling-stroke" />
-        ) : null}
-        {model.hasDemand ? (
-          <polyline className={`rp-proj tone-${tone}`} points={futLine} vectorEffect="non-scaling-stroke" />
-        ) : null}
-
-        {/* order-by crossing + current dot (at Today, the centre) */}
-        {model.hasDemand && !model.dueNow ? (
-          <circle className="rp-orderby-dot" cx={pxFut(model.dReorder)} cy={ropY} r="3.2" />
-        ) : null}
-        <circle className={`saw-now tone-${tone}`} cx={midX} cy={curY} r="2.6" vectorEffect="non-scaling-stroke" />
-      </svg>
-
-      <span className={`saw-tag is-now tone-${tone}`} style={{ top: topPct(curY) }}>
-        {fmt(model.cur)} {unit}
-      </span>
-      {model.rop > 0 ? (
-        <span className="saw-tag is-rop" style={{ top: topPct(ropY) }}>{fmt(model.rop)}</span>
-      ) : null}
-      {model.ss > 0 ? (
-        <span className="saw-tag is-ss" style={{ top: topPct(ssY) }}>{fmt(model.ss)}</span>
-      ) : null}
-      {model.hasDemand ? (
-        <span className={`saw-date${model.dueNow ? " is-now" : ""}`}>{dueLabel}</span>
-      ) : null}
-    </div>
-  );
-}
-
-// ── Full (inventory detail) — dated axes + hover crosshair ────────────────
-export function ReorderProjectionFull({
-  historyPoints = [],
-  current,
-  reorder,
-  safety,
-  velocity,
-  leadTime,
-  orderQty,
-  unit = "",
-  tone = "accent",
-}) {
-  const { t } = useLanguage();
+  const cfg = VARIANTS[variant] || VARIANTS.full;
+  const isMini = variant === "mini";
   const svgRef = useRef(null);
+  const wrapRef = useRef(null);
+  const measured = useSize(wrapRef);
   const [hover, setHover] = useState(null);
   const model = buildProjection({ current, reorder, safety, velocity, leadTime, orderQty });
   const fmt = (v) => formatNumber(Math.round(num(v)));
 
-  const W = 920;
-  const H = 380;
-  const m = { l: 58, r: 120, t: 34, b: 78 };
+  // The mini fills its tile at the real pixel size (1:1 viewBox) so text stays
+  // crisp; the full chart keeps a fixed viewBox and scales by width.
+  const m = cfg.m;
+  const W = isMini ? measured.w : cfg.W;
+  const H = isMini ? measured.h : cfg.H;
+  if (isMini && (W < 40 || H < 40)) {
+    return <div ref={wrapRef} className="rp-chart rp-mini" />;
+  }
   const innerW = W - m.l - m.r;
   const innerH = H - m.t - m.b;
   const plotBottom = m.t + innerH;
   const midX = m.l + innerW * 0.5;
 
-  const yMax = yMaxFor(model, historyPoints);
-  const py = (v) => m.t + innerH - (clamp(v, 0, yMax) / yMax) * innerH;
+  const { cur, rop, ss, orderUpTo, dReorder, dArrive, hasDemand, dueNow } = model;
 
   const today = startOfToday();
   const points = Array.isArray(historyPoints) ? historyPoints : [];
   const histStart = points.length ? toDate(points[0].date) : today;
   const spanDays = Math.max(1, daysBetween(histStart, today));
+
+  // Y-axis cap = the historical peak on-hand (so real sawtooth peaks never clip)
+  // raised to a round value, never below the projected order-up-to.
+  const histPeak = points.reduce((mx, p) => Math.max(mx, num(p.qty)), 0);
+  const yMax = niceMax(Math.max(histPeak, orderUpTo, cur, rop) * 1.06);
+  const py = (v) => m.t + innerH - (clamp(v, 0, yMax) / yMax) * innerH;
+
   const pxPast = (dateStr) => m.l + (daysBetween(histStart, dateStr) / spanDays) * (midX - m.l);
   const pxFut = (day) => midX + (day / model.futureDays) * (m.l + innerW - midX);
 
-  const { cur, rop, ss, orderUpTo, dReorder, dArrive, hasDemand, dueNow } = model;
-  const ssY = py(ss);
-  const ropY = py(rop);
-  const curY = py(cur);
-  const peakY = py(orderUpTo);
+  // Date at a horizontal fraction (0 = history start, 0.5 = today, 1 = horizon).
+  const dateAtFrac = (frac) =>
+    frac <= 0.5 ? addDays(histStart, spanDays * (frac / 0.5)) : addDays(today, model.futureDays * ((frac - 0.5) / 0.5));
 
   const pastPx = points.map((p) => ({ x: pxPast(p.date), y: py(p.qty), qty: num(p.qty), date: p.date }));
   const futPx = model.verts.map(([d, v]) => ({ x: pxFut(d), y: py(v), day: d, qty: v }));
   const pastLine = pastPx.map((p) => `${p.x},${p.y}`).join(" ");
   const futLine = futPx.map((p) => `${p.x},${p.y}`).join(" ");
 
-  // Quantity gridlines / left-axis ticks at the decision thresholds (deduped so
-  // labels never collide).
-  const yTicks = [];
-  [orderUpTo, cur, rop, ss, 0]
-    .map((v) => Math.round(v))
-    .filter((v) => v >= 0 && v <= yMax)
-    .forEach((v) => {
-      if (!yTicks.some((k) => k === v || Math.abs(py(k) - py(v)) < 13)) yTicks.push(v);
-    });
-  yTicks.sort((a, b) => a - b);
+  const ssY = py(ss);
+  const ropY = py(rop);
+  const curY = py(cur);
+  const peakY = py(orderUpTo);
 
-  // Diagonal dd/mm/yy date ticks: a few across the real past, plus the future
-  // decision dates. Today is the centre divider (labelled separately).
-  const dateTicks = [];
-  if (points.length) {
-    const midDate = addDays(histStart, Math.round(spanDays / 2));
-    dateTicks.push({ x: pxPast(points[0].date), label: fmtDMY(histStart) });
-    if (spanDays > 20) dateTicks.push({ x: pxPast(midDate.toISOString().slice(0, 10)), label: fmtDMY(midDate) });
-  }
-  if (hasDemand && !dueNow && dReorder > 0.5) {
-    dateTicks.push({ x: pxFut(dReorder), label: fmtDMY(addDays(today, dReorder)), accent: "order" });
-  }
-  if (hasDemand && dArrive > 0.5) {
-    dateTicks.push({ x: pxFut(dArrive), label: fmtDMY(addDays(today, dArrive)), accent: "restock" });
-  }
+  // 10 (or 5) horizontal gridlines + quantity ticks, evenly spaced 0…yMax.
+  const yTicks = Array.from({ length: cfg.yDiv + 1 }, (_, i) => (yMax * i) / cfg.yDiv);
+  // 10 vertical gridlines; today lands exactly on the centre line.
+  const xFracs = Array.from({ length: 11 }, (_, i) => i / 10);
 
-  // Stock projected onto an x-pixel: history (left) walks the real points;
-  // projection (right) walks the future verts. Used by the hover crosshair.
+  // Projected stock at an x-pixel — history (left) walks real points, projection
+  // (right) walks the future verts. Drives the hover crosshair.
   function readAt(xPix) {
     if (xPix <= midX && pastPx.length) {
       for (let i = 0; i < pastPx.length - 1; i += 1) {
@@ -266,12 +193,10 @@ export function ReorderProjectionFull({
         const b = pastPx[i + 1];
         if (xPix >= a.x && xPix <= b.x && b.x !== a.x) {
           const f = (xPix - a.x) / (b.x - a.x);
-          const days = Math.round(daysBetween(histStart, today) * ((xPix - m.l) / (midX - m.l)));
-          return { qty: a.qty + f * (b.qty - a.qty), date: addDays(histStart, days), future: false };
+          return { qty: a.qty + f * (b.qty - a.qty), date: dateAtFrac((xPix - m.l) / innerW), future: false };
         }
       }
-      const p0 = pastPx[0];
-      return { qty: p0.qty, date: histStart, future: false };
+      return { qty: pastPx[0].qty, date: histStart, future: false };
     }
     for (let i = 0; i < futPx.length - 1; i += 1) {
       const a = futPx[i];
@@ -326,20 +251,26 @@ export function ReorderProjectionFull({
       : t("inventory.graph.statusHealthy");
 
   return (
-    <div className="saw-analysis">
+    <div ref={wrapRef} className={`rp-chart rp-${variant}`}>
       <svg
         ref={svgRef}
-        className="saw saw-full"
+        className={`saw rp-svg${cfg.hover ? " is-interactive" : ""}`}
         viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="xMidYMid meet"
+        preserveAspectRatio={isMini ? "none" : "xMidYMid meet"}
         role="img"
         aria-label={t("inventory.graph.title")}
-        onMouseMove={handleMove}
-        onMouseLeave={() => setHover(null)}
+        onMouseMove={cfg.hover ? handleMove : undefined}
+        onMouseLeave={cfg.hover ? () => setHover(null) : undefined}
       >
-        {/* quantity gridlines */}
-        {yTicks.map((v) => (
-          <line key={`g${v}`} className="saw-grid" x1={m.l} y1={py(v)} x2={m.l + innerW} y2={py(v)} />
+        {/* future (projection) region tint */}
+        <rect className="rp-future-band" x={midX} y={m.t} width={Math.max(0, m.l + innerW - midX)} height={innerH} />
+
+        {/* 10×N grid */}
+        {yTicks.map((v, i) => (
+          <line key={`gy${i}`} className="rp-grid" x1={m.l} y1={py(v)} x2={m.l + innerW} y2={py(v)} />
+        ))}
+        {xFracs.map((f, i) => (
+          <line key={`gx${i}`} className="rp-grid" x1={m.l + f * innerW} y1={m.t} x2={m.l + f * innerW} y2={plotBottom} />
         ))}
 
         {/* safety-stock zone */}
@@ -347,106 +278,55 @@ export function ReorderProjectionFull({
           <rect className="saw-ss-band" x={m.l} y={ssY} width={innerW} height={Math.max(0, plotBottom - ssY)} />
         ) : null}
 
-        {/* future (projection) region tint */}
-        <rect className="rp-future-band" x={midX} y={m.t} width={Math.max(0, m.l + innerW - midX)} height={innerH} />
-
         {/* axes */}
         <line className="saw-axis" x1={m.l} y1={m.t} x2={m.l} y2={plotBottom} />
         <line className="saw-axis" x1={m.l} y1={plotBottom} x2={m.l + innerW} y2={plotBottom} />
 
-        {/* threshold reference lines */}
+        {/* threshold reference lines — clean, no inline numbers */}
         <line className="saw-peak" x1={m.l} y1={peakY} x2={m.l + innerW} y2={peakY} />
         {rop > 0 ? <line className="saw-rop" x1={m.l} y1={ropY} x2={m.l + innerW} y2={ropY} /> : null}
         {ss > 0 ? <line className="saw-ss" x1={m.l} y1={ssY} x2={m.l + innerW} y2={ssY} /> : null}
 
-        {/* real history (solid) */}
-        {pastPx.length > 1 ? (
-          <polyline className={`saw-line tone-${tone}`} points={pastLine} />
-        ) : null}
-
-        {/* projection (dashed) */}
+        {/* real history (solid) + projection (dashed) */}
+        {pastPx.length > 1 ? <polyline className={`saw-line tone-${tone}`} points={pastLine} /> : null}
         {hasDemand ? <polyline className={`rp-proj tone-${tone}`} points={futLine} /> : null}
 
-        {/* left-axis quantity tick labels */}
-        {yTicks.map((v) => (
-          <text key={`t${v}`} className="saw-yt" x={m.l - 8} y={py(v) + 3}>
+        {/* Today centre divider */}
+        <line className="rp-today" x1={midX} y1={m.t} x2={midX} y2={plotBottom} />
+
+        {/* dot markers (no attached numbers) */}
+        {hasDemand && !dueNow && dReorder > 0.3 ? (
+          <circle className="rp-mark is-order" cx={pxFut(dReorder)} cy={ropY} r={variant === "mini" ? 3 : 4.5} />
+        ) : null}
+        {hasDemand ? (
+          <circle className="rp-mark is-restock" cx={pxFut(dArrive)} cy={peakY} r={variant === "mini" ? 3 : 4.5} />
+        ) : null}
+        <circle className={`rp-mark is-now tone-${tone}`} cx={midX} cy={curY} r={variant === "mini" ? 3.2 : 5} />
+
+        {/* y-axis quantity ticks */}
+        {yTicks.map((v, i) => (
+          <text key={`ty${i}`} className="rp-yt" x={m.l - 7} y={py(v) + 3}>
             {fmt(v)}
           </text>
         ))}
-        <text className="saw-axis-label" x={15} y={m.t + innerH / 2} transform={`rotate(-90 15 ${m.t + innerH / 2})`}>
-          {t("inventory.graph.quantity")} ({unit || t("inventory.graph.units")})
-        </text>
 
-        {/* right-gutter threshold names */}
-        <text className="saw-name is-peak" x={m.l + innerW + 8} y={peakY + 3}>
-          {t("inventory.graph.orderUpTo")}
-        </text>
-        {rop > 0 ? (
-          <text className="saw-name is-reorder" x={m.l + innerW + 8} y={ropY + 3}>
-            {t("inventory.graph.reorderPoint")} · {fmt(rop)}
-          </text>
-        ) : null}
-        {ss > 0 ? (
-          <text className="saw-name is-safety" x={m.l + innerW + 8} y={ssY + 3}>
-            {t("inventory.graph.safetyStock")} · {fmt(ss)}
-          </text>
-        ) : null}
-
-        {/* region captions */}
-        <text className="rp-region" x={(m.l + midX) / 2} y={m.t - 12}>
-          {t("inventory.graph.regionPast")}
-        </text>
-        <text className="rp-region" x={(midX + m.l + innerW) / 2} y={m.t - 12}>
-          {t("inventory.graph.regionFuture")}
-        </text>
-
-        {/* "how much" replenishment jump label */}
-        {hasDemand ? (
-          <text className="saw-restock-label" x={pxFut(dArrive) + 6} y={peakY - 6}>
-            +{fmt(model.qty)} {unit}
-          </text>
-        ) : null}
-
-        {/* Today divider */}
-        <g className="rp-today-group">
-          <line className="rp-today" x1={midX} y1={m.t} x2={midX} y2={plotBottom} />
-          <circle className={`saw-now tone-${tone}`} cx={midX} cy={curY} r="4.5" />
-          <text className={`saw-now-label tone-${tone}`} x={midX - 9} y={curY - 9} textAnchor="end">
-            {t("inventory.graph.now")} · {fmt(cur)} {unit}
-          </text>
-          <text className="rp-today-role" x={midX} y={plotBottom + 16}>{t("inventory.graph.today")}</text>
-          <text className="rp-today-date" x={midX} y={plotBottom + 29}>{fmtDMY(today)}</text>
-        </g>
-
-        {/* "Order by" highlighted marker (the WHEN) */}
-        {hasDemand && !dueNow && dReorder > 0.4 ? (
-          <g className="rp-orderby">
-            <line x1={pxFut(dReorder)} y1={m.t} x2={pxFut(dReorder)} y2={plotBottom} />
-            <circle className="rp-orderby-dot" cx={pxFut(dReorder)} cy={ropY} r="5" />
-            <text className="rp-orderby-role" x={pxFut(dReorder)} y={plotBottom + 16}>
-              {t("inventory.graph.orderBy")}
+        {/* x-axis diagonal dd/mm/yy ticks */}
+        {xFracs.map((f, i) => {
+          const isToday = Math.abs(f - 0.5) < 1e-6;
+          if (i % cfg.xLabelEvery !== 0 && !isToday) return null;
+          const x = m.l + f * innerW;
+          return (
+            <text
+              key={`tx${i}`}
+              className={`rp-xt${isToday ? " is-today" : ""}`}
+              x={x}
+              y={plotBottom + 11}
+              transform={`rotate(-34 ${x} ${plotBottom + 11})`}
+            >
+              {isToday ? t("inventory.graph.today") : fmtDMY(dateAtFrac(f))}
             </text>
-            <text className="rp-orderby-date" x={pxFut(dReorder)} y={plotBottom + 29}>
-              {fmtDMY(addDays(today, dReorder))}
-            </text>
-          </g>
-        ) : null}
-        {hasDemand && dueNow ? (
-          <text className="rp-ordernow" x={midX + 8} y={curY - 14}>{t("inventory.graph.orderNow")}</text>
-        ) : null}
-
-        {/* diagonal date ticks */}
-        {dateTicks.map((tk, i) => (
-          <text
-            key={`d${i}`}
-            className={`rp-date-tick${tk.accent ? ` is-${tk.accent}` : ""}`}
-            x={tk.x}
-            y={plotBottom + 12}
-            transform={`rotate(-32 ${tk.x} ${plotBottom + 12})`}
-          >
-            {tk.label}
-          </text>
-        ))}
+          );
+        })}
 
         {/* hover crosshair */}
         {hover ? (
@@ -476,7 +356,15 @@ export function ReorderProjectionFull({
         </div>
       ) : null}
 
-      <p className="saw-hint">{t("inventory.graph.hoverHint")}</p>
+      {cfg.hover ? <p className="saw-hint">{t("inventory.graph.hoverHint")}</p> : null}
     </div>
   );
+}
+
+export function ReorderProjectionFull(props) {
+  return <ProjectionChart variant="full" {...props} />;
+}
+
+export function ReorderProjectionMini(props) {
+  return <ProjectionChart variant="mini" {...props} />;
 }

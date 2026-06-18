@@ -655,14 +655,28 @@
   background: #fff;
 }
 
-.inv-calc-line.is-key {
+/* Color-coded left borders that mirror the graph's lines/markers, so the
+   calculation doubles as the graph legend. Dashed where the graph line is
+   dashed (safety / reorder), solid otherwise. */
+.inv-calc-line.acc-stock { border-left: 4px solid var(--success); }
+.inv-calc-line.acc-demand { border-left: 4px solid var(--accent); }
+.inv-calc-line.acc-lead { border-left: 4px solid var(--accent); }
+.inv-calc-line.acc-safety { border-left: 4px dashed var(--danger); }
+.inv-calc-line.acc-risk { border-left: 4px solid var(--danger); }
+.inv-calc-line.acc-reorder {
+  border-left: 4px dashed var(--warning);
   border-color: #e7cf8f;
   background: #fffdf5;
 }
+.inv-calc-line.acc-reorder .inv-calc-value { color: #9a7b16; }
+.inv-calc-line.acc-restock {
+  border-left: 4px solid var(--success);
+  background: #f5fbf7;
+}
+.inv-calc-line.acc-restock .inv-calc-value { color: #0f7a4d; }
 
 .inv-calc-label { color: var(--muted); font-size: 0.78rem; font-weight: 600; }
 .inv-calc-value { color: var(--text); font-size: 0.92rem; font-weight: 700; text-align: right; white-space: nowrap; }
-.inv-calc-line.is-key .inv-calc-value { color: #9a7b16; }
 .inv-calc-note { grid-column: 1 / -1; color: var(--muted); font-size: 0.68rem; line-height: 1.35; }
 
 /* ════════════════════════════════════════════════════════════════════

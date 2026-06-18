@@ -240,6 +240,7 @@ function ReorderPlanningWidget({ rows, replenishCost, purchases, sales, onQuickO
               const health = row._health; // "low" | "watch"
               const tone = HEALTH_TONE[health] || "accent";
               const restock = num(row.recommended_restock);
+              const safety = num(row.safety_stock);
               const isOut = row._available <= 0 || num(row.oversold_units) > 0;
               const etaLabel = isOut
                 ? t("dashboard.reorder.outNow")
@@ -271,9 +272,17 @@ function ReorderPlanningWidget({ rows, replenishCost, purchases, sales, onQuickO
                   <div className="dash-reorder-meta">
                     <span className={`dash-reorder-eta tone-${tone}`}>{etaLabel}</span>
                     {restock > 0 ? (
-                      <span className="dash-reorder-qty">
-                        {t("dashboard.reorder.orderQtyTile", {
+                      <span className="dash-reorder-restock">
+                        {t("dashboard.reorder.recommendedRestock", {
                           qty: formatUnits(restock),
+                          unit: row.unit || "",
+                        })}
+                      </span>
+                    ) : null}
+                    {safety > 0 ? (
+                      <span className="dash-reorder-safety">
+                        {t("dashboard.reorder.safetyStockTile", {
+                          qty: formatUnits(safety),
                           unit: row.unit || "",
                         })}
                       </span>
