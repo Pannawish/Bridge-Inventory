@@ -1,27 +1,27 @@
-\begin{thebibliography}{5}
+\begin{thebibliography}{3}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
 
-\bibitem[pap({\natexlab{a}})]{paper_1}
-{\natexlab{a}}.
+\bibitem[Lappalainen and Narayanan(2023)]{paper_3}
+K.~Lappalainen and S.~Narayanan.
+\newblock {Aisha}: A custom {AI} library chatbot using the {ChatGPT} {API}.
+\newblock \emph{Journal of Library and Information Services in Distance
+  Learning}, pages 1--15, 2023.
+\newblock \doi{10.1080/19322909.2023.2221477}.
 
-\bibitem[pap({\natexlab{b}})]{paper_2}
-{\natexlab{b}}.
+\bibitem[Mittal and Arora(2024)]{paper_1}
+H.~Mittal and M.~Arora.
+\newblock A full-stack web solution for online {FMCG} (fast-moving consumer
+  goods) management system using {MERN}: Design, implementation and evaluation.
+\newblock \emph{International Journal of Latest Trends in Engineering,
+  Management and Applied Sciences (IJLTEMAS)}, 2024.
 
-\bibitem[pap({\natexlab{c}})]{paper_5}
-{\natexlab{c}}.
-
-\bibitem[Axsäter(2006)]{paper_3}
-S.~Axsäter.
-\newblock Inventory control.
-\newblock 2006.
-
-\bibitem[Muller(2011)]{paper_4}
+\bibitem[Muller(2011)]{paper_2}
 M.~Muller.
-\newblock Essentials of inventory management.
-\newblock 2011.
+\newblock \emph{Essentials of Inventory Management}.
+\newblock AMACOM, New York, NY, 2 edition, 2011.
 
 \end{thebibliography}

@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  17 JUN 2026 11:40
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  18 JUN 2026 21:28
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1369,10 +1369,20 @@ LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <5> not availa
 ble
 (Font)              size <12> substituted on input line 61.
 
-) (chapter3.tex
+) (chapter2.tex
 
 [4]
 CHAPTER 2.
+
+
+[5
+
+]
+
+[6]) (chapter3.tex
+
+[7]
+CHAPTER 3.
 
 Underfull \hbox (badness 10000) in paragraph at lines 28--28
 []|\TU/TimesNewRoman(0)/b/n/12 Requirement
@@ -1397,7 +1407,7 @@ payment
 
 
 
-[5
+[8
 
 ]
 
@@ -1407,7 +1417,7 @@ ailable
 
 
 
-[6]
+[9]
 Underfull \hbox (badness 3780) in paragraph at lines 73--73
 \TU/TimesNewRoman(0)/m/n/12 board, inventory, transactions, finance
  []
@@ -1449,11 +1459,11 @@ Underfull \hbox (badness 10000) in paragraph at lines 73--73
 
 
 
-[7]
+[10]
 
-[8]
+[11]
 
-[9]
+[12]
 Underfull \hbox (badness 10000) in paragraph at lines 132--132
 []|\TU/TimesNewRoman(0)/m/n/12 /api/products/, /api/
  []
@@ -1475,9 +1485,9 @@ Underfull \hbox (badness 10000) in paragraph at lines 132--132
 
 
 
-[10]
+[13]
 
-[11]
+[14]
 Underfull \hbox (badness 10000) in paragraph at lines 218--218
 []|\TU/TimesNewRoman(0)/m/n/12 Stock validation
  []
@@ -1529,10 +1539,10 @@ Underfull \hbox (badness 10000) in paragraph at lines 240--240
 
 ) (chapter4.tex
 
-[12]
+[15]
 
-[13]
-CHAPTER 3.
+[16]
+CHAPTER 4.
 
 Underfull \hbox (badness 1852) in paragraph at lines 28--28
 []|\TU/TimesNewRoman(0)/m/n/12 Shows operational summaries, segmented
@@ -1555,18 +1565,12 @@ Underfull \hbox (badness 1253) in paragraph at lines 28--28
 
 
 
-[14
+[17
 
 ]
 Overfull \vbox (375.53255pt too high) has occurred while \output is active []
 
 
-
-[15]
-
-[16]
-
-[17]
 
 [18]
 
@@ -1574,23 +1578,29 @@ Overfull \vbox (375.53255pt too high) has occurred while \output is active []
 
 [20]
 
-[21]) (chapter5.tex
+[21]
 
 [22]
-CHAPTER 4.
+
+[23]
+
+[24]) (chapter5.tex
+
+[25]
+CHAPTER 5.
 
 
-[23
+[26
 
 ]
 
-[24]
+[27]
 
-[25])
+[28])
 
-[26] (main.bbl)
+[29] (main.bbl)
 
-[27
+[30
 
 ] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
@@ -1606,12 +1616,12 @@ LaTeX Font Warning: Size substitutions with differences
 
  ) 
 Here is how much of TeX's memory you used:
- 24266 strings out of 402990
- 513052 string characters out of 5447323
- 1094115 words of memory out of 5000000
- 52541 multiletter control sequences out of 15000+600000
+ 24272 strings out of 402990
+ 513145 string characters out of 5447323
+ 1094149 words of memory out of 5000000
+ 52544 multiletter control sequences out of 15000+600000
  633752 words of font info for 101 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 88i,13n,107p,705b,962s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 88i,13n,107p,1356b,962s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (41 pages).
+Output written on main.pdf (44 pages).

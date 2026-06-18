@@ -1,35 +1,94 @@
 \chapter{METHODOLOGY}
 
-This chapter explains how the Inventory Management System was designed and developed. The methodology is based on the implemented source code, including the React frontend, Django REST Framework backend, MySQL database configuration, REST API communication layer, business services, and backend test suite.
+This chapter explains how the Inventory Management web application was developed. The focus is not only on the tools used, but also on how each page supports the real workflow of an SME trading business. In this project, we built the system as a React web application connected to a Django REST Framework backend and a MySQL database.
 
-\section{System Development Approach}
-The system was developed as a full-stack web application for SME trading businesses. The development approach separated the project into three main layers: a client-side user interface, a backend API and business logic layer, and a relational database layer. This structure allowed the frontend to focus on user interaction while the backend remained responsible for data validation, stock calculation, transaction eligibility, and financial workflow enforcement.
+\section{Development Approach}
+We developed the system step by step, starting from the data that every other workflow depends on. The first part was master data, such as products, categories, suppliers, and customers. After that, we developed the transaction modules: purchases, sales, and quotations. The finance-related modules, including billing notes, payment batches, and credit notes, were added after the main transactions were already working. Finally, we connected the dashboard, inventory workspace, and AI chat page to the backend data.
 
-The project followed an incremental development approach. Master data modules were implemented first because products, categories, suppliers, and customers are required by later transaction workflows. After that, purchase and sales workflows were added, followed by quotations, billing notes, payment batches, credit notes, dashboard summaries, and the read-only inventory assistant.
+The project was separated into three main layers:
 
-\section{Requirement Analysis}
-The requirement analysis was based on the daily operation of a middle-man SME trading business. The main requirement was to support the relationship between incoming stock from suppliers and outgoing sales to customers. The system therefore needed to maintain master records, record transaction documents, validate stock availability, track status changes, and summarize receivables and payables.
+\begin{enumerate}
+	\item \textbf{Frontend layer:} React and Vite were used to build the web pages, forms, filters, tables, modals, and tab navigation.
+	\item \textbf{Backend layer:} Django REST Framework was used to expose APIs, validate data, calculate stock, control eligibility rules, and prepare dashboard and assistant responses.
+	\item \textbf{Database layer:} MySQL was used through the Django ORM to store relational business records.
+\end{enumerate}
+
+This structure helped keep the user interface separate from the business rules. The frontend guides the user, but the backend is still responsible for the important checks such as stock validation, transaction eligibility, and payable amount synchronization.
+
+\section{Requirement Areas and Web-App Pages}
+The web application is organized around the main work areas that a trading business needs each day. Each sidebar page has a specific purpose, and the pages are connected through shared product, supplier, customer, purchase, sale, and finance data.
 
 \begin{table}[H]
 	\centering
-	\caption{Requirement Summary}
-	\label{tab:requirement-summary}
-	\begin{tabularx}{\textwidth}{|p{3.3cm}|X|}
+	\small
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{4pt}
+	\caption{Requirement Areas and Implemented Pages}
+	\label{tab:requirement-page-map}
+	\begin{tabularx}{\textwidth}{|p{3.1cm}|p{3.2cm}|X|}
 		\hline
-		\textbf{Requirement Area} & \textbf{Implemented Response} \\ \hline
-		Master data & Categories, products, suppliers, and customers are implemented as reusable records. \\ \hline
-		Inventory visibility & Product stock is calculated from received purchase items and committed sale items. \\ \hline
-		Purchasing & Purchase orders store supplier details, line items, receiving status, documents, VAT totals, discounts, and payable amount. \\ \hline
-		Sales & Sales records store customer details, line items, delivery status, documents, VAT totals, discounts, and links to billing or credit notes. \\ \hline
-		Quotations & Quotations store normalized line items, validity settings, supplier options, and links to derived purchase or sales records. \\ \hline
-		Receivables and payables & Billing notes track customer receivables, while payment batches track supplier payables. \\ \hline
-		Returns and cancellations & Credit notes are created from eligible cancelled or returned sale lines. \\ \hline
-		AI support & A text-based assistant answers supported read-only questions from backend data. Its current scope is limited to stock and fulfillment, partner summaries, receivable and payable exceptions, and reference or line-item lookup. \\ \hline
+		\textbf{Requirement Area} & \textbf{Web-App Page} & \textbf{Purpose in the System} \\ \hline
+		Operation summary & Dashboard & Shows stock, finance, order coverage, trends, and movement summaries from backend data. \\ \hline
+		Inventory control & Inventory & Shows stock health, reorder information, supplier options, product details, and quick purchase-order preparation. \\ \hline
+		Assistant support & AI Chat & Answers supported read-only questions about stock, fulfillment, partners, AR/AP exceptions, and document references. \\ \hline
+		Purchasing & Purchases & Records purchase orders, purchase items, receiving status, documents, VAT totals, discounts, and payable values. \\ \hline
+		Supplier payment & Payment Batches & Groups eligible purchases into supplier payment batches and tracks paid or unpaid lines. \\ \hline
+		Quotation & Quotation & Prepares quotations with line items, supplier options, validity dates, and conversion to purchase or sale records. \\ \hline
+		Sales & Sales & Records customer sales, line items, stock allocation, delivery status, documents, VAT totals, and credit-note links. \\ \hline
+		Customer billing & Billing Notes & Groups eligible sales into customer billing notes and tracks received or outstanding lines. \\ \hline
+		Returns and cancellation adjustment & Credit Notes & Creates credit notes from eligible cancelled or returned sale items. \\ \hline
+		Product records & Products & Manages product details, SKUs, pictures, units, reorder levels, active status, suppliers, and history. \\ \hline
+		Category records & Categories & Manages product categories using a parent-child category tree. \\ \hline
+		Supplier records & Supplier & Manages supplier profile data, contact information, procurement contact, branches, shipping addresses, and terms. \\ \hline
+		Customer records & Customer & Manages customer profile data, contact information, branches, shipping addresses, and billing terms. \\ \hline
 	\end{tabularx}
 \end{table}
 
+\section{Development of Each Page}
+\subsection{Dashboard Page}
+The dashboard page was developed as the first screen for checking the business situation quickly. It receives backend dashboard data and shows several summary areas, including stock health, reorder planning, stock cycling, delivery pipeline, purchase planning, popular products, finance, cashflow, and order coverage. The dashboard is also connected to other pages. For example, a low-stock product can lead the user to the inventory or product page, and an order issue can lead to the purchase or sales page.
+
+\subsection{Inventory Page}
+The inventory page was developed as the main stock-control workspace. It uses the backend stock report rows instead of calculating stock from full transaction lists in the browser. The page includes an inventory control board, a searchable directory, filters for health status, category, supplier, value, and reorder need, product detail views, and a quick purchase-order drawer. This page is important because it gives the user a practical view of what is available, what is incoming, and what may need to be reordered.
+
+\subsection{AI Chat Page}
+The AI chat page was developed as a read-only helper. The user can type a question or use example prompts. The backend prepares a compact context from the current system data and returns a structured answer. If an OpenAI API key is configured, the backend can send the local summary and data context to the configured OpenAI model. If not, it returns the local summary. The current assistant scope is limited to four areas: stock and fulfillment, customer or supplier summaries, receivables/payables with exceptions, and reference or line-item lookup. It does not create, edit, approve, cancel, or delete any record.
+
+\subsection{Purchases Page}
+The purchases page was developed for supplier-side transactions. Users can create purchase records, add line items, attach documents, edit existing purchases, update purchase status, and update item receiving status. Purchase items can be pending, received, or cancelled. Only received purchase items become available stock. The page also supports search, filters, pagination, VAT mode, item discounts, bill discount, expected delivery dates, received dates, and payment batch links.
+
+\subsection{Payment Batches Page}
+The payment batches page was developed for supplier payable tracking. Instead of letting users manually select any purchase, the page loads eligible purchases from the backend. A purchase is eligible only when it passes the backend rules, such as not already being attached to an active payment batch. Each payment batch stores supplier information, planned and actual payment dates, bank reference, total amount, and paid line status.
+
+\subsection{Quotation Page}
+The quotation page was developed for preparing offers before purchase or sales records are finalized. It supports quotation line items, supplier cost options, validity settings, shipping date, payment terms, VAT mode, and total values. The page can also start a purchase or sales flow from a quotation. In the database, quotation items are stored in the \texttt{QuotationItem} table, and supplier options are stored in \texttt{QuotationItemSupplier}; however, the API still returns an \texttt{items} array so the frontend can work with a simple structure.
+
+\subsection{Sales Page}
+The sales page was developed for customer-side transactions. It records sale headers, customer information, customer PO reference, sale items, documents, VAT totals, discounts, and delivery-related statuses. Sale item statuses include pending, packed, shipped, delivered, cancelled, and returned. The backend validates stock before a sale can commit stock. When the sale item is packed, shipped, or delivered, stock allocations are created from received purchase layers.
+
+\subsection{Billing Notes Page}
+The billing notes page was developed for customer receivable tracking. It groups eligible sales into billing notes and allows the user to track whether each line has been received. The backend controls eligibility so the same sale is not selected into more than one active billing note. The page also shows summary values, status filters, expected payment dates, actual payment dates, bank references, and linked credit note information.
+
+\subsection{Credit Notes Page}
+The credit notes page was developed for adjustments after a sale is cancelled or returned. The backend provides eligible sale lines, and the credit note stores customer information, sale reference, optional billing note link, line items, and total credited amount. This keeps the credit note connected to the original sale item while still preserving a readable credit document.
+
+\subsection{Products Page}
+The products page was developed as the main product catalog. It supports product creation, editing, disabling, deleting where allowed, SKUs, previous SKUs, names, category links, unit conversions, reorder levels, product pictures, supplier links, average cost information, and product transaction history. Products with transaction history can be disabled instead of removed, which protects old purchase, sale, and quotation records.
+
+\subsection{Categories Page}
+The categories page was developed to organize products in a parent-child tree. The full category tree is shown in one view because hierarchy is important for understanding the catalog. Categories are stored separately from products, and products reference categories through foreign keys while also keeping a category name snapshot for compatibility and readability.
+
+\subsection{Supplier Page}
+The supplier page was developed for maintaining supplier master data. It stores company name, locations, email addresses, telephone numbers, taxpayer ID, branches, shipping addresses, remarks, payment terms, and procurement contact details. Supplier records are reused in purchases, quotations, payment batches, and product-supplier sourcing links.
+
+\subsection{Customer Page}
+The customer page was developed for maintaining customer master data. It stores company name, locations, emails, telephone numbers, taxpayer ID, branches, shipping addresses, remarks, and billing/payment term information. Customer records are reused in sales, quotations, billing notes, and credit notes.
+
+\subsection{Login and Settings Support}
+The frontend includes login-related behavior through the authentication context and API client. The backend provides Simple JWT login, refresh, and authenticated profile endpoints. The frontend stores tokens in local storage or session storage depending on the login option, refreshes access tokens, and logs out when authentication expires. The backend-wide requirement for authentication can be turned on through the \texttt{INVENTORY\_REQUIRE\_AUTH} environment setting.
+
 \section{System Architecture}
-The system uses a three-tier web architecture. The frontend runs as a React single-page application. It communicates with the backend through REST API calls. The backend is implemented with Django and Django REST Framework and stores data in MySQL.
+The system uses a three-tier web architecture. React is responsible for the user interface, Django REST Framework provides the API and business rules, and MySQL stores the relational records. The frontend does not connect directly to the database. Every important action goes through the API.
 
 \begin{figure}[H]
 \centering
@@ -60,42 +119,67 @@ The system uses a three-tier web architecture. The frontend runs as a React sing
 
 \begin{table}[H]
 	\centering
+	\small
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{4pt}
 	\caption{Architecture Components}
 	\label{tab:architecture-components}
-	\begin{tabularx}{\textwidth}{|p{3cm}|p{3.3cm}|X|}
+	\begin{tabularx}{\textwidth}{|p{3cm}|p{3cm}|X|}
 		\hline
-		\textbf{Layer} & \textbf{Implementation} & \textbf{Responsibility} \\ \hline
-		Presentation layer & React and Vite & Provides tabbed user interfaces for dashboard, inventory, transactions, finance documents, master data, and AI chat. \\ \hline
-		API layer & Django REST Framework & Exposes REST endpoints, serializers, filters, pagination, eligibility checks, and validation errors. \\ \hline
-		Business logic layer & Django service functions & Calculates stock, FIFO allocation, dashboard metrics, payable totals, finance summaries, and assistant context for supported read-only questions. \\ \hline
-		Data layer & MySQL through Django ORM & Stores normalized master data, transactions, line items, document links, finance records, and historical snapshot fields. \\ \hline
-		Authentication layer & Simple JWT & Supports login, access token refresh, and authenticated user profile retrieval. \\ \hline
+		\textbf{Layer} & \textbf{Implementation} & \textbf{Main Responsibility} \\ \hline
+		Frontend & React 18 and Vite & Builds the tabbed interface, forms, filters, tables, modals, and bilingual text display. \\ \hline
+		API & Django REST Framework & Receives requests, serializes data, applies filters, supports pagination, and returns JSON responses. \\ \hline
+		Business logic & Django service functions & Handles stock calculation, FIFO allocation, dashboard summaries, payable synchronization, eligibility checks, and assistant context. \\ \hline
+		Database & MySQL with Django ORM & Stores master data, transaction records, line items, documents, allocations, and finance records. \\ \hline
+		Authentication & Simple JWT & Provides login, refresh token, and authenticated profile support. \\ \hline
 	\end{tabularx}
 \end{table}
 
 \section{Frontend Methodology}
-The frontend was implemented with React components, hooks, and helper modules. The application shell is organized around tabs that load the main pages: dashboard, inventory, AI chat, purchases, payment batches, quotations, sales, billing notes, credit notes, products, categories, suppliers, and customers.
+The frontend was developed with React components, hooks, and helper files. Large pages are split into smaller sections, such as form details, line items, totals, directory tables, and detail modals. This made the code easier to manage because a purchase form, for example, has different concerns from a purchase history table.
 
-API communication is centralized in the frontend API client. This client builds query strings, sends JSON or form-data payloads, attaches bearer tokens when available, refreshes expired access tokens, and dispatches an authentication-expired event when refresh fails. Data loading is organized through hooks that request dashboard data, lookup data, paginated lists, and eligibility results.
+The API client in \texttt{frontend/src/api.js} centralizes communication with the backend. It builds query strings, sends JSON or form-data requests, attaches bearer tokens, retries a request after token refresh, and dispatches an authentication-expired event when refresh fails. The data-loading hooks keep full lookup data separate from paginated directory rows, so forms can still access reference data while history pages can use pagination.
 
-The frontend also maintains mock-data fallback behavior. If the backend is unavailable, parts of the application can still show mock data for development or demonstration. This fallback behavior is intentionally separate from backend-authoritative validation.
+The frontend also keeps a mock-data fallback for development and demonstration. This fallback is useful when the backend is not running, but it is not treated as the final authority. The backend remains the source of truth for stock validation, eligibility, and financial synchronization.
 
-The user interface uses compact forms, directory tables, status controls, detail modals, and document reference components. User-facing labels are rendered through the language helper and translation dictionaries to support English and Thai text.
-
-\section{Backend Methodology}
-The backend was implemented as a Django project with one main inventory application. Django REST Framework viewsets expose CRUD endpoints for the primary resources, while function-based API views provide dashboard summaries, lookup lists, eligibility lists, product history, stock layers, and chat responses.
-
-Serializers transform request payloads into model records and apply domain validation. For purchases and sales, serializers normalize line items, calculate base quantities, handle file uploads, update documents, and delegate stock or payable synchronization to backend service functions. Viewsets apply common search, status, date, party, product, amount, and VAT filters.
-
-Backend services contain the main business calculations. These include stock metric snapshots, available stock layers, FIFO allocation, sale stock validation, purchase payable total recalculation, payment batch total synchronization, dashboard segment generation, and context creation for the supported assistant workflows.
-
-\section{Database Design Methodology}
-The database was designed as a relational schema managed by Django migrations. Core master data is separated from transaction data. Categories, products, suppliers, and customers are maintained as master records, while purchases, sales, quotations, billing notes, payment batches, and credit notes reference them through foreign keys where appropriate.
-
-The schema also preserves historical snapshot fields. For example, purchase and sale line items keep product names, SKUs, prices, quantities, and totals. Purchase and sale headers keep supplier or customer names. These fields allow historical business documents to remain readable even if a master record is later edited or disabled.
+\section{Backend and API Methodology}
+The backend was developed as a Django project with one main inventory application. Django REST Framework viewsets provide CRUD endpoints for products, categories, suppliers, customers, purchases, sales, quotations, billing notes, payment batches, and credit notes. Separate API views provide dashboard summaries, dashboard segments, lookup lists, product history, product stock layers, eligibility lists, and chat responses.
 
 \begin{table}[H]
 	\centering
+	\footnotesize
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{3pt}
+	\caption{Main API Endpoint Groups}
+	\label{tab:api-endpoint-groups}
+	\begin{tabularx}{\textwidth}{|p{4.1cm}|X|}
+		\hline
+		\textbf{Endpoint Group} & \textbf{Purpose} \\ \hline
+		\texttt{/api/products/}, \texttt{/api/categories/} & Product catalog and category tree management. \\ \hline
+		\texttt{/api/suppliers/}, \texttt{/api/customers/} & Business partner master data management. \\ \hline
+		\texttt{/api/purchases/}, \texttt{/api/sales/} & Purchase and sales transaction workflows, including line items and documents. \\ \hline
+		\texttt{/api/quotations/} & Quotation records with normalized line items and supplier options. \\ \hline
+		\texttt{/api/billing-notes/}, \texttt{/api/payment-batches/}, \texttt{/api/credit-notes/} & Customer receivable, supplier payable, and credit note workflows. \\ \hline
+		\texttt{/api/eligibility/...} & Backend-controlled lists for billing-note sales, payment-batch purchases, and credit-note sale lines. \\ \hline
+		\texttt{/api/dashboard/}, \texttt{/api/dashboard/segment/} & Dashboard summary and segmented operational reports. \\ \hline
+		\texttt{/api/products/<id>/history/} and \texttt{/stock-layers/} & Product transaction history and received stock layer details. \\ \hline
+		\texttt{/api/chat/} & Read-only assistant answers for supported questions. \\ \hline
+		\texttt{/api/auth/login/}, \texttt{/refresh/}, \texttt{/me/} & Login, token refresh, and authenticated user profile. \\ \hline
+	\end{tabularx}
+\end{table}
+
+Pagination is opt-in. If a page parameter is not sent, list endpoints can still return a plain array for compatibility with existing frontend logic. When pagination is requested, the response includes \texttt{count}, \texttt{next}, \texttt{previous}, \texttt{page}, \texttt{page\_size}, \texttt{total\_pages}, and \texttt{results}.
+
+\section{Database Design Methodology}
+The database was designed as a relational MySQL schema managed by Django migrations. Master data is separated from transaction data. For example, products, suppliers, customers, and categories are stored once and then referenced by purchases, sales, quotations, billing notes, payment batches, and credit notes.
+
+The system also keeps snapshot fields inside transaction records. A sale item stores product name, SKU, quantity, price, and amount. A purchase stores supplier name and line item details. These snapshot values are important because old business documents should remain readable even if a product, supplier, or customer is edited later.
+
+\begin{table}[H]
+	\centering
+	\small
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{4pt}
 	\caption{Primary Database Model Groups}
 	\label{tab:database-model-groups}
 	\begin{tabularx}{\textwidth}{|p{3.2cm}|X|}
@@ -109,33 +193,10 @@ The schema also preserves historical snapshot fields. For example, purchase and 
 	\end{tabularx}
 \end{table}
 
-\section{API Design}
-The API follows REST principles for primary resources and specialized endpoints for operational summaries. CRUD resources are exposed through Django REST Framework routers. Additional endpoints are used where a simple resource endpoint is not sufficient, such as dashboard summaries, lookup lists, stock layers, product transaction history, eligibility checks, and chat.
-
-Pagination is opt-in. If a list endpoint is called without a page parameter, it can return a plain array for compatibility with existing frontend code. If a page parameter is provided, the response includes \texttt{count}, \texttt{next}, \texttt{previous}, \texttt{page}, \texttt{page\_size}, \texttt{total\_pages}, and \texttt{results}.
-
-\begin{table}[H]
-	\centering
-	\caption{Selected API Endpoint Groups}
-	\label{tab:api-endpoint-groups}
-	\begin{tabularx}{\textwidth}{|p{4cm}|X|}
-		\hline
-		\textbf{Endpoint Group} & \textbf{Purpose} \\ \hline
-		\texttt{/api/products/}, \texttt{/api/categories/} & Product and category master data management. \\ \hline
-		\texttt{/api/suppliers/}, \texttt{/api/customers/} & Business partner master data management. \\ \hline
-		\texttt{/api/purchases/}, \texttt{/api/sales/} & Purchase and sales transaction workflows. \\ \hline
-		\texttt{/api/quotations/} & Quotation records and normalized quotation items. \\ \hline
-		\texttt{/api/billing-notes/}, \texttt{/api/payment-batches/}, \texttt{/api/credit-notes/} & Receivable, payable, and credit-note workflows. \\ \hline
-		\texttt{/api/eligibility/...} & Server-side lists of transactions eligible for billing notes, payment batches, or credit notes. \\ \hline
-		\texttt{/api/dashboard/}, \texttt{/api/dashboard/segment/} & Dashboard summaries and segmented reporting. \\ \hline
-		\texttt{/api/chat/} & Text-based read-only assistant for supported inventory, finance, partner-summary, and reference-lookup questions. \\ \hline
-	\end{tabularx}
-\end{table}
-
 \section{Business Workflow Design}
-The main workflow begins with master data. Products are categorized and connected to suppliers and customers through transaction records. Purchases create incoming stock layers when line items are received. Sales consume stock only when line items reach packed, shipped, or delivered statuses. This prevents draft or pending orders from reducing available stock.
+The main workflow starts from master data. Products belong to categories and are used in purchase, sale, and quotation line items. Purchases bring stock into the system only when purchase items are received. Sales commit stock only when sale items are packed, shipped, or delivered. This is why the system does not treat product stock as a manually edited field.
 
-The quotation workflow allows users to prepare commercial proposals before creating purchase or sales records. Billing notes are created only from eligible shipped or delivered sales that are not already attached to an active billing note. Payment batches are created only from eligible received or partially received purchases that are not already attached to an active payment batch. Credit notes are created from cancelled or returned sale items that have not already been credited.
+Quotations are used before purchase or sales records are created. Billing notes are created from eligible sales for customer receivable tracking. Payment batches are created from eligible purchases for supplier payable tracking. Credit notes are created from eligible cancelled or returned sale lines.
 
 \begin{figure}[H]
 \centering
@@ -191,51 +252,201 @@ The quotation workflow allows users to prepare commercial proposals before creat
 \label{fig:business-workflow-design}
 \end{figure}
 
+\section{Business Calculations and Rules}
+This section describes the main calculation logic that is implemented in the web application. Some totals are calculated in the frontend for immediate display, while the backend stores the submitted totals and applies the authoritative business rules for stock, eligibility, and payable synchronization.
+
+\subsection{Unit Conversion and Line Amounts}
+Products can have different purchase or sale units. The backend normalizes transaction quantities into the product base unit.
+
+\[
+\text{Base Quantity} = \text{Quantity} \times \text{Conversion Factor}
+\]
+
+Purchase and sale line amounts are calculated from quantity, unit price or unit cost, and any percentage discount chain. The frontend clamps each discount between 0\% and 100\%.
+
+\[
+\text{Discounted Amount} =
+\text{Quantity} \times \text{Unit Price} \times
+\prod (1 - \frac{\text{Discount Percent}}{100})
+\]
+
+For purchases, \textit{Unit Price} means unit cost. For sales and quotations, it means sale price. Sales also apply the bill-level discount to the line amount when the sale total is calculated.
+
+\subsection{VAT Calculation}
+The purchase, sale, and quotation forms support VAT-included and VAT-not-included modes using a 7\% VAT rate.
+
+\[
+\text{VAT Rate} = 0.07
+\]
+
+For VAT-included transactions:
+
+\[
+\text{Total Before VAT} = \frac{\text{Item Total}}{1 + 0.07}
+\]
+
+\[
+\text{VAT Amount} = \text{Item Total} - \text{Total Before VAT}
+\]
+
+For VAT-not-included transactions:
+
+\[
+\text{VAT Amount} = \text{Item Total} \times 0.07
+\]
+
+\[
+\text{Grand Total} = \text{Item Total} + \text{VAT Amount}
+\]
+
+\subsection{Current Stock}
+The backend calculates product stock from transaction status instead of storing a manual stock number on the product.
+
+\[
+\text{Current Stock} =
+\max(0, \text{Received Purchase Base Quantity} - \text{Committed Sale Base Quantity})
+\]
+
+Received purchase quantity comes only from purchase items with received status. Committed sale quantity comes only from sale items with packed, shipped, or delivered status. Pending sales are shown separately as demand, but they do not reduce current stock until they reach a stock-deducting status.
+
+\subsection{Stock Validation and Allocation}
+Before a sale is allowed to commit stock, the backend compares requested committed quantity with available stock.
+
+\[
+\text{Stock Issue exists if } \text{Requested Quantity} > \text{Available Quantity}
+\]
+
+When stock is committed, the backend creates sale item allocations from received purchase layers. If the user does not choose stock layers manually, the backend uses first-in, first-out allocation. The received layers are ordered by received date, purchase transaction date, purchase creation date, and item ID.
+
+\[
+\text{Allocation Quantity} = \min(\text{Remaining Sale Quantity}, \text{Layer Available Quantity})
+\]
+
+Manual allocation is also supported, but the selected layers must match the product, must already be received, must have enough remaining quantity, and must add up exactly to the sale item base quantity.
+
+\subsection{Inventory Dashboard Calculations}
+The backend stock report calculates several useful inventory values for the dashboard and inventory page.
+
+\[
+\text{Average Unit Cost} =
+\frac{\text{Received Purchase Value}}{\text{Received Purchase Units}}
+\]
+
+\[
+\text{Average Daily Demand} =
+\frac{\text{Sales History Units}}{\text{Sales History Days}}
+\]
+
+\[
+\text{Safety Stock} =
+\text{Average Daily Demand} \times \text{Safety Stock Days}
+\]
+
+\[
+\text{Calculated Reorder Level} =
+\left\lceil \text{Lead Time Demand} + \text{Safety Stock} \right\rceil
+\]
+
+\[
+\text{Recommended Restock} =
+\max(0,\ \text{Reorder Level} + \text{Pending Sales} + \text{Oversold Units} - \text{Available Stock} - \text{Pending Purchases})
+\]
+
+\[
+\text{Stock Value} = \text{Available Stock} \times \text{Average Unit Cost}
+\]
+
+The inventory page also uses supplier cost history to show supplier options. Supplier options are ranked by the most recent unit cost and order count, so the user can see a practical reorder source.
+
+\subsection{Purchase Payable and Payment Batch Calculations}
+The backend keeps the purchase grand total as the original document total, but it calculates a separate payable amount when purchase items are cancelled.
+
+\[
+\text{Payable Total} =
+\text{Grand Total} \times
+\frac{\text{Non-cancelled Line Amounts}}{\text{All Line Amounts}}
+\]
+
+This allows the system to keep the original purchase document readable while still showing the correct amount that should be paid to the supplier. Payment batch totals are calculated from their line amounts.
+
+\[
+\text{Payment Batch Total} = \sum \text{Payment Batch Line Amount}
+\]
+
+Unpaid payment batch lines are synchronized when the related purchase payable total changes. Paid lines are left unchanged because they represent a completed financial record.
+
+\subsection{Billing Note and Credit Note Calculations}
+Billing note totals come from selected eligible sales. Credit notes store line amounts from eligible cancelled or returned sale items. When a billing note has active credit notes, the net amount shown in the billing detail is reduced by the credit total.
+
+\[
+\text{Billing Net Amount} =
+\text{Billing Note Total} - \text{Active Credit Note Total}
+\]
+
+This makes the receivable amount clearer when a customer has a return or cancellation adjustment.
+
+\subsection{Cashflow and Net Position}
+The dashboard cashflow segment groups open receivables and open payables by due date. It also calculates the open net position.
+
+\[
+\text{Open Net Position} =
+\text{Open Accounts Receivable} - \text{Open Accounts Payable}
+\]
+
+Overdue accounts receivable are open billing notes with expected payment dates before today. Overdue accounts payable are open payment batches with planned payment dates before today.
+
+\subsection{Quotation Validity}
+Quotation validity is calculated from the quotation date and validity setting. If the validity mode is calendar days, the valid-until date is the quotation date plus the selected number of days. If the validity mode is business days, weekends are skipped. The no-valid-date option stores no valid-until date.
+
 \section{Validation and Security Design}
-Validation is enforced primarily on the backend. The frontend provides usability checks, but the backend is the authoritative layer for stock validation, active product validation, percentage discount limits, document eligibility, purchase payable synchronization, sale allocation validity, and delete restrictions.
+Validation is handled mainly by the backend. The frontend helps the user by showing form messages and previews, but direct API calls still need to be safe. The backend validates stock availability, active product usage, allocation rules, document eligibility, quotation validity dates, and finance document selection rules.
 
-Security is implemented with JSON Web Tokens through Simple JWT. The backend exposes login and refresh endpoints. The frontend stores tokens in local storage or session storage depending on the login option and automatically refreshes access tokens when needed. The authenticated profile endpoint requires authentication. Full API-wide authentication can be enabled through the \texttt{INVENTORY\_REQUIRE\_AUTH} environment setting.
-
-The backend also includes production-oriented safety settings. It requires a non-default secret key when debug mode is disabled, restricts CORS origins through configuration, and uses Django's ORM and serializers instead of ad hoc SQL construction.
+Security support is implemented with Simple JWT. The backend exposes login, token refresh, and authenticated profile endpoints. The frontend stores and refreshes tokens, then attaches the access token to API requests. In local development, the backend can allow unauthenticated access depending on \texttt{INVENTORY\_REQUIRE\_AUTH}; when that setting is enabled, API access requires authentication.
 
 \section{Testing Methodology}
-The backend test suite validates important business behavior using Django and Django REST Framework test cases. The tests cover pagination, product picture upload, operational data clearing, sale stock validation, sale item allocation, purchase item status behavior, relational quotation storage, reference number generation, eligibility endpoints, credit notes, operational seed data, quotation supplier options, payable synchronization, and assistant response alignment.
+Testing was focused on backend behavior because the backend owns the most important business rules. The test suite checks pagination, filters, product pictures, operational data commands, stock validation, FIFO allocation, manual allocation, purchase item status changes, quotation normalization, reference numbers, lookup endpoints, eligibility endpoints, credit notes, purchase payable synchronization, seed data, and assistant answer alignment.
 
 \begin{table}[H]
 	\centering
+	\small
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{4pt}
 	\caption{Testing Summary}
 	\label{tab:testing-summary}
-	\begin{tabularx}{\textwidth}{|p{3.5cm}|X|}
+	\begin{tabularx}{\textwidth}{|p{3.4cm}|X|}
 		\hline
-		\textbf{Test Area} & \textbf{Purpose} \\ \hline
-		Pagination tests & Confirm that unpaginated and paginated list responses behave correctly. \\ \hline
-		Stock validation tests & Confirm that sales cannot commit more stock than available received layers. \\ \hline
-		Allocation tests & Confirm FIFO and manual stock allocation behavior. \\ \hline
-		Status tests & Confirm purchase and sale document statuses follow line item status rules. \\ \hline
-		Eligibility tests & Confirm billing note, payment batch, and credit note selection rules. \\ \hline
-		Financial tests & Confirm payable totals and linked payment batch amounts stay synchronized. \\ \hline
-		Assistant tests & Confirm that supported chat responses align with backend operational data. \\ \hline
+		\textbf{Test Area} & \textbf{What It Checks} \\ \hline
+		Pagination and filtering & Paginated responses, page size limits, search, status filters, date filters, and product or partner filters. \\ \hline
+		Product data & Product picture upload, active/disabled behavior, lookup data, stock filter, average cost, and product history. \\ \hline
+		Stock validation & Sales cannot commit more stock than available received purchase layers. \\ \hline
+		Stock allocation & FIFO allocation, manual allocation, and stock layer remaining quantity are handled correctly. \\ \hline
+		Finance eligibility & Billing notes, payment batches, and credit notes only use eligible records. \\ \hline
+		Financial synchronization & Purchase payable totals and payment batch line amounts stay consistent when purchases change. \\ \hline
+		Assistant scope & Supported questions return data-based answers, while unsupported questions are rejected as out of scope. \\ \hline
 	\end{tabularx}
 \end{table}
 
-% TODO: Insert the final executed test results, build result, and audit result after the final verification run.
+% TODO: Insert final executed test logs, frontend build result, and audit result after the final verification run.
 
 \section{Tools and Technologies Used}
 \begin{table}[H]
 	\centering
+	\small
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{4pt}
 	\caption{Tools and Technologies}
 	\label{tab:tools-technologies}
-	\begin{tabularx}{\textwidth}{|p{3.5cm}|p{3.4cm}|X|}
+	\begin{tabularx}{\textwidth}{|p{3.2cm}|p{3.5cm}|X|}
 		\hline
-		\textbf{Category} & \textbf{Tool or Technology} & \textbf{Use in Project} \\ \hline
-		Frontend framework & React 18 & Builds the single-page application interface. \\ \hline
-		Frontend build tool & Vite & Provides local development and production build tooling. \\ \hline
-		Backend framework & Django 5 & Provides the web backend, ORM, settings, migrations, and application structure. \\ \hline
-		API framework & Django REST Framework & Provides serializers, viewsets, API views, parsing, responses, and tests. \\ \hline
+		\textbf{Category} & \textbf{Tool or Technology} & \textbf{Use in This Project} \\ \hline
+		Frontend framework & React 18 & Builds the web application screens and reusable UI components. \\ \hline
+		Frontend build tool & Vite & Runs the local development server and production build process. \\ \hline
+		Backend framework & Django 5 & Provides project structure, ORM, migrations, settings, and backend application logic. \\ \hline
+		API framework & Django REST Framework & Provides serializers, viewsets, API views, JSON responses, parsers, and API tests. \\ \hline
+		Database & MySQL & Stores relational inventory, transaction, and finance data. \\ \hline
 		Authentication & Simple JWT & Provides access and refresh token authentication. \\ \hline
-		Database & MySQL & Stores relational business records and transaction history. \\ \hline
-		Assistant integration & Backend chat service & Builds compact backend context for supported read-only assistant responses. \\ \hline
-		Styling & CSS modules by domain file & Provides compact inventory application styling. \\ \hline
-		Testing & Django TestCase and DRF APITestCase & Validates backend business behavior and API behavior. \\ \hline
+		AI integration & OpenAI API with local fallback & Supports read-only assistant answers when configured, with local summary fallback when no API key is available. \\ \hline
+		Styling & CSS files by domain & Provides the compact inventory system interface. \\ \hline
+		Testing & Django TestCase and DRF APITestCase & Validates backend business rules and API behavior. \\ \hline
 	\end{tabularx}
 \end{table}

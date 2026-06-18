@@ -1,88 +1,107 @@
 \chapter{RESULTS}
 
-This chapter reports the results of the implemented Inventory Management System. The results are based on the current source code and implemented workflows. Screenshots are represented as placeholders so that final approved application screenshots can be inserted later.
+This chapter explains the result of the implemented Inventory Management System. The result is based on the current codebase and the pages that are already implemented in the web application. The detailed development method and calculation logic were explained in Chapter 3, so this chapter focuses on what the completed system can do.
 
-\section{Main System Features}
-The completed system provides a web-based inventory management application for SME trading operations. The implemented functionality covers master data, inventory control, purchasing, sales, quotations, finance documents, dashboard reporting, and limited read-only assistant text queries.
+\section{Completed System Overview}
+The final system is a full-stack web application for an SME trading business. It supports the flow from product setup to purchasing, selling, billing, supplier payment, credit note adjustment, inventory checking, dashboard reporting, and limited AI-assisted questions.
+
+The main result is that the system connects business documents together instead of keeping them as separate records. A product can appear in purchases, sales, quotations, inventory reports, and product history. A sale can later become part of a billing note or a credit note. A purchase can later become part of a payment batch. This connection makes the system more useful than a simple product list.
+
+\section{Implemented Modules}
+\begin{table}[H]
+	\centering
+	\small
+	\renewcommand{\arraystretch}{1.18}
+	\setlength{\tabcolsep}{4pt}
+	\caption{Implemented Workspace and Transaction Modules}
+	\label{tab:implemented-system-modules}
+	\begin{tabularx}{\textwidth}{|p{3cm}|X|p{2.1cm}|}
+		\hline
+		\textbf{Module} & \textbf{Implemented Result} & \textbf{Status} \\ \hline
+		Dashboard & Shows stock, finance, cashflow, product movement, and order coverage summaries. & Completed \\ \hline
+		Inventory & Shows backend-calculated stock rows, reorder need, supplier options, product details, and quick purchase-order preparation. & Completed \\ \hline
+		AI Chat & Answers supported read-only questions about stock, fulfillment, partner summaries, AR/AP exceptions, and document references. & Completed \\ \hline
+		Purchases & Supports purchase records, line items, receiving status, documents, discounts, VAT totals, payable total, and payment batch links. & Completed \\ \hline
+		Payment Batches & Groups eligible purchases for supplier payment and tracks paid or unpaid lines. & Completed \\ \hline
+		Quotations & Supports quotation records, line items, supplier options, validity settings, VAT totals, and conversion to purchase or sale flow. & Completed \\ \hline
+		Sales & Supports sales records, stock validation, stock allocation, delivery status, documents, VAT totals, billing links, and credit links. & Completed \\ \hline
+	\end{tabularx}
+\end{table}
 
 \begin{table}[H]
 	\centering
-	\caption{Implemented System Modules}
-	\label{tab:implemented-system-modules}
-	\begin{tabularx}{\textwidth}{|p{3.2cm}|X|p{2.7cm}|}
+	\small
+	\renewcommand{\arraystretch}{1.18}
+	\setlength{\tabcolsep}{4pt}
+	\caption{Implemented Finance and Master Data Modules}
+	\label{tab:implemented-record-modules}
+	\begin{tabularx}{\textwidth}{|p{3cm}|X|p{2.1cm}|}
 		\hline
 		\textbf{Module} & \textbf{Implemented Result} & \textbf{Status} \\ \hline
-		Dashboard & Shows operational summaries, segmented dashboard data, stock health, finance, trends, cashflow, product movement, and order coverage from backend services. & Implemented \\ \hline
-		Inventory & Shows stock position, reorder information, product stock rows, references, and inventory detail views. & Implemented \\ \hline
-		Products & Supports product CRUD, SKUs, previous SKUs, categories, unit conversions, reorder levels, active status, product pictures, and product history loading. & Implemented \\ \hline
-		Categories & Supports nested category management and full category tree viewing. & Implemented \\ \hline
-		Suppliers & Supports supplier master records, contact information, procurement contacts, branches, shipping addresses, and payment terms. & Implemented \\ \hline
-		Customers & Supports customer master records, contact information, branches, shipping addresses, and billing/payment term information. & Implemented \\ \hline
-		Purchases & Supports purchase records, line items, receiving statuses, payable totals, VAT totals, discounts, documents, product supplier syncing, and payment batch links. & Implemented \\ \hline
-		Sales & Supports sales records, line items, delivery statuses, stock validation, FIFO or manual allocation, VAT totals, discounts, documents, billing-note links, and credit-note links. & Implemented \\ \hline
-		Quotations & Supports quotations, normalized line items, supplier options, validity dates, payment terms, shipping dates, and derived purchase or sale links. & Implemented \\ \hline
-		Billing Notes & Supports receivable grouping from eligible sales, status tracking, received lines, dates, bank reference, and credit note summaries. & Implemented \\ \hline
-		Payment Batches & Supports payable grouping from eligible purchases, status tracking, paid lines, dates, bank reference, and synchronized payable amounts. & Implemented \\ \hline
-		Credit Notes & Supports credit notes for eligible cancelled or returned sale lines. & Implemented \\ \hline
-		AI Chat & Supports selected read-only text questions using backend data: stock and fulfillment, customer or supplier summaries, receivable and payable exceptions, and reference or line-item lookup. It does not create or update records. & Implemented \\ \hline
+		Billing Notes & Groups eligible sales for customer receivable tracking and tracks received or outstanding lines. & Completed \\ \hline
+		Credit Notes & Creates credit notes from eligible cancelled or returned sale items. & Completed \\ \hline
+		Products & Supports product CRUD, SKUs, pictures, unit conversions, reorder levels, active status, supplier links, and product history. & Completed \\ \hline
+		Categories & Supports category records with parent-child hierarchy. & Completed \\ \hline
+		Suppliers & Supports supplier profile, contact, branch, shipping address, procurement contact, and payment term data. & Completed \\ \hline
+		Customers & Supports customer profile, contact, branch, shipping address, and billing term data. & Completed \\ \hline
 	\end{tabularx}
 \end{table}
 
 \section{Screenshot Placeholders}
-The following figures show the planned screenshot positions for the final report. The placeholders should be replaced with final application screenshots after the interface and sample data are approved.
+The following figures are reserved for the final screenshots. They should be replaced with real screenshots from the completed application after the final demo data is approved.
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of inventory dashboard here.}}
-\caption{Inventory dashboard}
-\label{fig:inventory-dashboard}
+\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the dashboard page showing stock and finance summary cards.}}
+\caption{Dashboard page}
+\label{fig:dashboard-page}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of inventory control page showing stock rows and reorder information.}}
-\caption{Inventory control page}
-\label{fig:inventory-control-page}
+\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the inventory page showing stock rows, filters, and reorder information.}}
+\caption{Inventory page}
+\label{fig:inventory-page}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of product form with unit conversions and product picture support.}}
+\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the product form showing product details, unit conversions, and product picture support.}}
 \caption{Product management form}
 \label{fig:product-management-form}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of purchase form or purchase history showing receiving statuses.}}
+\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the purchase workflow showing purchase items and receiving status.}}
 \caption{Purchase workflow}
 \label{fig:purchase-workflow}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of sales form showing delivery statuses and stock allocation.}}
+\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the sales workflow showing delivery status and stock allocation.}}
 \caption{Sales workflow}
 \label{fig:sales-workflow}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of quotation entry page.}}
-\caption{Quotation entry}
-\label{fig:quotation-entry}
+\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the quotation page showing quotation items and supplier options.}}
+\caption{Quotation workflow}
+\label{fig:quotation-workflow}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of billing note eligible sales or billing note detail.}}
+\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the billing note page showing eligible sales or billing note detail.}}
 \caption{Billing note workflow}
 \label{fig:billing-note-workflow}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of payment batch eligible purchases or payment batch detail.}}
+\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the payment batch page showing eligible purchases or payment batch detail.}}
 \caption{Payment batch workflow}
 \label{fig:payment-batch-workflow}
 \end{figure}
@@ -90,82 +109,108 @@ The following figures show the planned screenshot positions for the final report
 \begin{figure}[H]
 \centering
 \fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of a supported read-only assistant response, such as stock status or reference lookup.}}
-\caption{Read-only inventory assistant}
+\caption{AI inventory assistant}
 \label{fig:ai-inventory-assistant}
 \end{figure}
 
-\section{Feature Results}
+\section{Results by Workflow}
 \subsection{Master Data Results}
-The system implements master data screens and backend endpoints for categories, products, suppliers, and customers. Categories support parent-child relationships. Products support product display IDs, SKUs, previous SKUs, names, sub-names, unit settings, category references, reorder levels, active status, pictures, unit conversion rows, and product supplier links. Supplier and customer records store company names, locations, emails, telephone numbers, taxpayer IDs, branches, shipping addresses, remarks, and payment term information.
+The master data pages were completed for products, categories, suppliers, and customers. Products can store SKUs, previous SKUs, names, categories, stock base units, default purchase and sales units, reorder levels, pictures, supplier links, and active status. Categories support hierarchy through parent categories. Suppliers and customers store contact, branch, shipping address, taxpayer, remark, and payment term information.
 
-The implemented design separates master records from transaction records while preserving transaction snapshot fields. This allows historical purchases, sales, and quotations to remain readable even if a product, supplier, or customer is later edited.
+This result is important because the transaction pages depend on these records. Purchases need suppliers and products. Sales need customers and products. Quotations can use products, suppliers, and customers. The master data pages therefore work as the foundation of the system.
 
-\subsection{Purchase Results}
-The purchase module implements purchase headers, purchase line items, receiving status, expected delivery date, received date, document upload, VAT mode, bill discount, totals, and payable total. The backend automatically recalculates payable totals so cancelled purchase lines are excluded from the amount still owed to the supplier.
+\subsection{Purchasing and Stock Results}
+The purchase workflow was completed with purchase headers, purchase line items, item receiving status, expected delivery date, received date, uploaded documents, VAT fields, discounts, grand total, and payable total. A received purchase item increases available stock, while pending and cancelled purchase items do not.
 
-Purchase status behavior is derived from purchase item statuses. Received purchase items increase available stock. Pending and cancelled purchase items do not increase stock. The backend also synchronizes product-supplier sourcing links from received or active purchase data.
+The stock result is calculated by the backend. The inventory and dashboard pages show current stock, pending purchase units, delayed purchase units, pending sales units, recommended restock, stock value, and supplier options. This makes the inventory page useful for daily checking because the user does not need to manually combine purchase and sales records.
 
 \subsection{Sales Results}
-The sales module implements customer sales transactions, line items, delivery status tracking, document upload, VAT mode, bill discount, totals, customer purchase-order reference, billing note links, credit note links, and source quotation links. Sales line items support pending, packed, shipped, delivered, cancelled, and returned statuses.
+The sales workflow was completed with sale headers, customer information, customer purchase order reference, sale line items, delivery statuses, uploaded documents, VAT fields, discounts, billing note links, credit note links, and source quotation links.
 
-Server-side stock validation prevents a sale from committing more product quantity than available received stock. When a sale item reaches a stock-deducting status, the backend creates stock allocations from available purchase layers. If the user does not supply manual allocations, the backend uses FIFO allocation. If manual allocations are supplied, they must match the sale quantity exactly and must reference valid received stock layers.
+The most important result in the sales module is server-side stock validation. A sale can stay as a draft even if there is not enough stock, but it cannot commit unavailable stock when the sale item becomes packed, shipped, or delivered. When stock is committed, the backend creates allocation records from received purchase layers. This gives better traceability between stock received from suppliers and stock sold to customers.
 
 \subsection{Quotation Results}
-The quotation module implements quotation headers, validity dates, validity duration modes, customer and supplier links, shipping date, payment terms, VAT mode, total values, and line items. The database stores quotation lines in the normalized \texttt{QuotationItem} table, and supplier choices for quotation items are stored in \texttt{QuotationItemSupplier}. The API still exposes an \texttt{items} array to keep the frontend interface simple.
+The quotation workflow was completed with quotation date, validity settings, customer and supplier references, shipping date, payment terms, VAT mode, total values, line items, and supplier options for each line. Quotation lines are stored in relational tables, not as one large JSON field. The frontend can also start purchase or sale creation from a quotation.
 
 \subsection{Finance Results}
-The finance workflow consists of billing notes, payment batches, and credit notes. Billing notes group eligible sales for customer receivable tracking. Payment batches group eligible purchases for supplier payable tracking. Credit notes reduce customer balances for sale items that are cancelled or returned.
+The finance workflow was completed through billing notes, payment batches, and credit notes. Billing notes group eligible sales for customer receivables. Payment batches group eligible purchases for supplier payables. Credit notes are created from eligible cancelled or returned sale items.
 
-The backend provides eligibility endpoints to ensure that only valid transactions can be selected. For example, active billing note lines prevent the same sale from being selected again for another active billing note. Active payment batch lines prevent the same purchase from being selected again for another active payment batch.
+The backend eligibility endpoints are one of the useful results of this implementation. They reduce the chance of selecting the same sale into multiple active billing notes, selecting the same purchase into multiple active payment batches, or crediting the same returned/cancelled sale item more than once.
 
-\subsection{Dashboard and Assistant Results}
-The dashboard backend provides overall and segmented operational summaries. These include stock report rows, finance information, product movement, trends, cashflow, and order coverage. The assistant uses backend data for a limited set of read-only text queries: stock and fulfillment, customer or supplier summaries, receivable and payable exceptions, and reference or line-item lookup. It is not implemented as a general-purpose chatbot and does not create or modify records.
+\subsection{Dashboard and Inventory Results}
+The dashboard and inventory pages show the business status without loading every transaction into the frontend. The backend prepares stock report rows, finance summaries, cashflow buckets, product movement, popular products, and order coverage data. This result makes the interface faster and easier to use because the frontend receives summary data that is already prepared for display.
 
-\section{Implemented Features Table}
+\subsection{AI Assistant Results}
+The AI assistant was implemented as a limited read-only assistant. It can answer supported questions about low stock, restock scope, net position, order coverage, customer summary, supplier summary, overdue or exception issues, and line items for a known reference. The tests also show that questions outside these supported workflows are rejected as outside the current assistant scope.
+
+\section{Feature Evidence Summary}
 \begin{table}[H]
 	\centering
-	\caption{Implemented Feature Summary}
-	\label{tab:implemented-feature-summary}
-	\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+	\small
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{4pt}
+	\caption{Evidence of Implemented Features}
+	\label{tab:feature-evidence-summary}
+	\begin{tabularx}{\textwidth}{|p{3.7cm}|X|}
 		\hline
-		\textbf{Feature} & \textbf{Evidence from Implementation} \\ \hline
-		REST API communication & Frontend API client calls backend endpoints for dashboard, lookups, products, purchases, sales, quotations, billing notes, payment batches, credit notes, auth, and chat. \\ \hline
-		JWT authentication & Backend exposes login, refresh, and authenticated profile endpoints; frontend stores and refreshes tokens. \\ \hline
-		Opt-in pagination & Backend pagination returns paginated shape only when page parameters are supplied. \\ \hline
-		Stock validation & Sale serializer calls backend stock issue detection before committing stock-deducting sale statuses. \\ \hline
-		FIFO allocation & Backend service creates sale item allocations from oldest available received purchase layers. \\ \hline
-		Manual allocation & Sale item payloads may include allocation requests, which are validated against stock layers. \\ \hline
-		Eligibility filtering & Backend eligibility endpoints return valid sales for billing notes, valid purchases for payment batches, and valid sale lines for credit notes. \\ \hline
-		Normalized quotations & Quotation API exposes items while database stores quotation lines and supplier options in relational tables. \\ \hline
-		Assistant & Chat endpoint builds compact backend context and returns text responses for supported read-only operational questions. \\ \hline
+		\textbf{Feature} & \textbf{Evidence in the Implemented System} \\ \hline
+		REST API communication & The frontend API client calls endpoints for dashboard, lookups, products, purchases, sales, quotations, billing notes, payment batches, credit notes, authentication, and chat. \\ \hline
+		JWT authentication support & The backend provides login, refresh, and profile endpoints, and the frontend stores and refreshes access tokens. \\ \hline
+		Backend stock validation & The sale workflow calls backend validation before stock-deducting sale statuses are committed. \\ \hline
+		FIFO and manual allocation & The backend creates sale allocations from received purchase layers and validates manual layer selections. \\ \hline
+		Finance eligibility & Backend endpoints return only eligible sales for billing notes, eligible purchases for payment batches, and eligible sale lines for credit notes. \\ \hline
+		Normalized quotation items & Quotation lines and supplier options are stored in relational tables while the API still returns a simple \texttt{items} array to the frontend. \\ \hline
+		Backend dashboard summaries & The dashboard and inventory pages use backend-prepared summary data instead of calculating all operational metrics from full transaction lists in the browser. \\ \hline
+		Assistant scope control & The chat service answers only supported read-only workflows and rejects unsupported requests as outside scope. \\ \hline
 	\end{tabularx}
 \end{table}
 
-\section{Key Findings from the Implementation}
-The implementation shows that a trading-focused inventory system requires tight coordination between purchases and sales. Stock cannot be treated as a manually edited product field because stock availability depends on received purchase items and committed sales. The backend service layer is therefore essential for accurate inventory behavior.
+\section{Key Findings}
+The first key finding is that inventory stock should be derived from transactions, not typed manually into the product record. In this system, stock depends on received purchase items and committed sales. This makes stock more reliable because it follows the actual business documents.
 
-Another key finding is that eligibility endpoints simplify finance workflows. Billing notes and payment batches depend on transaction status and prior selection. Moving this logic to the backend reduces the risk of duplicate billing or duplicate supplier payment grouping.
+The second key finding is that finance documents need backend eligibility rules. Billing notes, payment batches, and credit notes are easy to duplicate by mistake if the frontend is the only place checking them. Moving the rules to the backend makes the workflow safer.
 
-The implementation also shows the importance of historical snapshots. Although products, suppliers, and customers are relational master records, transaction records keep names, SKUs, prices, and totals so that business documents remain readable after master data changes.
+The third key finding is that historical snapshot fields are useful. Even when products, suppliers, and customers are stored as master data, old transactions still need to keep names, SKUs, prices, and totals so that the document remains understandable later.
 
 \section{Discussion of Objective Achievement}
-The first objective was to record purchase and sales transactions with status tracking and document attachment support. This objective is met by the purchase and sales modules, which include transaction headers, line items, status fields, file upload handling, and document reference behavior.
+The first objective was to record purchase and sales transactions with process status and attachment support. This objective is achieved because purchases and sales both support line items, statuses, document uploads, and transaction detail views.
 
-The second objective was to provide inventory visibility. This objective is met through backend-derived stock calculations, product metrics, stock layers, product history, inventory pages, reorder levels, and dashboard stock summaries. However, formulas such as EOQ, Z-score, and complete P-system calculations were not identified in the current codebase and should be treated as future work unless implemented later.
+The second objective was to provide inventory stock information and calculation support. This objective is achieved through backend stock calculations, inventory page stock rows, dashboard summaries, product history, stock layers, reorder information, and recommended restock values.
 
-The third objective was to integrate an AI chatbot connected to backend data. This objective is met within the current implemented scope by the chat endpoint and frontend chat panel. The assistant answers only supported read-only text questions from backend context: stock and fulfillment, partner summaries, receivable and payable exceptions, and reference or line-item lookup.
+The third objective was to integrate an AI chatbot connected to backend data. This objective is achieved within the current implemented scope. The assistant can answer supported read-only operational questions from backend data, but it is not a general-purpose chatbot and it does not change system records.
+
+\section{User Survey Evaluation}
+At the current stage, the user survey evaluation has not been conducted because no users have evaluated the software yet. This section is kept as a placeholder for the final blackbook after real users or classmates have tested the system.
+
+\begin{table}[H]
+	\centering
+	\small
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{4pt}
+	\caption{User Survey Evaluation Placeholder}
+	\label{tab:user-survey-placeholder}
+	\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+		\hline
+		\textbf{Evaluation Item} & \textbf{Result} \\ \hline
+		Number of participants & TODO: Insert number of users who evaluated the system. \\ \hline
+		User group & TODO: Insert participant type, such as students, SME staff, or project reviewers. \\ \hline
+		Evaluation method & TODO: Insert survey method, rating scale, and evaluation questions. \\ \hline
+		Average score & TODO: Insert average usability or satisfaction score after the survey is completed. \\ \hline
+		User comments & TODO: Insert summarized feedback from users. \\ \hline
+	\end{tabularx}
+\end{table}
+
+% TODO: Replace this placeholder with real user survey results after users evaluate the software.
 
 \section{Limitations Found During Development}
-The implementation has several limitations that should be considered in the final evaluation:
+The system is functional, but some limitations remain:
 
 \begin{itemize}
-	\item The codebase includes backend tests, but final executed test logs and measured test results must still be inserted into the report.
-	\item The system supports JWT authentication, but backend-wide authentication is configurable and may be disabled in local development.
-	\item The frontend includes guest and mock-data behavior for demonstration, so final evaluation should distinguish between mock data and backend-connected behavior.
-	\item The codebase does not show confirmed implementation of EOQ, Z-score, or full P-system inventory formulas.
-	\item High-volume concurrent-user testing and live production performance evaluation were not identified in the repository.
-	\item A dedicated audit-log model for every document status change was not identified.
-	\item Screenshot evidence still needs to be inserted and verified.
+	\item Final screenshots still need to be inserted into the report.
+	\item User survey results are currently placeholders because no users have evaluated the software yet.
+	\item Backend-wide authentication is configurable, so the final deployment setting must be checked before production use.
+	\item The frontend still keeps mock-data fallback behavior for demonstration, so final evaluation should use backend-connected data.
+	\item Large-scale production performance testing with many users and a very large database was not completed in the current codebase.
 \end{itemize}
 
-% TODO: Insert final experiment results, user testing observations, performance measurements, and approved screenshots if they become available.
+% TODO: Insert final experiment results, user survey results, performance notes, and approved screenshots if they become available.
