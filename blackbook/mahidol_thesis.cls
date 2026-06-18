@@ -470,8 +470,6 @@ E-MAIL \> \csname thesis#2AuthorEmail\endcsname
 }
 {
     \\[1\baselineskip]
-    \textbf{KEYWORDS} :\thesisKeywords
-    \\[1\baselineskip]
     \pageref{lastpage}~Pages\\
     \clearpage    
 }
