@@ -6,8 +6,8 @@
 \contentsline {chapter}{ABSTRACT (THAI)}{iv}{}%
 \contentsline {chapter}{ABSTRACT (ENGLISH)}{v}{}%
 \contentsline {chapter}{CONTENTS}{vii}{}%
-\contentsline {chapter}{LIST OF TABLES}{ix}{}%
-\contentsline {chapter}{LIST OF FIGURES}{x}{}%
+\contentsline {chapter}{LIST OF TABLES}{x}{}%
+\contentsline {chapter}{LIST OF FIGURES}{xi}{}%
 \contentsline {chapter}{\numberline {1}INTRODUCTION}{1}{}%
 \contentsline {section}{\numberline {1.1}Background}{1}{}%
 \contentsline {section}{\numberline {1.2}Objective}{2}{}%
@@ -18,39 +18,66 @@
 \contentsline {section}{\numberline {2.1}A Full-Stack Web Solution for Online FMCG Management System Using MERN: Design, Implementation, and Evaluation \cite {paper_1}}{5}{}%
 \contentsline {section}{\numberline {2.2}Essentials of Inventory Management \cite {paper_2}}{6}{}%
 \contentsline {section}{\numberline {2.3}Aisha: A Custom AI Library Chatbot Using the ChatGPT API \cite {paper_3}}{6}{}%
-\contentsline {chapter}{\numberline {3}METHODOLOGY}{8}{}%
-\contentsline {section}{\numberline {3.1}System Development Approach}{8}{}%
-\contentsline {section}{\numberline {3.2}Requirement Analysis}{8}{}%
-\contentsline {section}{\numberline {3.3}System Architecture}{9}{}%
-\contentsline {section}{\numberline {3.4}Frontend Methodology}{11}{}%
-\contentsline {section}{\numberline {3.5}Backend Methodology}{11}{}%
-\contentsline {section}{\numberline {3.6}Database Design Methodology}{12}{}%
-\contentsline {section}{\numberline {3.7}API Design}{12}{}%
-\contentsline {section}{\numberline {3.8}Business Workflow Design}{13}{}%
-\contentsline {section}{\numberline {3.9}Validation and Security Design}{14}{}%
-\contentsline {section}{\numberline {3.10}Testing Methodology}{15}{}%
-\contentsline {section}{\numberline {3.11}Tools and Technologies Used}{16}{}%
-\contentsline {chapter}{\numberline {4}RESULTS}{17}{}%
-\contentsline {section}{\numberline {4.1}Main System Features}{17}{}%
-\contentsline {section}{\numberline {4.2}Screenshot Placeholders}{19}{}%
-\contentsline {section}{\numberline {4.3}Feature Results}{20}{}%
-\contentsline {subsection}{\numberline {4.3.1}Master Data Results}{20}{}%
-\contentsline {subsection}{\numberline {4.3.2}Purchase Results}{20}{}%
-\contentsline {subsection}{\numberline {4.3.3}Sales Results}{21}{}%
-\contentsline {subsection}{\numberline {4.3.4}Quotation Results}{21}{}%
-\contentsline {subsection}{\numberline {4.3.5}Finance Results}{21}{}%
-\contentsline {subsection}{\numberline {4.3.6}Dashboard and Assistant Results}{22}{}%
-\contentsline {section}{\numberline {4.4}Implemented Features Table}{23}{}%
-\contentsline {section}{\numberline {4.5}Key Findings from the Implementation}{23}{}%
-\contentsline {section}{\numberline {4.6}Discussion of Objective Achievement}{24}{}%
-\contentsline {section}{\numberline {4.7}Limitations Found During Development}{24}{}%
-\contentsline {chapter}{\numberline {5}CONCLUSION}{26}{}%
-\contentsline {section}{\numberline {5.1}Brief Project Overview}{26}{}%
-\contentsline {section}{\numberline {5.2}Objective Summary}{26}{}%
-\contentsline {section}{\numberline {5.3}System Design Summary}{26}{}%
-\contentsline {section}{\numberline {5.4}Implementation Summary}{27}{}%
-\contentsline {section}{\numberline {5.5}Result Summary}{27}{}%
-\contentsline {section}{\numberline {5.6}Key Findings}{28}{}%
-\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{28}{}%
-\contentsline {section}{\numberline {5.8}Future Work}{29}{}%
-\contentsline {chapter}{REFERENCES}{30}{}%
+\contentsline {chapter}{\numberline {3}METHODOLOGY}{7}{}%
+\contentsline {section}{\numberline {3.1}Development Approach}{7}{}%
+\contentsline {section}{\numberline {3.2}Requirement Areas and Web-App Pages}{8}{}%
+\contentsline {section}{\numberline {3.3}Development of Each Page}{10}{}%
+\contentsline {subsection}{\numberline {3.3.1}Dashboard Page}{10}{}%
+\contentsline {subsection}{\numberline {3.3.2}Inventory Page}{10}{}%
+\contentsline {subsection}{\numberline {3.3.3}AI Chat Page}{10}{}%
+\contentsline {subsection}{\numberline {3.3.4}Purchases Page}{10}{}%
+\contentsline {subsection}{\numberline {3.3.5}Payment Batches Page}{11}{}%
+\contentsline {subsection}{\numberline {3.3.6}Quotation Page}{11}{}%
+\contentsline {subsection}{\numberline {3.3.7}Sales Page}{11}{}%
+\contentsline {subsection}{\numberline {3.3.8}Billing Notes Page}{12}{}%
+\contentsline {subsection}{\numberline {3.3.9}Credit Notes Page}{12}{}%
+\contentsline {subsection}{\numberline {3.3.10}Products Page}{12}{}%
+\contentsline {subsection}{\numberline {3.3.11}Categories Page}{12}{}%
+\contentsline {subsection}{\numberline {3.3.12}Supplier Page}{13}{}%
+\contentsline {subsection}{\numberline {3.3.13}Customer Page}{13}{}%
+\contentsline {subsection}{\numberline {3.3.14}Login and Settings Support}{13}{}%
+\contentsline {section}{\numberline {3.4}System Architecture}{13}{}%
+\contentsline {section}{\numberline {3.5}Frontend Methodology}{14}{}%
+\contentsline {section}{\numberline {3.6}Backend and API Methodology}{15}{}%
+\contentsline {section}{\numberline {3.7}Database Design Methodology}{16}{}%
+\contentsline {section}{\numberline {3.8}Business Workflow Design}{17}{}%
+\contentsline {section}{\numberline {3.9}Business Calculations and Rules}{18}{}%
+\contentsline {subsection}{\numberline {3.9.1}Unit Conversion and Line Amounts}{18}{}%
+\contentsline {subsection}{\numberline {3.9.2}VAT Calculation}{19}{}%
+\contentsline {subsection}{\numberline {3.9.3}Current Stock}{20}{}%
+\contentsline {subsection}{\numberline {3.9.4}Stock Validation and Allocation}{20}{}%
+\contentsline {subsection}{\numberline {3.9.5}Inventory Dashboard Calculations}{21}{}%
+\contentsline {subsection}{\numberline {3.9.6}Purchase Payable and Payment Batch Calculations}{22}{}%
+\contentsline {subsection}{\numberline {3.9.7}Billing Note and Credit Note Calculations}{22}{}%
+\contentsline {subsection}{\numberline {3.9.8}Cashflow and Net Position}{23}{}%
+\contentsline {subsection}{\numberline {3.9.9}Quotation Validity}{23}{}%
+\contentsline {section}{\numberline {3.10}Validation and Security Design}{23}{}%
+\contentsline {section}{\numberline {3.11}Testing Methodology}{23}{}%
+\contentsline {section}{\numberline {3.12}Tools and Technologies Used}{25}{}%
+\contentsline {chapter}{\numberline {4}RESULTS}{26}{}%
+\contentsline {section}{\numberline {4.1}Completed System Overview}{26}{}%
+\contentsline {section}{\numberline {4.2}Implemented Modules}{27}{}%
+\contentsline {section}{\numberline {4.3}Screenshot Placeholders}{28}{}%
+\contentsline {section}{\numberline {4.4}Results by Workflow}{29}{}%
+\contentsline {subsection}{\numberline {4.4.1}Master Data Results}{29}{}%
+\contentsline {subsection}{\numberline {4.4.2}Purchasing and Stock Results}{30}{}%
+\contentsline {subsection}{\numberline {4.4.3}Sales Results}{30}{}%
+\contentsline {subsection}{\numberline {4.4.4}Quotation Results}{30}{}%
+\contentsline {subsection}{\numberline {4.4.5}Finance Results}{31}{}%
+\contentsline {subsection}{\numberline {4.4.6}Dashboard and Inventory Results}{31}{}%
+\contentsline {subsection}{\numberline {4.4.7}AI Assistant Results}{31}{}%
+\contentsline {section}{\numberline {4.5}Feature Evidence Summary}{32}{}%
+\contentsline {section}{\numberline {4.6}Key Findings}{32}{}%
+\contentsline {section}{\numberline {4.7}Discussion of Objective Achievement}{33}{}%
+\contentsline {section}{\numberline {4.8}User Survey Evaluation}{33}{}%
+\contentsline {section}{\numberline {4.9}Limitations Found During Development}{34}{}%
+\contentsline {chapter}{\numberline {5}CONCLUSION}{35}{}%
+\contentsline {section}{\numberline {5.1}Brief Project Overview}{35}{}%
+\contentsline {section}{\numberline {5.2}Objective Summary}{35}{}%
+\contentsline {section}{\numberline {5.3}System Design Summary}{35}{}%
+\contentsline {section}{\numberline {5.4}Implementation Summary}{36}{}%
+\contentsline {section}{\numberline {5.5}Result Summary}{36}{}%
+\contentsline {section}{\numberline {5.6}Key Findings}{37}{}%
+\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{37}{}%
+\contentsline {section}{\numberline {5.8}Future Work}{37}{}%
+\contentsline {chapter}{REFERENCES}{39}{}%
