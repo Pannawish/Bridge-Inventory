@@ -1,9 +1,11 @@
 \chapter{INTRODUCTION}
 
 \section{Background}
-Small and medium-sized trading businesses often operate as intermediaries between suppliers and customers. Their daily operations depend on purchasing goods from suppliers, receiving stock, selling goods to customers, preparing business documents, and monitoring the margin between purchase cost and sales revenue. In such businesses, inventory management is not only a matter of counting product quantities. It also requires the coordination of quotations, purchase orders, sales records, fulfillment status, receivables, payables, and stock availability.
+Small and medium-sized trading businesses usually work between suppliers and customers. In daily work, the business has to buy products from suppliers, receive stock, sell products to customers, prepare documents, and check whether the sales price still gives a reasonable margin. Because of this, inventory management is not only about counting how many products are left in the warehouse. It also involves quotations, purchase orders, sales records, delivery status, receivables, payables, and stock availability.
 
-Many small businesses still depend on spreadsheets, paper records, manual document folders, or general-purpose accounting tools. These methods may be workable for a small number of products, but they become difficult to control when the business must track multiple suppliers, product units, transaction statuses, cancelled lines, delayed purchases, customer billing, and supplier payments. Manual workflows also make it difficult to answer operational questions quickly, such as which products are low in stock, which sales can be billed, which purchases are ready for payment, or whether a sale can be fulfilled from available received stock.
+Many small businesses still use spreadsheets, paper records, shared folders, or general accounting tools to manage these tasks. This can work at the beginning, but it becomes harder when the business has more products, more suppliers, different product units, delayed purchases, cancelled items, customer billing, and supplier payments. It also becomes difficult to answer simple questions quickly, such as which products are low in stock, which sales can be billed, which purchases are ready for payment, or whether there is enough received stock to fulfill a sale.
+
+This project was created to bring those daily tasks into one web application. The Inventory Management System focuses on the main workflow of a trading business: managing master data, recording purchases and sales, checking stock, preparing quotations, tracking billing notes and payment batches, handling credit notes, viewing dashboard summaries, and asking limited read-only questions through the AI assistant.
 
 \section{Objective}
 % TODO: The project authors provided this objective section. Review and adjust the final wording if the project scope changes.
@@ -14,22 +16,22 @@ Many small businesses still depend on spreadsheets, paper records, manual docume
 \end{enumerate}
 
 \section{Scope}
-The scope of this project is limited to the implemented Inventory Management System codebase. The system covers the following functional areas:
+The scope of this project is based on the features that are already implemented in the Inventory Management System codebase. The system covers the following areas:
 
 \begin{enumerate}
-	\item \textbf{Master data management:} The system manages categories, products, suppliers, and customers. Products support SKUs, previous SKUs, product names, category links, unit conversions, reorder levels, active or disabled status, product pictures, and supplier-specific sourcing information.
+	\item \textbf{Master data management:} The system manages categories, products, suppliers, and customers. Product records include SKUs, previous SKUs, product names, categories, unit conversions, reorder levels, active or disabled status, product pictures, and supplier-specific sourcing information.
 	
-	\item \textbf{Purchasing workflow:} The system records purchase transactions, supplier information, purchase line items, expected delivery dates, received dates, item statuses, VAT totals, bill discounts, supplier tax invoice references, uploaded documents, and payable totals. Purchase status and purchase item status are synchronized by backend logic.
+	\item \textbf{Purchasing workflow:} The system records purchase transactions, supplier information, purchase line items, expected delivery dates, received dates, item statuses, VAT totals, bill discounts, supplier tax invoice references, uploaded documents, and payable totals. The backend keeps purchase status and purchase item status in sync.
 	
-	\item \textbf{Sales workflow:} The system records sales transactions, customer information, customer purchase-order references, line items, delivery statuses, uploaded documents, VAT totals, discounts, billing-note links, credit-note links, and source quotation links. Stock is validated on the server before a sale can move into a stock-deducting status.
+	\item \textbf{Sales workflow:} The system records sales transactions, customer information, customer purchase-order references, line items, delivery statuses, uploaded documents, VAT totals, discounts, billing-note links, credit-note links, and source quotation links. The backend checks stock before a sale can move into a stock-deducting status.
 	
-	\item \textbf{Inventory and stock control:} Available stock is derived from received purchase quantities minus committed sale quantities. Sale allocations use received purchase layers and support first-in, first-out allocation logic. The inventory workspace and dashboard show stock position, reorder information, demand, purchase pipeline, stock value, and product history.
+	\item \textbf{Inventory and stock control:} Available stock is calculated from received purchase quantities minus committed sale quantities. Sale allocations use received purchase layers and support first-in, first-out allocation. The inventory page and dashboard show stock position, reorder information, demand, purchase pipeline, stock value, and product history.
 	
-	\item \textbf{Quotation workflow:} The system stores quotations with customer and supplier references, quotation validity information, shipping date, payment term, VAT mode, total amounts, normalized line items, and supplier options for quotation items. Quotations can be linked to derived purchases and sales.
+	\item \textbf{Quotation workflow:} The system stores quotations with customer and supplier references, validity information, shipping date, payment term, VAT mode, total amounts, line items, and supplier options. Quotations can also be linked to purchases and sales created from them.
 	
-	\item \textbf{Finance workflow:} The system supports billing notes for customer receivables, payment batches for supplier payables, and credit notes for cancelled or returned sales lines. Eligibility endpoints prevent users from selecting transactions that should not be included in these finance documents.
+	\item \textbf{Finance workflow:} The system supports billing notes for customer receivables, payment batches for supplier payables, and credit notes for cancelled or returned sales lines. Backend eligibility endpoints prevent users from selecting invalid transactions for these finance documents.
 	
-	\item \textbf{Dashboard and reporting:} The backend provides dashboard summary and segment endpoints for operational summaries such as finance, trends, product movement, cashflow, and order coverage.
+	\item \textbf{Dashboard and reporting:} The backend provides dashboard summary and segment endpoints for finance, trends, product movement, cashflow, and order coverage.
 	
 	\item \textbf{Authentication and access flow:} The backend includes JWT login, refresh, and authenticated user profile endpoints. The frontend supports login, token refresh, logout, and guest mode. Backend-wide authentication enforcement is controlled by the \texttt{INVENTORY\_REQUIRE\_AUTH} setting.
 	
@@ -37,9 +39,9 @@ The scope of this project is limited to the implemented Inventory Management Sys
 \end{enumerate}
 
 \section{Expected Results}
-The expected result of this project is a functional web-based inventory management system that can record purchase and sales transactions, track the status of each process, and link supporting documents directly to their corresponding transactions. The system is expected to provide an up-to-date view of stock levels based on received purchase quantities and committed sale quantities, together with clear traceability between products, suppliers, customers, purchases, sales, quotations, billing notes, payment batches, and credit notes.
+The expected result of this project is a working web-based inventory management system that can record purchases and sales, track the status of each process, and attach supporting documents to the correct transaction. The system should also show stock levels based on received purchases and committed sales, so users can understand where the stock comes from and where it is used.
 
-The system is also expected to improve operational accessibility by providing dashboard summaries and a limited AI-assisted text interface. Users should be able to retrieve supported information such as product stock, selected transaction references, receivables, payables, partner summaries, and stock exceptions without manually searching every module. Overall, the completed system is expected to reduce manual checking, improve stock visibility, and support better day-to-day decision making for an SME trading business.
+The system is also expected to make daily checking easier through dashboard summaries and the limited AI-assisted text interface. Users should be able to find supported information such as product stock, transaction references, receivables, payables, partner summaries, and stock exceptions without manually searching every page. Overall, the completed system should reduce manual checking, improve stock visibility, and support better daily decisions for an SME trading business.
 
 \section{Timeline}
 \newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
