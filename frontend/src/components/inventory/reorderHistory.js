@@ -42,9 +42,16 @@ export function toDate(value) {
   return Number.isFinite(d.getTime()) ? d : null;
 }
 
+// Local YYYY-MM-DD. Must use local components (NOT toISOString, which is UTC) so
+// it round-trips with toDate's local parsing — otherwise east-of-UTC locales
+// shift every history point back a day and open a gap before "Today".
 export function dayKey(date) {
   const d = toDate(date);
-  return d ? d.toISOString().slice(0, 10) : "";
+  if (!d) return "";
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  return `${y}-${mo}-${da}`;
 }
 
 export function startOfToday() {
@@ -150,12 +157,31 @@ export function buildRecentStockHistory({ productId, purchases, sales, currentSt
   return buildStockHistory({ productId, purchases, sales, currentStock, fromDate });
 }
 
-// Sales lines for one product inside a timeframe window, plus the velocity
-// (units/day) that drives the projection. Mirrors the old buildSalesActivity
-// shape so the detail table can render it directly.
-export function collectProductSales({ productId, sales = [], windowDays = null, today = startOfToday() }) {
+// Resolve a [from, to] window from explicit dates or a trailing `windowDays`
+// count. Explicit `from`/`to` (used by the interactive viewport) win; otherwise
+// `windowDays` rolls back from `today`; otherwise the range is open (all time).
+function resolveRange({ from, to, windowDays, today }) {
+  const rangeTo = toDate(to) || today;
+  let rangeFrom = toDate(from);
+  if (!rangeFrom && windowDays) {
+    rangeFrom = new Date(today.getTime() - (windowDays - 1) * MS_PER_DAY);
+  }
+  return { rangeFrom, rangeTo };
+}
+
+// Sales lines for one product inside a date range (explicit `from`/`to`, or a
+// trailing `windowDays`), plus the velocity (units/day) over that range.
+// Mirrors the old buildSalesActivity shape so the detail table renders directly.
+export function collectProductSales({
+  productId,
+  sales = [],
+  windowDays = null,
+  from = null,
+  to = null,
+  today = startOfToday(),
+}) {
   const pid = `${productId}`;
-  const cutoff = windowDays ? new Date(today.getTime() - (windowDays - 1) * MS_PER_DAY) : null;
+  const { rangeFrom, rangeTo } = resolveRange({ from, to, windowDays, today });
 
   const entries = [];
   const orderIds = new Set();
@@ -171,7 +197,8 @@ export function collectProductSales({ productId, sales = [], windowDays = null, 
       if (status === "cancelled" || status === "returned") return;
       const date = toDate(sale.transaction_date);
       if (!date) return;
-      if (cutoff && date < cutoff) return;
+      if (rangeFrom && date < rangeFrom) return;
+      if (rangeTo && date > rangeTo) return;
       const qty = getItemBaseQuantity(item);
       if (!(qty > 0)) return;
       entries.push({
@@ -190,13 +217,13 @@ export function collectProductSales({ productId, sales = [], windowDays = null, 
 
   entries.sort((a, b) => String(b.date).localeCompare(String(a.date)));
 
-  // Velocity = units ÷ the days actually covered (earliest in-window sale →
-  // today), capped at the window length. This keeps the rate honest when the
-  // window is longer than the history we actually have (e.g. a 1Y window over
-  // 5 months of data divides by ~150 days, not 365).
+  // Velocity = units ÷ the days actually covered (earliest in-range sale → range
+  // end), capped at the range length, so the rate stays honest when the range is
+  // wider than the history it actually contains.
   let perDay = 0;
   if (entries.length && firstDate) {
-    const coverDays = Math.max(1, Math.min(windowDays || Infinity, daysBetween(firstDate, today) + 1));
+    const rangeDays = rangeFrom ? daysBetween(rangeFrom, rangeTo) + 1 : Infinity;
+    const coverDays = Math.max(1, Math.min(rangeDays, daysBetween(firstDate, rangeTo) + 1));
     perDay = totalUnits / coverDays;
   }
 
@@ -206,9 +233,16 @@ export function collectProductSales({ productId, sales = [], windowDays = null, 
 // Received purchase lines for one product inside a timeframe window — the
 // lead-time proof shown above the sales history. Each entry carries its
 // realised lead time (order date → received date).
-export function collectProductPurchases({ productId, purchases = [], windowDays = null, today = startOfToday() }) {
+export function collectProductPurchases({
+  productId,
+  purchases = [],
+  windowDays = null,
+  from = null,
+  to = null,
+  today = startOfToday(),
+}) {
   const pid = `${productId}`;
-  const cutoff = windowDays ? new Date(today.getTime() - (windowDays - 1) * MS_PER_DAY) : null;
+  const { rangeFrom, rangeTo } = resolveRange({ from, to, windowDays, today });
 
   const entries = [];
   const orderIds = new Set();
@@ -223,7 +257,8 @@ export function collectProductPurchases({ productId, purchases = [], windowDays 
       if (getStoredPurchaseItemStatus(item, purchase.status) !== "received") return;
       const recv = toDate(item.received_date || purchase.transaction_date);
       if (!recv) return;
-      if (cutoff && recv < cutoff) return;
+      if (rangeFrom && recv < rangeFrom) return;
+      if (rangeTo && recv > rangeTo) return;
       const qty = getItemBaseQuantity(item);
       if (!(qty > 0)) return;
       const ordered = toDate(purchase.transaction_date);

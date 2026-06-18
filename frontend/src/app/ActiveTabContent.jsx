@@ -123,6 +123,7 @@ function ActiveTabContent({
         paymentBatches={paymentBatches}
         sales={sales}
         purchases={purchases}
+        onLoadProductHistory={handleLoadProductHistory}
         onNavigate={onDashboardNavigate}
         focusProductId={dashboardIntent?.tab === "inventory" ? dashboardIntent.focusProductId : null}
         onIntentConsumed={onConsumeIntent}

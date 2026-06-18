@@ -13,6 +13,77 @@
 .rp-mini { width: 100%; height: 100%; min-height: 0; }
 .rp-mini .rp-svg { height: 100%; }
 
+/* Interactive "terminal" viewport chart (inventory detail). */
+.rp-viewport { position: relative; width: 100%; }
+.rp-vp-svg {
+  height: auto;
+  cursor: crosshair;
+  touch-action: none;          /* let drag pan instead of scrolling the page */
+  user-select: none;
+}
+.rp-vp-svg.is-dragging { cursor: grabbing; }
+.rp-vp-hint { margin: 6px 0 0; }
+
+/* Zoom / reset controls overlaid top-right of the canvas. */
+.rp-vp-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rp-vp-btn {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(15, 22, 50, 0.08);
+}
+.rp-vp-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Right-edge threshold labels — colour matches the calc cards below. */
+.rp-lab {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-anchor: end;
+  letter-spacing: 0.02em;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.rp-lab-rop { fill: var(--warning); }
+.rp-lab-ss { fill: var(--danger); }
+.rp-lab-peak { fill: var(--success); }
+
+/* Order-up-to / restock line + marker in green to match the "Restock" card. */
+.rp-vp-peak { stroke: var(--success); opacity: 0.7; }
+.rp-mark.rp-vp-restock { fill: var(--success); }
+
+/* Lead-time band (order placed → stock arrives). */
+.rp-lead-band { fill: var(--accent); opacity: 0.08; }
+.rp-lead-label {
+  fill: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+}
+
 /* Grid + axes */
 .rp-grid { stroke: var(--line); stroke-width: 1; opacity: 0.7; }
 .saw-axis { stroke: var(--line-strong); stroke-width: 1; }

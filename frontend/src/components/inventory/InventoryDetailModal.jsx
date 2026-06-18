@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { formatDate } from "../../format";
-import { ReorderProjectionFull } from "../charts/ReorderProjection";
+import { ReorderViewportChart, buildProjection } from "../charts/ReorderProjection";
 import {
   REORDER_WINDOWS,
   DEFAULT_REORDER_WINDOW,
@@ -10,8 +10,9 @@ import {
   collectProductSales,
   collectProductPurchases,
   startOfToday,
-  dayKey,
 } from "./reorderHistory";
+
+const MS_DAY = 86_400_000;
 import {
   num,
   formatUnits,
@@ -39,10 +40,36 @@ function CalcLine({ label, value, note, accent }) {
 // Product reorder-point detail — same modal chrome as the purchase/sale
 // TransactionDetailModal: reorder-point graph + the calculation beside it,
 // with the FIFO stock layers below.
-function InventoryDetailModal({ row, health, sales = [], purchases = [], onClose }) {
+function InventoryDetailModal({ row, health, sales = [], purchases = [], onLoadProductHistory, onClose }) {
   const { t } = useLanguage();
+  // `windowKey` highlights the active quick-range preset; it goes null once the
+  // user free-zooms/pans into a custom view. `viewport` ({from,to} epoch ms) is
+  // the single source of truth shared by the chart AND the calc cards below.
   const [windowKey, setWindowKey] = useState(DEFAULT_REORDER_WINDOW);
-  const window = getReorderWindow(windowKey);
+  const [viewport, setViewport] = useState(null);
+
+  // Load the full per-product purchase/sales history from the backend so the
+  // history tables are not limited to whatever page 1 of the purchase list
+  // happens to contain. Falls back to the passed-in prop arrays if the API
+  // is not wired up or the call fails.
+  const [loadedHistory, setLoadedHistory] = useState(null);
+  const loadingRef = useRef(false);
+  useEffect(() => {
+    if (!onLoadProductHistory || !row?.product_id || loadingRef.current) return;
+    loadingRef.current = true;
+    setLoadedHistory(null);
+    onLoadProductHistory(row.product_id)
+      .then((data) => {
+        if (data && (Array.isArray(data.purchases) || Array.isArray(data.sales))) {
+          setLoadedHistory(data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => { loadingRef.current = false; });
+  }, [row?.product_id, onLoadProductHistory]);
+
+  const effectivePurchases = loadedHistory?.purchases ?? purchases;
+  const effectiveSales = loadedHistory?.sales ?? sales;
 
   const unit = row.unit || "";
   const available = getAvailable(row);
@@ -53,28 +80,76 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onClose
   const leadTime = num(row.average_lead_time_days);
   const safety = num(row.safety_stock);
 
-  // The timeframe drives both the projection slope and the sales list below.
-  const productSales = useMemo(
-    () => collectProductSales({ productId: row.product_id, sales, windowDays: window.days }),
-    [sales, row.product_id, window.days]
+  // Projection model uses the CANONICAL daily demand (not the viewport), so the
+  // forecast line stays stable while panning/zooming — only the view moves.
+  const model = useMemo(
+    () => buildProjection({ current: available, reorder, safety, velocity: demand, leadTime, orderQty: buy }),
+    [available, reorder, safety, demand, leadTime, buy]
   );
-  const productPurchases = useMemo(
-    () => collectProductPurchases({ productId: row.product_id, purchases, windowDays: window.days }),
-    [purchases, row.product_id, window.days]
+
+  // How far right to extend a view: the full projection horizon + ~18% breathing
+  // room so the forecast tail (and the restock jump) isn't flush against the edge.
+  const futureSpanDays = model.hasDemand ? Math.max(Math.round(model.futureDays * 1.18), 10) : 16;
+
+  // Default view: trailing 3 months of history + the projection horizon.
+  const defaultViewport = useMemo(() => {
+    const tdy = startOfToday().getTime();
+    const days0 = getReorderWindow(DEFAULT_REORDER_WINDOW).days;
+    return { from: tdy - days0 * MS_DAY, to: tdy + futureSpanDays * MS_DAY };
+  }, [futureSpanDays]);
+
+  // Reset the view whenever the product changes.
+  useEffect(() => {
+    setViewport(defaultViewport);
+    setWindowKey(DEFAULT_REORDER_WINDOW);
+  }, [row.product_id, defaultViewport]);
+
+  const vp = viewport || defaultViewport;
+
+  // Free zoom/pan keeps the last-picked preset highlighted (the buttons act as
+  // quick "jump back to this range" anchors, not a mode the view exits).
+  const handleViewportChange = useCallback((from, to) => {
+    setViewport({ from, to });
+  }, []);
+
+  const applyPreset = useCallback(
+    (w) => {
+      const tdy = startOfToday().getTime();
+      setViewport({ from: tdy - w.days * MS_DAY, to: tdy + futureSpanDays * MS_DAY });
+      setWindowKey(w.key);
+    },
+    [futureSpanDays]
   );
-  const velocity = productSales.perDay;
-  const historyPoints = useMemo(() => {
-    const fromDate = window.days
-      ? dayKey(new Date(startOfToday().getTime() - window.days * 86_400_000))
-      : null;
-    return buildStockHistory({
-      productId: row.product_id,
-      purchases,
-      sales,
-      currentStock: available,
-      fromDate,
-    });
-  }, [purchases, sales, row.product_id, available, window.days]);
+
+  const handleReset = useCallback(
+    () => applyPreset(getReorderWindow(DEFAULT_REORDER_WINDOW)),
+    [applyPreset]
+  );
+
+  // Full reconstructed stock history; the chart clips it to the viewport.
+  const historyPoints = useMemo(
+    () =>
+      buildStockHistory({
+        productId: row.product_id,
+        purchases: effectivePurchases,
+        sales: effectiveSales,
+        currentStock: available,
+        fromDate: null,
+      }),
+    [effectivePurchases, effectiveSales, row.product_id, available]
+  );
+
+  // Calc cards + history tables reflect the PAST portion of the visible window.
+  const productSales = useMemo(() => {
+    const from = new Date(vp.from);
+    const to = new Date(Math.min(vp.to, startOfToday().getTime()));
+    return collectProductSales({ productId: row.product_id, sales: effectiveSales, from, to });
+  }, [effectiveSales, row.product_id, vp.from, vp.to]);
+  const productPurchases = useMemo(() => {
+    const from = new Date(vp.from);
+    const to = new Date(Math.min(vp.to, startOfToday().getTime()));
+    return collectProductPurchases({ productId: row.product_id, purchases: effectivePurchases, from, to });
+  }, [effectivePurchases, row.product_id, vp.from, vp.to]);
 
   return (
     <>
@@ -107,7 +182,7 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onClose
                   key={w.key}
                   type="button"
                   className={`rp-tf-btn${w.key === windowKey ? " is-active" : ""}`}
-                  onClick={() => setWindowKey(w.key)}
+                  onClick={() => applyPreset(w)}
                 >
                   {w.label}
                 </button>
@@ -115,14 +190,12 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onClose
             </div>
           </div>
           <div className="inv-graph-frame">
-            <ReorderProjectionFull
+            <ReorderViewportChart
               historyPoints={historyPoints}
-              current={available}
-              reorder={reorder}
-              safety={safety}
-              velocity={velocity > 0 ? velocity : demand}
-              leadTime={leadTime}
-              orderQty={buy}
+              model={model}
+              viewport={vp}
+              onViewportChange={handleViewportChange}
+              onReset={handleReset}
               unit={unit}
               tone={HEALTH_TONE[health] || "accent"}
             />
@@ -193,7 +266,6 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onClose
         <div className="inv-detail-block">
           <div className="inv-graph-head">
             <p className="inv-detail-heading">{t("inventory.purchaseHistory.title")}</p>
-            <span className="inv-sales-window">{window.label}</span>
           </div>
           {productPurchases.entries.length === 0 ? (
             <p className="empty-copy inv-layers-empty">{t("inventory.purchaseHistory.empty")}</p>
@@ -248,7 +320,6 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onClose
         <div className="inv-detail-block">
           <div className="inv-graph-head">
             <p className="inv-detail-heading">{t("inventory.salesActivity.title")}</p>
-            <span className="inv-sales-window">{window.label}</span>
           </div>
           {productSales.entries.length === 0 ? (
             <p className="empty-copy inv-layers-empty">{t("inventory.salesActivity.empty")}</p>

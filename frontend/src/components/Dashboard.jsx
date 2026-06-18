@@ -241,12 +241,9 @@ function ReorderPlanningWidget({ rows, replenishCost, purchases, sales, onQuickO
               const tone = HEALTH_TONE[health] || "accent";
               const restock = num(row.recommended_restock);
               const safety = num(row.safety_stock);
-              const isOut = row._available <= 0 || num(row.oversold_units) > 0;
-              const etaLabel = isOut
-                ? t("dashboard.reorder.outNow")
-                : row._days != null
-                ? t("dashboard.reorder.coverLeft", { n: formatLocaleNumber(row._days) })
-                : "—";
+              const etaLabel = t("dashboard.reorder.onHand", {
+                qty: formatUnits(Math.max(0, num(row._available))),
+              });
               return (
                 <li className="dash-reorder-row" key={row.product_id || slot}>
                   <div className="dash-reorder-head">
