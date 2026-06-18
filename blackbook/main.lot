@@ -1,13 +1,14 @@
 \thispagestyle {front}
 {\noindent \bfseries Table}\hfill {\bfseries Page}\par 
 \contentsline {table}{\numberline {1.1}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Project Timeline}}{4}{}%
-\contentsline {table}{\numberline {3.1}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Requirement Areas and Implemented Pages}}{9}{}%
-\contentsline {table}{\numberline {3.2}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Architecture Components}}{14}{}%
-\contentsline {table}{\numberline {3.3}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Main API Endpoint Groups}}{16}{}%
-\contentsline {table}{\numberline {3.4}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Primary Database Model Groups}}{17}{}%
-\contentsline {table}{\numberline {3.5}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Testing Summary}}{24}{}%
-\contentsline {table}{\numberline {3.6}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Tools and Technologies}}{25}{}%
-\contentsline {table}{\numberline {4.1}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Implemented Workspace and Transaction Modules}}{27}{}%
-\contentsline {table}{\numberline {4.2}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Implemented Finance and Master Data Modules}}{28}{}%
-\contentsline {table}{\numberline {4.3}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Evidence of Implemented Features}}{32}{}%
-\contentsline {table}{\numberline {4.4}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces User Survey Evaluation Placeholder}}{34}{}%
+\contentsline {table}{\numberline {3.1}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Requirement Areas and Implemented Pages}}{8}{}%
+\contentsline {table}{\numberline {3.2}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Record and Support Page Scope}}{8}{}%
+\contentsline {table}{\numberline {3.3}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Architecture Components}}{13}{}%
+\contentsline {table}{\numberline {3.4}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Main API Endpoint Groups}}{14}{}%
+\contentsline {table}{\numberline {3.5}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Primary Database Model Groups}}{15}{}%
+\contentsline {table}{\numberline {3.6}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Testing Summary}}{22}{}%
+\contentsline {table}{\numberline {3.7}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Tools and Technologies}}{23}{}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Implemented Workspace and Transaction Modules}}{25}{}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Implemented Finance and Master Data Modules}}{26}{}%
+\contentsline {table}{\numberline {4.3}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces Evidence of Implemented Features}}{30}{}%
+\contentsline {table}{\numberline {4.4}{\ignorespaces \texorpdfstring {\xpg@aux {}{english}}{}\ignorespaces User Survey Evaluation Placeholder}}{32}{}%

@@ -18,29 +18,42 @@ This structure helped keep the user interface separate from the business rules. 
 \section{Requirement Areas and Web-App Pages}
 The web application is organized around the main work areas that a trading business needs each day. Each sidebar page has a specific purpose, and the pages are connected through shared product, supplier, customer, purchase, sale, and finance data.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\footnotesize
+	\renewcommand{\arraystretch}{1.1}
+	\setlength{\tabcolsep}{3pt}
 	\caption{Requirement Areas and Implemented Pages}
 	\label{tab:requirement-page-map}
-	\begin{tabularx}{\textwidth}{|p{3.1cm}|p{3.2cm}|X|}
+	\begin{tabularx}{\textwidth}{|p{3cm}|p{3cm}|X|}
 		\hline
 		\textbf{Requirement Area} & \textbf{Web-App Page} & \textbf{Purpose in the System} \\ \hline
-		Operation summary & Dashboard & Shows stock, finance, order coverage, trends, and movement summaries from backend data. \\ \hline
+		Operation summary & Dashboard & Shows stock, finance, cashflow, product movement, and order coverage summaries. \\ \hline
 		Inventory control & Inventory & Shows stock health, reorder information, supplier options, product details, and quick purchase-order preparation. \\ \hline
 		Assistant support & AI Chat & Answers supported read-only questions about stock, fulfillment, partners, AR/AP exceptions, and document references. \\ \hline
-		Purchasing & Purchases & Records purchase orders, purchase items, receiving status, documents, VAT totals, discounts, and payable values. \\ \hline
-		Supplier payment & Payment Batches & Groups eligible purchases into supplier payment batches and tracks paid or unpaid lines. \\ \hline
+		Purchasing & Purchases & Records purchase orders, line items, receiving status, documents, VAT totals, discounts, and payable values. \\ \hline
+		Supplier payment & Payment Batches & Groups eligible purchases for supplier payment and tracks paid or unpaid lines. \\ \hline
 		Quotation & Quotation & Prepares quotations with line items, supplier options, validity dates, and conversion to purchase or sale records. \\ \hline
-		Sales & Sales & Records customer sales, line items, stock allocation, delivery status, documents, VAT totals, and credit-note links. \\ \hline
+		Sales & Sales & Records customer sales, stock allocation, delivery status, documents, VAT totals, and credit-note links. \\ \hline
+	\end{tabularx}
+\end{table}
+
+\begin{table}[!htbp]
+	\centering
+	\footnotesize
+	\renewcommand{\arraystretch}{1.1}
+	\setlength{\tabcolsep}{3pt}
+	\caption{Record and Support Page Scope}
+	\label{tab:record-support-page-map}
+	\begin{tabularx}{\textwidth}{|p{3cm}|p{3cm}|X|}
+		\hline
+		\textbf{Requirement Area} & \textbf{Web-App Page} & \textbf{Purpose in the System} \\ \hline
 		Customer billing & Billing Notes & Groups eligible sales into customer billing notes and tracks received or outstanding lines. \\ \hline
 		Returns and cancellation adjustment & Credit Notes & Creates credit notes from eligible cancelled or returned sale items. \\ \hline
 		Product records & Products & Manages product details, SKUs, pictures, units, reorder levels, active status, suppliers, and history. \\ \hline
 		Category records & Categories & Manages product categories using a parent-child category tree. \\ \hline
-		Supplier records & Supplier & Manages supplier profile data, contact information, procurement contact, branches, shipping addresses, and terms. \\ \hline
-		Customer records & Customer & Manages customer profile data, contact information, branches, shipping addresses, and billing terms. \\ \hline
+		Supplier records & Supplier & Manages supplier profile, contact information, procurement contact, branches, shipping addresses, and terms. \\ \hline
+		Customer records & Customer & Manages customer profile, contact information, branches, shipping addresses, and billing terms. \\ \hline
 	\end{tabularx}
 \end{table}
 
@@ -107,24 +120,25 @@ The system uses a three-tier web architecture. React is responsible for the user
 	\node[databox] (mysql) at (0,-6.3) {MySQL Database};
 	\node[sidebox] (assistant) at (6.4,-6.3) {Read-only Assistant\\Supported Query Workflows};
 	
-	\draw[->, thick] (frontend) -- (api);
-	\draw[->, thick] (api) -- (services);
-	\draw[->, thick] (services) -- (mysql);
-	\draw[->, dashed, thick] (services.east) -- (assistant.west);
+	\draw[<->, thick] (frontend) -- (api);
+	\draw[<->, thick] (api) -- (services);
+	\draw[<->, thick] (services) -- (mysql);
+	\draw[<->, dashed, thick] (services.east) -- (assistant.west);
 \end{tikzpicture}
 }
+\vspace{1em}
 \caption{System architecture overview}
 \label{fig:system-architecture-overview}
 \end{figure}
 
 \begin{table}[H]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\footnotesize
+	\renewcommand{\arraystretch}{1.18}
+	\setlength{\tabcolsep}{3pt}
 	\caption{Architecture Components}
 	\label{tab:architecture-components}
-	\begin{tabularx}{\textwidth}{|p{3cm}|p{3cm}|X|}
+	\begin{tabularx}{\textwidth}{|p{3cm}|p{3.1cm}|X|}
 		\hline
 		\textbf{Layer} & \textbf{Implementation} & \textbf{Main Responsibility} \\ \hline
 		Frontend & React 18 and Vite & Builds the tabbed interface, forms, filters, tables, modals, and bilingual text display. \\ \hline
@@ -148,7 +162,7 @@ The backend was developed as a Django project with one main inventory applicatio
 \begin{table}[H]
 	\centering
 	\footnotesize
-	\renewcommand{\arraystretch}{1.25}
+	\renewcommand{\arraystretch}{1.18}
 	\setlength{\tabcolsep}{3pt}
 	\caption{Main API Endpoint Groups}
 	\label{tab:api-endpoint-groups}
@@ -200,18 +214,20 @@ Quotations are used before purchase or sales records are created. Billing notes 
 
 \begin{figure}[H]
 \centering
-\resizebox{0.92\textwidth}{!}{
+\resizebox{0.95\textwidth}{!}{
 \begin{tikzpicture}[
 	>=Stealth,
 	font=\scriptsize,
-	master/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=3.6cm, minimum height=0.95cm, fill=blue!12},
+	arrow/.style={->, thick, shorten >=2pt, shorten <=2pt},
+	dasharrow/.style={->, thick, dashed, shorten >=2pt, shorten <=2pt},
+	master/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=3.8cm, minimum height=0.95cm, fill=blue!12},
 	action/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.9cm, minimum height=0.85cm, fill=blue!18},
 	decision/.style={diamond, draw=black, thick, align=center, aspect=2.1, text width=2.2cm, inner sep=2pt, fill=yellow!25},
 	stock/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=2.9cm, minimum height=0.85cm, fill=magenta!12},
 	financeg/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.9cm, minimum height=0.85cm, fill=green!18},
-	financer/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.9cm, minimum height=0.85cm, fill=red!12},
-	report/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.9cm, minimum height=0.85cm, fill=cyan!14},
-	assistant/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.6cm, minimum height=0.85cm, fill=violet!12}
+	financer/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.8cm, minimum height=0.85cm, fill=red!12},
+	report/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=3.1cm, minimum height=0.85cm, fill=cyan!14},
+	assistant/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.7cm, minimum height=0.85cm, fill=violet!12}
 ]
 	\node[master] (master) at (0,0) {Master Data\\Categories / Products / Suppliers / Customers};
 	\node[action] (quotation) at (0,-1.9) {Quotation};
@@ -221,33 +237,35 @@ Quotations are used before purchase or sales records are created. Billing notes 
 	\node[action] (received) at (-4.3,-8.8) {Received Purchase Items};
 	\node[stock] (available) at (0,-8.8) {Available Stock};
 	\node[action] (fulfilled) at (4.3,-8.8) {Packed / Shipped /\\Delivered Sale Items};
-	\node[financeg] (billing) at (4.3,-11.0) {Billing Notes};
 	\node[financeg] (payment) at (-4.3,-11.0) {Payment Batches};
-	\node[financer] (credit) at (7.9,-11.0) {Credit Notes};
-	\node[report] (dashboard) at (0,-11.0) {Dashboard};
-	\node[assistant] (ai) at (0,-13.2) {AI Assistant};
+	\node[financeg] (billing) at (4.3,-11.0) {Billing Notes};
+	\node[financer] (credit) at (8.1,-11.0) {Credit Notes};
+	\node[report] (dashboard) at (0,-13.3) {Dashboard};
+	\node[assistant] (ai) at (0,-15.2) {AI Assistant};
+	\coordinate (dashpay) at ([xshift=-1.2cm]dashboard.north);
+	\coordinate (dashstock) at (dashboard.north);
+	\coordinate (dashbill) at ([xshift=1.2cm]dashboard.north);
+	\coordinate (dashcredit) at ([xshift=-0.25cm]dashboard.north east);
 	
-	\draw[->, thick] (master) -- (quotation);
-	\draw[->, thick] (master.south west) .. controls (-3.8,-1.2) and (-4.3,-4.6) .. (purchase.north);
-	\draw[->, thick] (master.south east) .. controls (3.8,-1.2) and (4.3,-4.6) .. (sale.north);
-	\draw[->, thick] (quotation) -- (check);
-	\draw[->, thick] (check.west) -- node[above, sloped]{Short stock} (purchase.north east);
-	\draw[->, thick] (check.east) -- node[above, sloped]{Enough stock} (sale.north west);
-	\draw[->, thick] (purchase) -- (received);
-	\draw[->, thick] (received.east) -- (available.west);
-	\draw[->, thick] (available.east) -- (sale.west);
-	\draw[->, thick] (sale) -- (fulfilled);
-	\draw[->, thick] (fulfilled) -- (billing);
-	\draw[->, thick] (purchase) -- (payment);
-	\draw[->, thick] (fulfilled.east) -- (credit.west);
-	\draw[->, thick] (received.south) -- ++(0,-0.45) -| (dashboard.west);
-	\draw[->, thick] (fulfilled.south) -- ++(0,-0.45) -| (dashboard.east);
-	\draw[->, thick] (billing.west) -- ++(-0.9,0) |- (dashboard.east);
-	\draw[->, thick] (payment.east) -- ++(0.9,0) |- (dashboard.west);
-	\draw[->, thick] (credit.south) -- ++(0,-0.45) -| (dashboard.east);
-	\draw[->, thick] (dashboard) -- (ai);
+	\draw[arrow] (master) -- (quotation);
+	\draw[arrow] (quotation) -- (check);
+	\draw[arrow] (check.west) -- ++(-1.0,0) |- node[pos=0.25, above]{Short stock} (purchase.north);
+	\draw[arrow] (check.east) -- ++(1.0,0) |- node[pos=0.25, above]{Enough stock} (sale.north);
+	\draw[arrow] (purchase) -- (received);
+	\draw[arrow] (received.east) -- (available.west);
+	\draw[arrow] (available.east) -- ++(0.8,0) |- (sale.west);
+	\draw[arrow] (sale) -- (fulfilled);
+	\draw[arrow] (received) -- (payment);
+	\draw[arrow] (fulfilled) -- (billing);
+	\draw[arrow] (fulfilled.east) -- ++(0.8,0) |- (credit.west);
+	\draw[dasharrow] (available.south) -- (dashstock);
+	\draw[dasharrow] (payment.south) -- ++(0,-0.45) -| (dashpay);
+	\draw[dasharrow] (billing.south) -- ++(0,-0.7) -| (dashbill);
+	\draw[dasharrow] (credit.south) -- ++(0,-0.95) -| (dashcredit);
+	\draw[arrow] (dashboard) -- (ai);
 \end{tikzpicture}
 }
+\vspace{1em}
 \caption{Business workflow design}
 \label{fig:business-workflow-design}
 \end{figure}
@@ -348,8 +366,13 @@ The backend stock report calculates several useful inventory values for the dash
 \]
 
 \[
-\text{Recommended Restock} =
-\max(0,\ \text{Reorder Level} + \text{Pending Sales} + \text{Oversold Units} - \text{Available Stock} - \text{Pending Purchases})
+\begin{aligned}
+\text{Recommended Restock}
+&= \max(0,\\
+&\quad \text{Reorder Level} + \text{Pending Sales}\\
+&\quad + \text{Oversold Units}\\
+&\quad - \text{Available Stock} - \text{Pending Purchases})
+\end{aligned}
 \]
 
 \[
@@ -431,12 +454,12 @@ Testing was focused on backend behavior because the backend owns the most import
 \section{Tools and Technologies Used}
 \begin{table}[H]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\footnotesize
+	\renewcommand{\arraystretch}{1.18}
+	\setlength{\tabcolsep}{3pt}
 	\caption{Tools and Technologies}
 	\label{tab:tools-technologies}
-	\begin{tabularx}{\textwidth}{|p{3.2cm}|p{3.5cm}|X|}
+	\begin{tabularx}{\textwidth}{|p{3cm}|p{3.4cm}|X|}
 		\hline
 		\textbf{Category} & \textbf{Tool or Technology} & \textbf{Use in This Project} \\ \hline
 		Frontend framework & React 18 & Builds the web application screens and reusable UI components. \\ \hline

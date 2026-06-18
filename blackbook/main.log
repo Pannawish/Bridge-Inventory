@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  18 JUN 2026 22:08
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  18 JUN 2026 22:45
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1304,12 +1304,6 @@ LaTeX Font Info:    Font shape `TU/THSarabun(0)/b/n' will be
 [4
 
 ] (abstractENG.tex)
-Underfull \hbox (badness 1087) in paragraph at lines 7--124
-[]\TU/TimesNewRoman(0)/m/n/12 The result is a functional web-based inventory ma
-nagement system that
- []
-
-
 Underfull \hbox (badness 10000) in paragraph at lines 7--124
 
  []
@@ -1360,18 +1354,18 @@ CHAPTER 1.
 
 [2]
 
-[3]
-
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10> not avail
 able
-(Font)              size <12> substituted on input line 54.
+(Font)              size <12> substituted on input line 52.
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <5> not availa
 ble
-(Font)              size <12> substituted on input line 59.
+(Font)              size <12> substituted on input line 57.
 
-) (chapter2.tex
+
+
+[3]) (chapter2.tex
 
 [4]
 CHAPTER 2.
@@ -1388,22 +1382,14 @@ CHAPTER 3.
 [7
 
 ]
-
-LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10.95> not av
-ailable
-(Font)              size <12> substituted on input line 23.
-
-
-Underfull \hbox (badness 1939) in paragraph at lines 44--44
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Answers supported read-only questions about
+Underfull \hbox (badness 1038) in paragraph at lines 57--57
+[]|\TU/TimesNewRoman(0)/m/n/10 Groups eligible sales into customer billing note
+s and
  []
 
 
 
 [8]
-Overfull \vbox (138.68274pt too high) has occurred while \output is active []
-
-
 
 [9]
 
@@ -1411,58 +1397,55 @@ Overfull \vbox (138.68274pt too high) has occurred while \output is active []
 
 [11]
 
+LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10.95> not av
+ailable
+(Font)              size <12> substituted on input line 128.
+
+
+
 [12]
 
 [13]
-Underfull \hbox (badness 10000) in paragraph at lines 135--135
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Django REST
+Underfull \hbox (badness 10000) in paragraph at lines 182--182
+[]|\TU/TimesNewRoman(0)/m/n/10 /api/products/, /api/
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 135--135
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Django service
+Underfull \hbox (badness 10000) in paragraph at lines 182--182
+[]|\TU/TimesNewRoman(0)/m/n/10 /api/suppliers/, /api/
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 135--135
-[]|\TU/TimesNewRoman(0)/m/n/10.95 MySQL with
+Underfull \hbox (badness 10000) in paragraph at lines 182--182
+[]|\TU/TimesNewRoman(0)/m/n/10 /api/billing-notes/, /api/
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 182--182
+\TU/TimesNewRoman(0)/m/n/10 payment-batches/, /api/
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 182--182
+[]|\TU/TimesNewRoman(0)/m/n/10 /api/dashboard/, /api/
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 182--182
+[]|\TU/TimesNewRoman(0)/m/n/10 /api/products/<id>/history/
+ []
+
+
+Underfull \hbox (badness 2772) in paragraph at lines 182--182
+[]|\TU/TimesNewRoman(0)/m/n/10 /api/auth/login/, /refresh/, /
  []
 
 
 
 [14]
-Underfull \hbox (badness 10000) in paragraph at lines 168--168
-[]|\TU/TimesNewRoman(0)/m/n/10 /api/products/, /api/
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 168--168
-[]|\TU/TimesNewRoman(0)/m/n/10 /api/suppliers/, /api/
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 168--168
-[]|\TU/TimesNewRoman(0)/m/n/10 /api/billing-notes/, /api/
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 168--168
-\TU/TimesNewRoman(0)/m/n/10 payment-batches/, /api/
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 168--168
-[]|\TU/TimesNewRoman(0)/m/n/10 /api/dashboard/, /api/
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 168--168
-[]|\TU/TimesNewRoman(0)/m/n/10 /api/products/<id>/history/
- []
-
-
-Underfull \hbox (badness 2772) in paragraph at lines 168--168
-[]|\TU/TimesNewRoman(0)/m/n/10 /api/auth/login/, /refresh/, /
+Underfull \hbox (badness 6842) in paragraph at lines 207--207
+[]|\TU/TimesNewRoman(0)/m/n/10.95 BillingNote, BillingNoteLine, PaymentBatch, P
+aymentBatchLine,
  []
 
 
@@ -1470,81 +1453,61 @@ Underfull \hbox (badness 2772) in paragraph at lines 168--168
 [15]
 
 [16]
-Underfull \hbox (badness 6842) in paragraph at lines 193--193
-[]|\TU/TimesNewRoman(0)/m/n/10.95 BillingNote, BillingNoteLine, PaymentBatch, P
-aymentBatchLine,
- []
-
-
 
 [17]
-
-[18]
-
-[19]
-Overfull \hbox (24.65022pt too wide) detected at line 308
+Overfull \hbox (24.65022pt too wide) detected at line 326
 [] \OT1/cmr/m/n/12 = [](0\OML/cmm/m/it/12 ; [] \OMS/cmsy/m/n/12 ^^@ []\OT1/cmr/
 m/n/12 )
  []
 
 
 
+[18]
+
+[19]
+
 [20]
-Overfull \hbox (166.57367pt too wide) detected at line 353
-[] \OT1/cmr/m/n/12 = [](0\OML/cmm/m/it/12 ;  [] \OT1/cmr/m/n/12 + [] + [] \OMS/
-cmsy/m/n/12 ^^@ [] ^^@ []\OT1/cmr/m/n/12 )
- []
-
-
 
 [21]
-
-[22]
-
-[23]
-Underfull \hbox (badness 10000) in paragraph at lines 426--426
+Underfull \hbox (badness 10000) in paragraph at lines 449--449
 []|\TU/TimesNewRoman(0)/m/n/10.95 Financial synchro-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 451--451
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Builds the web application screens and
+Underfull \hbox (badness 1147) in paragraph at lines 474--474
+[]|\TU/TimesNewRoman(0)/m/n/10 Runs the local development server and production
+
  []
 
 
-Underfull \hbox (badness 3780) in paragraph at lines 451--451
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Provides serializers, viewsets, API views,
+Underfull \hbox (badness 4621) in paragraph at lines 474--474
+[]|\TU/TimesNewRoman(0)/m/n/10 Django REST Frame-
  []
 
 
-Underfull \hbox (badness 2269) in paragraph at lines 451--451
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Supports read-only assistant answers when
- []
-
-
-Underfull \hbox (badness 1014) in paragraph at lines 451--451
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Django TestCase and
+Underfull \hbox (badness 10000) in paragraph at lines 474--474
+[]|\TU/TimesNewRoman(0)/m/n/10 Django TestCase and
  []
 
 ) (chapter4.tex
 
-[24]
+[22]
 
-[25]
+[23]
 CHAPTER 4.
 
 
-[26
+[24
 
 ]
+
+[25]
+
+[26]
 
 [27]
 
 [28]
-
-[29]
-
-[30]
 Underfull \hbox (badness 10000) in paragraph at lines 165--165
 []|\TU/TimesNewRoman(0)/m/n/10.95 JWT authentication
  []
@@ -1566,27 +1529,27 @@ Underfull \hbox (badness 10000) in paragraph at lines 165--165
 
 
 
-[31]
+[29]
+
+[30]
+
+[31]) (chapter5.tex
 
 [32]
-
-[33]) (chapter5.tex
-
-[34]
 CHAPTER 5.
 
 
-[35
+[33
 
 ]
 
-[36]
+[34]
 
-[37])
+[35])
 
-[38] (main.bbl)
+[36] (main.bbl)
 
-[39
+[37
 
 ] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
@@ -1602,12 +1565,12 @@ LaTeX Font Warning: Size substitutions with differences
 
  ) 
 Here is how much of TeX's memory you used:
- 24288 strings out of 402990
- 513665 string characters out of 5447323
- 1094734 words of memory out of 5000000
- 52553 multiletter control sequences out of 15000+600000
+ 24327 strings out of 402990
+ 514474 string characters out of 5447323
+ 1094483 words of memory out of 5000000
+ 52592 multiletter control sequences out of 15000+600000
  635046 words of font info for 112 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  88i,13n,107p,1356b,962s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (54 pages).
+Output written on main.pdf (52 pages).
