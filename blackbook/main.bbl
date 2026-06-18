@@ -1,9 +1,16 @@
-\begin{thebibliography}{3}
+\begin{thebibliography}{6}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Bishop(2008)]{bishop2008spreadsheet}
+K.~Bishop.
+\newblock {Qtier-Rapor}: Managing spreadsheet systems and improving corporate
+  performance, compliance and governance.
+\newblock arXiv:0803.0011, 2008.
+\newblock \url{https://arxiv.org/abs/0803.0011}.
 
 \bibitem[Lappalainen and Narayanan(2023)]{paper_3}
 K.~Lappalainen and S.~Narayanan.
@@ -23,5 +30,19 @@ H.~Mittal and M.~Arora.
 M.~Muller.
 \newblock \emph{Essentials of Inventory Management}.
 \newblock AMACOM, New York, NY, 2 edition, 2011.
+
+\bibitem[Office of Management and Budget(2022)]{naics_2022_wholesale_trade}
+Office of Management and Budget.
+\newblock \emph{North American Industry Classification System: United States,
+  2022}.
+\newblock Executive Office of the President, Office of Management and Budget,
+  2022.
+\newblock Sector 42, Wholesale Trade.
+
+\bibitem[The Times(2025)]{times_sage_sole_traders_2025}
+The Times.
+\newblock Sole traders still not prepared for digital tax returns in April.
+\newblock Published 1 December 2025. Reports Sage research on sole traders' use
+  of spreadsheets, bank statements, and pen-and-paper accounting.
 
 \end{thebibliography}
