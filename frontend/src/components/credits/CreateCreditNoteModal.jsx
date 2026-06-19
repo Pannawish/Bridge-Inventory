@@ -196,6 +196,11 @@ function CreateCreditNoteModal({
                 </option>
               ))}
             </select>
+            {customerName && billingNoteOptions.length === 0 ? (
+              <span className="field-helper-text">
+                {t("creditNote.noAvailableBillingNotes")}
+              </span>
+            ) : null}
           </label>
 
           <label className="full-width">

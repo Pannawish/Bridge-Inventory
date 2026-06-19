@@ -6,7 +6,7 @@ import DocumentRefModal from "../DocumentRefModal";
 import { printTransactionDocument } from "../documentRefs/printTransactionDocument";
 import CreditNoteStatusPill from "./CreditNoteStatusPill";
 
-function CreditNoteDetailModal({ creditNote, onClose, onEdit, onDelete }) {
+function CreditNoteDetailModal({ creditNote, onClose, onEdit, onLinkBillingNote, onDelete }) {
   const { t } = useLanguage();
   const [docRefModal, setDocRefModal] = useState(null);
 
@@ -35,6 +35,18 @@ function CreditNoteDetailModal({ creditNote, onClose, onEdit, onDelete }) {
                 }}
               >
                 {t("common.edit")}
+              </button>
+            ) : null}
+            {creditNote.status !== "cancelled" ? (
+              <button
+                type="button"
+                className="secondary-button table-action-button"
+                onClick={() => {
+                  onLinkBillingNote?.(creditNote);
+                  onClose();
+                }}
+              >
+                {t("creditNote.linkBillingNoteAction")}
               </button>
             ) : null}
             <button

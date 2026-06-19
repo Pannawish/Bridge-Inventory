@@ -108,6 +108,11 @@ function CreditNoteEditForm({ creditNote, billingNotes = [], onCancel, onSave })
                 />
               ) : null}
             </div>
+            {billingNoteOptions.length === 0 && !form.billing_note ? (
+              <span className="field-helper-text">
+                {t("creditNote.noAvailableBillingNotes")}
+              </span>
+            ) : null}
           </label>
 
           <label>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { api } from "../api";
 import BillingNoteDetailModal from "./billing/BillingNoteDetailModal";
 import BillingNoteDirectorySection from "./billing/BillingNoteDirectorySection";
 import BillingNoteEditForm from "./billing/BillingNoteEditForm";
@@ -7,9 +8,20 @@ import { getToday } from "./billing/billingNoteUtils";
 import { useBillingNoteDirectoryFilters } from "../hooks/useBillingNoteDirectoryFilters";
 import { useLanguage } from "../i18n/LanguageContext";
 
+function filterLinkableCreditNotes(creditNotes, billingNote) {
+  const customerName = billingNote?.customer_name || "";
+  return (creditNotes || []).filter(
+    (note) =>
+      note.customer_name === customerName &&
+      note.status !== "cancelled" &&
+      !note.billing_note
+  );
+}
+
 function BillingNotePage({
   billingNotes = [],
   allBillingNotes = billingNotes,
+  creditNotes = [],
   sales = [],
   summary: serverSummary = null,
   nextReferenceNo = "",
@@ -18,6 +30,8 @@ function BillingNotePage({
   onCreateBillingNote,
   onUpdateBillingNote,
   onDeleteBillingNote,
+  onUpdateCreditNote,
+  usingMockCreditNotes = false,
   focusId = null,
   onIntentConsumed,
 }) {
@@ -25,6 +39,9 @@ function BillingNotePage({
   const [creating, setCreating] = useState(false);
   const [activeBillingNote, setActiveBillingNote] = useState(null);
   const [editingBillingNote, setEditingBillingNote] = useState(null);
+  const [availableCreditNotes, setAvailableCreditNotes] = useState([]);
+  const [availableCreditNotesLoading, setAvailableCreditNotesLoading] = useState(false);
+  const [availableCreditNotesError, setAvailableCreditNotesError] = useState("");
   const {
     searchTerm,
     setSearchTerm,
@@ -96,6 +113,82 @@ function BillingNotePage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, allBillingNotes]);
 
+  useEffect(() => {
+    if (!activeBillingNote) {
+      return;
+    }
+    const nextActiveBillingNote = (Array.isArray(allBillingNotes) ? allBillingNotes : []).find(
+      (note) => `${note.id}` === `${activeBillingNote.id}`
+    );
+    if (nextActiveBillingNote && nextActiveBillingNote !== activeBillingNote) {
+      setActiveBillingNote(nextActiveBillingNote);
+    }
+  }, [activeBillingNote, allBillingNotes]);
+
+  useEffect(() => {
+    if (!activeBillingNote) {
+      setAvailableCreditNotes([]);
+      setAvailableCreditNotesError("");
+      setAvailableCreditNotesLoading(false);
+      return;
+    }
+
+    if (usingMockCreditNotes) {
+      setAvailableCreditNotes(filterLinkableCreditNotes(creditNotes, activeBillingNote));
+      setAvailableCreditNotesError("");
+      setAvailableCreditNotesLoading(false);
+      return;
+    }
+
+    let ignore = false;
+
+    async function loadAvailableCreditNotes() {
+      setAvailableCreditNotesLoading(true);
+      setAvailableCreditNotesError("");
+
+      try {
+        let currentPage = 1;
+        let totalPages = 1;
+        const rows = [];
+
+        do {
+          const response = await api.getCreditNotes({
+            customer: activeBillingNote.customer_name || "",
+            page: currentPage,
+            page_size: 100,
+          });
+          const batch = Array.isArray(response?.results)
+            ? response.results
+            : Array.isArray(response)
+              ? response
+              : [];
+          rows.push(...batch);
+          totalPages = Math.max(1, Number(response?.total_pages) || 1);
+          currentPage += 1;
+        } while (currentPage <= totalPages);
+
+        if (!ignore) {
+          setAvailableCreditNotes(filterLinkableCreditNotes(rows, activeBillingNote));
+        }
+      } catch (requestError) {
+        if (!ignore) {
+          setAvailableCreditNotes([]);
+          setAvailableCreditNotesError(requestError.message || "");
+        }
+      } finally {
+        if (!ignore) {
+          setAvailableCreditNotesLoading(false);
+        }
+      }
+    }
+
+    loadAvailableCreditNotes();
+
+    return () => {
+      ignore = true;
+    };
+  }, [activeBillingNote, creditNotes, usingMockCreditNotes]);
+
   async function handleCreate(payload) {
     const saved = await onCreateBillingNote?.(payload);
     if (saved !== false) {
@@ -126,6 +219,38 @@ function BillingNotePage({
       setActiveBillingNote(null);
       setEditingBillingNote(null);
     }
+  }
+
+  async function handleLinkCreditNote(creditNote) {
+    if (!activeBillingNote) {
+      return false;
+    }
+
+    const saved = await onUpdateCreditNote?.({
+      ...creditNote,
+      billing_note: activeBillingNote.id,
+    });
+    if (saved === false) {
+      return false;
+    }
+
+    setAvailableCreditNotes((current) =>
+      current.filter((note) => `${note.id}` !== `${creditNote.id}`)
+    );
+    setActiveBillingNote((current) => {
+      if (!current) {
+        return current;
+      }
+      if ((current.credit_notes || []).some((note) => `${note.id}` === `${saved.id}`)) {
+        return current;
+      }
+      return {
+        ...current,
+        credit_notes: [...(current.credit_notes || []), saved],
+      };
+    });
+
+    return saved;
   }
 
   if (creating) {
@@ -200,10 +325,14 @@ function BillingNotePage({
         <BillingNoteDetailModal
           key={activeBillingNote.id}
           billingNote={activeBillingNote}
+          availableCreditNotes={availableCreditNotes}
+          availableCreditNotesLoading={availableCreditNotesLoading}
+          availableCreditNotesError={availableCreditNotesError}
           onClose={() => setActiveBillingNote(null)}
           onEdit={setEditingBillingNote}
           onSave={handleSaveLines}
           onDelete={handleDelete}
+          onLinkCreditNote={handleLinkCreditNote}
         />
       ) : null}
     </div>

@@ -53,6 +53,7 @@ function ActiveTabContent({
   creditNotePagination,
   creditNoteEligibleSales,
   creditNoteNextReferenceNo,
+  usingMockCreditNotes,
   usingMockPurchases,
   usingMockSales,
   loadSupplierPage,
@@ -208,6 +209,7 @@ function ActiveTabContent({
       <BillingNotePage
         billingNotes={billingNoteRows}
         allBillingNotes={billingNotes}
+        creditNotes={creditNotes}
         customers={customers}
         sales={billingNoteEligibleSales}
         summary={billingNoteSummary}
@@ -217,6 +219,8 @@ function ActiveTabContent({
         onCreateBillingNote={handleBillingNoteCreate}
         onUpdateBillingNote={handleBillingNoteUpdate}
         onDeleteBillingNote={handleBillingNoteDelete}
+        onUpdateCreditNote={handleCreditNoteUpdate}
+        usingMockCreditNotes={usingMockCreditNotes}
         focusId={dashboardIntent?.tab === "billing-notes" ? dashboardIntent.focusId : null}
         onIntentConsumed={onConsumeIntent}
       />

@@ -133,6 +133,11 @@ function CreditNotePage({
     }
   }
 
+  function handleLinkBillingNote(note) {
+    setActiveCreditNote(null);
+    setEditingCreditNote(note);
+  }
+
   if (creating) {
     return (
       <div className="stack-layout">
@@ -199,6 +204,7 @@ function CreditNotePage({
         isCompact={isCompact}
         activeCreditNote={activeCreditNote}
         onSelectCreditNote={setActiveCreditNote}
+        onLinkBillingNote={handleLinkBillingNote}
         onCreateCreditNote={() => setCreating(true)}
         renderListRef={renderListRef}
         onPageChange={handlePageChange}
@@ -210,6 +216,7 @@ function CreditNotePage({
           creditNote={activeCreditNote}
           onClose={() => setActiveCreditNote(null)}
           onEdit={setEditingCreditNote}
+          onLinkBillingNote={handleLinkBillingNote}
           onDelete={handleDelete}
         />
       ) : null}

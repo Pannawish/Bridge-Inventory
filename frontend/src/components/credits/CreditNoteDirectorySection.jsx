@@ -39,6 +39,7 @@ function CreditNoteDirectorySection({
   isCompact = false,
   activeCreditNote,
   onSelectCreditNote,
+  onLinkBillingNote,
   onCreateCreditNote,
   renderListRef,
   onPageChange,
@@ -229,13 +230,31 @@ function CreditNoteDirectorySection({
                       </td>
                       <td>{fmt(note.total_amount)}</td>
                       <td>
-                        <button
-                          className="table-action-button"
-                          type="button"
-                          onClick={() => onSelectCreditNote(note)}
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: 8,
+                            flexWrap: "wrap",
+                          }}
                         >
-                          {t("common.view")}
-                        </button>
+                          {note.status !== "cancelled" ? (
+                            <button
+                              className="secondary-button table-action-button"
+                              type="button"
+                              onClick={() => onLinkBillingNote?.(note)}
+                            >
+                              {t("creditNote.linkBillingNoteAction")}
+                            </button>
+                          ) : null}
+                          <button
+                            className="table-action-button"
+                            type="button"
+                            onClick={() => onSelectCreditNote(note)}
+                          >
+                            {t("common.view")}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -287,6 +306,15 @@ function CreditNoteDirectorySection({
                   >
                     {t("common.view")}
                   </button>
+                  {note.status !== "cancelled" ? (
+                    <button
+                      className="secondary-button table-action-button mobile-record-button"
+                      type="button"
+                      onClick={() => onLinkBillingNote?.(note)}
+                    >
+                      {t("creditNote.linkBillingNoteAction")}
+                    </button>
+                  ) : null}
                 </article>
               ))}
             </div>

@@ -1,19 +1,26 @@
+import { useState } from "react";
 import { formatDate, formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import DocumentRefChip from "../DocumentRefChip";
 import DocumentRefModal from "../DocumentRefModal";
 import { printTransactionDocument } from "../documentRefs/printTransactionDocument";
 import BillingNoteStatusPill from "./BillingNoteStatusPill";
+import CreditNoteStatusPill from "../credits/CreditNoteStatusPill";
 import useBillingNoteDetailState from "./useBillingNoteDetailState";
 
 function BillingNoteDetailModal({
   billingNote,
+  availableCreditNotes = [],
+  availableCreditNotesLoading = false,
+  availableCreditNotesError = "",
   onClose,
   onEdit,
   onSave,
   onDelete,
+  onLinkCreditNote,
 }) {
   const { t } = useLanguage();
+  const [linkingCreditNoteId, setLinkingCreditNoteId] = useState("");
   const {
     draft,
     docRefModal,
@@ -31,6 +38,15 @@ function BillingNoteDetailModal({
     handleCancelBillingNote,
     handleDelete,
   } = useBillingNoteDetailState({ billingNote, onSave, onDelete });
+
+  async function handleLinkCreditNote(creditNote) {
+    setLinkingCreditNoteId(creditNote.id);
+    try {
+      await onLinkCreditNote?.(creditNote);
+    } finally {
+      setLinkingCreditNoteId("");
+    }
+  }
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -243,74 +259,161 @@ function BillingNoteDetailModal({
           </div>
         </div>
 
+        <div className="line-items-header">
+          <div>
+            <p className="eyebrow">{t("billingNote.creditNotesEyebrow")}</p>
+            <h4>{t("billingNote.appliedCredits")}</h4>
+          </div>
+          <span>
+            {(draft.credit_notes || []).length > 0
+              ? t("billingNote.appliedCount", {
+                  count: (draft.credit_notes || []).length,
+                })
+              : t("billingNote.noAppliedCredits")}
+          </span>
+        </div>
+
         {(draft.credit_notes || []).length > 0 ? (
+          <div className="transaction-table-window">
+            <div className="table-scroll partner-line-scroll desktop-table">
+              <table className="transaction-history-table partner-line-table">
+                <thead>
+                  <tr>
+                    <th>{t("billingNote.colReference")}</th>
+                    <th>{t("billingNote.colIssued")}</th>
+                    <th>{t("billingNote.colStatus")}</th>
+                    <th>{t("billingNote.colAmount")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(draft.credit_notes || []).map((credit) => (
+                    <tr key={credit.id} className="partner-table-row">
+                      <td>
+                        <DocumentRefChip
+                          label={credit.reference_no || credit.id}
+                          docType="credit-note"
+                          onClick={() =>
+                            setDocRefModal({
+                              docType: "credit-note",
+                              docId: credit.id,
+                              referenceNo: credit.reference_no || credit.id,
+                            })
+                          }
+                        />
+                      </td>
+                      <td>{formatDate(credit.credit_note_date)}</td>
+                      <td>
+                        <CreditNoteStatusPill status={credit.status} />
+                      </td>
+                      <td>{fmt(credit.total_amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <p className="empty-copy">{t("billingNote.noAppliedCreditsHelp")}</p>
+        )}
+
+        {!isCancelled ? (
           <>
             <div className="line-items-header">
               <div>
                 <p className="eyebrow">{t("billingNote.creditNotesEyebrow")}</p>
-                <h4>{t("billingNote.appliedCredits")}</h4>
+                <h4>{t("billingNote.availableCreditsTitle")}</h4>
               </div>
               <span>
-                {t("billingNote.appliedCount", {
-                  count: (draft.credit_notes || []).length,
-                })}
+                {availableCreditNotesLoading
+                  ? t("common.loading")
+                  : t("billingNote.availableCreditsCount", {
+                      count: availableCreditNotes.length,
+                    })}
               </span>
             </div>
 
-            <div className="transaction-table-window">
-              <div className="table-scroll partner-line-scroll desktop-table">
-                <table className="transaction-history-table partner-line-table">
-                  <thead>
-                    <tr>
-                      <th>{t("billingNote.colReference")}</th>
-                      <th>{t("billingNote.colIssued")}</th>
-                      <th>{t("billingNote.colStatus")}</th>
-                      <th>{t("billingNote.colAmount")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(draft.credit_notes || []).map((credit) => (
-                      <tr key={credit.id} className="partner-table-row">
-                        <td>
-                          <DocumentRefChip
-                            label={credit.reference_no || credit.id}
-                            docType="credit-note"
-                            onClick={() =>
-                              setDocRefModal({
-                                docType: "credit-note",
-                                docId: credit.id,
-                                referenceNo: credit.reference_no || credit.id,
-                              })
-                            }
-                          />
-                        </td>
-                        <td>{formatDate(credit.credit_note_date)}</td>
-                        <td>
-                          <BillingNoteStatusPill status={credit.status} />
-                        </td>
-                        <td>{fmt(credit.total_amount)}</td>
+            {availableCreditNotesLoading ? (
+              <p className="empty-copy">{t("common.loading")}</p>
+            ) : availableCreditNotesError ? (
+              <p className="empty-copy">{t("billingNote.availableCreditsLoadError")}</p>
+            ) : availableCreditNotes.length === 0 ? (
+              <p className="empty-copy">{t("billingNote.noAvailableCreditNotes")}</p>
+            ) : (
+              <div className="transaction-table-window">
+                <div className="table-scroll partner-line-scroll desktop-table">
+                  <table className="transaction-history-table partner-line-table">
+                    <thead>
+                      <tr>
+                        <th>{t("billingNote.colReference")}</th>
+                        <th>{t("billingNote.colIssued")}</th>
+                        <th>{t("billingNote.colStatus")}</th>
+                        <th>{t("billingNote.colAmount")}</th>
+                        <th />
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {availableCreditNotes.map((credit) => {
+                        const isLinking = `${linkingCreditNoteId}` === `${credit.id}`;
+                        return (
+                          <tr key={credit.id} className="partner-table-row">
+                            <td>
+                              <DocumentRefChip
+                                label={credit.reference_no || credit.id}
+                                docType="credit-note"
+                                onClick={() =>
+                                  setDocRefModal({
+                                    docType: "credit-note",
+                                    docId: credit.id,
+                                    referenceNo: credit.reference_no || credit.id,
+                                  })
+                                }
+                              />
+                            </td>
+                            <td>{formatDate(credit.credit_note_date)}</td>
+                            <td>
+                              <CreditNoteStatusPill status={credit.status} />
+                            </td>
+                            <td>{fmt(credit.total_amount)}</td>
+                            <td>
+                              <button
+                                type="button"
+                                className="secondary-button table-action-button"
+                                disabled={isLinking}
+                                onClick={() => handleLinkCreditNote(credit)}
+                              >
+                                {isLinking
+                                  ? t("common.saving")
+                                  : t("billingNote.linkCreditNoteAction")}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-
-            <div className="sales-summary-card">
-              <div className="sales-summary-row">
-                <span>{t("billingNote.totalBilled")}</span>
-                <span>{fmt(draft.total_amount)}</span>
-              </div>
-              <div className="sales-summary-row">
-                <span>{t("billingNote.lessCredits")}</span>
-                <span>{fmt(creditTotal)}</span>
-              </div>
-              <div className="sales-summary-row sales-summary-grand">
-                <strong>{t("billingNote.netPayable")}</strong>
-                <strong>{fmt(netPayable)}</strong>
-              </div>
-            </div>
+            )}
           </>
+        ) : (
+          <p className="empty-copy">{t("billingNote.cancelledLinkingHint")}</p>
+        )}
+
+        {(draft.credit_notes || []).length > 0 ? (
+          <div className="sales-summary-card">
+            <div className="sales-summary-row">
+              <span>{t("billingNote.totalBilled")}</span>
+              <span>{fmt(draft.total_amount)}</span>
+            </div>
+            <div className="sales-summary-row">
+              <span>{t("billingNote.lessCredits")}</span>
+              <span>{fmt(creditTotal)}</span>
+            </div>
+            <div className="sales-summary-row sales-summary-grand">
+              <strong>{t("billingNote.netPayable")}</strong>
+              <strong>{fmt(netPayable)}</strong>
+            </div>
+          </div>
         ) : null}
 
         <div className="transaction-detail-footer">

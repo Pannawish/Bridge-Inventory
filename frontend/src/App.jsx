@@ -90,6 +90,7 @@ function App() {
           creditNotePagination={state.creditNotePagination}
           creditNoteEligibleSales={state.creditNoteEligibleSales}
           creditNoteNextReferenceNo={state.creditNoteNextReferenceNo}
+          usingMockCreditNotes={state.usingMockCreditNotes}
           usingMockPurchases={state.usingMockPurchases}
           usingMockSales={state.usingMockSales}
           loadSupplierPage={state.loadSupplierPage}
