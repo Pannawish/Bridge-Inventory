@@ -25,6 +25,7 @@ function PurchaseLineItemsSection({
   onUpdateItem,
   onUpdateProductQuery,
   onSetOpenProductIndex,
+  onProductBlur,
   onSelectProduct,
   onAddDiscount,
   onRemoveDiscount,
@@ -92,7 +93,10 @@ function PurchaseLineItemsSection({
                   onChange={(event) => onUpdateProductQuery(index, event.target.value)}
                   onFocus={() => onSetOpenProductIndex(index)}
                   onBlur={() => {
-                    window.setTimeout(() => onSetOpenProductIndex(null), 120);
+                    window.setTimeout(() => {
+                      onSetOpenProductIndex(null);
+                      onProductBlur(index);
+                    }, 120);
                   }}
                   placeholder={t("purchaseForm.searchProductPlaceholder")}
                   autoComplete="off"

@@ -124,6 +124,7 @@ function ProductsPage({
         allProducts={state.allProducts}
         isDirty={state.isDraftProductDirty}
         productFormError={state.productFormError}
+        productFieldErrors={state.productFieldErrors}
         categoryQuery={state.categoryQuery}
         categoryComboboxOpen={state.categoryComboboxOpen}
         productCategoryOptions={state.productCategoryOptions}
@@ -146,6 +147,7 @@ function ProductsPage({
         onCategoryQueryChange={state.handleCategoryQueryChange}
         onCategoryFocus={() => state.setCategoryComboboxOpen(true)}
         onCategoryBlur={state.handleCategoryBlur}
+        onValidateDraftField={state.validateDraftField}
         onSelectDraftCategory={state.selectDraftCategory}
         onGenerateSku={state.handleGenerateSku}
         onUnlockSkuChange={state.handleUnlockSkuChange}

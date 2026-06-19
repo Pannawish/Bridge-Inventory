@@ -7,9 +7,11 @@ function CustomerDeliverySection({
   draftCustomer,
   formErrors,
   onUpdateTextField,
+  onValidateTextField,
   onUpdateDraftCustomer,
   onUpdateOptionIndex,
   onUpdateOptionValue,
+  onValidateOptionField,
   onAddOption,
   onDeleteOption,
   onSetFormErrors,
@@ -45,6 +47,7 @@ function CustomerDeliverySection({
                 nextValue
               )
             }
+            onBlur={() => onValidateOptionField("shippingAddresses")}
             onAdd={() => onAddOption("shippingAddresses", "selectedShippingAddressIndex")}
             onDelete={() =>
               onDeleteOption("shippingAddresses", "selectedShippingAddressIndex")
@@ -58,6 +61,7 @@ function CustomerDeliverySection({
             rows="4"
             value={draftCustomer.remark}
             onChange={(event) => onUpdateTextField("remark", event.target.value)}
+            onBlur={() => onValidateTextField("remark")}
             placeholder={t("customer.remarkPlaceholder")}
           />
         </label>
@@ -89,6 +93,7 @@ function CustomerDeliverySection({
                     : "",
               }));
             }}
+            onBlur={() => onValidateTextField("termType")}
             aria-invalid={formErrors.termType ? "true" : undefined}
           >
             <option value="">{t("customer.selectPaymentTerm")}</option>
@@ -109,6 +114,7 @@ function CustomerDeliverySection({
               onChange={(event) =>
                 onUpdateTextField("billingNoteDate", event.target.value)
               }
+              onBlur={() => onValidateTextField("billingNoteDate")}
               aria-invalid={formErrors.billingNoteDate ? "true" : undefined}
             >
               <option value="">{t("customer.selectCreditTerm")}</option>

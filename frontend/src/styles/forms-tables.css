@@ -160,6 +160,22 @@ label textarea:focus,
   box-shadow: 0 0 0 4px rgba(113, 75, 103, 0.10);
 }
 
+label input[data-blurred="true"][aria-invalid="true"]:not(:focus),
+label select[data-blurred="true"][aria-invalid="true"]:not(:focus),
+label textarea[data-blurred="true"][aria-invalid="true"]:not(:focus),
+.line-item-row input[data-blurred="true"][aria-invalid="true"]:not(:focus),
+.line-item-row select[data-blurred="true"][aria-invalid="true"]:not(:focus),
+.supplier-option-edit-row input[data-blurred="true"][aria-invalid="true"]:not(:focus),
+label input[data-blurred="true"]:invalid:not(:focus),
+label select[data-blurred="true"]:invalid:not(:focus),
+label textarea[data-blurred="true"]:invalid:not(:focus),
+.line-item-row input[data-blurred="true"]:invalid:not(:focus),
+.line-item-row select[data-blurred="true"]:invalid:not(:focus),
+.supplier-option-edit-row input[data-blurred="true"]:invalid:not(:focus) {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 1px rgba(217, 75, 99, 0.12) !important;
+}
+
 .full-width {
   grid-column: 1 / -1;
 }

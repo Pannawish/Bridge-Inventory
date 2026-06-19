@@ -42,8 +42,10 @@ function SupplierPage({
     closeSupplierEditor,
     updateDraftSupplier,
     updateTextField,
+    validateTextField,
     updateOptionIndex,
     updateOptionValue,
+    validateOptionField,
     addOption,
     deleteOption,
     handleCreateSupplier,
@@ -101,9 +103,11 @@ function SupplierPage({
           onSave={handleSaveSupplier}
           onDelete={handleDeleteSupplier}
           onUpdateTextField={updateTextField}
+          onValidateTextField={validateTextField}
           onUpdateDraftSupplier={updateDraftSupplier}
           onUpdateOptionIndex={updateOptionIndex}
           onUpdateOptionValue={updateOptionValue}
+          onValidateOptionField={validateOptionField}
           onAddOption={addOption}
           onDeleteOption={deleteOption}
           onSetFormErrors={setFormErrors}

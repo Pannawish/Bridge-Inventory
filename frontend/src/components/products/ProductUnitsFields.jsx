@@ -2,7 +2,9 @@ import { useLanguage } from "../../i18n/LanguageContext";
 
 function ProductUnitsFields({
   draftProduct,
+  productFieldErrors,
   onUpdateDraftField,
+  onValidateDraftField,
   onAddDraftUnitConversion,
   onUpdateDraftUnitConversion,
   onToggleDraftUnitConversion,
@@ -26,8 +28,14 @@ function ProductUnitsFields({
           <input
             value={draftProduct.stockBaseUnit}
             onChange={(event) => onUpdateDraftField("stockBaseUnit", event.target.value)}
+            onBlur={() => onValidateDraftField("stockBaseUnit")}
             placeholder={t("products.baseStockUnitPlaceholder")}
+            required
+            aria-invalid={productFieldErrors.stockBaseUnit ? "true" : undefined}
           />
+          {productFieldErrors.stockBaseUnit ? (
+            <span className="field-error-text">{productFieldErrors.stockBaseUnit}</span>
+          ) : null}
         </label>
 
         <label>
@@ -35,8 +43,14 @@ function ProductUnitsFields({
           <input
             value={draftProduct.defaultPurchaseUnit}
             onChange={(event) => onUpdateDraftField("defaultPurchaseUnit", event.target.value)}
+            onBlur={() => onValidateDraftField("defaultPurchaseUnit")}
             placeholder={t("products.defaultPurchaseUnitPlaceholder")}
+            required
+            aria-invalid={productFieldErrors.defaultPurchaseUnit ? "true" : undefined}
           />
+          {productFieldErrors.defaultPurchaseUnit ? (
+            <span className="field-error-text">{productFieldErrors.defaultPurchaseUnit}</span>
+          ) : null}
         </label>
 
         <label>
@@ -44,8 +58,14 @@ function ProductUnitsFields({
           <input
             value={draftProduct.defaultSalesUnit}
             onChange={(event) => onUpdateDraftField("defaultSalesUnit", event.target.value)}
+            onBlur={() => onValidateDraftField("defaultSalesUnit")}
             placeholder={t("products.defaultSalesUnitPlaceholder")}
+            required
+            aria-invalid={productFieldErrors.defaultSalesUnit ? "true" : undefined}
           />
+          {productFieldErrors.defaultSalesUnit ? (
+            <span className="field-error-text">{productFieldErrors.defaultSalesUnit}</span>
+          ) : null}
         </label>
       </div>
 
@@ -70,6 +90,7 @@ function ProductUnitsFields({
                 value={conversion.unit}
                 onChange={(event) => onUpdateDraftUnitConversion(index, "unit", event.target.value)}
                 placeholder={t("products.unitPlaceholder")}
+                required
               />
             </label>
             <label>
@@ -83,6 +104,7 @@ function ProductUnitsFields({
                   onUpdateDraftUnitConversion(index, "factorToBase", event.target.value)
                 }
                 placeholder="1"
+                required
               />
             </label>
             <label className="unit-conversion-check">

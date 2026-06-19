@@ -5,6 +5,7 @@ import PurchaseFormTotalsSection from "./purchases/PurchaseFormTotalsSection";
 import { defaultSupplierOptions } from "./purchases/purchaseFormUtils";
 import usePurchaseFormState from "./purchases/usePurchaseFormState";
 import { useLanguage } from "../i18n/LanguageContext";
+import { markFieldBlurredOnBlurCapture } from "./formBlurValidation";
 
 function PurchaseForm({
   products = [],
@@ -54,6 +55,8 @@ function PurchaseForm({
     handleItemDrop,
     handleItemDragEnd,
     selectSupplier,
+    handleSupplierBlur,
+    handleProductBlur,
     handleSubmit,
   } = usePurchaseFormState({
     products,
@@ -77,7 +80,7 @@ function PurchaseForm({
         ) : null}
       </div>
 
-      <form className="form-layout" onSubmit={handleSubmit}>
+      <form className="form-layout" onSubmit={handleSubmit} onBlurCapture={markFieldBlurredOnBlurCapture}>
         <PurchaseFormDetailsSection
           form={form}
           nextReferenceNo={nextReferenceNo}
@@ -95,7 +98,10 @@ function PurchaseForm({
           }}
           onSupplierOpen={() => setSupplierOpen(true)}
           onSupplierClose={() => {
-            window.setTimeout(() => setSupplierOpen(false), 120);
+            window.setTimeout(() => {
+              setSupplierOpen(false);
+              handleSupplierBlur();
+            }, 120);
           }}
           onSelectSupplier={selectSupplier}
           onPaymentTermTypeChange={(value) => {
@@ -135,6 +141,7 @@ function PurchaseForm({
           onUpdateItem={updateItem}
           onUpdateProductQuery={updateProductQuery}
           onSetOpenProductIndex={setOpenProductIndex}
+          onProductBlur={handleProductBlur}
           onSelectProduct={selectProduct}
           onAddDiscount={addDiscount}
           onRemoveDiscount={removeDiscount}

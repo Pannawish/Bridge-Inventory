@@ -3,12 +3,14 @@ import { getTranslatedProductDisplayName } from "./productEditorHelpers";
 import ProductIdentityFields from "./ProductIdentityFields";
 import ProductMediaFields from "./ProductMediaFields";
 import ProductUnitsFields from "./ProductUnitsFields";
+import { markFieldBlurredOnBlurCapture } from "../formBlurValidation";
 
 function ProductEditorModal({
   draftProduct,
   allProducts,
   isDirty = false,
   productFormError,
+  productFieldErrors,
   categoryQuery,
   categoryComboboxOpen,
   productCategoryOptions,
@@ -31,6 +33,7 @@ function ProductEditorModal({
   onCategoryQueryChange,
   onCategoryFocus,
   onCategoryBlur,
+  onValidateDraftField,
   onSelectDraftCategory,
   onGenerateSku,
   onUnlockSkuChange,
@@ -88,6 +91,7 @@ function ProductEditorModal({
 
         <form
           className="form-layout"
+          onBlurCapture={markFieldBlurredOnBlurCapture}
           onSubmit={(event) => {
             event.preventDefault();
             onSave();
@@ -96,6 +100,7 @@ function ProductEditorModal({
           <div className="product-editor-layout">
             <ProductIdentityFields
               draftProduct={draftProduct}
+              productFieldErrors={productFieldErrors}
               categoryQuery={categoryQuery}
               categoryComboboxOpen={categoryComboboxOpen}
               productCategoryOptions={productCategoryOptions}
@@ -105,6 +110,7 @@ function ProductEditorModal({
               onCategoryQueryChange={onCategoryQueryChange}
               onCategoryFocus={onCategoryFocus}
               onCategoryBlur={onCategoryBlur}
+              onValidateDraftField={onValidateDraftField}
               onSelectDraftCategory={onSelectDraftCategory}
               onGenerateSku={onGenerateSku}
               onUnlockSkuChange={onUnlockSkuChange}
@@ -116,7 +122,9 @@ function ProductEditorModal({
 
             <ProductUnitsFields
               draftProduct={draftProduct}
+              productFieldErrors={productFieldErrors}
               onUpdateDraftField={onUpdateDraftField}
+              onValidateDraftField={onValidateDraftField}
               onAddDraftUnitConversion={onAddDraftUnitConversion}
               onUpdateDraftUnitConversion={onUpdateDraftUnitConversion}
               onToggleDraftUnitConversion={onToggleDraftUnitConversion}

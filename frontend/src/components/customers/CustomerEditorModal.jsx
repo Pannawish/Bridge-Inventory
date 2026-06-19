@@ -2,6 +2,7 @@ import { useLanguage } from "../../i18n/LanguageContext";
 import CustomerIdentitySection from "./CustomerIdentitySection";
 import CustomerContactSection from "./CustomerContactSection";
 import CustomerDeliverySection from "./CustomerDeliverySection";
+import { markFieldBlurredOnBlurCapture } from "../formBlurValidation";
 
 function CustomerEditorModal({
   draftCustomer,
@@ -11,9 +12,11 @@ function CustomerEditorModal({
   onSave,
   onDelete,
   onUpdateTextField,
+  onValidateTextField,
   onUpdateDraftCustomer,
   onUpdateOptionIndex,
   onUpdateOptionValue,
+  onValidateOptionField,
   onAddOption,
   onDeleteOption,
   onSetFormErrors,
@@ -48,6 +51,7 @@ function CustomerEditorModal({
         <form
           className="form-layout"
           noValidate
+          onBlurCapture={markFieldBlurredOnBlurCapture}
           onSubmit={(event) => {
             event.preventDefault();
             onSave();
@@ -58,8 +62,10 @@ function CustomerEditorModal({
               draftCustomer={draftCustomer}
               formErrors={formErrors}
               onUpdateTextField={onUpdateTextField}
+              onValidateTextField={onValidateTextField}
               onUpdateOptionIndex={onUpdateOptionIndex}
               onUpdateOptionValue={onUpdateOptionValue}
+              onValidateOptionField={onValidateOptionField}
               onAddOption={onAddOption}
               onDeleteOption={onDeleteOption}
             />
@@ -69,6 +75,7 @@ function CustomerEditorModal({
               formErrors={formErrors}
               onUpdateOptionIndex={onUpdateOptionIndex}
               onUpdateOptionValue={onUpdateOptionValue}
+              onValidateOptionField={onValidateOptionField}
               onAddOption={onAddOption}
               onDeleteOption={onDeleteOption}
             />
@@ -77,9 +84,11 @@ function CustomerEditorModal({
               draftCustomer={draftCustomer}
               formErrors={formErrors}
               onUpdateTextField={onUpdateTextField}
+              onValidateTextField={onValidateTextField}
               onUpdateDraftCustomer={onUpdateDraftCustomer}
               onUpdateOptionIndex={onUpdateOptionIndex}
               onUpdateOptionValue={onUpdateOptionValue}
+              onValidateOptionField={onValidateOptionField}
               onAddOption={onAddOption}
               onDeleteOption={onDeleteOption}
               onSetFormErrors={onSetFormErrors}

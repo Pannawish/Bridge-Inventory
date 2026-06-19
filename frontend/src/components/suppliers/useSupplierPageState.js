@@ -156,6 +156,13 @@ export function useSupplierPageState({
     }));
   }
 
+  function validateTextField(key) {
+    setFormErrors((currentErrors) => ({
+      ...currentErrors,
+      [key]: getSupplierTextFieldError(key, draftSupplier?.[key] || "", t),
+    }));
+  }
+
   function updateOptionIndex(indexKey, nextIndex) {
     updateDraftSupplier((supplier) => ({ ...supplier, [indexKey]: nextIndex }));
 
@@ -181,6 +188,17 @@ export function useSupplierPageState({
         [listKey]: getSupplierOptionError(listKey, nextValue, t),
       }));
     }
+  }
+
+  function validateOptionField(listKey) {
+    const indexKey = SUPPLIER_OPTION_INDEX_KEYS[listKey];
+    const selectedIndex = draftSupplier?.[indexKey] || 0;
+    const value = draftSupplier?.[listKey]?.[selectedIndex] || "";
+
+    setFormErrors((currentErrors) => ({
+      ...currentErrors,
+      [listKey]: getSupplierOptionError(listKey, value, t),
+    }));
   }
 
   function addOption(listKey, indexKey) {
@@ -335,8 +353,10 @@ export function useSupplierPageState({
     closeSupplierEditor,
     updateDraftSupplier,
     updateTextField,
+    validateTextField,
     updateOptionIndex,
     updateOptionValue,
+    validateOptionField,
     addOption,
     deleteOption,
     handleCreateSupplier,

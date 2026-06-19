@@ -2,6 +2,7 @@ import { useLanguage } from "../../i18n/LanguageContext";
 
 function ProductIdentityFields({
   draftProduct,
+  productFieldErrors,
   categoryQuery,
   categoryComboboxOpen,
   productCategoryOptions,
@@ -11,6 +12,7 @@ function ProductIdentityFields({
   onCategoryQueryChange,
   onCategoryFocus,
   onCategoryBlur,
+  onValidateDraftField,
   onSelectDraftCategory,
   onGenerateSku,
   onUnlockSkuChange,
@@ -38,8 +40,14 @@ function ProductIdentityFields({
             autoFocus
             value={draftProduct.productName}
             onChange={(event) => onUpdateDraftField("productName", event.target.value)}
+            onBlur={() => onValidateDraftField("productName")}
             placeholder={t("products.mainNamePlaceholder")}
+            required
+            aria-invalid={productFieldErrors.productName ? "true" : undefined}
           />
+          {productFieldErrors.productName ? (
+            <span className="field-error-text">{productFieldErrors.productName}</span>
+          ) : null}
         </label>
 
         <label className="supplier-combobox-field full-width">
@@ -59,6 +67,8 @@ function ProductIdentityFields({
               autoComplete="off"
               aria-expanded={categoryComboboxOpen}
               aria-controls="product-editor-category-list"
+              aria-invalid={productFieldErrors.categoryId ? "true" : undefined}
+              required
             />
 
             {categoryComboboxOpen ? (
@@ -95,6 +105,9 @@ function ProductIdentityFields({
               </div>
             ) : null}
           </div>
+          {productFieldErrors.categoryId ? (
+            <span className="field-error-text">{productFieldErrors.categoryId}</span>
+          ) : null}
         </label>
 
         <label className="supplier-option-field product-editor-wide-field">
@@ -107,11 +120,14 @@ function ProductIdentityFields({
                 if (!isSkuLocked) {
                   onUpdateDraftField("sku", `${draftProduct.sku ?? ""}`.trim());
                 }
+                onValidateDraftField("sku");
               }}
               inputMode="numeric"
               pattern="[0-9]*"
               placeholder={t("products.skuPlaceholder")}
               disabled={isSkuLocked}
+              required
+              aria-invalid={productFieldErrors.sku ? "true" : undefined}
             />
             <button
               className="secondary-button"
@@ -134,6 +150,9 @@ function ProductIdentityFields({
           <span className="field-helper-text">
             {isSkuLocked ? t("products.skuHelperLocked") : t("products.skuHelperUnlocked")}
           </span>
+          {productFieldErrors.sku ? (
+            <span className="field-error-text">{productFieldErrors.sku}</span>
+          ) : null}
         </label>
       </div>
 

@@ -38,6 +38,7 @@ function QuotationLineItemsSection({
   onUpdateItem,
   onUpdateProductQuery,
   onSetOpenProductIndex,
+  onProductBlur,
   onSelectProduct,
   onAddSupplierOption,
   onRemoveSupplierOption,
@@ -101,7 +102,10 @@ function QuotationLineItemsSection({
                   onChange={(event) => onUpdateProductQuery(index, event.target.value)}
                   onFocus={() => onSetOpenProductIndex(index)}
                   onBlur={() => {
-                    window.setTimeout(() => onSetOpenProductIndex(null), 120);
+                    window.setTimeout(() => {
+                      onSetOpenProductIndex(null);
+                      onProductBlur(index);
+                    }, 120);
                   }}
                   placeholder={t("quotation.searchProductPlaceholder")}
                   autoComplete="off"

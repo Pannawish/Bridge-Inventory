@@ -28,6 +28,7 @@ import {
   addDraftUnitConversionHelper,
   removeDraftUnitConversionHelper,
 } from "./productEditorStateHelpers";
+import { getProductFieldError } from "../components/products/productsPageHelpers";
 
 function useProductEditorState({
   allProducts,
@@ -41,6 +42,7 @@ function useProductEditorState({
   const [draftProduct, setDraftProduct] = useState(null);
   const [isDraftProductDirty, setIsDraftProductDirty] = useState(false);
   const [productFormError, setProductFormError] = useState("");
+  const [productFieldErrors, setProductFieldErrors] = useState({});
   const [skuChangeUnlocked, setSkuChangeUnlocked] = useState(false);
   const [categoryQuery, setCategoryQuery] = useState("");
   const [categoryComboboxOpen, setCategoryComboboxOpen] = useState(false);
@@ -107,12 +109,25 @@ function useProductEditorState({
     return `${baseSku}${serial}`;
   }
 
+  function getFieldValidationContext(nextDraft) {
+    const existingProduct = getExistingProduct(nextDraft);
+    return {
+      allProducts,
+      productCategoryOptions,
+      existingProduct,
+      existingProductHasHistory: getCachedProductHasTransactionHistory(existingProduct),
+      skuChangeUnlocked,
+      t,
+    };
+  }
+
   function openProductEditor(product) {
     const normalizedProduct = normalizeProduct(product);
     const categoryId = resolveProductCategoryId(product, categories);
 
     loadProductHistory(product);
     setProductFormError("");
+    setProductFieldErrors({});
     setSkuChangeUnlocked(false);
     setCategoryComboboxOpen(false);
     setCategoryQuery(getCategoryPathById(categories, categoryId));
@@ -126,6 +141,7 @@ function useProductEditorState({
   function closeProductEditor() {
     setDraftProduct(null);
     setProductFormError("");
+    setProductFieldErrors({});
     setSkuChangeUnlocked(false);
     setCategoryQuery("");
     setCategoryComboboxOpen(false);
@@ -133,10 +149,23 @@ function useProductEditorState({
   }
 
   function updateDraftField(key, value) {
+    let nextDraftSnapshot = draftProduct;
     setIsDraftProductDirty(true);
-    setDraftProduct((prev) =>
-      updateDraftFieldHelper(prev, key, value, allProducts, categories, generateStructuredSku)
-    );
+    setDraftProduct((prev) => {
+      nextDraftSnapshot = updateDraftFieldHelper(
+        prev,
+        key,
+        value,
+        allProducts,
+        categories,
+        generateStructuredSku
+      );
+      return nextDraftSnapshot;
+    });
+    setProductFieldErrors((currentErrors) => ({
+      ...currentErrors,
+      [key]: getProductFieldError(key, nextDraftSnapshot, getFieldValidationContext(nextDraftSnapshot)),
+    }));
     setProductFormError("");
   }
 
@@ -241,7 +270,22 @@ function useProductEditorState({
         productCategoryOptions.find((category) => category.id === draftProduct?.categoryId)
           ?.label || ""
       );
+      setProductFieldErrors((currentErrors) => ({
+        ...currentErrors,
+        categoryId: getProductFieldError(
+          "categoryId",
+          draftProduct,
+          getFieldValidationContext(draftProduct)
+        ),
+      }));
     }, 120);
+  }
+
+  function validateDraftField(key) {
+    setProductFieldErrors((currentErrors) => ({
+      ...currentErrors,
+      [key]: getProductFieldError(key, draftProduct, getFieldValidationContext(draftProduct)),
+    }));
   }
 
   function handleUnlockSkuChange() {
@@ -266,6 +310,7 @@ function useProductEditorState({
         : Math.max(...allProducts.map((product) => product.productDisplayId)) + 1;
 
     setProductFormError("");
+    setProductFieldErrors({});
     setSkuChangeUnlocked(false);
     setCategoryQuery("");
     setCategoryComboboxOpen(false);
@@ -284,6 +329,7 @@ function useProductEditorState({
     draftProduct,
     isDraftProductDirty,
     productFormError,
+    productFieldErrors,
     skuChangeUnlocked,
     categoryQuery,
     categoryComboboxOpen,
@@ -295,6 +341,7 @@ function useProductEditorState({
     selectedDraftPicture,
     setDraftProduct,
     setProductFormError,
+    setProductFieldErrors,
     setSkuChangeUnlocked,
     setCategoryComboboxOpen,
     getExistingProduct,
@@ -319,6 +366,7 @@ function useProductEditorState({
     selectDraftCategory,
     handleCategoryQueryChange,
     handleCategoryBlur,
+    validateDraftField,
     handleUnlockSkuChange,
     handleCreateProduct,
   };

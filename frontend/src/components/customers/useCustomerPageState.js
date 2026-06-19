@@ -160,6 +160,16 @@ export function useCustomerPageState({
     }));
   }
 
+  function validateTextField(key) {
+    setFormErrors((currentErrors) => ({
+      ...currentErrors,
+      [key]:
+        key === "remark"
+          ? ""
+          : getRequiredFieldError(t(CUSTOMER_REQUIRED_FIELD_KEYS[key]), draftCustomer?.[key] || ""),
+    }));
+  }
+
   function updateOptionIndex(indexKey, nextIndex) {
     updateDraftCustomer((customer) => ({ ...customer, [indexKey]: nextIndex }));
 
@@ -185,6 +195,17 @@ export function useCustomerPageState({
         [listKey]: getCustomerOptionError(listKey, nextValue, t),
       }));
     }
+  }
+
+  function validateOptionField(listKey) {
+    const indexKey = CUSTOMER_OPTION_INDEX_KEYS[listKey];
+    const selectedIndex = draftCustomer?.[indexKey] || 0;
+    const value = draftCustomer?.[listKey]?.[selectedIndex] || "";
+
+    setFormErrors((currentErrors) => ({
+      ...currentErrors,
+      [listKey]: getCustomerOptionError(listKey, value, t),
+    }));
   }
 
   function addOption(listKey, indexKey) {
@@ -339,8 +360,10 @@ export function useCustomerPageState({
     closeCustomerEditor,
     updateDraftCustomer,
     updateTextField,
+    validateTextField,
     updateOptionIndex,
     updateOptionValue,
+    validateOptionField,
     addOption,
     deleteOption,
     handleCreateCustomer,

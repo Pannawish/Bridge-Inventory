@@ -3,6 +3,7 @@ import { useQuotationFormState } from "./useQuotationFormState";
 import QuotationFormDetailsSection from "./QuotationFormDetailsSection";
 import QuotationLineItemsSection from "./QuotationLineItemsSection";
 import QuotationFormTotalsSection from "./QuotationFormTotalsSection";
+import { markFieldBlurredOnBlurCapture } from "../formBlurValidation";
 
 function QuotationForm({
   quotation = null,
@@ -28,7 +29,10 @@ function QuotationForm({
     setCustomerQuery,
     customerOpen,
     setCustomerOpen,
+    customerError,
     selectCustomer,
+    handleCustomerBlur,
+    handleProductBlur,
     supplierOptions,
     vatSummary,
     validUntilDate,
@@ -80,7 +84,7 @@ function QuotationForm({
 
       {formError ? <div className="error-banner">{formError}</div> : null}
 
-      <form className="form-layout" onSubmit={handleSubmit}>
+      <form className="form-layout" onSubmit={handleSubmit} onBlurCapture={markFieldBlurredOnBlurCapture}>
         <QuotationFormDetailsSection
           form={form}
           isEditing={isEditing}
@@ -88,13 +92,19 @@ function QuotationForm({
           customers={customers}
           customerQuery={customerQuery}
           customerOpen={customerOpen}
+          customerError={customerError}
           onCustomerQueryChange={(value) => {
             updateForm("customer_name", "");
             setCustomerQuery(value);
             setCustomerOpen(true);
           }}
           onCustomerOpen={() => setCustomerOpen(true)}
-          onCustomerClose={() => window.setTimeout(() => setCustomerOpen(false), 120)}
+          onCustomerClose={() =>
+            window.setTimeout(() => {
+              setCustomerOpen(false);
+              handleCustomerBlur();
+            }, 120)
+          }
           onSelectCustomer={selectCustomer}
           validUntilDate={validUntilDate}
           onUpdateForm={updateForm}
@@ -122,6 +132,7 @@ function QuotationForm({
           onUpdateItem={updateItem}
           onUpdateProductQuery={updateProductQuery}
           onSetOpenProductIndex={setOpenProductIndex}
+          onProductBlur={handleProductBlur}
           onSelectProduct={selectProduct}
           onAddSupplierOption={addSupplierOption}
           onRemoveSupplierOption={removeSupplierOption}

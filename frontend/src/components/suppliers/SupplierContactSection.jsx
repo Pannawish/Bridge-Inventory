@@ -6,6 +6,7 @@ function SupplierContactSection({
   formErrors,
   onUpdateOptionIndex,
   onUpdateOptionValue,
+  onValidateOptionField,
   onAddOption,
   onDeleteOption,
 }) {
@@ -33,6 +34,7 @@ function SupplierContactSection({
           onChange={(nextValue) =>
             onUpdateOptionValue("locations", "selectedLocationIndex", nextValue)
           }
+          onBlur={() => onValidateOptionField("locations")}
           onAdd={() => onAddOption("locations", "selectedLocationIndex")}
           onDelete={() => onDeleteOption("locations", "selectedLocationIndex")}
         />
@@ -49,6 +51,7 @@ function SupplierContactSection({
           onChange={(nextValue) =>
             onUpdateOptionValue("emails", "selectedEmailIndex", nextValue)
           }
+          onBlur={() => onValidateOptionField("emails")}
           onAdd={() => onAddOption("emails", "selectedEmailIndex")}
           onDelete={() => onDeleteOption("emails", "selectedEmailIndex")}
         />
@@ -66,6 +69,7 @@ function SupplierContactSection({
             onChange={(nextValue) =>
               onUpdateOptionValue("tels", "selectedTelIndex", nextValue)
             }
+            onBlur={() => onValidateOptionField("tels")}
             onAdd={() => onAddOption("tels", "selectedTelIndex")}
             onDelete={() => onDeleteOption("tels", "selectedTelIndex")}
           />

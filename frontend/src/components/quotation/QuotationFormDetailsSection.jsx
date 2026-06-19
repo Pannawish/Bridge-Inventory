@@ -10,6 +10,7 @@ function QuotationFormDetailsSection({
   customers,
   customerQuery,
   customerOpen,
+  customerError,
   onCustomerQueryChange,
   onCustomerOpen,
   onCustomerClose,
@@ -62,6 +63,7 @@ function QuotationFormDetailsSection({
             autoComplete="off"
             aria-expanded={customerOpen}
             aria-controls="quotation-customer-list"
+            aria-invalid={customerError ? "true" : "false"}
           />
           {customerOpen ? (
             <div className="supplier-combobox-menu" id="quotation-customer-list" role="listbox">
@@ -93,6 +95,7 @@ function QuotationFormDetailsSection({
             </div>
           ) : null}
         </div>
+        {customerError ? <span className="field-error-text">{customerError}</span> : null}
       </label>
 
       <label>
@@ -115,6 +118,7 @@ function QuotationFormDetailsSection({
             step="1"
             value={form.valid_until_days}
             onChange={(event) => onValidUntilDaysChange(event.target.value)}
+            required
           />
           <span className="valid-until-days-unit">{t("quotation.days")}</span>
         </div>

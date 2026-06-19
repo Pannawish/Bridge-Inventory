@@ -227,6 +227,18 @@ function usePurchaseFormState({
     return resolveSelectedSupplierName(suppliers, form.supplier_name, supplierQuery);
   }
 
+  function handleSupplierBlur() {
+    const supplierName = resolveSupplierName();
+    setSupplierError(supplierName ? "" : t("purchaseForm.errorSelectSupplier"));
+  }
+
+  function handleProductBlur(index) {
+    setItemErrors((currentErrors) => ({
+      ...currentErrors,
+      [index]: items[index]?.product_id ? "" : t("purchaseForm.errorSelectProduct"),
+    }));
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -347,6 +359,8 @@ function usePurchaseFormState({
     handleItemDrop,
     handleItemDragEnd,
     selectSupplier,
+    handleSupplierBlur,
+    handleProductBlur,
     handleSubmit,
   };
 }

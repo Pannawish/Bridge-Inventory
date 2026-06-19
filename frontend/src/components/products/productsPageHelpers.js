@@ -7,6 +7,102 @@ import {
   normalizeUniqueNames,
 } from "./productUtils";
 import { getTranslatedProductDisplayName } from "./productEditorHelpers";
+import { getRequiredFieldError } from "../contactValidation";
+
+export function getProductFieldError(
+  key,
+  draft,
+  {
+    allProducts,
+    productCategoryOptions,
+    existingProduct,
+    existingProductHasHistory,
+    skuChangeUnlocked,
+    t,
+  }
+) {
+  if (!draft) {
+    return "";
+  }
+
+  if (key === "productName") {
+    return getRequiredFieldError(t("products.mainNameLabel"), draft.productName);
+  }
+
+  if (key === "categoryId") {
+    if (!draft.categoryId) {
+      return t("products.errorSelectCategory");
+    }
+    if (!productCategoryOptions.some((category) => category.id === draft.categoryId)) {
+      return t("products.errorInvalidCategory");
+    }
+    return "";
+  }
+
+  if (key === "sku") {
+    if (!draft.sku) {
+      return t("products.errorSkuRequired");
+    }
+
+    const skuChanged =
+      existingProduct && normalizeSku(existingProduct.sku) !== draft.sku;
+    const hasUnchangedExistingSku = Boolean(existingProduct && !skuChanged);
+
+    if (!isValidSku(draft.sku) && !hasUnchangedExistingSku) {
+      return t("products.errorSkuInvalid");
+    }
+
+    const duplicateProduct = allProducts.find(
+      (product) =>
+        `${product.id}` !== `${draft.id}` &&
+        (normalizeSku(product.sku) === draft.sku ||
+          getProductPreviousSkus(product).some((sku) => normalizeSku(sku) === draft.sku))
+    );
+
+    if (duplicateProduct) {
+      return t("products.errorSkuDuplicate", {
+        sku: draft.sku,
+        name: getTranslatedProductDisplayName(duplicateProduct, t),
+      });
+    }
+
+    if (existingProductHasHistory && skuChanged && !skuChangeUnlocked) {
+      return t("products.errorSkuLocked");
+    }
+
+    return "";
+  }
+
+  if (key === "stockBaseUnit") {
+    return draft.stockBaseUnit ? "" : t("products.errorNoBaseUnit");
+  }
+
+  if (key === "defaultPurchaseUnit") {
+    if (!draft.defaultPurchaseUnit) {
+      return getRequiredFieldError(t("products.defaultPurchaseUnitLabel"), draft.defaultPurchaseUnit);
+    }
+    const purchaseUnit = draft.unitConversions.find(
+      (conversion) =>
+        `${conversion.unit ?? ""}`.trim().toLowerCase() ===
+          `${draft.defaultPurchaseUnit ?? ""}`.trim().toLowerCase() && conversion.allowPurchase
+    );
+    return purchaseUnit ? "" : t("products.errorPurchaseUnit");
+  }
+
+  if (key === "defaultSalesUnit") {
+    if (!draft.defaultSalesUnit) {
+      return getRequiredFieldError(t("products.defaultSalesUnitLabel"), draft.defaultSalesUnit);
+    }
+    const salesUnit = draft.unitConversions.find(
+      (conversion) =>
+        `${conversion.unit ?? ""}`.trim().toLowerCase() ===
+          `${draft.defaultSalesUnit ?? ""}`.trim().toLowerCase() && conversion.allowSale
+    );
+    return salesUnit ? "" : t("products.errorSalesUnit");
+  }
+
+  return "";
+}
 
 /**
  * Runs all product-save validation checks in sequence.

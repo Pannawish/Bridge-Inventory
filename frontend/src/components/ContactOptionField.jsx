@@ -10,6 +10,7 @@ function ContactOptionField({
   required = false,
   onSelect,
   onChange,
+  onBlur,
   onAdd,
   onDelete,
 }) {
@@ -38,6 +39,7 @@ function ContactOptionField({
           required={required}
           value={options[selectedIndex] || ""}
           onChange={(event) => onChange(event.target.value)}
+          onBlur={onBlur}
           placeholder={placeholder}
           aria-invalid={error ? "true" : undefined}
         />

@@ -4,6 +4,7 @@ function SupplierProcurementSection({
   draftSupplier,
   formErrors,
   onUpdateTextField,
+  onValidateTextField,
 }) {
   const { t } = useLanguage();
 
@@ -24,6 +25,7 @@ function SupplierProcurementSection({
             required
             value={draftSupplier.procurementName}
             onChange={(event) => onUpdateTextField("procurementName", event.target.value)}
+            onBlur={() => onValidateTextField("procurementName")}
             placeholder={t("supplier.procurementNamePlaceholder")}
             aria-invalid={formErrors.procurementName ? "true" : undefined}
           />
@@ -39,6 +41,7 @@ function SupplierProcurementSection({
             type="tel"
             value={draftSupplier.procurementTel}
             onChange={(event) => onUpdateTextField("procurementTel", event.target.value)}
+            onBlur={() => onValidateTextField("procurementTel")}
             placeholder={t("supplier.procurementTelPlaceholder")}
             aria-invalid={formErrors.procurementTel ? "true" : undefined}
           />

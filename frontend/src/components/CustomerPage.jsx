@@ -42,8 +42,10 @@ function CustomerPage({
     closeCustomerEditor,
     updateDraftCustomer,
     updateTextField,
+    validateTextField,
     updateOptionIndex,
     updateOptionValue,
+    validateOptionField,
     addOption,
     deleteOption,
     handleCreateCustomer,
@@ -101,9 +103,11 @@ function CustomerPage({
           onSave={handleSaveCustomer}
           onDelete={handleDeleteCustomer}
           onUpdateTextField={updateTextField}
+          onValidateTextField={validateTextField}
           onUpdateDraftCustomer={updateDraftCustomer}
           onUpdateOptionIndex={updateOptionIndex}
           onUpdateOptionValue={updateOptionValue}
+          onValidateOptionField={validateOptionField}
           onAddOption={addOption}
           onDeleteOption={deleteOption}
           onSetFormErrors={setFormErrors}

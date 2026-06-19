@@ -473,6 +473,18 @@ function useSalesFormState({
     return resolveSelectedCustomerName(customers, form.customer_name, customerQuery);
   }
 
+  function handleCustomerBlur() {
+    const customerName = resolveCustomerName();
+    setCustomerError(customerName ? "" : t("salesForm.errorSelectCustomer"));
+  }
+
+  function handleProductBlur(index) {
+    setItemErrors((currentErrors) => ({
+      ...currentErrors,
+      [index]: items[index]?.product_id ? "" : t("salesForm.errorSelectProduct"),
+    }));
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setItemErrors({});
@@ -627,6 +639,8 @@ function useSalesFormState({
     handleItemDrop,
     handleItemDragEnd,
     selectCustomer,
+    handleCustomerBlur,
+    handleProductBlur,
     handleSubmit,
   };
 }

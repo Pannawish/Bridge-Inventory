@@ -59,6 +59,7 @@ export function useQuotationFormState({
   const [itemErrors, setItemErrors] = useState({});
   const [customerQuery, setCustomerQuery] = useState(quotation?.customer_name || "");
   const [customerOpen, setCustomerOpen] = useState(false);
+  const [customerError, setCustomerError] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -141,7 +142,17 @@ export function useQuotationFormState({
       ...nextTerms,
     }));
     setCustomerQuery(customer.companyName);
+    setCustomerError("");
     setCustomerOpen(false);
+  }
+
+  function resolveCustomerName() {
+    const normalizedQuery = `${customerQuery ?? ""}`.trim().toLowerCase();
+    const matchedCustomer = customerOptions.find(
+      (customer) => `${customer.companyName ?? ""}`.trim().toLowerCase() === normalizedQuery
+    );
+
+    return matchedCustomer?.companyName || "";
   }
 
   function updateForm(key, value) {
@@ -237,6 +248,18 @@ export function useQuotationFormState({
     );
     setItemErrors((currentErrors) => ({ ...currentErrors, [itemIndex]: "" }));
     setOpenProductIndex(itemIndex);
+  }
+
+  function handleCustomerBlur() {
+    const customerName = resolveCustomerName();
+    setCustomerError(customerName ? "" : t("salesForm.errorSelectCustomer"));
+  }
+
+  function handleProductBlur(itemIndex) {
+    setItemErrors((currentErrors) => ({
+      ...currentErrors,
+      [itemIndex]: items[itemIndex]?.product_id ? "" : t("quotation.errorSelectProduct"),
+    }));
   }
 
   function selectProduct(itemIndex, product) {
@@ -377,6 +400,9 @@ export function useQuotationFormState({
     const validationResult = validateQuotationForm(form, items, validUntilDate, t);
     if (validationResult) {
       setFormError(validationResult.error);
+      if (!resolveCustomerName()) {
+        setCustomerError(t("salesForm.errorSelectCustomer"));
+      }
       return;
     }
 
@@ -459,7 +485,10 @@ export function useQuotationFormState({
     setCustomerQuery: handleCustomerQueryChange,
     customerOpen,
     setCustomerOpen,
+    customerError,
     selectCustomer,
+    handleCustomerBlur,
+    handleProductBlur,
     getFilteredCustomers: (query) => getFilteredCustomers(customerOptions, query),
     supplierOptions,
     vatSummary,

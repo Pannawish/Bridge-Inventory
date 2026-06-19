@@ -3,6 +3,7 @@ import SupplierIdentitySection from "./SupplierIdentitySection";
 import SupplierProcurementSection from "./SupplierProcurementSection";
 import SupplierContactSection from "./SupplierContactSection";
 import SupplierDeliverySection from "./SupplierDeliverySection";
+import { markFieldBlurredOnBlurCapture } from "../formBlurValidation";
 
 function SupplierEditorModal({
   draftSupplier,
@@ -12,9 +13,11 @@ function SupplierEditorModal({
   onSave,
   onDelete,
   onUpdateTextField,
+  onValidateTextField,
   onUpdateDraftSupplier,
   onUpdateOptionIndex,
   onUpdateOptionValue,
+  onValidateOptionField,
   onAddOption,
   onDeleteOption,
   onSetFormErrors,
@@ -49,6 +52,7 @@ function SupplierEditorModal({
         <form
           className="form-layout"
           noValidate
+          onBlurCapture={markFieldBlurredOnBlurCapture}
           onSubmit={(event) => {
             event.preventDefault();
             onSave();
@@ -59,8 +63,10 @@ function SupplierEditorModal({
               draftSupplier={draftSupplier}
               formErrors={formErrors}
               onUpdateTextField={onUpdateTextField}
+              onValidateTextField={onValidateTextField}
               onUpdateOptionIndex={onUpdateOptionIndex}
               onUpdateOptionValue={onUpdateOptionValue}
+              onValidateOptionField={onValidateOptionField}
               onAddOption={onAddOption}
               onDeleteOption={onDeleteOption}
             />
@@ -69,6 +75,7 @@ function SupplierEditorModal({
               draftSupplier={draftSupplier}
               formErrors={formErrors}
               onUpdateTextField={onUpdateTextField}
+              onValidateTextField={onValidateTextField}
             />
 
             <SupplierContactSection
@@ -76,6 +83,7 @@ function SupplierEditorModal({
               formErrors={formErrors}
               onUpdateOptionIndex={onUpdateOptionIndex}
               onUpdateOptionValue={onUpdateOptionValue}
+              onValidateOptionField={onValidateOptionField}
               onAddOption={onAddOption}
               onDeleteOption={onDeleteOption}
             />
@@ -84,9 +92,11 @@ function SupplierEditorModal({
               draftSupplier={draftSupplier}
               formErrors={formErrors}
               onUpdateTextField={onUpdateTextField}
+              onValidateTextField={onValidateTextField}
               onUpdateDraftSupplier={onUpdateDraftSupplier}
               onUpdateOptionIndex={onUpdateOptionIndex}
               onUpdateOptionValue={onUpdateOptionValue}
+              onValidateOptionField={onValidateOptionField}
               onAddOption={onAddOption}
               onDeleteOption={onDeleteOption}
               onSetFormErrors={onSetFormErrors}

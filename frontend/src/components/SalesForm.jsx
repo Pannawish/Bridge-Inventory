@@ -5,6 +5,7 @@ import SalesFormTotalsSection from "./sales/SalesFormTotalsSection";
 import { defaultCustomerOptions } from "./sales/salesFormUtils";
 import useSalesFormState from "./sales/useSalesFormState";
 import { useLanguage } from "../i18n/LanguageContext";
+import { markFieldBlurredOnBlurCapture } from "./formBlurValidation";
 
 function SalesForm({
   products,
@@ -63,6 +64,8 @@ function SalesForm({
     handleItemDrop,
     handleItemDragEnd,
     selectCustomer,
+    handleCustomerBlur,
+    handleProductBlur,
     handleSubmit,
   } = useSalesFormState({
     products,
@@ -88,7 +91,7 @@ function SalesForm({
         ) : null}
       </div>
 
-      <form className="form-layout" onSubmit={handleSubmit}>
+      <form className="form-layout" onSubmit={handleSubmit} onBlurCapture={markFieldBlurredOnBlurCapture}>
         <SalesFormDetailsSection
           form={form}
           nextReferenceNo={nextReferenceNo}
@@ -108,7 +111,10 @@ function SalesForm({
           }}
           onCustomerOpen={() => setCustomerOpen(true)}
           onCustomerClose={() => {
-            window.setTimeout(() => setCustomerOpen(false), 120);
+            window.setTimeout(() => {
+              setCustomerOpen(false);
+              handleCustomerBlur();
+            }, 120);
           }}
           onSelectCustomer={selectCustomer}
           onPaymentTermTypeChange={(value) => {
@@ -143,6 +149,7 @@ function SalesForm({
           onUpdateItem={updateItem}
           onUpdateProductQuery={updateProductQuery}
           onSetOpenProductIndex={setOpenProductIndex}
+          onProductBlur={handleProductBlur}
           onSelectProduct={selectProduct}
           onUpdateAllocationMode={updateAllocationMode}
           onAddAllocation={addAllocation}

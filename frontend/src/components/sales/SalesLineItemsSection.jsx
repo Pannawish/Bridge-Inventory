@@ -34,6 +34,7 @@ function SalesLineItemsSection({
   onUpdateItem,
   onUpdateProductQuery,
   onSetOpenProductIndex,
+  onProductBlur,
   onSelectProduct,
   onUpdateAllocationMode,
   onAddAllocation,
@@ -123,7 +124,10 @@ function SalesLineItemsSection({
                   onChange={(event) => onUpdateProductQuery(index, event.target.value)}
                   onFocus={() => onSetOpenProductIndex(index)}
                   onBlur={() => {
-                    window.setTimeout(() => onSetOpenProductIndex(null), 120);
+                    window.setTimeout(() => {
+                      onSetOpenProductIndex(null);
+                      onProductBlur(index);
+                    }, 120);
                   }}
                   placeholder={t("salesForm.searchProductPlaceholder")}
                   autoComplete="off"

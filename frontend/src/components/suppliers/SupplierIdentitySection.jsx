@@ -5,8 +5,10 @@ function SupplierIdentitySection({
   draftSupplier,
   formErrors,
   onUpdateTextField,
+  onValidateTextField,
   onUpdateOptionIndex,
   onUpdateOptionValue,
+  onValidateOptionField,
   onAddOption,
   onDeleteOption,
 }) {
@@ -30,6 +32,7 @@ function SupplierIdentitySection({
             required
             value={draftSupplier.companyName}
             onChange={(event) => onUpdateTextField("companyName", event.target.value)}
+            onBlur={() => onValidateTextField("companyName")}
             placeholder={t("supplier.companyNamePlaceholder")}
             aria-invalid={formErrors.companyName ? "true" : undefined}
           />
@@ -44,6 +47,7 @@ function SupplierIdentitySection({
             required
             value={draftSupplier.taxpayerId}
             onChange={(event) => onUpdateTextField("taxpayerId", event.target.value)}
+            onBlur={() => onValidateTextField("taxpayerId")}
             placeholder={t("supplier.taxpayerPlaceholder")}
             aria-invalid={formErrors.taxpayerId ? "true" : undefined}
           />
@@ -64,6 +68,7 @@ function SupplierIdentitySection({
             onChange={(nextValue) =>
               onUpdateOptionValue("branches", "selectedBranchIndex", nextValue)
             }
+            onBlur={() => onValidateOptionField("branches")}
             onAdd={() => onAddOption("branches", "selectedBranchIndex")}
             onDelete={() => onDeleteOption("branches", "selectedBranchIndex")}
           />
