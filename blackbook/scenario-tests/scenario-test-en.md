@@ -129,20 +129,20 @@ Expected result:
 - A credit note is created for the cancelled item.
 - The credit note is saved successfully.
 
-### Part H: Create a billing note and link the credit note
+### Part H: Create a billing note and link the credit note during creation
 1. Open the **Billing Notes** page.
 2. Click **Create Billing Note**.
 3. Select the same customer from the sale.
 4. Select the sale created in Part E.
-5. Click **Create Billing Note**.
-6. Open the newly created billing note.
-7. In **Available Credit Notes to Link**, find the credit note created in Part G.
-8. Click **Link Credit Note**.
+5. In **Choose Credit Notes**, find the credit note created in Part G.
+6. Tick that credit note so it will be included.
+7. Check that the net payable amount is reduced.
+8. Click **Create Billing Note**.
 
 Expected result:
 - The billing note is created successfully.
 - The sale is included in the billing note.
-- The credit note moves into the applied credit note list for that billing note.
+- The selected credit note is linked to the billing note during creation.
 - The billing note total is reduced by the credit note amount.
 
 ## Final success check
@@ -156,12 +156,12 @@ At the end of the test, the user should be able to confirm all of these:
 - One sale item was cancelled and one was delivered.
 - A credit note was created from the cancelled item.
 - A billing note was created from the sale.
-- The credit note was linked to the billing note.
+- The credit note was linked to the billing note during billing note creation.
 
 ## If the tester gets stuck
 - If a product cannot be included in a purchase, go back to the quotation and add supplier information for that item.
 - If the sale does not appear when creating a billing note, save the sale first and make sure the delivered item is really marked **Delivered**.
-- If no credit note appears in the billing note screen, first check that the credit note was created successfully and is for the same customer.
+- If no credit note appears in the billing note screen, first check that the credit note was created successfully, is still issued, and belongs to the same customer.
 
 ## Tester record
 - Tester name: ____________________
