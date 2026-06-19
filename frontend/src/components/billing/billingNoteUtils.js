@@ -57,6 +57,15 @@ export function isSaleAvailableForBillingNote(
   );
 }
 
+export function filterLinkableCreditNotesForCustomer(creditNotes, customerName) {
+  return (creditNotes || []).filter(
+    (note) =>
+      note.customer_name === customerName &&
+      note.status !== "cancelled" &&
+      !note.billing_note
+  );
+}
+
 export function buildBillingNoteLinesFromSales(selectedSales) {
   return selectedSales.map((sale) => ({
     id: `temp-line-${sale.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,

@@ -81,6 +81,7 @@ function ActiveTabContent({
   handleBillingNoteCreate,
   handleBillingNoteUpdate,
   handleBillingNoteDelete,
+  handleLinkCreditNotesToBillingNote,
   handlePaymentBatchCreate,
   handlePaymentBatchUpdate,
   handlePaymentBatchDelete,
@@ -219,7 +220,7 @@ function ActiveTabContent({
         onCreateBillingNote={handleBillingNoteCreate}
         onUpdateBillingNote={handleBillingNoteUpdate}
         onDeleteBillingNote={handleBillingNoteDelete}
-        onUpdateCreditNote={handleCreditNoteUpdate}
+        onLinkCreditNotesToBillingNote={handleLinkCreditNotesToBillingNote}
         usingMockCreditNotes={usingMockCreditNotes}
         focusId={dashboardIntent?.tab === "billing-notes" ? dashboardIntent.focusId : null}
         onIntentConsumed={onConsumeIntent}

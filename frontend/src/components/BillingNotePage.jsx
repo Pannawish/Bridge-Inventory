@@ -4,18 +4,12 @@ import BillingNoteDetailModal from "./billing/BillingNoteDetailModal";
 import BillingNoteDirectorySection from "./billing/BillingNoteDirectorySection";
 import BillingNoteEditForm from "./billing/BillingNoteEditForm";
 import CreateBillingNoteModal from "./billing/CreateBillingNoteModal";
-import { getToday } from "./billing/billingNoteUtils";
+import {
+  filterLinkableCreditNotesForCustomer,
+  getToday,
+} from "./billing/billingNoteUtils";
 import { useBillingNoteDirectoryFilters } from "../hooks/useBillingNoteDirectoryFilters";
 import { useLanguage } from "../i18n/LanguageContext";
-
-function filterLinkableCreditNotes(creditNotes, customerName) {
-  return (creditNotes || []).filter(
-    (note) =>
-      note.customer_name === customerName &&
-      note.status !== "cancelled" &&
-      !note.billing_note
-  );
-}
 
 function BillingNotePage({
   billingNotes = [],
@@ -29,7 +23,7 @@ function BillingNotePage({
   onCreateBillingNote,
   onUpdateBillingNote,
   onDeleteBillingNote,
-  onUpdateCreditNote,
+  onLinkCreditNotesToBillingNote,
   usingMockCreditNotes = false,
   focusId = null,
   onIntentConsumed,
@@ -136,7 +130,7 @@ function BillingNotePage({
 
     if (usingMockCreditNotes) {
       setAvailableCreditNotes(
-        filterLinkableCreditNotes(creditNotes, activeBillingNoteCustomerName)
+        filterLinkableCreditNotesForCustomer(creditNotes, activeBillingNoteCustomerName)
       );
       setAvailableCreditNotesError("");
       setAvailableCreditNotesLoading(false);
@@ -172,7 +166,7 @@ function BillingNotePage({
 
         if (!ignore) {
           setAvailableCreditNotes(
-            filterLinkableCreditNotes(rows, activeBillingNoteCustomerName)
+            filterLinkableCreditNotesForCustomer(rows, activeBillingNoteCustomerName)
           );
         }
       } catch (requestError) {
@@ -200,8 +194,17 @@ function BillingNotePage({
   ]);
 
   async function handleCreate(payload) {
-    const saved = await onCreateBillingNote?.(payload);
+    const selectedCreditNotes = payload.selected_credit_notes || [];
+    const billingNotePayload = {
+      ...payload,
+    };
+    delete billingNotePayload.selected_credit_notes;
+
+    const saved = await onCreateBillingNote?.(billingNotePayload);
     if (saved !== false) {
+      if (selectedCreditNotes.length > 0) {
+        await onLinkCreditNotesToBillingNote?.(selectedCreditNotes, saved);
+      }
       setCreating(false);
     }
   }
@@ -236,11 +239,12 @@ function BillingNotePage({
       return false;
     }
 
-    const saved = await onUpdateCreditNote?.({
-      ...creditNote,
-      billing_note: activeBillingNote.id,
-    });
-    if (saved === false) {
+    const linkedCreditNotes = await onLinkCreditNotesToBillingNote?.(
+      [creditNote],
+      activeBillingNote
+    );
+    const saved = Array.isArray(linkedCreditNotes) ? linkedCreditNotes[0] : false;
+    if (!saved) {
       return false;
     }
 
@@ -269,6 +273,8 @@ function BillingNotePage({
         <CreateBillingNoteModal
           sales={sales}
           billingNotes={allBillingNotes}
+          creditNotes={creditNotes}
+          usingMockCreditNotes={usingMockCreditNotes}
           nextReferenceNo={nextReferenceNo}
           onClose={() => setCreating(false)}
           onCreate={handleCreate}

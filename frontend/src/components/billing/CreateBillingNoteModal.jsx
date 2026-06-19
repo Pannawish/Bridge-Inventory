@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "../../api";
 import { formatDate, formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import EligiblePartyCombobox from "../EligiblePartyCombobox";
 import {
   buildBillingNoteLinesFromSales,
+  filterLinkableCreditNotesForCustomer,
   getNextBillingNoteReferenceNo,
   getToday,
   isSaleAvailableForBillingNote,
@@ -12,6 +14,8 @@ import {
 function CreateBillingNoteModal({
   sales,
   billingNotes,
+  creditNotes = [],
+  usingMockCreditNotes = false,
   nextReferenceNo = "",
   onClose,
   onCreate,
@@ -23,6 +27,10 @@ function CreateBillingNoteModal({
   const [bankReference, setBankReference] = useState("");
   const [note, setNote] = useState("");
   const [selectedSaleIds, setSelectedSaleIds] = useState(new Set());
+  const [availableCreditNotes, setAvailableCreditNotes] = useState([]);
+  const [availableCreditNotesLoading, setAvailableCreditNotesLoading] = useState(false);
+  const [availableCreditNotesError, setAvailableCreditNotesError] = useState("");
+  const [selectedCreditNoteIds, setSelectedCreditNoteIds] = useState(new Set());
   const [error, setError] = useState("");
 
   const customerOptions = useMemo(() => {
@@ -34,6 +42,7 @@ function CreateBillingNoteModal({
     );
     return Array.from(set).sort();
   }, [sales, billingNotes]);
+  const hasSelectedEligibleCustomer = customerOptions.includes(customerName);
 
   const eligibleSales = useMemo(() => {
     if (!customerName) return [];
@@ -43,6 +52,75 @@ function CreateBillingNoteModal({
         isSaleAvailableForBillingNote(sale, billingNotes)
     );
   }, [customerName, sales, billingNotes]);
+
+  useEffect(() => {
+    if (!customerName || !hasSelectedEligibleCustomer) {
+      setAvailableCreditNotes([]);
+      setAvailableCreditNotesLoading(false);
+      setAvailableCreditNotesError("");
+      setSelectedCreditNoteIds(new Set());
+      return;
+    }
+
+    if (usingMockCreditNotes) {
+      setAvailableCreditNotes(
+        filterLinkableCreditNotesForCustomer(creditNotes, customerName)
+      );
+      setAvailableCreditNotesLoading(false);
+      setAvailableCreditNotesError("");
+      return;
+    }
+
+    let ignore = false;
+
+    async function loadAvailableCreditNotes() {
+      setAvailableCreditNotesLoading(true);
+      setAvailableCreditNotesError("");
+
+      try {
+        let currentPage = 1;
+        let totalPages = 1;
+        const rows = [];
+
+        do {
+          const response = await api.getCreditNotes({
+            customer: customerName,
+            page: currentPage,
+            page_size: 100,
+          });
+          const batch = Array.isArray(response?.results)
+            ? response.results
+            : Array.isArray(response)
+              ? response
+              : [];
+          rows.push(...batch);
+          totalPages = Math.max(1, Number(response?.total_pages) || 1);
+          currentPage += 1;
+        } while (currentPage <= totalPages);
+
+        if (!ignore) {
+          setAvailableCreditNotes(
+            filterLinkableCreditNotesForCustomer(rows, customerName)
+          );
+        }
+      } catch (requestError) {
+        if (!ignore) {
+          setAvailableCreditNotes([]);
+          setAvailableCreditNotesError(requestError.message || "");
+        }
+      } finally {
+        if (!ignore) {
+          setAvailableCreditNotesLoading(false);
+        }
+      }
+    }
+
+    loadAvailableCreditNotes();
+
+    return () => {
+      ignore = true;
+    };
+  }, [creditNotes, customerName, hasSelectedEligibleCustomer, usingMockCreditNotes]);
 
   function toggleSale(saleId) {
     setSelectedSaleIds((current) => {
@@ -64,13 +142,50 @@ function CreateBillingNoteModal({
     setSelectedSaleIds(new Set());
   }
 
-  const totalAmount = useMemo(
+  function toggleCreditNote(creditNoteId) {
+    setSelectedCreditNoteIds((current) => {
+      const next = new Set(current);
+      if (next.has(creditNoteId)) {
+        next.delete(creditNoteId);
+      } else {
+        next.add(creditNoteId);
+      }
+      return next;
+    });
+  }
+
+  function selectAllCreditNotes() {
+    setSelectedCreditNoteIds(new Set(availableCreditNotes.map((note) => note.id)));
+  }
+
+  function clearAllCreditNotes() {
+    setSelectedCreditNoteIds(new Set());
+  }
+
+  const billedAmount = useMemo(
     () =>
       eligibleSales
         .filter((sale) => selectedSaleIds.has(sale.id))
         .reduce((acc, sale) => acc + (Number(sale.grand_total) || 0), 0),
     [eligibleSales, selectedSaleIds]
   );
+
+  const selectedCreditNotes = useMemo(
+    () =>
+      availableCreditNotes.filter((creditNote) => selectedCreditNoteIds.has(creditNote.id)),
+    [availableCreditNotes, selectedCreditNoteIds]
+  );
+
+  const creditAmount = useMemo(
+    () =>
+      selectedCreditNotes.reduce(
+        (acc, creditNote) => acc + (Number(creditNote.total_amount) || 0),
+        0
+      ),
+    [selectedCreditNotes]
+  );
+
+  const netPayable = Math.max(0, billedAmount - creditAmount);
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -100,8 +215,9 @@ function CreateBillingNoteModal({
       status: "issued",
       bank_reference: bankReference,
       note,
-      total_amount: totalAmount,
+      total_amount: billedAmount,
       lines,
+      selected_credit_notes: selectedCreditNotes,
     });
   }
 
@@ -133,6 +249,7 @@ function CreateBillingNoteModal({
             onChange={(nextCustomerName) => {
               setCustomerName(nextCustomerName);
               setSelectedSaleIds(new Set());
+              setSelectedCreditNoteIds(new Set());
               setError("");
             }}
           />
@@ -266,10 +383,90 @@ function CreateBillingNoteModal({
           <p className="empty-copy">{t("billingNote.selectCustomerFirst")}</p>
         )}
 
+        <div className="line-items-header">
+          <div>
+            <p className="eyebrow">{t("billingNote.step3")}</p>
+            <h4>{t("billingNote.chooseCreditNotes")}</h4>
+          </div>
+          <span>{t("billingNote.creditSelectedCount", { count: selectedCreditNoteIds.size })}</span>
+        </div>
+
+        {!customerName ? (
+          <p className="empty-copy">{t("billingNote.selectCustomerFirst")}</p>
+        ) : availableCreditNotesLoading ? (
+          <p className="empty-copy">{t("common.loading")}</p>
+        ) : availableCreditNotesError ? (
+          <p className="empty-copy">{t("billingNote.availableCreditsLoadError")}</p>
+        ) : availableCreditNotes.length === 0 ? (
+          <p className="empty-copy">{t("billingNote.noAvailableCreditNotes")}</p>
+        ) : (
+          <>
+            <div className="history-filter-actions">
+              <button className="secondary-button" type="button" onClick={selectAllCreditNotes}>
+                {t("common.selectAll")}
+              </button>
+              <button className="secondary-button" type="button" onClick={clearAllCreditNotes}>
+                {t("common.clear")}
+              </button>
+            </div>
+
+            <div className="transaction-table-window billing-note-create-table-window">
+              <div className="table-scroll billing-note-create-scroll">
+                <table className="transaction-history-table partner-line-table billing-note-create-table">
+                  <thead>
+                    <tr>
+                      <th />
+                      <th>{t("billingNote.colReference")}</th>
+                      <th>{t("billingNote.colIssued")}</th>
+                      <th>{t("billingNote.colStatus")}</th>
+                      <th>{t("billingNote.colAmount")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {availableCreditNotes.map((creditNote) => {
+                      const checked = selectedCreditNoteIds.has(creditNote.id);
+                      return (
+                        <tr
+                          key={creditNote.id}
+                          className={checked ? "partner-table-row active" : "partner-table-row"}
+                        >
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleCreditNote(creditNote.id)}
+                            />
+                          </td>
+                          <td>{creditNote.reference_no || creditNote.id}</td>
+                          <td>{formatDate(creditNote.credit_note_date)}</td>
+                          <td>
+                            <span className={`status-badge status-${creditNote.status || "issued"}`}>
+                              {creditNote.status?.replace(/_/g, " ") || "issued"}
+                            </span>
+                          </td>
+                          <td>{fmt(creditNote.total_amount)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
         <div className="sales-summary-card">
+          <div className="sales-summary-row">
+            <span>{t("billingNote.totalBilled")}</span>
+            <span>{fmt(billedAmount)}</span>
+          </div>
+          <div className="sales-summary-row">
+            <span>{t("billingNote.lessCredits")}</span>
+            <span>{fmt(creditAmount)}</span>
+          </div>
           <div className="sales-summary-row sales-summary-grand">
-            <strong>{t("billingNote.totalAmount")}</strong>
-            <strong>{fmt(totalAmount)}</strong>
+            <strong>{t("billingNote.netPayable")}</strong>
+            <strong>{fmt(netPayable)}</strong>
           </div>
         </div>
 

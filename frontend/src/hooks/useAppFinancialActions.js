@@ -13,6 +13,11 @@ function replaceEntity(currentRows, updatedEntity) {
   return currentRows.map((row) => (row.id === updatedEntity.id ? updatedEntity : row));
 }
 
+function replaceEntities(currentRows, updatedEntities) {
+  const entityMap = new Map(updatedEntities.map((entity) => [entity.id, entity]));
+  return currentRows.map((row) => entityMap.get(row.id) || row);
+}
+
 function removeEntity(currentRows, deletedId) {
   return currentRows.filter((row) => row.id !== deletedId);
 }
@@ -139,6 +144,50 @@ export function useAppFinancialActions({
       );
       await refreshBillingNoteEligibility();
       return true;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
+  async function handleLinkCreditNotesToBillingNote(creditNotes, billingNote) {
+    const notesToLink = Array.isArray(creditNotes) ? creditNotes.filter(Boolean) : [];
+    if (!billingNote || !notesToLink.length) {
+      return [];
+    }
+
+    setError("");
+
+    if (usingMockCreditNotes) {
+      const linkedCreditNotes = notesToLink.map((creditNote) => ({
+        ...creditNote,
+        billing_note: billingNote.id,
+        billing_note_reference_no: billingNote.reference_no || billingNote.id,
+      }));
+
+      setCreditNotes((rows) => replaceEntities(rows, linkedCreditNotes));
+      setCreditNoteRows((rows) => replaceEntities(rows, linkedCreditNotes));
+      return linkedCreditNotes;
+    }
+
+    try {
+      const linkedCreditNotes = await Promise.all(
+        notesToLink.map((creditNote) =>
+          api.updateCreditNote(
+            creditNote.id,
+            buildCreditNotePayload({
+              ...creditNote,
+              billing_note: billingNote.id,
+            })
+          )
+        )
+      );
+
+      setCreditNotes((rows) => replaceEntities(rows, linkedCreditNotes));
+      setCreditNoteRows((rows) => replaceEntities(rows, linkedCreditNotes));
+      await refreshCreditNoteEligibility();
+      await loadBillingNotePage();
+      return linkedCreditNotes;
     } catch (requestError) {
       setError(requestError.message);
       return false;
@@ -373,6 +422,7 @@ export function useAppFinancialActions({
     handleBillingNoteCreate,
     handleBillingNoteUpdate,
     handleBillingNoteDelete,
+    handleLinkCreditNotesToBillingNote,
     handlePaymentBatchCreate,
     handlePaymentBatchUpdate,
     handlePaymentBatchDelete,

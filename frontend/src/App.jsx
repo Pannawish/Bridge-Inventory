@@ -118,6 +118,7 @@ function App() {
           handleBillingNoteCreate={state.handleBillingNoteCreate}
           handleBillingNoteUpdate={state.handleBillingNoteUpdate}
           handleBillingNoteDelete={state.handleBillingNoteDelete}
+          handleLinkCreditNotesToBillingNote={state.handleLinkCreditNotesToBillingNote}
           handlePaymentBatchCreate={state.handlePaymentBatchCreate}
           handlePaymentBatchUpdate={state.handlePaymentBatchUpdate}
           handlePaymentBatchDelete={state.handlePaymentBatchDelete}
