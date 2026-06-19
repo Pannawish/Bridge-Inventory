@@ -2799,6 +2799,160 @@ class PurchasePayableSyncTests(APITestCase):
 
 
 @override_settings(OPENAI_API_KEY="")
+class AiReportApiTests(APITestCase):
+    def setUp(self):
+        self.today = timezone.localdate()
+        self.supplier = Supplier.objects.create(company_name="AI Report Supplier")
+        self.customer = Customer.objects.create(company_name="AI Report Customer")
+        self.product = Product.objects.create(
+            sku="AI-REPORT-1",
+            product_name="AI Report Product",
+            stock_base_unit="pcs",
+        )
+
+        self.purchase = Purchase.objects.create(
+            reference_no="PO-AI-REPORT",
+            supplier=self.supplier,
+            supplier_name=self.supplier.company_name,
+            transaction_date=self.today,
+            status=Purchase.STATUS_RECEIVED,
+            grand_total=Decimal("120"),
+        )
+        PurchaseItem.objects.create(
+            purchase=self.purchase,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            received_date=self.today,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("12"),
+            base_quantity=Decimal("12"),
+            unit_cost=Decimal("10"),
+            amount=Decimal("120"),
+        )
+
+        self.sale = Sale.objects.create(
+            reference_no="SO-AI-REPORT",
+            customer=self.customer,
+            customer_name=self.customer.company_name,
+            transaction_date=self.today,
+            status=Sale.STATUS_DELIVERED,
+            grand_total=Decimal("180"),
+        )
+        SaleItem.objects.create(
+            sale=self.sale,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=SaleItem.ITEM_DELIVERED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("6"),
+            base_quantity=Decimal("6"),
+            unit_price=Decimal("30"),
+            unit_cost=Decimal("10"),
+            amount=Decimal("180"),
+        )
+
+    def test_supplier_report_returns_printable_local_html_without_ai_key(self):
+        response = self.client.post(
+            "/api/ai-reports/",
+            {
+                "scope_type": "supplier",
+                "entity_id": self.supplier.id,
+                "period_type": "all",
+                "language": "en",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["used_model"], "local-report")
+        html = response.data["html"]
+        self.assertIn("<!doctype html>", html.lower())
+        self.assertIn("window.print()", html)
+        self.assertIn("AI Report Supplier", html)
+        self.assertIn("PO-AI-REPORT", html)
+        self.assertIn("THB 120.00", html)
+
+    def test_product_report_respects_custom_date_range(self):
+        old_purchase = Purchase.objects.create(
+            reference_no="PO-AI-OLD",
+            supplier=self.supplier,
+            supplier_name=self.supplier.company_name,
+            transaction_date=self.today - timedelta(days=90),
+            status=Purchase.STATUS_RECEIVED,
+            grand_total=Decimal("50"),
+        )
+        PurchaseItem.objects.create(
+            purchase=old_purchase,
+            product=self.product,
+            product_name=self.product.product_name,
+            sku=self.product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            received_date=self.today - timedelta(days=90),
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("5"),
+            base_quantity=Decimal("5"),
+            unit_cost=Decimal("10"),
+            amount=Decimal("50"),
+        )
+
+        response = self.client.post(
+            "/api/ai-reports/",
+            {
+                "scope_type": "product",
+                "entity_id": self.product.id,
+                "period_type": "custom",
+                "date_from": self.today.isoformat(),
+                "date_to": self.today.isoformat(),
+                "language": "en",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.data["html"]
+        self.assertIn("PO-AI-REPORT", html)
+        self.assertIn("SO-AI-REPORT", html)
+        self.assertNotIn("PO-AI-OLD", html)
+
+    def test_report_requires_selected_entity(self):
+        response = self.client.post(
+            "/api/ai-reports/",
+            {
+                "scope_type": "supplier",
+                "period_type": "all",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("entity_id", response.data)
+
+    def test_report_requires_complete_custom_date_range(self):
+        response = self.client.post(
+            "/api/ai-reports/",
+            {
+                "scope_type": "customer",
+                "entity_id": self.customer.id,
+                "period_type": "custom",
+                "date_from": self.today.isoformat(),
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("date_range", response.data)
+
+
+@override_settings(OPENAI_API_KEY="")
 class ChatAssistantAlignmentTests(TestCase):
     def setUp(self):
         self.today = timezone.localdate()

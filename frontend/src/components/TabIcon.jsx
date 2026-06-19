@@ -95,6 +95,16 @@ const icons = {
   chat: (
     <path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3 8.5 8.5 0 0 1 21 11.5z" />
   ),
+  "ai-report": (
+    <>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 3 14 8 19 8" />
+      <line x1="9" y1="17" x2="15" y2="17" />
+      <rect x="8.5" y="11" width="2" height="3" rx=".4" />
+      <rect x="12" y="9" width="2" height="5" rx=".4" />
+      <rect x="15.5" y="12" width="2" height="2" rx=".4" />
+    </>
+  ),
   settings: (
     <>
       <circle cx="12" cy="12" r="3" />

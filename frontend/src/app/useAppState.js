@@ -147,6 +147,10 @@ export function useAppState() {
     return api.getProductHistory(productId);
   }
 
+  async function handleGenerateAiReport(payload) {
+    return api.generateAiReport(payload);
+  }
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -413,6 +417,7 @@ export function useAppState() {
     handleOpenChatRecord,
     closeChatDetail,
     handleLoadProductHistory,
+    handleGenerateAiReport,
     showWarning,
     handleTabSelect,
     handleSupplierSave,

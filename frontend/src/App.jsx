@@ -138,6 +138,7 @@ function App() {
           handleAskChat={state.handleAskChat}
           handleClearChat={state.handleClearChat}
           handleOpenChatRecord={state.handleOpenChatRecord}
+          handleGenerateAiReport={state.handleGenerateAiReport}
           chatDetail={state.chatDetail}
           closeChatDetail={state.closeChatDetail}
           chatBusy={state.chatBusy}

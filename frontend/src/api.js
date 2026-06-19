@@ -299,6 +299,9 @@ export const api = {
   askChat(question) {
     return request("/chat/", { method: "POST", body: { question } });
   },
+  generateAiReport(payload) {
+    return request("/ai-reports/", { method: "POST", body: payload });
+  },
   login(username, password) {
     return request("/auth/login/", { method: "POST", body: { username, password } });
   },

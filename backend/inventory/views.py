@@ -28,6 +28,7 @@ from .models import (
     SaleItem,
     Supplier,
 )
+from .ai_reports import generate_ai_report
 from .serializers import (
     BillingNoteSerializer,
     CategorySerializer,
@@ -955,6 +956,7 @@ def api_home(request):
                 "/api/credit-notes/",
                 "/api/eligibility/credit-note-sales/",
                 "/api/chat/",
+                "/api/ai-reports/",
             ],
         }
     )
@@ -1205,3 +1207,8 @@ def chat(request):
         return Response({"error": "Question is required."}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(answer_inventory_question(question, request))
+
+
+@api_view(["POST"])
+def ai_report(request):
+    return Response(generate_ai_report(request.data))

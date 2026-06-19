@@ -12,6 +12,7 @@ import BillingNotePage from "../components/BillingNotePage";
 import PaymentBatchPage from "../components/PaymentBatchPage";
 import CreditNotePage from "../components/CreditNotePage";
 import SettingsPage from "../components/SettingsPage";
+import AiReportPage from "../components/AiReportPage";
 
 function ActiveTabContent({
   activeTab,
@@ -101,6 +102,7 @@ function ActiveTabContent({
   handleAskChat,
   handleClearChat,
   handleOpenChatRecord,
+  handleGenerateAiReport,
   chatDetail,
   closeChatDetail,
   chatBusy,
@@ -333,6 +335,17 @@ function ActiveTabContent({
         detail={chatDetail}
         onCloseDetail={closeChatDetail}
         busy={chatBusy}
+      />
+    );
+  }
+
+  if (activeTab === "ai-report") {
+    return (
+      <AiReportPage
+        suppliers={suppliers}
+        customers={customers}
+        products={products}
+        onGenerateReport={handleGenerateAiReport}
       />
     );
   }

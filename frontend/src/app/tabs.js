@@ -28,6 +28,13 @@ export const tabs = [
     description: "Ask inventory questions and review quick insights.",
   },
   {
+    id: "ai-report",
+    group: "workspace",
+    label: "AI Report",
+    shortLabel: "AR",
+    description: "Generate printable supplier, customer, and product reports.",
+  },
+  {
     id: "purchase-history",
     group: "purchasing",
     label: "Purchases",

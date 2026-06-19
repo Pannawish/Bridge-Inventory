@@ -50,6 +50,7 @@ urlpatterns = [
         name="eligible_credit_note_sales",
     ),
     path("chat/", views.chat, name="chat"),
+    path("ai-reports/", views.ai_report, name="ai_report"),
 ]
 
 urlpatterns += router.urls
