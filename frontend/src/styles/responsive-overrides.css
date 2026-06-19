@@ -721,6 +721,15 @@ label textarea:focus,
     grid-template-columns: 1fr;
   }
 
+  .chat-actions,
+  .chat-action-button {
+    width: 100%;
+  }
+
+  .chat-instruction-grid {
+    grid-template-columns: 1fr;
+  }
+
   .chat-metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

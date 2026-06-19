@@ -2990,6 +2990,14 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertIn("Low-stock items: 1", response["answer"])
         self.assertIn("Chat Product (CHAT-1)", response["answer"])
 
+    def test_chat_handles_thai_low_stock_prompt(self):
+        response = answer_inventory_question("สินค้าใดมีสต็อกต่ำ และควรเติมตัวใดก่อน?")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Restock priorities")
+        self.assertIn("Low-stock items: 1", response["answer"])
+        self.assertIn("Chat Product (CHAT-1)", response["answer"])
+
     def test_chat_reports_net_position(self):
         response = answer_inventory_question("What is our net position?")
 
@@ -2999,12 +3007,36 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertIn("AR: 300", response["answer"])
         self.assertIn("AP: 120", response["answer"])
 
+    def test_chat_uses_deterministic_summary_even_when_model_key_is_configured(self):
+        with self.settings(OPENAI_API_KEY="unused-test-key", OPENAI_MODEL="gpt-test"):
+            response = answer_inventory_question("What is our net position?")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Net position")
+        self.assertIn("AR: 300", response["answer"])
+        self.assertIn("AP: 120", response["answer"])
+
+    def test_chat_handles_thai_net_position_prompt(self):
+        response = answer_inventory_question("ฐานะสุทธิของเราเป็นอย่างไร?")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Net position")
+        self.assertIn("AR: 300", response["answer"])
+        self.assertIn("AP: 120", response["answer"])
+
     def test_chat_reports_order_coverage_and_gap(self):
         response = answer_inventory_question("Which customer orders are backordered?")
 
         self.assertEqual(response["used_model"], "local-summary")
         self.assertEqual(response["presentation"]["title"], "Order coverage")
         self.assertIn("Order coverage", response["answer"])
+        self.assertIn("Gap units: 2", response["answer"])
+
+    def test_chat_handles_thai_order_coverage_prompt(self):
+        response = answer_inventory_question("คำสั่งขายใดมีสินค้าค้างส่ง?")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Order coverage")
         self.assertIn("Gap units: 2", response["answer"])
 
     def test_chat_summarizes_customer_with_date_range(self):
@@ -3030,6 +3062,16 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertEqual(response["used_model"], "local-summary")
         self.assertEqual(response["presentation"]["title"], f"Supplier summary: {self.supplier.company_name}")
         self.assertIn("Supplier summary", response["answer"])
+        self.assertIn("Purchase count: 2", response["answer"])
+        self.assertIn("Scheduled AP: 120", response["answer"])
+
+    def test_chat_handles_thai_supplier_this_month_prompt(self):
+        response = answer_inventory_question(
+            f"สรุปกิจกรรมของผู้จัดจำหน่าย {self.supplier.company_name} เดือนนี้"
+        )
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], f"Supplier summary: {self.supplier.company_name}")
         self.assertIn("Purchase count: 2", response["answer"])
         self.assertIn("Scheduled AP: 120", response["answer"])
 
@@ -3067,8 +3109,24 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertIn("Overdue AR: 300", response["answer"])
         self.assertIn("PO-CHAT-INCOMING", response["answer"])
 
+    def test_chat_handles_thai_overdue_and_exception_prompt(self):
+        response = answer_inventory_question("แสดงรายการค้างและข้อยกเว้น")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Overdue and exception monitor")
+        self.assertIn("Overdue AR: 300", response["answer"])
+        self.assertIn("PO-CHAT-INCOMING", response["answer"])
+
     def test_chat_shows_reference_line_item_details(self):
         response = answer_inventory_question("Show line items for TI-CHAT-BACKORDER")
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], "Sales line items")
+        self.assertIn("Chat Product (CHAT-1)", response["answer"])
+        self.assertIn("qty 5 pcs", response["answer"])
+
+    def test_chat_handles_thai_reference_line_item_prompt(self):
+        response = answer_inventory_question("แสดงรายการสินค้าใน TI-CHAT-BACKORDER")
 
         self.assertEqual(response["used_model"], "local-summary")
         self.assertEqual(response["presentation"]["title"], "Sales line items")

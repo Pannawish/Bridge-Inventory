@@ -129,7 +129,7 @@ export function useAppState() {
       t,
       language,
     });
-  const { chatBusy, messages, handleAskChat } = useAppChat({
+  const { chatBusy, messages, handleAskChat, handleClearChat } = useAppChat({
     api,
     t,
     setError,
@@ -399,6 +399,7 @@ export function useAppState() {
     chatBusy,
     messages,
     handleAskChat,
+    handleClearChat,
     handleLoadProductHistory,
     showWarning,
     handleTabSelect,

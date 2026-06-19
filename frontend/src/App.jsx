@@ -134,6 +134,7 @@ function App() {
           handleCategoryDelete={state.handleCategoryDelete}
           messages={state.messages}
           handleAskChat={state.handleAskChat}
+          handleClearChat={state.handleClearChat}
           chatBusy={state.chatBusy}
           onViewPurchasesTab={() => state.setActiveTab("purchase-history")}
         />

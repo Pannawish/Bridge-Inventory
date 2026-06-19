@@ -1,10 +1,8 @@
-import json
 import math
 import re
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
-from django.conf import settings
 from django.db import transaction
 from django.db.models import Prefetch, Q, Sum
 from django.utils.dateparse import parse_date
@@ -151,6 +149,15 @@ def as_number(value):
 def normalize_chat_text(value):
     normalized = re.sub(r"[^0-9a-zA-Zก-๙]+", " ", (value or "").lower())
     return re.sub(r"\s+", " ", normalized).strip()
+
+
+def contains_any(value, terms):
+    return any(term in value for term in terms)
+
+
+def contains_any_token(value, terms):
+    tokens = set(value.split())
+    return any(term in tokens for term in terms)
 
 
 def get_month_bounds(year, month):
@@ -1438,27 +1445,27 @@ def get_date_interval(question):
 
     question_text = normalize_chat_text(question)
     today = timezone.localdate()
-    if "today" in question_text:
+    if contains_any(question_text, ("today", "วันนี้")):
         return {"start": today, "end": today}
-    if "yesterday" in question_text:
+    if contains_any(question_text, ("yesterday", "เมื่อวาน")):
         prior_day = today - timedelta(days=1)
         return {"start": prior_day, "end": prior_day}
-    if "this week" in question_text:
+    if contains_any(question_text, ("this week", "สัปดาห์นี้", "อาทิตย์นี้")):
         start_date, end_date = get_week_bounds(today)
         return {"start": start_date, "end": end_date}
-    if "last week" in question_text:
+    if contains_any(question_text, ("last week", "สัปดาห์ที่แล้ว", "อาทิตย์ที่แล้ว")):
         start_date, end_date = get_week_bounds(today - timedelta(days=7))
         return {"start": start_date, "end": end_date}
-    if "this month" in question_text:
+    if contains_any(question_text, ("this month", "เดือนนี้")):
         start_date, end_date = get_month_bounds(today.year, today.month)
         return {"start": start_date, "end": end_date}
-    if "last month" in question_text:
+    if contains_any(question_text, ("last month", "เดือนที่แล้ว")):
         previous_month_anchor = today.replace(day=1) - timedelta(days=1)
         start_date, end_date = get_month_bounds(previous_month_anchor.year, previous_month_anchor.month)
         return {"start": start_date, "end": end_date}
-    if "this year" in question_text:
+    if contains_any(question_text, ("this year", "ปีนี้")):
         return {"start": date(today.year, 1, 1), "end": date(today.year, 12, 31)}
-    if "last year" in question_text:
+    if contains_any(question_text, ("last year", "ปีที่แล้ว")):
         previous_year = today.year - 1
         return {"start": date(previous_year, 1, 1), "end": date(previous_year, 12, 31)}
 
@@ -3105,7 +3112,7 @@ def presentation_to_text(presentation):
 
 
 def get_partner_summary_presentation(question, context):
-    question_text = (question or "").lower()
+    question_text = normalize_chat_text(question)
     customer_summaries = context.get("partner_summaries", {}).get("customers", [])
     supplier_summaries = context.get("partner_summaries", {}).get("suppliers", [])
     has_partner_scope = bool(customer_summaries or supplier_summaries)
@@ -3126,13 +3133,27 @@ def get_partner_summary_presentation(question, context):
             "between",
             "during",
             "total",
+            "สรุป",
+            "กิจกรรม",
+            "บัญชี",
+            "ลูกค้า",
+            "ผู้จัดจำหน่าย",
+            "ผู้ขาย",
+            "คู่ค้า",
+            "ยอดรวม",
         )
     )
     if not has_partner_scope:
         return None
-    if customer_summaries and ("customer" in question_text or "sale" in question_text or "billing" in question_text or "credit" in question_text):
+    if customer_summaries and contains_any(
+        question_text,
+        ("customer", "sale", "billing", "credit", "ลูกค้า", "ขาย", "ใบวางบิล", "ใบลดหนี้"),
+    ):
         return customer_summaries[0]
-    if supplier_summaries and ("supplier" in question_text or "purchase" in question_text or "payment" in question_text):
+    if supplier_summaries and contains_any(
+        question_text,
+        ("supplier", "purchase", "payment", "ผู้จัดจำหน่าย", "ผู้ขาย", "ซื้อ", "จ่ายเงิน", "เจ้าหนี้"),
+    ):
         return supplier_summaries[0]
     if has_named_date_scope or wants_summary:
         return customer_summaries[0] if customer_summaries else supplier_summaries[0]
@@ -3562,56 +3583,92 @@ def build_capabilities_presentation(context):
 def build_chat_presentation(question, context=None):
     context = context or build_ai_inventory_context(question)
     matching_stock = context["stock"]["matching_rows"]
-    question_text = (question or "").lower()
+    question_text = normalize_chat_text(question)
     reference_prefix = get_reference_prefix(context["query_terms"])
     reference_like = bool(reference_prefix) or any(
         "-" in term and any(char.isdigit() for char in term) for term in context["query_terms"]
     )
-    wants_line_items = any(
-        phrase in question_text
-        for phrase in ("line item", "line items", "item detail", "items in", "show items", "what is inside")
+    wants_line_items = contains_any(
+        question_text,
+        (
+            "line item",
+            "line items",
+            "item detail",
+            "items in",
+            "show items",
+            "what is inside",
+            "รายการสินค้า",
+            "รายละเอียดรายการ",
+            "รายการใน",
+            "ข้างใน",
+        ),
     )
 
-    if any(term in question_text for term in ("margin", "profit", "profitability", "gross margin")):
+    if contains_any(question_text, ("margin", "profit", "profitability", "gross margin", "มาร์จิ้น", "กำไร")):
         return build_out_of_scope_presentation()
 
-    if any(term in question_text for term in ("lead time", "supplier performance", "vendor performance")):
+    if contains_any(
+        question_text,
+        ("lead time", "supplier performance", "vendor performance", "เวลานำ", "ประสิทธิภาพผู้จัดจำหน่าย", "ประสิทธิภาพผู้ขาย"),
+    ):
         return build_out_of_scope_presentation()
 
-    if any(term in question_text for term in ("trend", "buying pattern", "buying trend", "growth")):
+    if contains_any(question_text, ("trend", "buying pattern", "buying trend", "growth", "แนวโน้ม", "รูปแบบการซื้อ", "การเติบโต")):
         return build_out_of_scope_presentation()
-
-    if any(term in question_text for term in ("overdue", "exception", "late", "delayed")):
-        return build_exception_presentation(context)
 
     if reference_like and wants_line_items:
         line_item_presentation = build_reference_line_item_presentation(context, reference_prefix)
         if line_item_presentation:
             return line_item_presentation
 
+    if contains_any(question_text, ("backorder", "backordered", "coverage", "gap", "ค้างส่ง", "ความพร้อมจ่าย", "ช่องว่าง")):
+        return build_order_coverage_presentation(context)
+
+    if contains_any(question_text, ("overdue", "exception", "late", "delayed", "เกินกำหนด", "ข้อยกเว้น", "ล่าช้า", "รายการค้าง")):
+        return build_exception_presentation(context)
+
     partner_summary = get_partner_summary_presentation(question, context)
     if partner_summary:
         return partner_summary
 
-    if "low" in question_text or "restock" in question_text:
+    if contains_any(question_text, ("low", "restock", "สต็อกต่ำ", "เติมสินค้า", "เติม", "ต่ำ")):
         return build_stock_chat_presentation(context)
 
-    if matching_stock and any(word in question_text for word in ["product", "sku", "stock", "restock", "reorder"]):
+    if matching_stock and contains_any(
+        question_text,
+        ("product", "sku", "stock", "restock", "reorder", "สินค้า", "รหัสสินค้า", "สต็อก", "จุดสั่งซื้อ"),
+    ):
         return build_stock_chat_presentation(context, matching_stock_only=True)
 
-    if "stock" in question_text:
+    if contains_any(question_text, ("stock", "สต็อก")):
         return build_stock_chat_presentation(context)
 
     if reference_like:
         return build_reference_chat_presentation(context, reference_prefix)
 
-    if "net position" in question_text or "receivable" in question_text or "payable" in question_text:
+    if contains_any(
+        question_text,
+        ("net position", "receivable", "payable", "ฐานะสุทธิ", "ลูกหนี้", "เจ้าหนี้"),
+    ) or contains_any_token(question_text, ("ar", "ap")):
         return build_net_position_presentation(context)
 
-    if "backorder" in question_text or "coverage" in question_text:
-        return build_order_coverage_presentation(context)
-
-    if any(word in question_text for word in ("sale", "purchase", "quotation", "billing", "payment", "credit")):
+    if contains_any(
+        question_text,
+        (
+            "sale",
+            "purchase",
+            "quotation",
+            "billing",
+            "payment",
+            "credit",
+            "ขาย",
+            "ซื้อ",
+            "ใบเสนอราคา",
+            "ใบวางบิล",
+            "จ่ายเงิน",
+            "ใบลดหนี้",
+        ),
+    ):
         return build_out_of_scope_presentation()
 
     return build_capabilities_presentation(context)
@@ -3633,46 +3690,10 @@ def answer_inventory_question(question, request=None):
     context = build_ai_inventory_context(question, request)
     presentation = build_chat_presentation(question, context)
     local_answer = build_local_chat_answer(question, context, presentation)
-    if not settings.OPENAI_API_KEY:
-        return {
-            "answer": local_answer,
-            "used_model": "local-summary",
-            "presentation": presentation,
-        }
-
-    from openai import OpenAI
-
-    try:
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
-        response = client.responses.create(
-            model=settings.OPENAI_MODEL,
-            instructions=(
-                "You are a read-only inventory assistant for a trading business. "
-                "Answer only from the provided app data. If data is missing, say so clearly. "
-                "Be practical and helpful. Stay within four workflows only: "
-                "1) stock and fulfillment, 2) customer or supplier summaries, "
-                "3) receivables/payables, overdue exceptions, and order coverage, "
-                "4) reference lookup and line-item detail. "
-                "If the question is outside that scope, say so clearly and suggest one of the supported workflows. "
-                "When summarizing a supplier or customer, mention the date scope, headline totals, "
-                "outstanding receivables/payables when relevant, and 2 to 5 concrete highlights. "
-                "Format the answer in short readable sections using plain text lines or bullet-style lines."
-            ),
-            input=(
-                f"User question:\n{question}\n\n"
-                f"Suggested local summary:\n{local_answer}\n\n"
-                f"Inventory app data:\n{json.dumps(context, default=str, ensure_ascii=False)}"
-            ),
-        )
-        answer_text = (response.output_text or "").strip() or local_answer
-        return {
-            "answer": answer_text,
-            "used_model": settings.OPENAI_MODEL,
-            "presentation": presentation,
-        }
-    except Exception:
-        return {
-            "answer": local_answer,
-            "used_model": "local-summary",
-            "presentation": presentation,
-        }
+    # Chat answers are used for operational decisions, so the API returns only
+    # the deterministic summary built from current database records.
+    return {
+        "answer": local_answer,
+        "used_model": "local-summary",
+        "presentation": presentation,
+    }

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 
+function buildIntroMessage(t) {
+  return { role: "assistant", content: t("app.messages.chatIntro") };
+}
+
 export function useAppChat({ api, t, setError }) {
   const [chatBusy, setChatBusy] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: "assistant", content: t("app.messages.chatIntro") },
-  ]);
+  const [messages, setMessages] = useState([buildIntroMessage(t)]);
 
   useEffect(() => {
     setMessages((current) => {
@@ -18,9 +20,14 @@ export function useAppChat({ api, t, setError }) {
         return current;
       }
 
-      return [{ role: "assistant", content: nextContent }];
+      return [buildIntroMessage(t)];
     });
   }, [t]);
+
+  function handleClearChat() {
+    setError("");
+    setMessages([buildIntroMessage(t)]);
+  }
 
   async function handleAskChat(question) {
     const nextMessages = [...messages, { role: "user", content: question }];
@@ -50,5 +57,6 @@ export function useAppChat({ api, t, setError }) {
     chatBusy,
     messages,
     handleAskChat,
+    handleClearChat,
   };
 }

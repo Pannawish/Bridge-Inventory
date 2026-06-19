@@ -64,7 +64,6 @@ HISTORY_DAYS = 1095
 #   fresh        — just-launched SKU: a few recent sales but NO purchase order
 #                  ever placed → urgent with empty reorder history (exercises
 #                  the dashboard's "No reorder history yet" graph state)
-#   oversold     — allocated sales exceed received stock (negative raw stock)
 #   backorder    — open customer demand exceeds stock + incoming POs
 PROFILE_PARAMS = {
     "staple": {"sale_gap": (10, 20), "po_gap": (26, 42), "cover": (32, 48), "lead": (3, 7), "final": "healthy"},
@@ -78,7 +77,6 @@ PROFILE_PARAMS = {
     "dead": {"sale_gap": None, "po_gap": None, "cover": None, "lead": (7, 20), "final": "skip"},
     "new": {"sale_gap": (6, 10), "po_gap": (16, 22), "cover": (24, 34), "lead": (2, 5), "final": "healthy", "start_ago": 25},
     "fresh": {"sale_gap": None, "po_gap": None, "cover": None, "lead": (3, 7), "final": "skip"},
-    "oversold": {"sale_gap": (12, 22), "po_gap": (42, 60), "cover": (40, 60), "lead": (5, 12), "final": "oversold"},
     "backorder": {"sale_gap": (30, 60), "po_gap": (90, 150), "cover": (100, 150), "lead": (10, 24), "final": "backorder"},
 }
 
@@ -132,7 +130,7 @@ SKU_PROFILES = {
     "INK-YEL-001": ("dead", 0, 0),
     "FOAMBOARD-A1": ("dead", 0, 0),
     "USB-C-2M": ("new", 5, 15),
-    "LBL-A4-100": ("oversold", 200, 600),
+    "LBL-A4-100": ("staple_out", 200, 600),
     "A3-80G-RM": ("backorder", 5, 20),
     "INK-CYN-001": ("backorder", 2, 8),
 }
@@ -757,8 +755,8 @@ class Command(BaseCommand):
 
             if profile_name == "fresh":
                 # Just-launched SKU: a handful of recent sale orders, but
-                # procurement has NOT placed a single PO yet → ends oversold and
-                # urgent with an empty reorder history (the dashboard graph shows
+                # procurement has NOT placed a single PO yet, so it ends urgent
+                # with an empty reorder history (the dashboard graph shows
                 # "No reorder history yet" + an Order-now recommendation).
                 cursor = today - timedelta(days=rng.randint(28, 40))
                 while cursor <= today - timedelta(days=1):
@@ -767,6 +765,7 @@ class Command(BaseCommand):
                         "customer": rng.choice(buyers),
                         "date": cursor,
                         "qty_base": rng.randint(qty_lo, qty_hi),
+                        "item_status": SaleItem.ITEM_PENDING,
                     })
                     cursor += timedelta(days=rng.randint(6, 11))
                 continue
@@ -814,8 +813,8 @@ class Command(BaseCommand):
                     qty_base=qty, lead=params["lead"],
                 ))
 
-            # Demand events, stock-aware (the oversold archetype is pushed
-            # past its stock later, in seed_state_adjustments).
+            # Demand events stay stock-aware so seeded stock-deducting sales
+            # never consume more than received stock.
             receipt_iter = iter(receipts)
             next_receipt = next(receipt_iter, None)
             cursor = first_day + timedelta(days=rng.randint(2, 6))
@@ -912,8 +911,9 @@ class Command(BaseCommand):
             age_days = (today - transaction_date).days
             vat_mode = vat_modes[index % len(vat_modes)]
 
-            # Old receipts are the stock backbone and stay received; recent
-            # orders may still be in flight.
+                # Planned receipts are the stock backbone used by the demand
+                # generator, so keep them received. Deliberate pending and
+                # delayed POs are added later in seed_state_adjustments.
             line_specs = []
             line_amounts = []
             for line in lines:
@@ -928,17 +928,8 @@ class Command(BaseCommand):
                 discounts = self.discounts(rng)
                 amount = line_amount(quantity, unit_cost, discounts)
                 expected_date = line["expected_date"]
-                if age_days > 25 or rng.random() < 0.88:
-                    item_status = PurchaseItem.ITEM_RECEIVED
-                    received_date = line["received_date"]
-                else:
-                    # A recent order still in flight: keep it pending with a
-                    # FUTURE expected date so it reads as incoming stock, not
-                    # an overdue PO (the deliberate delayed-PO cases are seeded
-                    # separately in seed_state_adjustments).
-                    item_status = PurchaseItem.ITEM_PENDING
-                    received_date = None
-                    expected_date = today + timedelta(days=rng.randint(2, 10))
+                item_status = PurchaseItem.ITEM_RECEIVED
+                received_date = line["received_date"]
                 line_specs.append({
                     "product": product,
                     "conversion": conversion,
@@ -1429,6 +1420,10 @@ class Command(BaseCommand):
                 status,
                 self.sale_item_statuses(status, len(events)),
             )
+            statuses = [
+                event.get("item_status") or item_status
+                for event, item_status in zip(events, statuses)
+            ]
 
             line_specs = []
             line_amounts = []
@@ -1555,6 +1550,18 @@ class Command(BaseCommand):
         overdue POs, and customer backorders bigger than stock + incoming."""
         today = timezone.localdate()
         report = {row["product_id"]: row for row in build_stock_report()}
+        received_by_product_id = {}
+        for item in PurchaseItem.objects.filter(item_status=PurchaseItem.ITEM_RECEIVED):
+            received_by_product_id[item.product_id] = (
+                received_by_product_id.get(item.product_id, Decimal("0"))
+                + (item.base_quantity or Decimal("0"))
+            )
+        committed_by_product_id = {}
+        for item in SaleItem.objects.filter(item_status__in=SALE_STOCK_DEDUCTED_STATUSES):
+            committed_by_product_id[item.product_id] = (
+                committed_by_product_id.get(item.product_id, Decimal("0"))
+                + (item.base_quantity or Decimal("0"))
+            )
 
         for idx, product in enumerate(products):
             profile_name, params, qty_lo, qty_hi = self.product_profile(product)
@@ -1562,9 +1569,12 @@ class Command(BaseCommand):
             row = report.get(product.id)
             if not row or final == "skip":
                 continue
-            available = decimal(row["available_stock"] or 0)
+            raw_available = (
+                received_by_product_id.get(product.id, Decimal("0"))
+                - committed_by_product_id.get(product.id, Decimal("0"))
+            )
+            available = raw_available
             reorder = decimal(row["reorder_level"] or 0)
-            received = decimal(row["received_purchase_units"] or 0)
             if reorder <= 0:
                 reorder = decimal(max(qty_hi, 10))
 
@@ -1581,9 +1591,6 @@ class Command(BaseCommand):
                 target = reorder * decimal(str(rng.uniform(0.35, 0.85)))
             elif final == "out":
                 target = Decimal("0")
-            elif final == "oversold":
-                # Sell PAST zero so raw stock goes negative (oversold badge).
-                target = -(received * Decimal("0.06"))
             elif final == "backorder":
                 target = reorder * decimal(str(rng.uniform(0.25, 0.6)))
             else:
@@ -1903,8 +1910,7 @@ class Command(BaseCommand):
     def seed_sale_allocations(self, sales):
         """Create FIFO layer allocations for every stock-deducting sale line so
         the per-layer availability shown in the inventory detail (FIFO table)
-        matches the stock report. The deliberately oversold product allocates
-        what it can and stays short — leaving the oversold case visible."""
+        matches the stock report."""
         ordered = sorted(sales, key=lambda sale: (sale.transaction_date, sale.reference_no))
         for sale in ordered:
             for item in sale.items.select_related("product").all():

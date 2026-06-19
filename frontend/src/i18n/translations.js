@@ -757,6 +757,69 @@ export const translations = {
       prompt2: "Summarize customer activity for Finance Department from 2026-06-01 to 2026-06-14",
       prompt3: "Show overdue and exception issues",
       prompt4: "Show line items for TI-CHAT-BACKORDER",
+      instructionsButton: "Instructions",
+      hideInstructionsButton: "Hide instructions",
+      instructionsTitle: "What you can ask",
+      instructionsIntro:
+        "Use these examples when you need answers that match the current database. The assistant only answers inside this supported scope.",
+      clearHistoryButton: "Clear history",
+      clearHistoryBusy: "Wait until the current answer finishes before clearing history.",
+      instructionUseCases: [
+        {
+          title: "Stock and restock",
+          description: "Find low stock, reorder priorities, and stock status for a product or SKU.",
+          examples: [
+            "Which items are low stock and what should I restock first?",
+            "Show stock status for CHAT-1",
+          ],
+        },
+        {
+          title: "Fulfillment coverage",
+          description: "Check open customer demand, ready stock, incoming stock, and uncovered gaps.",
+          examples: [
+            "Which customer orders are backordered?",
+            "Show order coverage gaps",
+          ],
+        },
+        {
+          title: "Customer summaries",
+          description: "Summarize sales, quotations, billing notes, credit notes, and open receivables for one customer.",
+          examples: [
+            "Summarize customer activity for Finance Department this month",
+            "Summarize customer activity for Finance Department from 2026-06-01 to 2026-06-14",
+          ],
+        },
+        {
+          title: "Supplier summaries",
+          description: "Summarize purchases, supplier quotations, payment batches, and scheduled payables for one supplier.",
+          examples: [
+            "Summarize supplier activity for Paper Supply Co. this month",
+            "Summarize supplier activity for Paper Supply Co. from 2026-06-01 to 2026-06-14",
+          ],
+        },
+        {
+          title: "AR, AP, and exceptions",
+          description: "Review net position, open balances, overdue AR/AP, delayed PO lines, and backorder gaps.",
+          examples: [
+            "What is our net position?",
+            "Show overdue and exception issues",
+          ],
+        },
+        {
+          title: "Document lookup",
+          description: "Look up existing PO, TI, QT, BN, PMT, and CN references, including line-item details.",
+          examples: [
+            "Show summary for PO-CHAT-INCOMING",
+            "Show line items for TI-CHAT-BACKORDER",
+          ],
+        },
+      ],
+      unsupportedTitle: "Not supported in this assistant",
+      unsupportedItems: [
+        "Deep margin or profitability analysis.",
+        "Customer trend analysis or supplier performance analytics.",
+        "Broad open-ended reporting outside stock, partners, AR/AP, exceptions, and document lookup.",
+      ],
       you: "You",
       assistant: "Assistant",
       model: "Model: {model}",
@@ -2869,6 +2932,69 @@ export const translations = {
       prompt2: "สรุปกิจกรรมของลูกค้า Finance Department ระหว่าง 2026-06-01 ถึง 2026-06-14",
       prompt3: "แสดงรายการค้างและข้อยกเว้น",
       prompt4: "แสดงรายการสินค้าใน TI-CHAT-BACKORDER",
+      instructionsButton: "วิธีใช้",
+      hideInstructionsButton: "ซ่อนวิธีใช้",
+      instructionsTitle: "เรื่องที่ถามได้",
+      instructionsIntro:
+        "ใช้ตัวอย่างเหล่านี้เมื่อต้องการคำตอบที่ตรงกับข้อมูลล่าสุดในฐานข้อมูล ผู้ช่วยจะตอบเฉพาะขอบเขตที่รองรับเท่านั้น",
+      clearHistoryButton: "ล้างประวัติแชท",
+      clearHistoryBusy: "รอให้คำตอบปัจจุบันเสร็จก่อนล้างประวัติแชท",
+      instructionUseCases: [
+        {
+          title: "สต็อกและการเติมสินค้า",
+          description: "ตรวจสินค้าสต็อกต่ำ ลำดับความสำคัญในการเติมสินค้า และสถานะสต็อกตามสินค้า/SKU",
+          examples: [
+            "สินค้าใดมีสต็อกต่ำ และควรเติมตัวใดก่อน?",
+            "แสดงสถานะสต็อกของ CHAT-1",
+          ],
+        },
+        {
+          title: "ความพร้อมจ่ายสินค้า",
+          description: "ตรวจคำสั่งขายที่เปิดอยู่ สต็อกพร้อมจ่าย สต็อกที่กำลังเข้า และส่วนที่ยังขาด",
+          examples: [
+            "คำสั่งขายใดมีสินค้าค้างส่ง?",
+            "แสดงช่องว่างความพร้อมจ่ายสินค้า",
+          ],
+        },
+        {
+          title: "สรุปลูกค้า",
+          description: "สรุปยอดขาย ใบเสนอราคา ใบวางบิล ใบลดหนี้ และลูกหนี้ค้างรับของลูกค้ารายเดียว",
+          examples: [
+            "สรุปกิจกรรมของลูกค้า Finance Department เดือนนี้",
+            "สรุปกิจกรรมของลูกค้า Finance Department ระหว่าง 2026-06-01 ถึง 2026-06-14",
+          ],
+        },
+        {
+          title: "สรุปผู้จัดจำหน่าย",
+          description: "สรุปการซื้อ ใบเสนอราคาผู้จัดจำหน่าย ชุดจ่ายเงิน และเจ้าหนี้ที่กำหนดจ่ายของผู้จัดจำหน่ายรายเดียว",
+          examples: [
+            "สรุปกิจกรรมของผู้จัดจำหน่าย Paper Supply Co. เดือนนี้",
+            "สรุปกิจกรรมของผู้จัดจำหน่าย Paper Supply Co. ระหว่าง 2026-06-01 ถึง 2026-06-14",
+          ],
+        },
+        {
+          title: "AR, AP และรายการค้าง",
+          description: "ตรวจฐานะสุทธิ ยอดคงค้าง ลูกหนี้/เจ้าหนี้เกินกำหนด รายการ PO ล่าช้า และช่องว่างคำสั่งขายค้างส่ง",
+          examples: [
+            "ฐานะสุทธิของเราเป็นอย่างไร?",
+            "แสดงรายการค้างและข้อยกเว้น",
+          ],
+        },
+        {
+          title: "ค้นหาเอกสาร",
+          description: "ค้นหาเลขอ้างอิง PO, TI, QT, BN, PMT และ CN ที่มีอยู่ รวมถึงรายละเอียดรายการสินค้า",
+          examples: [
+            "แสดงสรุปของ PO-CHAT-INCOMING",
+            "แสดงรายการสินค้าใน TI-CHAT-BACKORDER",
+          ],
+        },
+      ],
+      unsupportedTitle: "เรื่องที่ยังไม่รองรับในผู้ช่วยนี้",
+      unsupportedItems: [
+        "การวิเคราะห์มาร์จิ้นหรือกำไรเชิงลึก",
+        "การวิเคราะห์แนวโน้มการซื้อของลูกค้าหรือประสิทธิภาพผู้จัดจำหน่าย",
+        "รายงานปลายเปิดนอกเหนือจากสต็อก คู่ค้า AR/AP รายการค้าง และการค้นหาเอกสาร",
+      ],
       you: "คุณ",
       assistant: "ผู้ช่วย",
       model: "โมเดล: {model}",

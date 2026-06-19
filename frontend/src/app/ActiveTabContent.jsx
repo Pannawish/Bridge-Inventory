@@ -97,6 +97,7 @@ function ActiveTabContent({
   handleCategoryDelete,
   messages,
   handleAskChat,
+  handleClearChat,
   chatBusy,
   onViewPurchasesTab,
 }) {
@@ -312,7 +313,14 @@ function ActiveTabContent({
   }
 
   if (activeTab === "chat") {
-    return <ChatPanel messages={messages} onAsk={handleAskChat} busy={chatBusy} />;
+    return (
+      <ChatPanel
+        messages={messages}
+        onAsk={handleAskChat}
+        onClear={handleClearChat}
+        busy={chatBusy}
+      />
+    );
   }
 
   if (activeTab === "settings") {
