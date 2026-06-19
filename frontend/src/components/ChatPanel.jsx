@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useLanguage } from "../i18n/LanguageContext";
 import ChatMessageBody from "./chat/ChatMessageBody";
+import ChatRecordDetailModal from "./chat/ChatRecordDetailModal";
 
-function ChatPanel({ messages, onAsk, onClear, onOpenRecord, busy }) {
+function ChatPanel({ messages, onAsk, onClear, onOpenRecord, detail, onCloseDetail, busy }) {
   const { t } = useLanguage();
   const [question, setQuestion] = useState("");
   const [showInstructions, setShowInstructions] = useState(false);
@@ -142,6 +143,8 @@ function ChatPanel({ messages, onAsk, onClear, onOpenRecord, busy }) {
           {t("chat.askButton")}
         </button>
       </form>
+
+      <ChatRecordDetailModal detail={detail} onClose={onCloseDetail} />
     </section>
   );
 }

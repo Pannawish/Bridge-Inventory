@@ -129,7 +129,15 @@ export function useAppState() {
       t,
       language,
     });
-  const { chatBusy, messages, handleAskChat, handleClearChat } = useAppChat({
+  const {
+    chatBusy,
+    chatDetail,
+    messages,
+    handleAskChat,
+    handleClearChat,
+    handleOpenChatRecord,
+    closeChatDetail,
+  } = useAppChat({
     api,
     t,
     setError,
@@ -195,25 +203,6 @@ export function useAppState() {
     }
     setDashboardIntent(intent);
     setActiveTab(intent.tab);
-    setSidebarOpen(false);
-  }
-
-  function handleOpenChatRecord(target) {
-    const targetMap = {
-      product: { tab: "inventory", idKey: "focusProductId" },
-      purchase: { tab: "purchase-history", idKey: "focusId" },
-      sale: { tab: "sales-history", idKey: "focusId" },
-      quotation: { tab: "quotations", idKey: "focusId" },
-      billing_note: { tab: "billing-notes", idKey: "focusId" },
-      payment_batch: { tab: "payment-batches", idKey: "focusId" },
-      credit_note: { tab: "credit-notes", idKey: "focusId" },
-    };
-    const config = targetMap[target?.type];
-    if (!config || !target.id) {
-      return;
-    }
-    setDashboardIntent({ tab: config.tab, [config.idKey]: target.id });
-    setActiveTab(config.tab);
     setSidebarOpen(false);
   }
 
@@ -416,10 +405,12 @@ export function useAppState() {
     refreshCreditNoteEligibility,
     t,
     chatBusy,
+    chatDetail,
     messages,
     handleAskChat,
     handleClearChat,
     handleOpenChatRecord,
+    closeChatDetail,
     handleLoadProductHistory,
     showWarning,
     handleTabSelect,

@@ -99,6 +99,8 @@ function ActiveTabContent({
   handleAskChat,
   handleClearChat,
   handleOpenChatRecord,
+  chatDetail,
+  closeChatDetail,
   chatBusy,
   onViewPurchasesTab,
 }) {
@@ -323,6 +325,8 @@ function ActiveTabContent({
         onAsk={handleAskChat}
         onClear={handleClearChat}
         onOpenRecord={handleOpenChatRecord}
+        detail={chatDetail}
+        onCloseDetail={closeChatDetail}
         busy={chatBusy}
       />
     );

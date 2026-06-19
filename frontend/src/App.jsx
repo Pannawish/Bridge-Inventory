@@ -136,6 +136,8 @@ function App() {
           handleAskChat={state.handleAskChat}
           handleClearChat={state.handleClearChat}
           handleOpenChatRecord={state.handleOpenChatRecord}
+          chatDetail={state.chatDetail}
+          closeChatDetail={state.closeChatDetail}
           chatBusy={state.chatBusy}
           onViewPurchasesTab={() => state.setActiveTab("purchase-history")}
         />

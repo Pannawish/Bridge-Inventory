@@ -82,7 +82,7 @@ function ChatRecordList({ section, onOpenRecord }) {
                 className="chat-record-open"
                 onClick={() => onOpenRecord?.(record.target)}
               >
-                {t("chat.openRecord")}
+                {t("chat.viewRecord")}
               </button>
             ) : null}
           </div>

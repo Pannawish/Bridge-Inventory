@@ -7,6 +7,13 @@ function buildIntroMessage(t) {
 export function useAppChat({ api, t, setError }) {
   const [chatBusy, setChatBusy] = useState(false);
   const [messages, setMessages] = useState([buildIntroMessage(t)]);
+  const [chatDetail, setChatDetail] = useState({
+    open: false,
+    loading: false,
+    error: "",
+    target: null,
+    data: null,
+  });
 
   useEffect(() => {
     setMessages((current) => {
@@ -27,6 +34,51 @@ export function useAppChat({ api, t, setError }) {
   function handleClearChat() {
     setError("");
     setMessages([buildIntroMessage(t)]);
+  }
+
+  function closeChatDetail() {
+    setChatDetail({
+      open: false,
+      loading: false,
+      error: "",
+      target: null,
+      data: null,
+    });
+  }
+
+  async function handleOpenChatRecord(target) {
+    if (!target?.type || !target?.id) {
+      return;
+    }
+
+    const fetchers = {
+      product: api.getProduct,
+      purchase: api.getPurchase,
+      sale: api.getSale,
+      quotation: api.getQuotation,
+      billing_note: api.getBillingNote,
+      payment_batch: api.getPaymentBatch,
+      credit_note: api.getCreditNote,
+    };
+    const fetchRecord = fetchers[target.type];
+    if (!fetchRecord) {
+      return;
+    }
+
+    setChatDetail({ open: true, loading: true, error: "", target, data: null });
+
+    try {
+      const data = await fetchRecord(target.id);
+      setChatDetail({ open: true, loading: false, error: "", target, data });
+    } catch (requestError) {
+      setChatDetail({
+        open: true,
+        loading: false,
+        error: requestError.message || t("chatDetail.loadFailed"),
+        target,
+        data: null,
+      });
+    }
   }
 
   async function handleAskChat(question) {
@@ -55,8 +107,11 @@ export function useAppChat({ api, t, setError }) {
 
   return {
     chatBusy,
+    chatDetail,
     messages,
     handleAskChat,
     handleClearChat,
+    handleOpenChatRecord,
+    closeChatDetail,
   };
 }

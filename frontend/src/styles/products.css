@@ -857,6 +857,29 @@
   background: var(--accent-soft);
 }
 
+.chat-detail-modal {
+  width: min(980px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+}
+
+.chat-detail-modal .section-heading {
+  margin-bottom: 12px;
+}
+
+.chat-detail-lines {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.chat-detail-subheading {
+  margin-bottom: 0;
+}
+
+.chat-detail-modal .detail-item-table {
+  min-width: 620px;
+}
+
 .chat-copy {
   display: grid;
   gap: 8px;

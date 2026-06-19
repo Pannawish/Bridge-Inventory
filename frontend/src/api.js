@@ -182,6 +182,9 @@ export const api = {
   getProducts(params) {
     return request("/products/", { params });
   },
+  getProduct(id) {
+    return request(`/products/${id}/`);
+  },
   createProduct(payload) {
     return request("/products/", { method: "POST", body: payload });
   },
