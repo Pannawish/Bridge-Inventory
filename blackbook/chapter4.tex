@@ -11,7 +11,7 @@ The main result is that the system connects business documents together instead 
 \begin{table}[H]
 	\centering
 	\small
-	\renewcommand{\arraystretch}{1.18}
+	\renewcommand{\arraystretch}{1.25}
 	\setlength{\tabcolsep}{4pt}
 	\caption{Implemented Workspace and Transaction Modules}
 	\label{tab:implemented-system-modules}
@@ -21,6 +21,7 @@ The main result is that the system connects business documents together instead 
 		Dashboard & Shows stock, finance, cashflow, product movement, and order coverage summaries. & Completed \\ \hline
 		Inventory & Shows backend-calculated stock rows, reorder need, supplier options, product details, and quick purchase-order preparation. & Completed \\ \hline
 		AI Chat & Answers supported read-only questions about stock, fulfillment, partner summaries, AR/AP exceptions, and document references. & Completed \\ \hline
+		AI Report & Generates printable business reports for a selected supplier, customer, or product with metrics, charts, record tables, and AI analysis. & Completed \\ \hline
 		Purchases & Supports purchase records, line items, receiving status, documents, discounts, VAT totals, payable total, and payment batch links. & Completed \\ \hline
 		Payment Batches & Groups eligible purchases for supplier payment and tracks paid or unpaid lines. & Completed \\ \hline
 		Quotations & Supports quotation records, line items, supplier options, validity settings, VAT totals, and conversion to purchase or sale flow. & Completed \\ \hline
@@ -31,7 +32,7 @@ The main result is that the system connects business documents together instead 
 \begin{table}[H]
 	\centering
 	\small
-	\renewcommand{\arraystretch}{1.18}
+	\renewcommand{\arraystretch}{1.25}
 	\setlength{\tabcolsep}{4pt}
 	\caption{Implemented Finance and Master Data Modules}
 	\label{tab:implemented-record-modules}
@@ -47,8 +48,8 @@ The main result is that the system connects business documents together instead 
 	\end{tabularx}
 \end{table}
 
-\section{Interface Evidence of Implemented Modules}
-This section presents selected screenshots from the completed system as visual evidence of the implemented pages. Each figure shows one page or workflow and is followed by a short explanation so the reader can quickly understand what is being shown and why that page matters in the overall system.
+\section{How the System Looks in Practice}
+This section walks through selected pages from the finished application. Each screenshot is paired with a short explanation of what the page does and why it matters for day-to-day use. The goal is to give the reader a practical feel for the system before the detailed results are discussed.
 
 \begin{figure}[H]
 	\centering
@@ -56,7 +57,7 @@ This section presents selected screenshots from the completed system as visual e
 	\caption{Dashboard page}
 	\label{fig:dashboard-page}
 \end{figure}
-Figure~\ref{fig:dashboard-page} presents the main dashboard of the system. It brings stock, finance, cashflow, and order coverage summaries into one view so the user can check the overall business situation without opening each transaction page one by one.
+Figure~\ref{fig:dashboard-page} is the first thing the user sees after logging in. It pulls together stock health, finance totals, cashflow projections, and order coverage into a single view, so the user can spot problems without jumping between pages.
 
 \begin{figure}[H]
 	\centering
@@ -64,55 +65,73 @@ Figure~\ref{fig:dashboard-page} presents the main dashboard of the system. It br
 	\caption{Inventory page}
 	\label{fig:inventory-page}
 \end{figure}
-Figure~\ref{fig:inventory-page} shows the inventory workspace used for daily stock review. The screenshot highlights the stock rows, filter controls, reorder indicators, and supplier-related restock information prepared from backend stock calculations.
+Figure~\ref{fig:inventory-page} is the daily stock-checking workspace. It shows how many units are on hand, which products need reordering, which suppliers offer the best price, and how quickly each item is selling — all calculated by the backend so the numbers stay reliable.
+
+% TODO: Replace placeholder filename with actual AI chat screenshot.
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\textwidth]{figure-4-3-ai-chat.png}
+	\caption{AI chat assistant page}
+	\label{fig:ai-chat-page}
+\end{figure}
+Figure~\ref{fig:ai-chat-page} shows the AI chat page where users can type natural-language questions about stock, partners, receivables, payables, or document references. The assistant reads real data from the backend and returns a focused answer, so users can get quick insights without navigating through multiple pages or filtering tables manually.
+
+% TODO: Replace placeholder filename with actual AI report screenshot.
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\textwidth]{figure-4-4-ai-report.png}
+	\caption{AI report generation page}
+	\label{fig:ai-report-page}
+\end{figure}
+Figure~\ref{fig:ai-report-page} shows the AI report page. The user picks a scope — supplier, customer, or product — selects the specific record, and optionally narrows the date range. After clicking generate, a print-ready report opens in a new tab with summary metrics, trend charts, record tables, and an AI-written business analysis. This gives the user a shareable document without having to export data and build the report manually.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-3-product-form.png}
+	\includegraphics[width=0.95\textwidth]{figure-4-5-product-form.png}
 	\caption{Product management form}
 	\label{fig:product-management-form}
 \end{figure}
-Figure~\ref{fig:product-management-form} shows the product form used to maintain item records. It demonstrates that the system supports product identity fields, unit conversion settings, reorder-related data, pictures, and supplier-linked product details in one form.
+Figure~\ref{fig:product-management-form} shows the product form where the user manages item details. Everything from SKUs and unit conversions to reorder levels, product pictures, and linked suppliers is handled in one place.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-4-purchase-workflow.png}
+	\includegraphics[width=0.95\textwidth]{figure-4-6-purchase-workflow.png}
 	\caption{Purchase workflow}
 	\label{fig:purchase-workflow}
 \end{figure}
-Figure~\ref{fig:purchase-workflow} presents the purchase entry workflow. The page shows purchase line items, receiving status, expected delivery handling, and purchase totals, which are important for supplier-side stock intake and payable tracking.
+Figure~\ref{fig:purchase-workflow} walks through how a purchase order is entered. The page lets the user add line items, track receiving status, set expected delivery dates, and see the running totals — all of which feed into stock levels and supplier payable tracking.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-5-sales-workflow.png}
+	\includegraphics[width=0.95\textwidth]{figure-4-7-sales-workflow.png}
 	\caption{Sales workflow}
 	\label{fig:sales-workflow}
 \end{figure}
-Figure~\ref{fig:sales-workflow} shows the sales workflow used to prepare and track customer orders. The page presents customer references, delivery-related statuses, stock-linked line items, and total values that later connect to billing and credit workflows.
+Figure~\ref{fig:sales-workflow} shows how a customer sale is prepared and tracked. The user fills in customer references, adds stock-linked line items, and monitors delivery statuses. Once items are packed or shipped, the system commits stock and creates allocation records automatically.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-6-quotation-workflow.png}
+	\includegraphics[width=0.95\textwidth]{figure-4-8-quotation-workflow.png}
 	\caption{Quotation workflow}
 	\label{fig:quotation-workflow}
 \end{figure}
-Figure~\ref{fig:quotation-workflow} shows the quotation page before the transaction is converted into a purchase or sale flow. The screenshot provides evidence of quotation items, pricing, validity settings, and supplier options for each line.
+Figure~\ref{fig:quotation-workflow} shows a quotation before it turns into a real purchase or sale. The user can compare supplier pricing, set validity dates, and review line totals — then convert the quotation into one or more purchase orders or a sales record.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-7-billing-note-workflow.png}
+	\includegraphics[width=0.95\textwidth]{figure-4-9-billing-note-workflow.png}
 	\caption{Billing note workflow}
 	\label{fig:billing-note-workflow}
 \end{figure}
-Figure~\ref{fig:billing-note-workflow} presents the billing note workflow for customer receivables. The page shows how eligible sales are grouped under one billing document and how the collection-related status is managed inside the system.
+Figure~\ref{fig:billing-note-workflow} shows how eligible sales are grouped into a billing note for customer invoicing. The user can see which sales are included, track whether payment has been received, and review expected and actual payment dates.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-8-payment-batch-workflow.png}
+	\includegraphics[width=0.95\textwidth]{figure-4-10-payment-batch-workflow.png}
 	\caption{Payment batch workflow}
 	\label{fig:payment-batch-workflow}
 \end{figure}
-Figure~\ref{fig:payment-batch-workflow} shows the payment batch workflow for supplier payables. It makes the supplier, eligible purchases, payment grouping, and paid or unpaid line handling visible in one page.
+Figure~\ref{fig:payment-batch-workflow} shows the payment batch page for supplier payables. Eligible purchases are grouped into one batch, and the user can mark individual lines as paid and record bank references — keeping supplier payment tracking in one place.
 
 \section{Results by Workflow}
 \subsection{Master Data Results}
@@ -144,12 +163,15 @@ The dashboard and inventory pages show the business status without loading every
 \subsection{AI Assistant Results}
 The AI assistant was implemented as a limited read-only assistant. It can answer supported questions about low stock, restock scope, net position, order coverage, customer summary, supplier summary, overdue or exception issues, and line items for a known reference. The tests also show that questions outside these supported workflows are rejected as outside the current assistant scope.
 
+\subsection{AI Report Results}
+The AI report page was completed with scope selection, record selection, optional custom date range, and report generation. The backend collects purchases, sales, quotations, billing notes, payment batches, credit notes, and stock data for the selected supplier, customer, or product. It calculates summary metrics such as purchase totals, sales totals, open payables, open receivables, available stock, gross margin, and margin rate. It also builds trend charts, top product or partner charts, and record tables. When an OpenAI API key is configured, the backend sends the data context to the AI model for an executive summary and business analysis. When no API key is available, the backend builds a local report from the same data. The generated report opens in a new browser tab as a self-contained, print-ready HTML document with bilingual support.
+
 \section{Feature Evidence Summary}
 \begin{table}[H]
 	\centering
 	\footnotesize
-	\renewcommand{\arraystretch}{1.35}
-	\setlength{\tabcolsep}{6pt}
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{4pt}
 	\caption{Evidence of Implemented Features}
 	\label{tab:feature-evidence-summary}
 	\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{3.5cm}|>{\raggedright\arraybackslash}X|}
@@ -163,6 +185,7 @@ The AI assistant was implemented as a limited read-only assistant. It can answer
 		Normalized quotation items & Quotation lines and supplier options are stored in relational tables while the API still returns a simple \texttt{items} array to the frontend. \\ \hline
 		Backend dashboard summaries & The dashboard and inventory pages use backend-prepared summary data instead of calculating all operational metrics from full transaction lists in the browser. \\ \hline
 		Assistant scope control & The chat service answers only supported read-only workflows and rejects unsupported requests as outside scope. \\ \hline
+		AI report generation & The AI report endpoint collects transaction data for a selected record, calculates metrics and charts, and returns a printable HTML report with optional AI-written analysis. \\ \hline
 	\end{tabularx}
 \end{table}
 

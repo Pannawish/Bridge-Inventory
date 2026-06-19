@@ -25,63 +25,65 @@
 \contentsline {chapter}{\numberline {3}METHODOLOGY}{9}{}%
 \contentsline {section}{\numberline {3.1}Development Approach}{9}{}%
 \contentsline {section}{\numberline {3.2}Requirement Areas and Web-App Pages}{10}{}%
-\contentsline {section}{\numberline {3.3}Development of Each Page}{10}{}%
-\contentsline {subsection}{\numberline {3.3.1}Dashboard Page}{10}{}%
+\contentsline {section}{\numberline {3.3}Development of Each Page}{11}{}%
+\contentsline {subsection}{\numberline {3.3.1}Dashboard Page}{11}{}%
 \contentsline {subsection}{\numberline {3.3.2}Inventory Page}{11}{}%
 \contentsline {subsection}{\numberline {3.3.3}AI Chat Page}{11}{}%
-\contentsline {subsection}{\numberline {3.3.4}Purchases Page}{11}{}%
-\contentsline {subsection}{\numberline {3.3.5}Payment Batches Page}{12}{}%
-\contentsline {subsection}{\numberline {3.3.6}Quotation Page}{12}{}%
-\contentsline {subsection}{\numberline {3.3.7}Sales Page}{12}{}%
-\contentsline {subsection}{\numberline {3.3.8}Billing Notes Page}{12}{}%
-\contentsline {subsection}{\numberline {3.3.9}Credit Notes Page}{13}{}%
-\contentsline {subsection}{\numberline {3.3.10}Products Page}{13}{}%
-\contentsline {subsection}{\numberline {3.3.11}Categories Page}{13}{}%
-\contentsline {subsection}{\numberline {3.3.12}Supplier Page}{13}{}%
-\contentsline {subsection}{\numberline {3.3.13}Customer Page}{14}{}%
-\contentsline {subsection}{\numberline {3.3.14}Login and Settings Support}{14}{}%
-\contentsline {section}{\numberline {3.4}System Architecture}{14}{}%
-\contentsline {section}{\numberline {3.5}Frontend Methodology}{15}{}%
-\contentsline {section}{\numberline {3.6}Backend and API Methodology}{16}{}%
-\contentsline {section}{\numberline {3.7}Database Design Methodology}{17}{}%
-\contentsline {section}{\numberline {3.8}Business Workflow Design}{17}{}%
-\contentsline {section}{\numberline {3.9}Business Calculations and Rules}{18}{}%
-\contentsline {subsection}{\numberline {3.9.1}Unit Conversion and Line Amounts}{19}{}%
-\contentsline {subsection}{\numberline {3.9.2}VAT Calculation}{19}{}%
-\contentsline {subsection}{\numberline {3.9.3}Current Stock}{20}{}%
-\contentsline {subsection}{\numberline {3.9.4}Stock Validation and Allocation}{20}{}%
-\contentsline {subsection}{\numberline {3.9.5}Inventory Dashboard Calculations}{21}{}%
-\contentsline {subsection}{\numberline {3.9.6}Purchase Payable and Payment Batch Calculations}{22}{}%
-\contentsline {subsection}{\numberline {3.9.7}Billing Note and Credit Note Calculations}{22}{}%
-\contentsline {subsection}{\numberline {3.9.8}Cashflow and Net Position}{23}{}%
-\contentsline {subsection}{\numberline {3.9.9}Quotation Validity}{23}{}%
-\contentsline {section}{\numberline {3.10}Validation and Security Design}{23}{}%
-\contentsline {section}{\numberline {3.11}Testing Methodology}{24}{}%
-\contentsline {section}{\numberline {3.12}Tools and Technologies Used}{25}{}%
-\contentsline {chapter}{\numberline {4}RESULTS}{26}{}%
-\contentsline {section}{\numberline {4.1}Completed System Overview}{26}{}%
-\contentsline {section}{\numberline {4.2}Implemented Modules}{27}{}%
-\contentsline {section}{\numberline {4.3}Interface Evidence of Implemented Modules}{28}{}%
-\contentsline {section}{\numberline {4.4}Results by Workflow}{36}{}%
-\contentsline {subsection}{\numberline {4.4.1}Master Data Results}{36}{}%
-\contentsline {subsection}{\numberline {4.4.2}Purchasing and Stock Results}{37}{}%
-\contentsline {subsection}{\numberline {4.4.3}Sales Results}{37}{}%
-\contentsline {subsection}{\numberline {4.4.4}Quotation Results}{37}{}%
-\contentsline {subsection}{\numberline {4.4.5}Finance Results}{38}{}%
-\contentsline {subsection}{\numberline {4.4.6}Dashboard and Inventory Results}{38}{}%
-\contentsline {subsection}{\numberline {4.4.7}AI Assistant Results}{38}{}%
-\contentsline {section}{\numberline {4.5}Feature Evidence Summary}{39}{}%
-\contentsline {section}{\numberline {4.6}Key Findings}{39}{}%
-\contentsline {section}{\numberline {4.7}Discussion of Objective Achievement}{40}{}%
-\contentsline {section}{\numberline {4.8}User Survey Evaluation}{40}{}%
-\contentsline {section}{\numberline {4.9}Limitations Found During Development}{41}{}%
-\contentsline {chapter}{\numberline {5}CONCLUSION}{42}{}%
-\contentsline {section}{\numberline {5.1}Brief Project Overview}{42}{}%
-\contentsline {section}{\numberline {5.2}Objective Summary}{42}{}%
-\contentsline {section}{\numberline {5.3}System Design Summary}{42}{}%
-\contentsline {section}{\numberline {5.4}Implementation Summary}{43}{}%
-\contentsline {section}{\numberline {5.5}Result Summary}{43}{}%
-\contentsline {section}{\numberline {5.6}Key Findings}{44}{}%
-\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{44}{}%
-\contentsline {section}{\numberline {5.8}Future Work}{44}{}%
-\contentsline {chapter}{REFERENCES}{46}{}%
+\contentsline {subsection}{\numberline {3.3.4}AI Report Page}{11}{}%
+\contentsline {subsection}{\numberline {3.3.5}Purchases Page}{12}{}%
+\contentsline {subsection}{\numberline {3.3.6}Payment Batches Page}{12}{}%
+\contentsline {subsection}{\numberline {3.3.7}Quotation Page}{12}{}%
+\contentsline {subsection}{\numberline {3.3.8}Sales Page}{13}{}%
+\contentsline {subsection}{\numberline {3.3.9}Billing Notes Page}{13}{}%
+\contentsline {subsection}{\numberline {3.3.10}Credit Notes Page}{13}{}%
+\contentsline {subsection}{\numberline {3.3.11}Products Page}{14}{}%
+\contentsline {subsection}{\numberline {3.3.12}Categories Page}{14}{}%
+\contentsline {subsection}{\numberline {3.3.13}Supplier Page}{14}{}%
+\contentsline {subsection}{\numberline {3.3.14}Customer Page}{14}{}%
+\contentsline {subsection}{\numberline {3.3.15}Login and Settings Support}{14}{}%
+\contentsline {section}{\numberline {3.4}System Architecture}{15}{}%
+\contentsline {section}{\numberline {3.5}Frontend Methodology}{16}{}%
+\contentsline {section}{\numberline {3.6}Backend and API Methodology}{17}{}%
+\contentsline {section}{\numberline {3.7}Database Design Methodology}{18}{}%
+\contentsline {section}{\numberline {3.8}Business Workflow Design}{18}{}%
+\contentsline {section}{\numberline {3.9}Business Calculations and Rules}{19}{}%
+\contentsline {subsection}{\numberline {3.9.1}Unit Conversion and Line Amounts}{20}{}%
+\contentsline {subsection}{\numberline {3.9.2}VAT Calculation}{20}{}%
+\contentsline {subsection}{\numberline {3.9.3}Current Stock}{21}{}%
+\contentsline {subsection}{\numberline {3.9.4}Stock Validation and Allocation}{21}{}%
+\contentsline {subsection}{\numberline {3.9.5}Inventory Dashboard Calculations}{22}{}%
+\contentsline {subsection}{\numberline {3.9.6}Purchase Payable and Payment Batch Calculations}{23}{}%
+\contentsline {subsection}{\numberline {3.9.7}Billing Note and Credit Note Calculations}{23}{}%
+\contentsline {subsection}{\numberline {3.9.8}Cashflow and Net Position}{24}{}%
+\contentsline {subsection}{\numberline {3.9.9}Quotation Validity}{24}{}%
+\contentsline {section}{\numberline {3.10}Validation and Security Design}{24}{}%
+\contentsline {section}{\numberline {3.11}Testing Methodology}{25}{}%
+\contentsline {section}{\numberline {3.12}Tools and Technologies Used}{26}{}%
+\contentsline {chapter}{\numberline {4}RESULTS}{27}{}%
+\contentsline {section}{\numberline {4.1}Completed System Overview}{27}{}%
+\contentsline {section}{\numberline {4.2}Implemented Modules}{28}{}%
+\contentsline {section}{\numberline {4.3}How the System Looks in Practice}{29}{}%
+\contentsline {section}{\numberline {4.4}Results by Workflow}{38}{}%
+\contentsline {subsection}{\numberline {4.4.1}Master Data Results}{38}{}%
+\contentsline {subsection}{\numberline {4.4.2}Purchasing and Stock Results}{39}{}%
+\contentsline {subsection}{\numberline {4.4.3}Sales Results}{39}{}%
+\contentsline {subsection}{\numberline {4.4.4}Quotation Results}{39}{}%
+\contentsline {subsection}{\numberline {4.4.5}Finance Results}{40}{}%
+\contentsline {subsection}{\numberline {4.4.6}Dashboard and Inventory Results}{40}{}%
+\contentsline {subsection}{\numberline {4.4.7}AI Assistant Results}{40}{}%
+\contentsline {subsection}{\numberline {4.4.8}AI Report Results}{40}{}%
+\contentsline {section}{\numberline {4.5}Feature Evidence Summary}{41}{}%
+\contentsline {section}{\numberline {4.6}Key Findings}{42}{}%
+\contentsline {section}{\numberline {4.7}Discussion of Objective Achievement}{42}{}%
+\contentsline {section}{\numberline {4.8}User Survey Evaluation}{42}{}%
+\contentsline {section}{\numberline {4.9}Limitations Found During Development}{43}{}%
+\contentsline {chapter}{\numberline {5}CONCLUSION}{44}{}%
+\contentsline {section}{\numberline {5.1}Brief Project Overview}{44}{}%
+\contentsline {section}{\numberline {5.2}Objective Summary}{44}{}%
+\contentsline {section}{\numberline {5.3}System Design Summary}{44}{}%
+\contentsline {section}{\numberline {5.4}Implementation Summary}{45}{}%
+\contentsline {section}{\numberline {5.5}Result Summary}{45}{}%
+\contentsline {section}{\numberline {5.6}Key Findings}{46}{}%
+\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{46}{}%
+\contentsline {section}{\numberline {5.8}Future Work}{46}{}%
+\contentsline {chapter}{REFERENCES}{48}{}%

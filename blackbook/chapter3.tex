@@ -21,7 +21,7 @@ The web application is organized around the main work areas that a trading busin
 \begin{table}[!htbp]
 	\centering
 	\footnotesize
-	\renewcommand{\arraystretch}{1.1}
+	\renewcommand{\arraystretch}{1.25}
 	\setlength{\tabcolsep}{3pt}
 	\caption{Requirement Areas and Implemented Pages}
 	\label{tab:requirement-page-map}
@@ -31,6 +31,7 @@ The web application is organized around the main work areas that a trading busin
 		Operation summary & Dashboard & Shows stock, finance, cashflow, product movement, and order coverage summaries. \\ \hline
 		Inventory control & Inventory & Shows stock health, reorder information, supplier options, product details, and quick purchase-order preparation. \\ \hline
 		Assistant support & AI Chat & Answers supported read-only questions about stock, fulfillment, partners, AR/AP exceptions, and document references. \\ \hline
+		Report generation & AI Report & Generates printable supplier, customer, or product reports with metrics, charts, record tables, and AI-written analysis. \\ \hline
 		Purchasing & Purchases & Records purchase orders, line items, receiving status, documents, VAT totals, discounts, and payable values. \\ \hline
 		Supplier payment & Payment Batches & Groups eligible purchases for supplier payment and tracks paid or unpaid lines. \\ \hline
 		Quotation & Quotation & Prepares quotations with line items, supplier options, validity dates, and conversion to purchase or sale records. \\ \hline
@@ -41,7 +42,7 @@ The web application is organized around the main work areas that a trading busin
 \begin{table}[!htbp]
 	\centering
 	\footnotesize
-	\renewcommand{\arraystretch}{1.1}
+	\renewcommand{\arraystretch}{1.25}
 	\setlength{\tabcolsep}{3pt}
 	\caption{Record and Support Page Scope}
 	\label{tab:record-support-page-map}
@@ -66,6 +67,9 @@ The inventory page was developed as the main stock-control workspace. It uses th
 
 \subsection{AI Chat Page}
 The AI chat page was developed as a read-only helper. The user can type a question or use example prompts. The backend prepares a compact context from the current system data and returns a structured answer. If an OpenAI API key is configured, the backend can send the local summary and data context to the configured OpenAI model. If not, it returns the local summary. The current assistant scope is limited to four areas: stock and fulfillment, customer or supplier summaries, receivables/payables with exceptions, and reference or line-item lookup. It does not create, edit, approve, cancel, or delete any record.
+
+\subsection{AI Report Page}
+The AI report page was developed for generating printable business reports. The user selects a report scope (supplier, customer, or product), chooses a specific record from the existing master data, and optionally sets a custom date range. When the user clicks generate, the frontend sends the request to the \texttt{/api/ai-reports/} backend endpoint. The backend collects the related purchases, sales, quotations, billing notes, payment batches, credit notes, and stock data for the selected record. It calculates summary metrics, trend charts, top product or partner charts, and record tables. If an OpenAI API key is configured, the backend sends the collected data context to the AI model and receives an HTML report body with executive summary and business analysis. If no API key is available, the backend builds a local report using the same data. The final report is rendered in a new browser tab as a self-contained HTML document with a print button, styled for both screen and print output. The report supports both English and Thai languages.
 
 \subsection{Purchases Page}
 The purchases page was developed for supplier-side transactions. Users can create purchase records, add line items, attach documents, edit existing purchases, update purchase status, and update item receiving status. Purchase items can be pending, received, or cancelled. Only received purchase items become available stock. The page also supports search, filters, pagination, VAT mode, item discounts, bill discount, expected delivery dates, received dates, and payment batch links.
@@ -134,7 +138,7 @@ The system uses a three-tier web architecture. React is responsible for the user
 \begin{table}[H]
 	\centering
 	\footnotesize
-	\renewcommand{\arraystretch}{1.18}
+	\renewcommand{\arraystretch}{1.25}
 	\setlength{\tabcolsep}{3pt}
 	\caption{Architecture Components}
 	\label{tab:architecture-components}
@@ -162,11 +166,11 @@ The backend was developed as a Django project with one main inventory applicatio
 \begin{table}[H]
 	\centering
 	\footnotesize
-	\renewcommand{\arraystretch}{1.18}
+	\renewcommand{\arraystretch}{1.25}
 	\setlength{\tabcolsep}{3pt}
 	\caption{Main API Endpoint Groups}
 	\label{tab:api-endpoint-groups}
-	\begin{tabularx}{\textwidth}{|p{4.1cm}|X|}
+	\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{4.1cm}|>{\raggedright\arraybackslash}X|}
 		\hline
 		\textbf{Endpoint Group} & \textbf{Purpose} \\ \hline
 		\texttt{/api/products/}, \texttt{/api/categories/} & Product catalog and category tree management. \\ \hline
@@ -178,6 +182,7 @@ The backend was developed as a Django project with one main inventory applicatio
 		\texttt{/api/dashboard/}, \texttt{/api/dashboard/segment/} & Dashboard summary and segmented operational reports. \\ \hline
 		\texttt{/api/products/<id>/history/} and \texttt{/stock-layers/} & Product transaction history and received stock layer details. \\ \hline
 		\texttt{/api/chat/} & Read-only assistant answers for supported questions. \\ \hline
+		\texttt{/api/ai-reports/} & Generates printable HTML reports for a selected supplier, customer, or product with metrics, charts, and record tables. \\ \hline
 		\texttt{/api/auth/login/}, \texttt{/refresh/}, \texttt{/me/} & Login, token refresh, and authenticated user profile. \\ \hline
 	\end{tabularx}
 \end{table}
@@ -455,7 +460,7 @@ Testing was focused on backend behavior because the backend owns the most import
 \begin{table}[H]
 	\centering
 	\footnotesize
-	\renewcommand{\arraystretch}{1.18}
+	\renewcommand{\arraystretch}{1.25}
 	\setlength{\tabcolsep}{3pt}
 	\caption{Tools and Technologies}
 	\label{tab:tools-technologies}
