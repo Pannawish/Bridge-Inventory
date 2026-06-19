@@ -787,6 +787,12 @@
   gap: 8px;
 }
 
+.chat-record-list.expanded {
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 .chat-record-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -806,6 +812,21 @@
   color: var(--accent-deep);
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+.chat-section-toggle {
+  justify-self: start;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--accent-deep);
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #fff;
+}
+
+.chat-section-toggle:hover {
+  background: var(--accent-soft);
 }
 
 .chat-copy {

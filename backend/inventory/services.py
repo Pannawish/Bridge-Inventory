@@ -56,6 +56,8 @@ PURCHASE_FULL_TRANSACTION_STATUSES = {"draft", "ordered", "received", "cancelled
 SAFETY_STOCK_DAYS = 7
 RECENT_AVERAGE_COST_HISTORY_LIMIT = 3
 RECENT_AVERAGE_SALE_PRICE_HISTORY_LIMIT = 3
+CHAT_RECORD_LIMIT = 25
+CHAT_INITIAL_RECORD_LIMIT = 5
 CHAT_STOP_WORDS = {
     "about",
     "are",
@@ -2455,8 +2457,8 @@ def build_ai_inventory_context(question, request=None):
         if has_sale_filter
         else (date_filtered_sales if date_interval else Sale.objects.none())
     )
-    recent_purchases = date_filtered_purchases.order_by("-transaction_date", "-created_at")[:8]
-    recent_sales = date_filtered_sales.order_by("-transaction_date", "-created_at")[:8]
+    recent_purchases = date_filtered_purchases.order_by("-transaction_date", "-created_at")[:CHAT_RECORD_LIMIT]
+    recent_sales = date_filtered_sales.order_by("-transaction_date", "-created_at")[:CHAT_RECORD_LIMIT]
 
     quotations = Quotation.objects.prefetch_related("line_items__product")
     billing_notes = BillingNote.objects.prefetch_related("lines__sale")
@@ -2497,46 +2499,46 @@ def build_ai_inventory_context(question, request=None):
     quotation_fallback = (
         []
         if has_query_filter
-        else date_filtered_quotations.order_by("-quotation_date", "-created_at")[:6]
+        else date_filtered_quotations.order_by("-quotation_date", "-created_at")[:CHAT_RECORD_LIMIT]
     )
     billing_note_fallback = (
         []
         if has_query_filter
-        else date_filtered_billing_notes.order_by("-billing_note_date", "-created_at")[:6]
+        else date_filtered_billing_notes.order_by("-billing_note_date", "-created_at")[:CHAT_RECORD_LIMIT]
     )
     payment_batch_fallback = (
         []
         if has_query_filter
-        else date_filtered_payment_batches.order_by("-batch_date", "-created_at")[:6]
+        else date_filtered_payment_batches.order_by("-batch_date", "-created_at")[:CHAT_RECORD_LIMIT]
     )
     credit_note_fallback = (
         []
         if has_query_filter
-        else date_filtered_credit_notes.order_by("-credit_note_date", "-created_at")[:6]
+        else date_filtered_credit_notes.order_by("-credit_note_date", "-created_at")[:CHAT_RECORD_LIMIT]
     )
     purchase_rows = [
         serialize_purchase_for_chat(purchase)
-        for purchase in limited_unique_rows(matched_purchases, purchase_fallback, limit=8)
+        for purchase in limited_unique_rows(matched_purchases, purchase_fallback, limit=CHAT_RECORD_LIMIT)
     ]
     sale_rows = [
         serialize_sale_for_chat(sale)
-        for sale in limited_unique_rows(matched_sales, sale_fallback, limit=8)
+        for sale in limited_unique_rows(matched_sales, sale_fallback, limit=CHAT_RECORD_LIMIT)
     ]
     quotation_rows = [
         serialize_quotation_for_chat(quotation)
-        for quotation in limited_unique_rows(matched_quotations, quotation_fallback, limit=6)
+        for quotation in limited_unique_rows(matched_quotations, quotation_fallback, limit=CHAT_RECORD_LIMIT)
     ]
     billing_note_rows = [
         serialize_billing_note_for_chat(note)
-        for note in limited_unique_rows(matched_billing_notes, billing_note_fallback, limit=6)
+        for note in limited_unique_rows(matched_billing_notes, billing_note_fallback, limit=CHAT_RECORD_LIMIT)
     ]
     payment_batch_rows = [
         serialize_payment_batch_for_chat(batch)
-        for batch in limited_unique_rows(matched_payment_batches, payment_batch_fallback, limit=6)
+        for batch in limited_unique_rows(matched_payment_batches, payment_batch_fallback, limit=CHAT_RECORD_LIMIT)
     ]
     credit_note_rows = [
         serialize_credit_note_for_chat(note)
-        for note in limited_unique_rows(matched_credit_notes, credit_note_fallback, limit=6)
+        for note in limited_unique_rows(matched_credit_notes, credit_note_fallback, limit=CHAT_RECORD_LIMIT)
     ]
     customer_summaries = []
     for name in matching_customer_names[:3]:
@@ -2551,10 +2553,10 @@ def build_ai_inventory_context(question, request=None):
             build_customer_chat_summary(
                 name,
                 date_interval,
-                [serialize_sale_for_chat(sale) for sale in customer_sales[:6]],
-                [serialize_quotation_for_chat(quotation) for quotation in customer_quotations[:6]],
-                [serialize_billing_note_for_chat(note) for note in customer_billing_notes[:6]],
-                [serialize_credit_note_for_chat(note) for note in customer_credit_notes[:6]],
+                [serialize_sale_for_chat(sale) for sale in customer_sales[:CHAT_RECORD_LIMIT]],
+                [serialize_quotation_for_chat(quotation) for quotation in customer_quotations[:CHAT_RECORD_LIMIT]],
+                [serialize_billing_note_for_chat(note) for note in customer_billing_notes[:CHAT_RECORD_LIMIT]],
+                [serialize_credit_note_for_chat(note) for note in customer_credit_notes[:CHAT_RECORD_LIMIT]],
                 sales_summary=summarize_model_rows(customer_sales, "grand_total"),
                 quotation_summary=summarize_model_rows(customer_quotations, "grand_total"),
                 billing_summary=summarize_model_rows(customer_billing_notes, "total_amount"),
@@ -2575,9 +2577,9 @@ def build_ai_inventory_context(question, request=None):
             build_supplier_chat_summary(
                 name,
                 date_interval,
-                [serialize_purchase_for_chat(purchase) for purchase in supplier_purchases[:6]],
-                [serialize_quotation_for_chat(quotation) for quotation in supplier_quotations[:6]],
-                [serialize_payment_batch_for_chat(batch) for batch in supplier_payment_batches[:6]],
+                [serialize_purchase_for_chat(purchase) for purchase in supplier_purchases[:CHAT_RECORD_LIMIT]],
+                [serialize_quotation_for_chat(quotation) for quotation in supplier_quotations[:CHAT_RECORD_LIMIT]],
+                [serialize_payment_batch_for_chat(batch) for batch in supplier_payment_batches[:CHAT_RECORD_LIMIT]],
                 purchase_summary=summarize_model_rows(supplier_purchases, "grand_total"),
                 quotation_summary=summarize_model_rows(supplier_quotations, "grand_total"),
                 payment_summary=summarize_model_rows(supplier_payment_batches, "total_amount"),
@@ -2725,7 +2727,7 @@ def combine_chat_meta(*parts):
     return " | ".join(values)
 
 
-def build_top_product_records(rows, item_key="items", limit=5):
+def build_top_product_records(rows, item_key="items", limit=CHAT_RECORD_LIMIT):
     product_totals = {}
     for row in rows:
         for item in row.get(item_key, []):
@@ -2764,7 +2766,7 @@ def build_top_product_records(rows, item_key="items", limit=5):
     ]
 
 
-def build_purchase_records(rows, limit=5):
+def build_purchase_records(rows, limit=CHAT_RECORD_LIMIT):
     return [
         chat_record(
             row["reference_no"] or row["id"],
@@ -2775,7 +2777,7 @@ def build_purchase_records(rows, limit=5):
     ]
 
 
-def build_sale_records(rows, limit=5):
+def build_sale_records(rows, limit=CHAT_RECORD_LIMIT):
     return [
         chat_record(
             row["reference_no"] or row["id"],
@@ -2786,7 +2788,7 @@ def build_sale_records(rows, limit=5):
     ]
 
 
-def build_quotation_records(rows, limit=5):
+def build_quotation_records(rows, limit=CHAT_RECORD_LIMIT):
     return [
         chat_record(
             row["reference_no"] or row["id"],
@@ -2801,7 +2803,7 @@ def build_quotation_records(rows, limit=5):
     ]
 
 
-def build_billing_note_records(rows, limit=5):
+def build_billing_note_records(rows, limit=CHAT_RECORD_LIMIT):
     return [
         chat_record(
             row["reference_no"] or row["id"],
@@ -2812,7 +2814,7 @@ def build_billing_note_records(rows, limit=5):
     ]
 
 
-def build_payment_batch_records(rows, limit=5):
+def build_payment_batch_records(rows, limit=CHAT_RECORD_LIMIT):
     return [
         chat_record(
             row["reference_no"] or row["id"],
@@ -2823,7 +2825,7 @@ def build_payment_batch_records(rows, limit=5):
     ]
 
 
-def build_credit_note_records(rows, limit=5):
+def build_credit_note_records(rows, limit=CHAT_RECORD_LIMIT):
     return [
         chat_record(
             row["reference_no"] or row["id"],
@@ -2895,7 +2897,7 @@ def build_margin_records(rows, limit=6):
     ]
 
 
-def build_exception_transaction_records(rows, date_key, party_key, amount_key, due_label, limit=5):
+def build_exception_transaction_records(rows, date_key, party_key, amount_key, due_label, limit=CHAT_RECORD_LIMIT):
     return [
         chat_record(
             row["reference_no"] or row["id"],
@@ -2906,7 +2908,7 @@ def build_exception_transaction_records(rows, date_key, party_key, amount_key, d
     ]
 
 
-def build_detail_records(items, record_type="item", limit=8):
+def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
     records = []
     for item in items[:limit]:
         if record_type == "sale":
@@ -3264,7 +3266,7 @@ def build_stock_chat_presentation(context, matching_stock_only=False):
         "title": "Stock summary" if matching_stock_only else "Restock priorities",
         "subtitle": chat_scope_label(context.get("date_interval"), fallback="Current inventory"),
         "metrics": [
-            chat_metric("Items shown", len(rows[:5])),
+            chat_metric("Items shown", min(len(rows), CHAT_RECORD_LIMIT)),
             chat_metric("Low-stock items", len(context["stock"]["low_stock_rows"])),
         ],
         "sections": [
@@ -3279,7 +3281,7 @@ def build_stock_chat_presentation(context, matching_stock_only=False):
                         ),
                         value=row["recommended_restock"],
                     )
-                    for row in rows[:5]
+                    for row in rows[:CHAT_RECORD_LIMIT]
                 ],
             )
         ],
@@ -3437,8 +3439,8 @@ def build_exception_presentation(context):
         product_id__isnull=False,
     ).exclude(sale__status__in=SALE_INACTIVE_TRANSACTION_STATUSES).order_by("sale__transaction_date", "sale__created_at")
 
-    overdue_billing_rows = [serialize_billing_note_for_chat(note) for note in overdue_billing[:5]]
-    overdue_payment_rows = [serialize_payment_batch_for_chat(batch) for batch in overdue_payment[:5]]
+    overdue_billing_rows = [serialize_billing_note_for_chat(note) for note in overdue_billing[:CHAT_RECORD_LIMIT]]
+    overdue_payment_rows = [serialize_payment_batch_for_chat(batch) for batch in overdue_payment[:CHAT_RECORD_LIMIT]]
     gap_units = context["dashboard"]["order_coverage"]["states"]["gap"]["units"]
     return {
         "title": "Overdue and exception monitor",
@@ -3478,7 +3480,7 @@ def build_exception_presentation(context):
                         meta=combine_chat_meta(item.product_name, item.expected_delivery_date, item.purchase.supplier_name),
                         value=as_number(item.base_quantity),
                     )
-                    for item in delayed_purchase_items[:5]
+                    for item in delayed_purchase_items[:CHAT_RECORD_LIMIT]
                 ],
             ),
             chat_section(
@@ -3489,7 +3491,7 @@ def build_exception_presentation(context):
                         meta=combine_chat_meta(item.product_name, item.sale.customer_name, item.sale.transaction_date),
                         value=as_number(item.base_quantity),
                     )
-                    for item in backordered_sale_items[:5]
+                    for item in backordered_sale_items[:CHAT_RECORD_LIMIT]
                 ],
             ),
         ],

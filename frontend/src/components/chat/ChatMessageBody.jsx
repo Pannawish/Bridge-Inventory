@@ -1,3 +1,8 @@
+import { useState } from "react";
+import { useLanguage } from "../../i18n/LanguageContext";
+
+const INITIAL_VISIBLE_RECORDS = 5;
+
 function normalizeBulletText(line) {
   return line.replace(/^[-*]\s+/, "").trim();
 }
@@ -48,6 +53,61 @@ function buildContentBlocks(content) {
   return blocks;
 }
 
+function ChatRecordList({ section }) {
+  const { t } = useLanguage();
+  const [expanded, setExpanded] = useState(false);
+  const records = section.records || [];
+  const hasMore = records.length > INITIAL_VISIBLE_RECORDS;
+  const visibleRecords = expanded ? records : records.slice(0, INITIAL_VISIBLE_RECORDS);
+  const hiddenCount = Math.max(0, records.length - INITIAL_VISIBLE_RECORDS);
+
+  return (
+    <>
+      <div className={expanded && hasMore ? "chat-record-list expanded" : "chat-record-list"}>
+        {visibleRecords.map((record, recordIndex) => (
+          <div key={`${record.label}-${recordIndex}`} className="chat-record-row">
+            <div>
+              <strong>{record.label}</strong>
+              {record.meta ? <p>{record.meta}</p> : null}
+            </div>
+            {record.value ? <span>{record.value}</span> : null}
+          </div>
+        ))}
+      </div>
+
+      {hasMore ? (
+        <button
+          type="button"
+          className="chat-section-toggle"
+          onClick={() => setExpanded((current) => !current)}
+        >
+          {expanded
+            ? t("chat.showLessRecords")
+            : t("chat.showMoreRecords", { count: hiddenCount })}
+        </button>
+      ) : null}
+    </>
+  );
+}
+
+function ChatPresentationSection({ section, index }) {
+  return (
+    <section key={`${section.title}-${index}`} className="chat-section-card">
+      <h5>{section.title}</h5>
+
+      {section.items?.length ? (
+        <ul className="chat-inline-list">
+          {section.items.map((item, itemIndex) => (
+            <li key={`${section.title}-item-${itemIndex}`}>{item}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {section.records?.length ? <ChatRecordList section={section} /> : null}
+    </section>
+  );
+}
+
 function ChatPresentation({ presentation }) {
   if (!presentation) {
     return null;
@@ -74,31 +134,7 @@ function ChatPresentation({ presentation }) {
       {presentation.sections?.length ? (
         <div className="chat-section-list">
           {presentation.sections.map((section, index) => (
-            <section key={`${section.title}-${index}`} className="chat-section-card">
-              <h5>{section.title}</h5>
-
-              {section.items?.length ? (
-                <ul className="chat-inline-list">
-                  {section.items.map((item, itemIndex) => (
-                    <li key={`${section.title}-item-${itemIndex}`}>{item}</li>
-                  ))}
-                </ul>
-              ) : null}
-
-              {section.records?.length ? (
-                <div className="chat-record-list">
-                  {section.records.map((record, recordIndex) => (
-                    <div key={`${record.label}-${recordIndex}`} className="chat-record-row">
-                      <div>
-                        <strong>{record.label}</strong>
-                        {record.meta ? <p>{record.meta}</p> : null}
-                      </div>
-                      {record.value ? <span>{record.value}</span> : null}
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </section>
+            <ChatPresentationSection key={`${section.title}-${index}`} section={section} index={index} />
           ))}
         </div>
       ) : null}

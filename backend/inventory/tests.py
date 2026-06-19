@@ -3054,6 +3054,29 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertIn("Sales count: 1", response["answer"])
         self.assertIn("Open AR: 300", response["answer"])
 
+    def test_chat_customer_summary_returns_more_than_initial_visible_records(self):
+        for index in range(7):
+            Sale.objects.create(
+                reference_no=f"TI-CHAT-MORE-{index}",
+                customer=self.customer,
+                customer_name=self.customer.company_name,
+                transaction_date=self.today,
+                status=Sale.STATUS_DELIVERED,
+                grand_total=Decimal("10"),
+            )
+
+        response = answer_inventory_question(
+            f"Summarize customer activity for {self.customer.company_name} this month"
+        )
+        recent_sales = next(
+            section
+            for section in response["presentation"]["sections"]
+            if section["title"] == "Recent sales"
+        )
+
+        self.assertGreater(len(recent_sales["records"]), 5)
+        self.assertLessEqual(len(recent_sales["records"]), 25)
+
     def test_chat_summarizes_supplier_this_month(self):
         response = answer_inventory_question(
             f"Summarize supplier activity for {self.supplier.company_name} this month"

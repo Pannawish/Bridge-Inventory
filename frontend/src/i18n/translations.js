@@ -826,6 +826,8 @@ export const translations = {
       generating: "Generating answer...",
       placeholder: "Ask about stock, one customer or supplier, AP/AR issues, or a document reference.",
       askButton: "Ask Assistant",
+      showMoreRecords: "Show {count} more",
+      showLessRecords: "Show less",
     },
     stockIssues: {
       invalidProduct: "{label} is not linked to a valid product",
@@ -3001,6 +3003,8 @@ export const translations = {
       generating: "กำลังสร้างคำตอบ...",
       placeholder: "ถามเรื่องสต็อก ลูกค้าหรือผู้จัดจำหน่าย ปัญหา AR/AP หรือเลขเอกสารอ้างอิง",
       askButton: "ถามผู้ช่วย",
+      showMoreRecords: "แสดงเพิ่ม {count} รายการ",
+      showLessRecords: "แสดงน้อยลง",
     },
     stockIssues: {
       invalidProduct: "{label} ยังไม่เชื่อมกับสินค้าที่ถูกต้อง",
