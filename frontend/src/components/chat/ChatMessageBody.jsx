@@ -70,7 +70,12 @@ function ChatRecordList({ section }) {
               <strong>{record.label}</strong>
               {record.meta ? <p>{record.meta}</p> : null}
             </div>
-            {record.value ? <span>{record.value}</span> : null}
+            {record.value ? (
+              <span className="chat-record-value">
+                {record.value_label ? <small>{record.value_label}</small> : null}
+                <strong>{record.value}</strong>
+              </span>
+            ) : null}
           </div>
         ))}
       </div>

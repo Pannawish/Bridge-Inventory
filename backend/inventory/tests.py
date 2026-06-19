@@ -2989,6 +2989,8 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertEqual(response["presentation"]["title"], "Restock priorities")
         self.assertIn("Low-stock items: 1", response["answer"])
         self.assertIn("Chat Product (CHAT-1)", response["answer"])
+        product_record = response["presentation"]["sections"][0]["records"][0]
+        self.assertEqual(product_record["value_label"], "Recommended restock")
 
     def test_chat_handles_thai_low_stock_prompt(self):
         response = answer_inventory_question("สินค้าใดมีสต็อกต่ำ และควรเติมตัวใดก่อน?")
@@ -3053,6 +3055,12 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertIn(f"Customer summary: {self.customer.company_name}", response["answer"])
         self.assertIn("Sales count: 1", response["answer"])
         self.assertIn("Open AR: 300", response["answer"])
+        recent_sales = next(
+            section
+            for section in response["presentation"]["sections"]
+            if section["title"] == "Recent sales"
+        )
+        self.assertEqual(recent_sales["records"][0]["value_label"], "Total")
 
     def test_chat_customer_summary_returns_more_than_initial_visible_records(self):
         for index in range(7):
@@ -3147,6 +3155,8 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertEqual(response["presentation"]["title"], "Sales line items")
         self.assertIn("Chat Product (CHAT-1)", response["answer"])
         self.assertIn("qty 5 pcs", response["answer"])
+        line_record = response["presentation"]["sections"][0]["records"][0]
+        self.assertEqual(line_record["value_label"], "Amount")
 
     def test_chat_handles_thai_reference_line_item_prompt(self):
         response = answer_inventory_question("แสดงรายการสินค้าใน TI-CHAT-BACKORDER")

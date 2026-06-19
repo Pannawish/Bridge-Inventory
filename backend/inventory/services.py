@@ -2710,8 +2710,13 @@ def chat_metric(label, value, tone="default"):
     return {"label": label, "value": str(value), "tone": tone}
 
 
-def chat_record(label, meta="", value=""):
-    return {"label": label, "meta": meta, "value": "" if value is None else str(value)}
+def chat_record(label, meta="", value="", value_label=""):
+    return {
+        "label": label,
+        "meta": meta,
+        "value": "" if value is None else str(value),
+        "value_label": value_label,
+    }
 
 
 def chat_section(title, items=None, records=None):
@@ -2761,6 +2766,7 @@ def build_top_product_records(rows, item_key="items", limit=CHAT_RECORD_LIMIT):
             f"{row['product_name']} ({row['sku']})" if row["sku"] else row["product_name"],
             meta=combine_chat_meta(f"{as_number(row['quantity'])} {row['unit']}".strip()),
             value=as_number(row["amount"]),
+            value_label="Amount",
         )
         for row in ranked_rows
     ]
@@ -2772,6 +2778,7 @@ def build_purchase_records(rows, limit=CHAT_RECORD_LIMIT):
             row["reference_no"] or row["id"],
             meta=combine_chat_meta(row["transaction_date"], row["supplier_name"], row["status"]),
             value=row["grand_total"],
+            value_label="Total",
         )
         for row in rows[:limit]
     ]
@@ -2783,6 +2790,7 @@ def build_sale_records(rows, limit=CHAT_RECORD_LIMIT):
             row["reference_no"] or row["id"],
             meta=combine_chat_meta(row["transaction_date"], row["customer_name"], row["status"]),
             value=row["grand_total"],
+            value_label="Total",
         )
         for row in rows[:limit]
     ]
@@ -2798,6 +2806,7 @@ def build_quotation_records(rows, limit=CHAT_RECORD_LIMIT):
                 f"valid until {row['valid_until_date']}" if row.get("valid_until_date") else "",
             ),
             value=row["grand_total"],
+            value_label="Total",
         )
         for row in rows[:limit]
     ]
@@ -2809,6 +2818,7 @@ def build_billing_note_records(rows, limit=CHAT_RECORD_LIMIT):
             row["reference_no"] or row["id"],
             meta=combine_chat_meta(row["billing_note_date"], row["customer_name"], row["status"]),
             value=row["total_amount"],
+            value_label="Total",
         )
         for row in rows[:limit]
     ]
@@ -2820,6 +2830,7 @@ def build_payment_batch_records(rows, limit=CHAT_RECORD_LIMIT):
             row["reference_no"] or row["id"],
             meta=combine_chat_meta(row["batch_date"], row["supplier_name"], row["status"]),
             value=row["total_amount"],
+            value_label="Total",
         )
         for row in rows[:limit]
     ]
@@ -2831,6 +2842,7 @@ def build_credit_note_records(rows, limit=CHAT_RECORD_LIMIT):
             row["reference_no"] or row["id"],
             meta=combine_chat_meta(row["credit_note_date"], row["customer_name"], row["status"]),
             value=row["total_amount"],
+            value_label="Total",
         )
         for row in rows[:limit]
     ]
@@ -2892,6 +2904,7 @@ def build_margin_records(rows, limit=6):
                 f"margin {row['margin_pct']}%",
             ),
             value=row["margin"],
+            value_label="Margin",
         )
         for row in rows[:limit]
     ]
@@ -2903,6 +2916,7 @@ def build_exception_transaction_records(rows, date_key, party_key, amount_key, d
             row["reference_no"] or row["id"],
             meta=combine_chat_meta(row.get(date_key), row.get(party_key), row.get("status"), due_label),
             value=row.get(amount_key),
+            value_label="Amount",
         )
         for row in rows[:limit]
     ]
@@ -2921,6 +2935,7 @@ def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
                         f"unit price {item.get('unit_price')}",
                     ),
                     value=item.get("amount"),
+                    value_label="Amount",
                 )
             )
         elif record_type == "purchase":
@@ -2933,6 +2948,7 @@ def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
                         f"expected {item.get('expected_delivery_date')}",
                     ),
                     value=item.get("amount"),
+                    value_label="Amount",
                 )
             )
         elif record_type == "credit":
@@ -2944,6 +2960,7 @@ def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
                         f"unit price {item.get('unit_price')}",
                     ),
                     value=item.get("amount"),
+                    value_label="Amount",
                 )
             )
         elif record_type == "billing":
@@ -2952,6 +2969,7 @@ def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
                     item.get("sale_reference_no") or "Sale line",
                     meta=combine_chat_meta(item.get("sale_status"), f"received {item.get('received')}"),
                     value=item.get("amount"),
+                    value_label="Amount",
                 )
             )
         elif record_type == "payment":
@@ -2960,6 +2978,7 @@ def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
                     item.get("purchase_reference_no") or "Purchase line",
                     meta=combine_chat_meta(item.get("purchase_status"), f"paid {item.get('paid')}"),
                     value=item.get("amount"),
+                    value_label="Amount",
                 )
             )
         else:
@@ -2968,6 +2987,7 @@ def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
                     f"{item.get('product_name')} ({item.get('sku')})" if item.get("sku") else item.get("product_name"),
                     meta=combine_chat_meta(f"qty {item.get('quantity')} {item.get('unit')}"),
                     value=item.get("amount"),
+                    value_label="Amount",
                 )
             )
     return records
@@ -3280,6 +3300,7 @@ def build_stock_chat_presentation(context, matching_stock_only=False):
                             f"reorder {row['reorder_level']}",
                         ),
                         value=row["recommended_restock"],
+                        value_label="Recommended restock",
                     )
                     for row in rows[:CHAT_RECORD_LIMIT]
                 ],
@@ -3479,6 +3500,7 @@ def build_exception_presentation(context):
                         item.purchase.reference_no or item.purchase_id,
                         meta=combine_chat_meta(item.product_name, item.expected_delivery_date, item.purchase.supplier_name),
                         value=as_number(item.base_quantity),
+                        value_label="Qty",
                     )
                     for item in delayed_purchase_items[:CHAT_RECORD_LIMIT]
                 ],
@@ -3490,6 +3512,7 @@ def build_exception_presentation(context):
                         item.sale.reference_no or item.sale_id,
                         meta=combine_chat_meta(item.product_name, item.sale.customer_name, item.sale.transaction_date),
                         value=as_number(item.base_quantity),
+                        value_label="Qty",
                     )
                     for item in backordered_sale_items[:CHAT_RECORD_LIMIT]
                 ],
