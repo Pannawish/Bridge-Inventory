@@ -2932,13 +2932,22 @@ def build_margin_records(rows, limit=6):
     ]
 
 
-def build_exception_transaction_records(rows, date_key, party_key, amount_key, due_label, limit=CHAT_RECORD_LIMIT):
+def build_exception_transaction_records(
+    rows,
+    date_key,
+    party_key,
+    amount_key,
+    due_label,
+    target_type="",
+    limit=CHAT_RECORD_LIMIT,
+):
     return [
         chat_record(
             row["reference_no"] or row["id"],
             meta=combine_chat_meta(row.get(date_key), row.get(party_key), row.get("status"), due_label),
             value=row.get(amount_key),
             value_label="Amount",
+            **(transaction_target(target_type, row) if target_type else {}),
         )
         for row in rows[:limit]
     ]
@@ -3551,6 +3560,7 @@ def build_exception_presentation(context):
                     "customer_name",
                     "total_amount",
                     "overdue AR",
+                    target_type="billing_note",
                 ),
             ),
             chat_section(
@@ -3561,6 +3571,7 @@ def build_exception_presentation(context):
                     "supplier_name",
                     "total_amount",
                     "overdue AP",
+                    target_type="payment_batch",
                 ),
             ),
             chat_section(

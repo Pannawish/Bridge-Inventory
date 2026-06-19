@@ -47,71 +47,80 @@ The main result is that the system connects business documents together instead 
 	\end{tabularx}
 \end{table}
 
-\section{Screenshot Placeholders}
-The following figures are reserved for the final screenshots. They should be replaced with real screenshots from the completed application after the final demo data is approved.
+\section{Application Screenshots and What They Show}
+This section keeps the screenshots that are used as visual proof of the finished system. Each figure is paired with a short explanation so the reader can understand what part of the application is being shown without guessing from the image alone.
 
 \begin{figure}[H]
-\centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the dashboard page showing stock and finance summary cards.}}
-\caption{Dashboard page}
-\label{fig:dashboard-page}
+	\centering
+	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the dashboard page showing stock and finance summary cards.}}
+	\caption{Dashboard page}
+	\label{fig:dashboard-page}
 \end{figure}
+Figure~\ref{fig:dashboard-page} should show the first page that users see after entering the system. It is meant to highlight the summary cards for stock, finance, cashflow, and order coverage.
 
 \begin{figure}[H]
-\centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the inventory page showing stock rows, filters, and reorder information.}}
-\caption{Inventory page}
-\label{fig:inventory-page}
+	\centering
+	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the inventory page showing stock rows, filters, and reorder information.}}
+	\caption{Inventory page}
+	\label{fig:inventory-page}
 \end{figure}
+Figure~\ref{fig:inventory-page} should show how the user checks products in stock. The important parts are the stock rows, filter controls, reorder information, and supplier hints for restocking.
 
 \begin{figure}[H]
-\centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the product form showing product details, unit conversions, and product picture support.}}
-\caption{Product management form}
-\label{fig:product-management-form}
+	\centering
+	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the product form showing product details, unit conversions, and product picture support.}}
+	\caption{Product management form}
+	\label{fig:product-management-form}
 \end{figure}
+Figure~\ref{fig:product-management-form} should show the product form used to maintain item data. It should make it clear that a product can store names, SKU information, units, pictures, and supplier-related details.
 
 \begin{figure}[H]
-\centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the purchase workflow showing purchase items and receiving status.}}
-\caption{Purchase workflow}
-\label{fig:purchase-workflow}
+	\centering
+	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the purchase workflow showing purchase items and receiving status.}}
+	\caption{Purchase workflow}
+	\label{fig:purchase-workflow}
 \end{figure}
+Figure~\ref{fig:purchase-workflow} should show a purchase record with line items. The reader should be able to see how receiving status, expected delivery dates, and purchase totals are handled.
 
 \begin{figure}[H]
-\centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the sales workflow showing delivery status and stock allocation.}}
-\caption{Sales workflow}
-\label{fig:sales-workflow}
+	\centering
+	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the sales workflow showing delivery status and stock allocation.}}
+	\caption{Sales workflow}
+	\label{fig:sales-workflow}
 \end{figure}
+Figure~\ref{fig:sales-workflow} should show how a sale is prepared and tracked. The useful evidence here is the delivery status, customer reference, stock-related line items, and total value.
 
 \begin{figure}[H]
-\centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the quotation page showing quotation items and supplier options.}}
-\caption{Quotation workflow}
-\label{fig:quotation-workflow}
+	\centering
+	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the quotation page showing quotation items and supplier options.}}
+	\caption{Quotation workflow}
+	\label{fig:quotation-workflow}
 \end{figure}
+Figure~\ref{fig:quotation-workflow} should show the quotation page before it becomes a purchase or sale. It should focus on quotation items, validity settings, prices, and supplier options.
 
 \begin{figure}[H]
-\centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the billing note page showing eligible sales or billing note detail.}}
-\caption{Billing note workflow}
-\label{fig:billing-note-workflow}
+	\centering
+	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the billing note page showing eligible sales or billing note detail.}}
+	\caption{Billing note workflow}
+	\label{fig:billing-note-workflow}
 \end{figure}
+Figure~\ref{fig:billing-note-workflow} should show how sales are grouped for customer collection. The screenshot should make the billing note date, customer, eligible sales, and received status easy to see.
 
 \begin{figure}[H]
-\centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of the payment batch page showing eligible purchases or payment batch detail.}}
-\caption{Payment batch workflow}
-\label{fig:payment-batch-workflow}
+	\centering
+	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the payment batch page showing eligible purchases or payment batch detail.}}
+	\caption{Payment batch workflow}
+	\label{fig:payment-batch-workflow}
 \end{figure}
+Figure~\ref{fig:payment-batch-workflow} should show how purchases are grouped for supplier payment. The main evidence is the payment batch status, supplier, planned payment date, and paid or unpaid purchase lines.
 
 \begin{figure}[H]
-\centering
-\fbox{\parbox{0.8\textwidth}{TODO: Insert screenshot of a supported read-only assistant response, such as stock status or reference lookup.}}
-\caption{AI inventory assistant}
-\label{fig:ai-inventory-assistant}
+	\centering
+	\includegraphics[width=0.95\textwidth]{ai-chat-detail-popup.png}
+	\caption{AI inventory assistant detail popup}
+	\label{fig:ai-inventory-assistant}
 \end{figure}
+Figure~\ref{fig:ai-inventory-assistant} shows the AI Chat page after asking for overdue and exception issues. The answer list includes transaction rows with a View detail button, and the popup shows the selected billing note with full fields and line details.
 
 \section{Results by Workflow}
 \subsection{Master Data Results}
@@ -146,12 +155,12 @@ The AI assistant was implemented as a limited read-only assistant. It can answer
 \section{Feature Evidence Summary}
 \begin{table}[H]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\footnotesize
+	\renewcommand{\arraystretch}{1.35}
+	\setlength{\tabcolsep}{6pt}
 	\caption{Evidence of Implemented Features}
 	\label{tab:feature-evidence-summary}
-	\begin{tabularx}{\textwidth}{|p{3.7cm}|X|}
+	\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{3.5cm}|>{\raggedright\arraybackslash}X|}
 		\hline
 		\textbf{Feature} & \textbf{Evidence in the Implemented System} \\ \hline
 		REST API communication & The frontend API client calls endpoints for dashboard, lookups, products, purchases, sales, quotations, billing notes, payment batches, credit notes, authentication, and chat. \\ \hline

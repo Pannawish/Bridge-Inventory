@@ -61,27 +61,27 @@
 \contentsline {chapter}{\numberline {4}RESULTS}{26}{}%
 \contentsline {section}{\numberline {4.1}Completed System Overview}{26}{}%
 \contentsline {section}{\numberline {4.2}Implemented Modules}{27}{}%
-\contentsline {section}{\numberline {4.3}Screenshot Placeholders}{28}{}%
-\contentsline {section}{\numberline {4.4}Results by Workflow}{29}{}%
-\contentsline {subsection}{\numberline {4.4.1}Master Data Results}{29}{}%
-\contentsline {subsection}{\numberline {4.4.2}Purchasing and Stock Results}{30}{}%
-\contentsline {subsection}{\numberline {4.4.3}Sales Results}{30}{}%
-\contentsline {subsection}{\numberline {4.4.4}Quotation Results}{30}{}%
-\contentsline {subsection}{\numberline {4.4.5}Finance Results}{31}{}%
-\contentsline {subsection}{\numberline {4.4.6}Dashboard and Inventory Results}{31}{}%
-\contentsline {subsection}{\numberline {4.4.7}AI Assistant Results}{31}{}%
-\contentsline {section}{\numberline {4.5}Feature Evidence Summary}{32}{}%
-\contentsline {section}{\numberline {4.6}Key Findings}{32}{}%
-\contentsline {section}{\numberline {4.7}Discussion of Objective Achievement}{33}{}%
-\contentsline {section}{\numberline {4.8}User Survey Evaluation}{33}{}%
-\contentsline {section}{\numberline {4.9}Limitations Found During Development}{34}{}%
-\contentsline {chapter}{\numberline {5}CONCLUSION}{35}{}%
-\contentsline {section}{\numberline {5.1}Brief Project Overview}{35}{}%
-\contentsline {section}{\numberline {5.2}Objective Summary}{35}{}%
-\contentsline {section}{\numberline {5.3}System Design Summary}{35}{}%
-\contentsline {section}{\numberline {5.4}Implementation Summary}{36}{}%
-\contentsline {section}{\numberline {5.5}Result Summary}{36}{}%
-\contentsline {section}{\numberline {5.6}Key Findings}{37}{}%
-\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{37}{}%
-\contentsline {section}{\numberline {5.8}Future Work}{37}{}%
-\contentsline {chapter}{REFERENCES}{39}{}%
+\contentsline {section}{\numberline {4.3}Application Screenshots and What They Show}{28}{}%
+\contentsline {section}{\numberline {4.4}Results by Workflow}{30}{}%
+\contentsline {subsection}{\numberline {4.4.1}Master Data Results}{30}{}%
+\contentsline {subsection}{\numberline {4.4.2}Purchasing and Stock Results}{31}{}%
+\contentsline {subsection}{\numberline {4.4.3}Sales Results}{31}{}%
+\contentsline {subsection}{\numberline {4.4.4}Quotation Results}{32}{}%
+\contentsline {subsection}{\numberline {4.4.5}Finance Results}{32}{}%
+\contentsline {subsection}{\numberline {4.4.6}Dashboard and Inventory Results}{32}{}%
+\contentsline {subsection}{\numberline {4.4.7}AI Assistant Results}{32}{}%
+\contentsline {section}{\numberline {4.5}Feature Evidence Summary}{33}{}%
+\contentsline {section}{\numberline {4.6}Key Findings}{33}{}%
+\contentsline {section}{\numberline {4.7}Discussion of Objective Achievement}{34}{}%
+\contentsline {section}{\numberline {4.8}User Survey Evaluation}{34}{}%
+\contentsline {section}{\numberline {4.9}Limitations Found During Development}{35}{}%
+\contentsline {chapter}{\numberline {5}CONCLUSION}{36}{}%
+\contentsline {section}{\numberline {5.1}Brief Project Overview}{36}{}%
+\contentsline {section}{\numberline {5.2}Objective Summary}{36}{}%
+\contentsline {section}{\numberline {5.3}System Design Summary}{36}{}%
+\contentsline {section}{\numberline {5.4}Implementation Summary}{37}{}%
+\contentsline {section}{\numberline {5.5}Result Summary}{37}{}%
+\contentsline {section}{\numberline {5.6}Key Findings}{38}{}%
+\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{38}{}%
+\contentsline {section}{\numberline {5.8}Future Work}{38}{}%
+\contentsline {chapter}{REFERENCES}{40}{}%

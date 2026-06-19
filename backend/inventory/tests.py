@@ -3140,12 +3140,40 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertIn("Customer trend analysis", response["answer"])
 
     def test_chat_reports_overdue_and_exception_monitor(self):
+        overdue_payment = PaymentBatch.objects.create(
+            reference_no="PMT-CHAT-OVERDUE",
+            supplier=self.supplier,
+            supplier_name=self.supplier.company_name,
+            batch_date=self.today,
+            planned_payment_date=self.today - timedelta(days=2),
+            status=PaymentBatch.STATUS_SCHEDULED,
+            total_amount=Decimal("80"),
+        )
+
         response = answer_inventory_question("Show overdue and exception issues")
 
         self.assertEqual(response["used_model"], "local-summary")
         self.assertEqual(response["presentation"]["title"], "Overdue and exception monitor")
         self.assertIn("Overdue AR: 300", response["answer"])
         self.assertIn("PO-CHAT-INCOMING", response["answer"])
+        billing_section = next(
+            section
+            for section in response["presentation"]["sections"]
+            if section["title"] == "Overdue billing notes"
+        )
+        payment_section = next(
+            section
+            for section in response["presentation"]["sections"]
+            if section["title"] == "Overdue payment batches"
+        )
+        self.assertEqual(
+            billing_section["records"][0]["target"],
+            {"type": "billing_note", "id": self.billing_note.id},
+        )
+        self.assertEqual(
+            payment_section["records"][0]["target"],
+            {"type": "payment_batch", "id": overdue_payment.id},
+        )
 
     def test_chat_handles_thai_overdue_and_exception_prompt(self):
         response = answer_inventory_question("แสดงรายการค้างและข้อยกเว้น")

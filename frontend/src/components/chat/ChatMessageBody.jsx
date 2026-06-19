@@ -72,7 +72,7 @@ function ChatRecordList({ section, onOpenRecord }) {
             </div>
             {record.value ? (
               <span className="chat-record-value">
-                {record.value_label ? <small>{record.value_label}</small> : null}
+                {record.value_label ? <small>{record.value_label}:</small> : null}
                 <strong>{record.value}</strong>
               </span>
             ) : null}
