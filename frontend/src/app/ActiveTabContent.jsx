@@ -98,6 +98,7 @@ function ActiveTabContent({
   messages,
   handleAskChat,
   handleClearChat,
+  handleOpenChatRecord,
   chatBusy,
   onViewPurchasesTab,
 }) {
@@ -170,6 +171,7 @@ function ActiveTabContent({
         onViewPurchases={onViewPurchasesTab}
         onCreateSale={handleSalesCreateFromHistory}
         openNewSignal={dashboardIntent?.tab === "quotations" ? dashboardIntent.openNew : null}
+        focusId={dashboardIntent?.tab === "quotations" ? dashboardIntent.focusId : null}
         onIntentConsumed={onConsumeIntent}
       />
     );
@@ -252,6 +254,8 @@ function ActiveTabContent({
         onCreateCreditNote={handleCreditNoteCreate}
         onUpdateCreditNote={handleCreditNoteUpdate}
         onDeleteCreditNote={handleCreditNoteDelete}
+        focusId={dashboardIntent?.tab === "credit-notes" ? dashboardIntent.focusId : null}
+        onIntentConsumed={onConsumeIntent}
       />
     );
   }
@@ -318,6 +322,7 @@ function ActiveTabContent({
         messages={messages}
         onAsk={handleAskChat}
         onClear={handleClearChat}
+        onOpenRecord={handleOpenChatRecord}
         busy={chatBusy}
       />
     );

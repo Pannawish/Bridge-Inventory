@@ -28,6 +28,7 @@ function QuotationPage({
   onViewPurchases,
   onCreateSale,
   openNewSignal = null,
+  focusId = null,
   onIntentConsumed,
 }) {
   const { t } = useLanguage();
@@ -46,6 +47,21 @@ function QuotationPage({
     setShowNewQuotationForm(true);
     onIntentConsumed?.();
   }, [openNewSignal]);
+
+  useEffect(() => {
+    if (!focusId) {
+      return;
+    }
+    const target = (quotations || []).find((quotation) => `${quotation.id}` === `${focusId}`);
+    if (target) {
+      setEditingQuotation(null);
+      setShowNewQuotationForm(false);
+      setConversion(null);
+      setViewingQuotation(target);
+    }
+    onIntentConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, quotations]);
   const [conversion, setConversion] = useState(null);
   const [docRefModal, setDocRefModal] = useState(null);
   const {

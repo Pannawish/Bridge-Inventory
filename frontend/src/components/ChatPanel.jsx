@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "../i18n/LanguageContext";
 import ChatMessageBody from "./chat/ChatMessageBody";
 
-function ChatPanel({ messages, onAsk, onClear, busy }) {
+function ChatPanel({ messages, onAsk, onClear, onOpenRecord, busy }) {
   const { t } = useLanguage();
   const [question, setQuestion] = useState("");
   const [showInstructions, setShowInstructions] = useState(false);
@@ -123,7 +123,7 @@ function ChatPanel({ messages, onAsk, onClear, busy }) {
             className={message.role === "user" ? "chat-bubble user" : "chat-bubble assistant"}
           >
             <strong>{message.role === "user" ? t("chat.you") : t("chat.assistant")}</strong>
-            <ChatMessageBody message={message} />
+            <ChatMessageBody message={message} onOpenRecord={onOpenRecord} />
             {message.model ? <span>{t("chat.model", { model: message.model })}</span> : null}
           </article>
         ))}

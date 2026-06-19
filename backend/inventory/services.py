@@ -1545,6 +1545,7 @@ def serialize_purchase_for_chat(purchase):
         "note": purchase.note,
         "items": [
             {
+                "product_id": item.product_id,
                 "product_name": item.product_name,
                 "sku": item.sku,
                 "status": item.item_status,
@@ -1577,6 +1578,7 @@ def serialize_sale_for_chat(sale):
         "note": sale.note,
         "items": [
             {
+                "product_id": item.product_id,
                 "product_name": item.product_name,
                 "sku": item.sku,
                 "status": item.item_status,
@@ -1648,6 +1650,7 @@ def serialize_payment_batch_for_chat(batch):
 def serialize_quotation_for_chat(quotation):
     items = [
         {
+            "product_id": item.product_id,
             "product_name": item.product_name,
             "sku": item.sku,
             "unit": item.unit,
@@ -1687,6 +1690,7 @@ def serialize_credit_note_for_chat(note):
         "note": note.note,
         "lines": [
             {
+                "product_id": line.sale_item.product_id if line.sale_item_id and line.sale_item else None,
                 "product_name": line.product_name,
                 "sku": line.sku,
                 "quantity": as_number(line.quantity),
@@ -2710,13 +2714,16 @@ def chat_metric(label, value, tone="default"):
     return {"label": label, "value": str(value), "tone": tone}
 
 
-def chat_record(label, meta="", value="", value_label=""):
-    return {
+def chat_record(label, meta="", value="", value_label="", target_type="", target_id=None):
+    record = {
         "label": label,
         "meta": meta,
         "value": "" if value is None else str(value),
         "value_label": value_label,
     }
+    if target_type and target_id not in (None, ""):
+        record["target"] = {"type": target_type, "id": str(target_id)}
+    return record
 
 
 def chat_section(title, items=None, records=None):
@@ -2732,6 +2739,10 @@ def combine_chat_meta(*parts):
     return " | ".join(values)
 
 
+def transaction_target(record_type, row):
+    return {"target_type": record_type, "target_id": row.get("id")}
+
+
 def build_top_product_records(rows, item_key="items", limit=CHAT_RECORD_LIMIT):
     product_totals = {}
     for row in rows:
@@ -2740,6 +2751,7 @@ def build_top_product_records(rows, item_key="items", limit=CHAT_RECORD_LIMIT):
             bucket = product_totals.setdefault(
                 key,
                 {
+                    "product_id": item.get("product_id"),
                     "product_name": item.get("product_name") or key,
                     "sku": item.get("sku") or "",
                     "quantity": Decimal("0"),
@@ -2747,6 +2759,8 @@ def build_top_product_records(rows, item_key="items", limit=CHAT_RECORD_LIMIT):
                     "unit": item.get("base_unit") or item.get("unit") or "",
                 },
             )
+            if not bucket.get("product_id") and item.get("product_id"):
+                bucket["product_id"] = item.get("product_id")
             quantity = item.get("base_quantity")
             if quantity in (None, ""):
                 quantity = item.get("quantity")
@@ -2767,6 +2781,8 @@ def build_top_product_records(rows, item_key="items", limit=CHAT_RECORD_LIMIT):
             meta=combine_chat_meta(f"{as_number(row['quantity'])} {row['unit']}".strip()),
             value=as_number(row["amount"]),
             value_label="Amount",
+            target_type="product",
+            target_id=row.get("product_id"),
         )
         for row in ranked_rows
     ]
@@ -2779,6 +2795,7 @@ def build_purchase_records(rows, limit=CHAT_RECORD_LIMIT):
             meta=combine_chat_meta(row["transaction_date"], row["supplier_name"], row["status"]),
             value=row["grand_total"],
             value_label="Total",
+            **transaction_target("purchase", row),
         )
         for row in rows[:limit]
     ]
@@ -2791,6 +2808,7 @@ def build_sale_records(rows, limit=CHAT_RECORD_LIMIT):
             meta=combine_chat_meta(row["transaction_date"], row["customer_name"], row["status"]),
             value=row["grand_total"],
             value_label="Total",
+            **transaction_target("sale", row),
         )
         for row in rows[:limit]
     ]
@@ -2807,6 +2825,7 @@ def build_quotation_records(rows, limit=CHAT_RECORD_LIMIT):
             ),
             value=row["grand_total"],
             value_label="Total",
+            **transaction_target("quotation", row),
         )
         for row in rows[:limit]
     ]
@@ -2819,6 +2838,7 @@ def build_billing_note_records(rows, limit=CHAT_RECORD_LIMIT):
             meta=combine_chat_meta(row["billing_note_date"], row["customer_name"], row["status"]),
             value=row["total_amount"],
             value_label="Total",
+            **transaction_target("billing_note", row),
         )
         for row in rows[:limit]
     ]
@@ -2831,6 +2851,7 @@ def build_payment_batch_records(rows, limit=CHAT_RECORD_LIMIT):
             meta=combine_chat_meta(row["batch_date"], row["supplier_name"], row["status"]),
             value=row["total_amount"],
             value_label="Total",
+            **transaction_target("payment_batch", row),
         )
         for row in rows[:limit]
     ]
@@ -2843,6 +2864,7 @@ def build_credit_note_records(rows, limit=CHAT_RECORD_LIMIT):
             meta=combine_chat_meta(row["credit_note_date"], row["customer_name"], row["status"]),
             value=row["total_amount"],
             value_label="Total",
+            **transaction_target("credit_note", row),
         )
         for row in rows[:limit]
     ]
@@ -2922,8 +2944,13 @@ def build_exception_transaction_records(rows, date_key, party_key, amount_key, d
     ]
 
 
-def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
+def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT, parent_target_type="", parent_target_id=None):
     records = []
+    target_kwargs = (
+        {"target_type": parent_target_type, "target_id": parent_target_id}
+        if parent_target_type and parent_target_id not in (None, "")
+        else {}
+    )
     for item in items[:limit]:
         if record_type == "sale":
             records.append(
@@ -2936,6 +2963,7 @@ def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
                     ),
                     value=item.get("amount"),
                     value_label="Amount",
+                    **target_kwargs,
                 )
             )
         elif record_type == "purchase":
@@ -2949,6 +2977,7 @@ def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
                     ),
                     value=item.get("amount"),
                     value_label="Amount",
+                    **target_kwargs,
                 )
             )
         elif record_type == "credit":
@@ -2961,6 +2990,7 @@ def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
                     ),
                     value=item.get("amount"),
                     value_label="Amount",
+                    **target_kwargs,
                 )
             )
         elif record_type == "billing":
@@ -2970,6 +3000,7 @@ def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
                     meta=combine_chat_meta(item.get("sale_status"), f"received {item.get('received')}"),
                     value=item.get("amount"),
                     value_label="Amount",
+                    **target_kwargs,
                 )
             )
         elif record_type == "payment":
@@ -2979,6 +3010,7 @@ def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
                     meta=combine_chat_meta(item.get("purchase_status"), f"paid {item.get('paid')}"),
                     value=item.get("amount"),
                     value_label="Amount",
+                    **target_kwargs,
                 )
             )
         else:
@@ -2988,6 +3020,7 @@ def build_detail_records(items, record_type="item", limit=CHAT_RECORD_LIMIT):
                     meta=combine_chat_meta(f"qty {item.get('quantity')} {item.get('unit')}"),
                     value=item.get("amount"),
                     value_label="Amount",
+                    **target_kwargs,
                 )
             )
     return records
@@ -3041,6 +3074,14 @@ def build_customer_chat_summary(
                     f"Credit notes: {credit_summary['count']} records, total {credit_summary['total']}.",
                 ],
             ),
+            chat_section(
+                "What this means",
+                items=[
+                    f"This customer has {sales_summary['active_count']} active sales records in the selected scope.",
+                    f"Open AR is {open_billing_summary['total']} before any fully received or cancelled billing notes are excluded.",
+                    "Use the records below to inspect the specific documents behind the totals.",
+                ],
+            ),
             chat_section("Recent sales", records=build_sale_records(sale_rows)),
             chat_section("Billing notes", records=build_billing_note_records(billing_note_rows)),
             chat_section("Top products", records=top_product_records),
@@ -3092,6 +3133,14 @@ def build_supplier_chat_summary(
                     f"Purchases: {purchase_summary['count']} records, active total {purchase_summary['active_total']}.",
                     f"Supplier quotations: {quotation_summary['count']} records, total {quotation_summary['total']}.",
                     f"Payment batches: {payment_summary['count']} records, scheduled or open payables {open_payment_summary['total']}.",
+                ],
+            ),
+            chat_section(
+                "What this means",
+                items=[
+                    f"This supplier has {purchase_summary['active_count']} active purchase records in the selected scope.",
+                    f"Scheduled or open AP is {open_payment_summary['total']} after paid and cancelled batches are excluded.",
+                    "Open the records below to review line items, statuses, due dates, and payment status.",
                 ],
             ),
             chat_section("Recent purchases", records=build_purchase_records(purchase_rows)),
@@ -3291,6 +3340,14 @@ def build_stock_chat_presentation(context, matching_stock_only=False):
         ],
         "sections": [
             chat_section(
+                "How to read this",
+                items=[
+                    "Available stock is the quantity currently free to sell.",
+                    "Reorder is the calculated point where replenishment should start.",
+                    "Recommended restock is the quantity needed to move the product back above its reorder need.",
+                ],
+            ),
+            chat_section(
                 "Products",
                 records=[
                     chat_record(
@@ -3301,6 +3358,8 @@ def build_stock_chat_presentation(context, matching_stock_only=False):
                         ),
                         value=row["recommended_restock"],
                         value_label="Recommended restock",
+                        target_type="product",
+                        target_id=row["product_id"],
                     )
                     for row in rows[:CHAT_RECORD_LIMIT]
                 ],
@@ -3331,6 +3390,7 @@ def build_transaction_chat_presentation(title, subtitle, summary, rows, record_b
                 items=[
                     f"{summary['count']} records matched the question.",
                     f"Active total is {summary['active_total']}.",
+                    "Open any listed record to review document fields, line items, status, totals, and linked documents.",
                 ],
             ),
             chat_section("Recent records", records=record_builder(rows)),
@@ -3414,6 +3474,7 @@ def build_net_position_presentation(context):
                     f"Open receivables today: {cashflow['ar_total_open']}.",
                     f"Open payables today: {cashflow['ap_total_open']}.",
                     f"Overdue AR {cashflow['overdue_ar']}; overdue AP {cashflow['overdue_ap']}.",
+                    f"Net open position is {cashflow['net_open']}, calculated as open AR minus open AP.",
                 ],
             )
         ],
@@ -3438,6 +3499,7 @@ def build_order_coverage_presentation(context):
                     f"Ready now value: {coverage['states']['ready']['value']}.",
                     f"Incoming value: {coverage['states']['incoming']['value']}.",
                     f"Gap value: {coverage['states']['gap']['value']} across open demand {coverage['total']['value']}.",
+                    "Ready means stock can cover demand now; incoming means open POs can cover it; gap means demand still needs purchasing action.",
                 ],
             )
         ],
@@ -3474,6 +3536,14 @@ def build_exception_presentation(context):
         ],
         "sections": [
             chat_section(
+                "How to use this",
+                items=[
+                    "Overdue AR should be followed up with customers.",
+                    "Overdue AP should be reviewed against cash position and supplier terms.",
+                    "Delayed PO lines and backordered sale lines identify operational blockers.",
+                ],
+            ),
+            chat_section(
                 "Overdue billing notes",
                 records=build_exception_transaction_records(
                     overdue_billing_rows,
@@ -3501,6 +3571,8 @@ def build_exception_presentation(context):
                         meta=combine_chat_meta(item.product_name, item.expected_delivery_date, item.purchase.supplier_name),
                         value=as_number(item.base_quantity),
                         value_label="Qty",
+                        target_type="purchase",
+                        target_id=item.purchase_id,
                     )
                     for item in delayed_purchase_items[:CHAT_RECORD_LIMIT]
                 ],
@@ -3513,6 +3585,8 @@ def build_exception_presentation(context):
                         meta=combine_chat_meta(item.product_name, item.sale.customer_name, item.sale.transaction_date),
                         value=as_number(item.base_quantity),
                         value_label="Qty",
+                        target_type="sale",
+                        target_id=item.sale_id,
                     )
                     for item in backordered_sale_items[:CHAT_RECORD_LIMIT]
                 ],
@@ -3523,14 +3597,14 @@ def build_exception_presentation(context):
 
 def build_reference_line_item_presentation(context, reference_prefix):
     record_map = {
-        "PO": ("Purchase line items", matched_rows(context, "purchases"), "items", "purchase"),
-        "TI": ("Sales line items", matched_rows(context, "sales"), "items", "sale"),
-        "QT": ("Quotation line items", matched_rows(context, "quotations"), "items", "item"),
-        "CN": ("Credit note lines", matched_rows(context, "credit_notes"), "lines", "credit"),
-        "BN": ("Billing note lines", matched_rows(context, "billing_notes"), "lines", "billing"),
-        "PMT": ("Payment batch lines", matched_rows(context, "payment_batches"), "lines", "payment"),
+        "PO": ("Purchase line items", matched_rows(context, "purchases"), "items", "purchase", "purchase"),
+        "TI": ("Sales line items", matched_rows(context, "sales"), "items", "sale", "sale"),
+        "QT": ("Quotation line items", matched_rows(context, "quotations"), "items", "item", "quotation"),
+        "CN": ("Credit note lines", matched_rows(context, "credit_notes"), "lines", "credit", "credit_note"),
+        "BN": ("Billing note lines", matched_rows(context, "billing_notes"), "lines", "billing", "billing_note"),
+        "PMT": ("Payment batch lines", matched_rows(context, "payment_batches"), "lines", "payment", "payment_batch"),
     }
-    title, rows, key, record_type = record_map.get(reference_prefix, ("Line items", [], "items", "item"))
+    title, rows, key, record_type, target_type = record_map.get(reference_prefix, ("Line items", [], "items", "item", ""))
     if not rows:
         return None
     row = rows[0]
@@ -3545,8 +3619,22 @@ def build_reference_line_item_presentation(context, reference_prefix):
         ],
         "sections": [
             chat_section(
+                "Document detail",
+                items=[
+                    f"Reference: {row.get('reference_no') or row.get('id')}.",
+                    f"Status: {row.get('status', '')}.",
+                    f"Total: {row.get('grand_total', row.get('total_amount', ''))}.",
+                    "Open any line below to view the parent document detail.",
+                ],
+            ),
+            chat_section(
                 "Line details",
-                records=build_detail_records(items, record_type=record_type),
+                records=build_detail_records(
+                    items,
+                    record_type=record_type,
+                    parent_target_type=target_type,
+                    parent_target_id=row.get("id"),
+                ),
             )
         ],
     }

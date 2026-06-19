@@ -795,7 +795,7 @@
 
 .chat-record-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 10px;
   align-items: start;
   padding-bottom: 8px;
@@ -825,6 +825,21 @@
   color: var(--accent-deep);
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+.chat-record-open {
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--accent-deep);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #fff;
+}
+
+.chat-record-open:hover {
+  background: var(--accent-soft);
 }
 
 .chat-section-toggle {

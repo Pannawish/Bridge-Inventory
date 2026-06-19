@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CreateCreditNoteModal from "./credits/CreateCreditNoteModal";
 import CreditNoteDirectorySection from "./credits/CreditNoteDirectorySection";
 import CreditNoteDetailModal from "./credits/CreditNoteDetailModal";
@@ -22,6 +22,8 @@ function CreditNotePage({
   onCreateCreditNote,
   onUpdateCreditNote,
   onDeleteCreditNote,
+  focusId = null,
+  onIntentConsumed,
 }) {
   const { t } = useLanguage();
   const [creating, setCreating] = useState(false);
@@ -92,6 +94,19 @@ function CreditNotePage({
     });
     return { issued, cancelled, count: allCreditNotes.length };
   }, [allCreditNotes]);
+
+  useEffect(() => {
+    if (!focusId) return;
+    const target = (Array.isArray(allCreditNotes) ? allCreditNotes : []).find(
+      (note) => `${note.id}` === `${focusId}`
+    );
+    if (target) {
+      setEditingCreditNote(null);
+      setActiveCreditNote(target);
+    }
+    onIntentConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, allCreditNotes]);
 
   async function handleCreate(payload) {
     const saved = await onCreateCreditNote?.(payload);

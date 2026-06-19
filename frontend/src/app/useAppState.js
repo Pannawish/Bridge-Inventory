@@ -198,6 +198,25 @@ export function useAppState() {
     setSidebarOpen(false);
   }
 
+  function handleOpenChatRecord(target) {
+    const targetMap = {
+      product: { tab: "inventory", idKey: "focusProductId" },
+      purchase: { tab: "purchase-history", idKey: "focusId" },
+      sale: { tab: "sales-history", idKey: "focusId" },
+      quotation: { tab: "quotations", idKey: "focusId" },
+      billing_note: { tab: "billing-notes", idKey: "focusId" },
+      payment_batch: { tab: "payment-batches", idKey: "focusId" },
+      credit_note: { tab: "credit-notes", idKey: "focusId" },
+    };
+    const config = targetMap[target?.type];
+    if (!config || !target.id) {
+      return;
+    }
+    setDashboardIntent({ tab: config.tab, [config.idKey]: target.id });
+    setActiveTab(config.tab);
+    setSidebarOpen(false);
+  }
+
   const {
     handleSupplierSave,
     handleSupplierDelete,
@@ -400,6 +419,7 @@ export function useAppState() {
     messages,
     handleAskChat,
     handleClearChat,
+    handleOpenChatRecord,
     handleLoadProductHistory,
     showWarning,
     handleTabSelect,

@@ -2989,8 +2989,14 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertEqual(response["presentation"]["title"], "Restock priorities")
         self.assertIn("Low-stock items: 1", response["answer"])
         self.assertIn("Chat Product (CHAT-1)", response["answer"])
-        product_record = response["presentation"]["sections"][0]["records"][0]
+        products_section = next(
+            section
+            for section in response["presentation"]["sections"]
+            if section["title"] == "Products"
+        )
+        product_record = products_section["records"][0]
         self.assertEqual(product_record["value_label"], "Recommended restock")
+        self.assertEqual(product_record["target"], {"type": "product", "id": self.product.id})
 
     def test_chat_handles_thai_low_stock_prompt(self):
         response = answer_inventory_question("สินค้าใดมีสต็อกต่ำ และควรเติมตัวใดก่อน?")
@@ -3061,6 +3067,7 @@ class ChatAssistantAlignmentTests(TestCase):
             if section["title"] == "Recent sales"
         )
         self.assertEqual(recent_sales["records"][0]["value_label"], "Total")
+        self.assertEqual(recent_sales["records"][0]["target"]["type"], "sale")
 
     def test_chat_customer_summary_returns_more_than_initial_visible_records(self):
         for index in range(7):
@@ -3155,8 +3162,14 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertEqual(response["presentation"]["title"], "Sales line items")
         self.assertIn("Chat Product (CHAT-1)", response["answer"])
         self.assertIn("qty 5 pcs", response["answer"])
-        line_record = response["presentation"]["sections"][0]["records"][0]
+        line_section = next(
+            section
+            for section in response["presentation"]["sections"]
+            if section["title"] == "Line details"
+        )
+        line_record = line_section["records"][0]
         self.assertEqual(line_record["value_label"], "Amount")
+        self.assertEqual(line_record["target"], {"type": "sale", "id": self.pending_sale.id})
 
     def test_chat_handles_thai_reference_line_item_prompt(self):
         response = answer_inventory_question("แสดงรายการสินค้าใน TI-CHAT-BACKORDER")

@@ -828,6 +828,7 @@ export const translations = {
       askButton: "Ask Assistant",
       showMoreRecords: "Show {count} more",
       showLessRecords: "Show less",
+      openRecord: "Open detail",
     },
     stockIssues: {
       invalidProduct: "{label} is not linked to a valid product",
@@ -3005,6 +3006,7 @@ export const translations = {
       askButton: "ถามผู้ช่วย",
       showMoreRecords: "แสดงเพิ่ม {count} รายการ",
       showLessRecords: "แสดงน้อยลง",
+      openRecord: "เปิดรายละเอียด",
     },
     stockIssues: {
       invalidProduct: "{label} ยังไม่เชื่อมกับสินค้าที่ถูกต้อง",

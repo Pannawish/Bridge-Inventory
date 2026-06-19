@@ -53,7 +53,7 @@ function buildContentBlocks(content) {
   return blocks;
 }
 
-function ChatRecordList({ section }) {
+function ChatRecordList({ section, onOpenRecord }) {
   const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
   const records = section.records || [];
@@ -76,6 +76,15 @@ function ChatRecordList({ section }) {
                 <strong>{record.value}</strong>
               </span>
             ) : null}
+            {record.target ? (
+              <button
+                type="button"
+                className="chat-record-open"
+                onClick={() => onOpenRecord?.(record.target)}
+              >
+                {t("chat.openRecord")}
+              </button>
+            ) : null}
           </div>
         ))}
       </div>
@@ -95,7 +104,7 @@ function ChatRecordList({ section }) {
   );
 }
 
-function ChatPresentationSection({ section, index }) {
+function ChatPresentationSection({ section, index, onOpenRecord }) {
   return (
     <section key={`${section.title}-${index}`} className="chat-section-card">
       <h5>{section.title}</h5>
@@ -108,12 +117,14 @@ function ChatPresentationSection({ section, index }) {
         </ul>
       ) : null}
 
-      {section.records?.length ? <ChatRecordList section={section} /> : null}
+      {section.records?.length ? (
+        <ChatRecordList section={section} onOpenRecord={onOpenRecord} />
+      ) : null}
     </section>
   );
 }
 
-function ChatPresentation({ presentation }) {
+function ChatPresentation({ presentation, onOpenRecord }) {
   if (!presentation) {
     return null;
   }
@@ -139,7 +150,12 @@ function ChatPresentation({ presentation }) {
       {presentation.sections?.length ? (
         <div className="chat-section-list">
           {presentation.sections.map((section, index) => (
-            <ChatPresentationSection key={`${section.title}-${index}`} section={section} index={index} />
+            <ChatPresentationSection
+              key={`${section.title}-${index}`}
+              section={section}
+              index={index}
+              onOpenRecord={onOpenRecord}
+            />
           ))}
         </div>
       ) : null}
@@ -173,12 +189,14 @@ function ChatTextContent({ content }) {
   );
 }
 
-function ChatMessageBody({ message }) {
+function ChatMessageBody({ message, onOpenRecord }) {
   const showText = message.content && (!message.presentation || message.model !== "local-summary");
 
   return (
     <div className="chat-message-body">
-      {message.presentation ? <ChatPresentation presentation={message.presentation} /> : null}
+      {message.presentation ? (
+        <ChatPresentation presentation={message.presentation} onOpenRecord={onOpenRecord} />
+      ) : null}
       {showText ? <ChatTextContent content={message.content} /> : null}
     </div>
   );
