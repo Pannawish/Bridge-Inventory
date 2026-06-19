@@ -332,7 +332,7 @@ function BillingNoteDetailModal({
               </span>
             </div>
 
-            {availableCreditNotesLoading ? (
+            {availableCreditNotesLoading && availableCreditNotes.length === 0 ? (
               <p className="empty-copy">{t("common.loading")}</p>
             ) : availableCreditNotesError ? (
               <p className="empty-copy">{t("billingNote.availableCreditsLoadError")}</p>

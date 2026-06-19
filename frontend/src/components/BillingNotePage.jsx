@@ -8,8 +8,7 @@ import { getToday } from "./billing/billingNoteUtils";
 import { useBillingNoteDirectoryFilters } from "../hooks/useBillingNoteDirectoryFilters";
 import { useLanguage } from "../i18n/LanguageContext";
 
-function filterLinkableCreditNotes(creditNotes, billingNote) {
-  const customerName = billingNote?.customer_name || "";
+function filterLinkableCreditNotes(creditNotes, customerName) {
   return (creditNotes || []).filter(
     (note) =>
       note.customer_name === customerName &&
@@ -42,6 +41,8 @@ function BillingNotePage({
   const [availableCreditNotes, setAvailableCreditNotes] = useState([]);
   const [availableCreditNotesLoading, setAvailableCreditNotesLoading] = useState(false);
   const [availableCreditNotesError, setAvailableCreditNotesError] = useState("");
+  const activeBillingNoteId = activeBillingNote?.id || null;
+  const activeBillingNoteCustomerName = activeBillingNote?.customer_name || "";
   const {
     searchTerm,
     setSearchTerm,
@@ -134,7 +135,9 @@ function BillingNotePage({
     }
 
     if (usingMockCreditNotes) {
-      setAvailableCreditNotes(filterLinkableCreditNotes(creditNotes, activeBillingNote));
+      setAvailableCreditNotes(
+        filterLinkableCreditNotes(creditNotes, activeBillingNoteCustomerName)
+      );
       setAvailableCreditNotesError("");
       setAvailableCreditNotesLoading(false);
       return;
@@ -153,7 +156,7 @@ function BillingNotePage({
 
         do {
           const response = await api.getCreditNotes({
-            customer: activeBillingNote.customer_name || "",
+            customer: activeBillingNoteCustomerName,
             page: currentPage,
             page_size: 100,
           });
@@ -168,7 +171,9 @@ function BillingNotePage({
         } while (currentPage <= totalPages);
 
         if (!ignore) {
-          setAvailableCreditNotes(filterLinkableCreditNotes(rows, activeBillingNote));
+          setAvailableCreditNotes(
+            filterLinkableCreditNotes(rows, activeBillingNoteCustomerName)
+          );
         }
       } catch (requestError) {
         if (!ignore) {
@@ -187,7 +192,12 @@ function BillingNotePage({
     return () => {
       ignore = true;
     };
-  }, [activeBillingNote, creditNotes, usingMockCreditNotes]);
+  }, [
+    activeBillingNoteId,
+    activeBillingNoteCustomerName,
+    creditNotes,
+    usingMockCreditNotes,
+  ]);
 
   async function handleCreate(payload) {
     const saved = await onCreateBillingNote?.(payload);
