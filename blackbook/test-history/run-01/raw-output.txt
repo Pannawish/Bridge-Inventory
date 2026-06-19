@@ -1,0 +1,30 @@
+Creating test database for alias 'default' ('test_inventory_db')...
+Found 20 test(s).
+test_quotation_items_are_normalized_without_changing_api_shape (inventory.tests.RelationalNormalizationTests.test_quotation_items_are_normalized_without_changing_api_shape) ... ok
+test_quotation_item_records_multiple_supplier_options (inventory.tests.QuotationSupplierTests.test_quotation_item_records_multiple_supplier_options) ... ok
+test_purchase_create_syncs_product_supplier_catalog_link (inventory.tests.SaleItemAllocationTests.test_purchase_create_syncs_product_supplier_catalog_link) ... ok
+test_cancelled_purchase_item_can_be_restored_to_pending (inventory.tests.PurchaseItemStatusTests.test_cancelled_purchase_item_can_be_restored_to_pending) ... ok
+test_cancelled_purchase_item_can_be_restored_to_received (inventory.tests.PurchaseItemStatusTests.test_cancelled_purchase_item_can_be_restored_to_received) ... ok
+test_cancelling_item_reduces_payable_but_keeps_grand_total (inventory.tests.PurchasePayableSyncTests.test_cancelling_item_reduces_payable_but_keeps_grand_total) ... ok
+test_editing_quantity_changes_payable_total (inventory.tests.PurchasePayableSyncTests.test_editing_quantity_changes_payable_total) ... ok
+test_payment_batch_line_defaults_to_payable_total (inventory.tests.PurchasePayableSyncTests.test_payment_batch_line_defaults_to_payable_total) ... ok
+test_unpaid_payment_line_resyncs_when_purchase_is_cancelled (inventory.tests.PurchasePayableSyncTests.test_unpaid_payment_line_resyncs_when_purchase_is_cancelled) ... ok
+test_paid_payment_line_is_frozen_when_purchase_changes (inventory.tests.PurchasePayableSyncTests.test_paid_payment_line_is_frozen_when_purchase_changes) ... ok
+test_packed_sale_rejects_quantity_above_available_stock (inventory.tests.SaleStockValidationTests.test_packed_sale_rejects_quantity_above_available_stock) ... ok
+test_draft_sale_allows_quantity_above_available_stock (inventory.tests.SaleStockValidationTests.test_draft_sale_allows_quantity_above_available_stock) ... ok
+test_status_patch_to_packed_updates_items_and_reduces_available_stock (inventory.tests.SaleStockValidationTests.test_status_patch_to_packed_updates_items_and_reduces_available_stock) ... ok
+test_item_status_pending_releases_available_stock (inventory.tests.SaleStockValidationTests.test_item_status_pending_releases_available_stock) ... ok
+test_billing_note_eligibility_excludes_sales_already_on_active_note (inventory.tests.LookupEligibilityTests.test_billing_note_eligibility_excludes_sales_already_on_active_note) ... ok
+test_payment_batch_eligibility_excludes_purchases_already_on_active_batch (inventory.tests.LookupEligibilityTests.test_payment_batch_eligibility_excludes_purchases_already_on_active_batch) ... ok
+test_credit_note_create_totals_lines_and_snapshots_sale_reference (inventory.tests.CreditNoteTests.test_credit_note_create_totals_lines_and_snapshots_sale_reference) ... ok
+test_credit_note_eligibility_excludes_already_credited_items (inventory.tests.CreditNoteTests.test_credit_note_eligibility_excludes_already_credited_items) ... ok
+test_billing_note_net_amount_subtracts_active_credit_notes (inventory.tests.CreditNoteTests.test_billing_note_net_amount_subtracts_active_credit_notes) ... ok
+test_credit_note_rejects_billing_note_of_different_customer (inventory.tests.CreditNoteTests.test_credit_note_rejects_billing_note_of_different_customer) ... CreditNoteViewSet create validation error: {'billing_note': [ErrorDetail(string='The billing note must belong to the same customer.', code='invalid')]}
+ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.237s
+
+OK
+Destroying test database for alias 'default' ('test_inventory_db')...
+System check identified no issues (0 silenced).
