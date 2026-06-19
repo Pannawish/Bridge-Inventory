@@ -47,80 +47,72 @@ The main result is that the system connects business documents together instead 
 	\end{tabularx}
 \end{table}
 
-\section{Application Screenshots and What They Show}
-This section keeps the screenshots that are used as visual proof of the finished system. Each figure is paired with a short explanation so the reader can understand what part of the application is being shown without guessing from the image alone.
+\section{Interface Evidence of Implemented Modules}
+This section presents selected screenshots from the completed system as visual evidence of the implemented pages. Each figure shows one page or workflow and is followed by a short explanation so the reader can quickly understand what is being shown and why that page matters in the overall system.
 
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the dashboard page showing stock and finance summary cards.}}
+	\includegraphics[width=0.95\textwidth]{figure-4-1-dashboard.png}
 	\caption{Dashboard page}
 	\label{fig:dashboard-page}
 \end{figure}
-Figure~\ref{fig:dashboard-page} should show the first page that users see after entering the system. It is meant to highlight the summary cards for stock, finance, cashflow, and order coverage.
+Figure~\ref{fig:dashboard-page} presents the main dashboard of the system. It brings stock, finance, cashflow, and order coverage summaries into one view so the user can check the overall business situation without opening each transaction page one by one.
 
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the inventory page showing stock rows, filters, and reorder information.}}
+	\includegraphics[width=0.95\textwidth]{figure-4-2-inventory.png}
 	\caption{Inventory page}
 	\label{fig:inventory-page}
 \end{figure}
-Figure~\ref{fig:inventory-page} should show how the user checks products in stock. The important parts are the stock rows, filter controls, reorder information, and supplier hints for restocking.
+Figure~\ref{fig:inventory-page} shows the inventory workspace used for daily stock review. The screenshot highlights the stock rows, filter controls, reorder indicators, and supplier-related restock information prepared from backend stock calculations.
 
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the product form showing product details, unit conversions, and product picture support.}}
+	\includegraphics[width=0.95\textwidth]{figure-4-3-product-form.png}
 	\caption{Product management form}
 	\label{fig:product-management-form}
 \end{figure}
-Figure~\ref{fig:product-management-form} should show the product form used to maintain item data. It should make it clear that a product can store names, SKU information, units, pictures, and supplier-related details.
+Figure~\ref{fig:product-management-form} shows the product form used to maintain item records. It demonstrates that the system supports product identity fields, unit conversion settings, reorder-related data, pictures, and supplier-linked product details in one form.
 
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the purchase workflow showing purchase items and receiving status.}}
+	\includegraphics[width=0.95\textwidth]{figure-4-4-purchase-workflow.png}
 	\caption{Purchase workflow}
 	\label{fig:purchase-workflow}
 \end{figure}
-Figure~\ref{fig:purchase-workflow} should show a purchase record with line items. The reader should be able to see how receiving status, expected delivery dates, and purchase totals are handled.
+Figure~\ref{fig:purchase-workflow} presents the purchase entry workflow. The page shows purchase line items, receiving status, expected delivery handling, and purchase totals, which are important for supplier-side stock intake and payable tracking.
 
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the sales workflow showing delivery status and stock allocation.}}
+	\includegraphics[width=0.95\textwidth]{figure-4-5-sales-workflow.png}
 	\caption{Sales workflow}
 	\label{fig:sales-workflow}
 \end{figure}
-Figure~\ref{fig:sales-workflow} should show how a sale is prepared and tracked. The useful evidence here is the delivery status, customer reference, stock-related line items, and total value.
+Figure~\ref{fig:sales-workflow} shows the sales workflow used to prepare and track customer orders. The page presents customer references, delivery-related statuses, stock-linked line items, and total values that later connect to billing and credit workflows.
 
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the quotation page showing quotation items and supplier options.}}
+	\includegraphics[width=0.95\textwidth]{figure-4-6-quotation-workflow.png}
 	\caption{Quotation workflow}
 	\label{fig:quotation-workflow}
 \end{figure}
-Figure~\ref{fig:quotation-workflow} should show the quotation page before it becomes a purchase or sale. It should focus on quotation items, validity settings, prices, and supplier options.
+Figure~\ref{fig:quotation-workflow} shows the quotation page before the transaction is converted into a purchase or sale flow. The screenshot provides evidence of quotation items, pricing, validity settings, and supplier options for each line.
 
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the billing note page showing eligible sales or billing note detail.}}
+	\includegraphics[width=0.95\textwidth]{figure-4-7-billing-note-workflow.png}
 	\caption{Billing note workflow}
 	\label{fig:billing-note-workflow}
 \end{figure}
-Figure~\ref{fig:billing-note-workflow} should show how sales are grouped for customer collection. The screenshot should make the billing note date, customer, eligible sales, and received status easy to see.
+Figure~\ref{fig:billing-note-workflow} presents the billing note workflow for customer receivables. The page shows how eligible sales are grouped under one billing document and how the collection-related status is managed inside the system.
 
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.82\textwidth}{TODO: Insert screenshot of the payment batch page showing eligible purchases or payment batch detail.}}
+	\includegraphics[width=0.95\textwidth]{figure-4-8-payment-batch-workflow.png}
 	\caption{Payment batch workflow}
 	\label{fig:payment-batch-workflow}
 \end{figure}
-Figure~\ref{fig:payment-batch-workflow} should show how purchases are grouped for supplier payment. The main evidence is the payment batch status, supplier, planned payment date, and paid or unpaid purchase lines.
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.95\textwidth]{ai-chat-detail-popup.png}
-	\caption{AI inventory assistant detail popup}
-	\label{fig:ai-inventory-assistant}
-\end{figure}
-Figure~\ref{fig:ai-inventory-assistant} shows the AI Chat page after asking for overdue and exception issues. The answer list includes transaction rows with a View detail button, and the popup shows the selected billing note with full fields and line details.
+Figure~\ref{fig:payment-batch-workflow} shows the payment batch workflow for supplier payables. It makes the supplier, eligible purchases, payment grouping, and paid or unpaid line handling visible in one page.
 
 \section{Results by Workflow}
 \subsection{Master Data Results}
@@ -215,11 +207,10 @@ At the current stage, the user survey evaluation has not been conducted because 
 The system is functional, but some limitations remain:
 
 \begin{itemize}
-	\item Final screenshots still need to be inserted into the report.
 	\item User survey results are currently placeholders because no users have evaluated the software yet.
 	\item Backend-wide authentication is configurable, so the final deployment setting must be checked before production use.
 	\item The frontend still keeps mock-data fallback behavior for demonstration, so final evaluation should use backend-connected data.
 	\item Large-scale production performance testing with many users and a very large database was not completed in the current codebase.
 \end{itemize}
 
-% TODO: Insert final experiment results, user survey results, performance notes, and approved screenshots if they become available.
+% TODO: Insert final experiment results, user survey results, and performance notes if they become available.
