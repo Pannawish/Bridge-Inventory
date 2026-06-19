@@ -35,7 +35,6 @@ const DELIVERY_STAGES = [
   { key: "packing", statuses: ["partially_packed", "packed"] },
   { key: "delivering", statuses: ["partially_shipped", "shipped", "partially_delivered"] },
 ];
-const OPEN_SALE_STATUSES = DELIVERY_STAGES.flatMap((stage) => stage.statuses);
 const STAGE_BY_STATUS = DELIVERY_STAGES.reduce((map, stage) => {
   stage.statuses.forEach((status) => {
     map[status] = stage.key;
@@ -56,7 +55,6 @@ const PURCHASE_STAGES = [
   { key: "ordered", statuses: ["ordered"] },
   { key: "receiving", statuses: ["partially_received"] },
 ];
-const OPEN_PURCHASE_STATUSES = PURCHASE_STAGES.flatMap((stage) => stage.statuses);
 const PURCHASE_STAGE_BY_STATUS = PURCHASE_STAGES.reduce((map, stage) => {
   stage.statuses.forEach((status) => {
     map[status] = stage.key;
@@ -380,7 +378,7 @@ function StockCyclingWidget({ tagged, onOpenBand }) {
 }
 
 // ── Zone 3 · Delivery planning (fulfilment pipeline) ───────────────────
-function DeliveryPipelineWidget({ orders, totalOpen, stageCounts, delayedSkus, onOpenSale, onOpenStage, onOpenCenter }) {
+function DeliveryPipelineWidget({ orders, stageCounts, onOpenSale, onOpenStage }) {
   const { t } = useLanguage();
 
   return (
@@ -390,11 +388,6 @@ function DeliveryPipelineWidget({ orders, totalOpen, stageCounts, delayedSkus, o
           <p className="dash-eyebrow">{t("dashboard.dispatch.eyebrow")}</p>
           <h3>{t("dashboard.dispatch.title")}</h3>
         </div>
-        {delayedSkus > 0 ? (
-          <span className="dash-delayed-chip" title={t("dashboard.dispatch.delayedInbound", { n: formatLocaleNumber(delayedSkus) })}>
-            ⚠ {formatLocaleNumber(delayedSkus)}
-          </span>
-        ) : null}
       </header>
 
       <div className="dash-pipe" role="group" aria-label={t("dashboard.dispatch.title")}>
@@ -443,12 +436,6 @@ function DeliveryPipelineWidget({ orders, totalOpen, stageCounts, delayedSkus, o
           })}
         </ul>
       )}
-
-      {totalOpen > 0 ? (
-        <button type="button" className="dash-viewall" onClick={onOpenCenter}>
-          {t("dashboard.dispatch.actionCenter", { n: formatLocaleNumber(totalOpen) })} →
-        </button>
-      ) : null}
     </section>
   );
 }
@@ -456,7 +443,7 @@ function DeliveryPipelineWidget({ orders, totalOpen, stageCounts, delayedSkus, o
 // ── Zone 2 (grid) · Order planning (procurement pipeline) ──────────────
 // Mirror of the delivery pipeline, for purchase orders: open POs grouped by
 // stage; each stage and each PO deep-links into the filtered purchase history.
-function OrderPlanningWidget({ orders, totalOpen, stageCounts, onOpenPurchase, onOpenStage, onOpenCenter }) {
+function OrderPlanningWidget({ orders, stageCounts, onOpenPurchase, onOpenStage }) {
   const { t } = useLanguage();
 
   return (
@@ -515,11 +502,6 @@ function OrderPlanningWidget({ orders, totalOpen, stageCounts, onOpenPurchase, o
         </ul>
       )}
 
-      {totalOpen > 0 ? (
-        <button type="button" className="dash-viewall" onClick={onOpenCenter}>
-          {t("dashboard.order.actionCenter", { n: formatLocaleNumber(totalOpen) })} →
-        </button>
-      ) : null}
     </section>
   );
 }
@@ -746,11 +728,6 @@ function Dashboard({ dashboard, sales = [], purchases = [], onNavigate }) {
     return counts;
   }, [openOrders]);
 
-  const delayedSkus = useMemo(
-    () => stockReport.filter((row) => num(row.delayed_purchase_units) > 0).length,
-    [stockReport]
-  );
-
   // Order planning: open purchase orders, oldest first, each deep-linkable.
   const openPurchases = useMemo(() => {
     return (Array.isArray(purchases) ? purchases : [])
@@ -804,20 +781,15 @@ function Dashboard({ dashboard, sales = [], purchases = [], onNavigate }) {
       <div className="dash-col-right">
         <OrderPlanningWidget
           orders={openPurchases.slice(0, DISPATCH_LIMIT)}
-          totalOpen={openPurchases.length}
           stageCounts={purchaseStageCounts}
           onOpenPurchase={openPurchase}
           onOpenStage={openPurchaseStage}
-          onOpenCenter={() => openPurchaseStage(OPEN_PURCHASE_STATUSES)}
         />
         <DeliveryPipelineWidget
           orders={openOrders.slice(0, DISPATCH_LIMIT)}
-          totalOpen={openOrders.length}
           stageCounts={stageCounts}
-          delayedSkus={delayedSkus}
           onOpenSale={openSale}
           onOpenStage={openStage}
-          onOpenCenter={() => openStage(OPEN_SALE_STATUSES)}
         />
         <div className="dash-bottom">
           <StockCyclingWidget tagged={cyclingTagged} onOpenBand={setCyclingBand} />

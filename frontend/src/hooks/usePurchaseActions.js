@@ -125,85 +125,93 @@ export function usePurchaseActions({
     }
   }
 
-  async function handlePurchaseItemStatusChange(updatedPurchase) {
+  function handlePurchaseItemStatusChange(updatedPurchase) {
+    const successNotice = buildEntityNotice(
+      "app.messages.entityUpdated",
+      "purchase",
+      updatedPurchase.reference_no || updatedPurchase.id
+    );
+
     if (usingMockPurchases) {
       setPurchases((currentRows) => updateEntityById(currentRows, updatedPurchase));
       setPurchaseRows((currentRows) => updateEntityById(currentRows, updatedPurchase));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "purchase",
-          updatedPurchase.reference_no || updatedPurchase.id
-        )
-      );
+      setNotice(successNotice);
       return true;
     }
 
-    try {
-      const savedPurchase = await api.updatePurchase(updatedPurchase.id, updatedPurchase);
-      const resolvedPurchase = savedPurchase || updatedPurchase;
+    // Optimistic save: patch the row and show the success notice immediately so
+    // the detail modal's Save button rebaselines in the same frame, then reconcile
+    // with the server in the background. Roll the row back if the request fails.
+    const previousPurchase = purchases.find((row) => row.id === updatedPurchase.id);
+    setPurchases((currentRows) => updateEntityById(currentRows, updatedPurchase));
+    setPurchaseRows((currentRows) => updateEntityById(currentRows, updatedPurchase));
+    setNotice(successNotice);
 
-      setPurchases((currentRows) => updateEntityById(currentRows, resolvedPurchase));
-      setPurchaseRows((currentRows) => updateEntityById(currentRows, resolvedPurchase));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "purchase",
-          updatedPurchase.reference_no || updatedPurchase.id
-        )
-      );
-      // Local rows are already patched optimistically above, so run the heavier
-      // server refreshes in the background. The save returns instantly and the
-      // detail Save button rebaselines without waiting for a full reload.
-      refreshPaymentBatchEligibility();
-      loadData(true);
-      return true;
-    } catch (requestError) {
-      showWarning(requestError.message || t("app.messages.purchaseUpdateFailed"));
-      return false;
-    }
+    (async () => {
+      try {
+        const savedPurchase = await api.updatePurchase(updatedPurchase.id, updatedPurchase);
+        if (savedPurchase) {
+          setPurchases((currentRows) => updateEntityById(currentRows, savedPurchase));
+          setPurchaseRows((currentRows) => updateEntityById(currentRows, savedPurchase));
+        }
+        refreshPaymentBatchEligibility();
+        loadData(true);
+      } catch (requestError) {
+        if (previousPurchase) {
+          setPurchases((currentRows) => updateEntityById(currentRows, previousPurchase));
+          setPurchaseRows((currentRows) => updateEntityById(currentRows, previousPurchase));
+        }
+        showWarning(requestError.message || t("app.messages.purchaseUpdateFailed"));
+      }
+    })();
+
+    return true;
   }
 
-  async function handlePurchaseUpdate(updatedPurchase) {
+  function handlePurchaseUpdate(updatedPurchase) {
+    const successNotice = buildEntityNotice(
+      "app.messages.entityUpdated",
+      "purchase",
+      updatedPurchase.reference_no || updatedPurchase.id
+    );
+
     if (usingMockPurchases) {
       setPurchases((currentRows) => updateEntityById(currentRows, updatedPurchase));
       setPurchaseRows((currentRows) => updateEntityById(currentRows, updatedPurchase));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "purchase",
-          updatedPurchase.reference_no || updatedPurchase.id
-        )
-      );
-      return true;
+      setNotice(successNotice);
+      return updatedPurchase;
     }
 
-    try {
-      const savedPurchase = await api.updatePurchase(
-        updatedPurchase.id,
-        buildPurchaseUpdatePayload(updatedPurchase)
-      );
-      const resolvedPurchase = savedPurchase || updatedPurchase;
+    // Optimistic save: patch the row and surface the notice immediately so the
+    // edit form rebaselines without waiting for the round-trip, then reconcile
+    // with the server payload in the background. Roll back on failure.
+    const previousPurchase = purchases.find((row) => row.id === updatedPurchase.id);
+    setPurchases((currentRows) => updateEntityById(currentRows, updatedPurchase));
+    setPurchaseRows((currentRows) => updateEntityById(currentRows, updatedPurchase));
+    setNotice(successNotice);
 
-      setPurchases((currentRows) => updateEntityById(currentRows, resolvedPurchase));
-      setPurchaseRows((currentRows) => updateEntityById(currentRows, resolvedPurchase));
-      setNotice(
-        buildEntityNotice(
-          "app.messages.entityUpdated",
-          "purchase",
-          updatedPurchase.reference_no || updatedPurchase.id
-        )
-      );
-      // Local rows are already patched optimistically above, so let the heavier
-      // server refreshes run in the background. The save returns immediately and
-      // the user gets instant feedback instead of waiting for a full reload.
-      refreshPaymentBatchEligibility();
-      loadData(true);
-      return resolvedPurchase;
-    } catch (requestError) {
-      setError(requestError.message);
-      return false;
-    }
+    (async () => {
+      try {
+        const savedPurchase = await api.updatePurchase(
+          updatedPurchase.id,
+          buildPurchaseUpdatePayload(updatedPurchase)
+        );
+        if (savedPurchase) {
+          setPurchases((currentRows) => updateEntityById(currentRows, savedPurchase));
+          setPurchaseRows((currentRows) => updateEntityById(currentRows, savedPurchase));
+        }
+        refreshPaymentBatchEligibility();
+        loadData(true);
+      } catch (requestError) {
+        if (previousPurchase) {
+          setPurchases((currentRows) => updateEntityById(currentRows, previousPurchase));
+          setPurchaseRows((currentRows) => updateEntityById(currentRows, previousPurchase));
+        }
+        setError(requestError.message);
+      }
+    })();
+
+    return updatedPurchase;
   }
 
   async function handlePurchaseDelete(deletedPurchase) {

@@ -32,18 +32,23 @@ function SalesHistoryPage({
   const [showNewSaleForm, setShowNewSaleForm] = useState(false);
 
   // Deep-link from the dashboard's Delivery Planning widget: open the targeted
-  // sales order straight into its editor, then clear the one-shot intent.
+  // sales order's read-only detail popup (same as the list's "View"). Resolve the
+  // target row *during render* and seed it as the table's initial detail state so
+  // the popup is present in the first painted frame — no list-then-card flash. The
+  // intent is one-shot; clearing it post-paint (below) doesn't affect the open
+  // modal because the table holds the row in its own state once mounted.
+  const initialDetailRow = focusSaleId
+    ? (allSales || []).find((sale) => sale.id === focusSaleId) || null
+    : null;
   useEffect(() => {
     if (!focusSaleId) {
       return;
     }
-    const target = (allSales || []).find((sale) => sale.id === focusSaleId);
-    if (target) {
-      setShowNewSaleForm(false);
-      setEditingSale(target);
-    }
+    setShowNewSaleForm(false);
+    setEditingSale(null);
     onIntentConsumed?.();
-  }, [focusSaleId, allSales]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusSaleId]);
   const {
     searchTerm,
     setSearchTerm,
@@ -225,6 +230,7 @@ function SalesHistoryPage({
         setShowNewSaleForm(true);
       }}
       onPageChange={handlePageChange}
+      initialDetailRow={initialDetailRow}
     />
   );
 }

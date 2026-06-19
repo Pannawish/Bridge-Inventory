@@ -34,10 +34,15 @@ function TransactionTable({
   compactRows = 0,
   enableViewAll = false,
   headerActions = null,
+  initialDetailRow = null,
 }) {
   const { language, t } = useLanguage();
-  const [selectedRow, setSelectedRow] = useState(null);
-  const [originalRow, setOriginalRow] = useState(null);
+  // Seed the detail popup from a deep-link (dashboard Order/Delivery Planning) as
+  // *initial* state so it is present in the table's very first render — the modal
+  // paints in the same frame as the list, with no post-mount effect hop and no
+  // "list flashes, then card pops" gap. Plain View clicks still open it normally.
+  const [selectedRow, setSelectedRow] = useState(initialDetailRow);
+  const [originalRow, setOriginalRow] = useState(initialDetailRow);
   const [showAllRows, setShowAllRows] = useState(false);
   const [docRefModal, setDocRefModal] = useState(null);
   const title =

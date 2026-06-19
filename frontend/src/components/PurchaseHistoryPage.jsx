@@ -48,20 +48,24 @@ function PurchaseHistoryPage({
     onIntentConsumed?.();
   }, [prefillDraft]);
 
-  // Deep-link from the dashboard's Order Planning widget: open the targeted PO
-  // straight into its editor, then clear the one-shot intent.
+  // Deep-link from the dashboard's Order Planning widget: open the targeted PO's
+  // read-only detail popup (same as the list's "View"). Resolve the target row
+  // *during render* and seed it as the table's initial detail state so the popup
+  // is present in the first painted frame — no list-then-card flash. The intent
+  // is one-shot; clearing it post-paint (below) doesn't affect the open modal
+  // because the table holds the row in its own state once mounted.
+  const initialDetailRow = focusPurchaseId
+    ? (allPurchases || []).find((purchase) => purchase.id === focusPurchaseId) || null
+    : null;
   useEffect(() => {
     if (!focusPurchaseId) {
       return;
     }
-    const target = (allPurchases || []).find((purchase) => purchase.id === focusPurchaseId);
-    if (target) {
-      state.setShowNewPurchaseForm(false);
-      state.setEditingPurchase(target);
-    }
+    state.setShowNewPurchaseForm(false);
+    state.setEditingPurchase(null);
     onIntentConsumed?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusPurchaseId, allPurchases]);
+  }, [focusPurchaseId]);
 
   // Deep-link from Order Planning's stage chips / purchasing center: pre-filter
   // the list to a stage (e.g. POs still in Draft) and reveal the filter panel.
@@ -154,6 +158,7 @@ function PurchaseHistoryPage({
         state.setShowNewPurchaseForm(true);
       }}
       onPageChange={state.handlePageChange}
+      initialDetailRow={initialDetailRow}
     />
   );
 }

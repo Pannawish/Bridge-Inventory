@@ -43,6 +43,7 @@ function PurchaseHistoryDirectorySection({
   onDeletePurchase,
   onCreatePurchase,
   onPageChange,
+  initialDetailRow = null,
 }) {
   const { t } = useLanguage();
 
@@ -167,6 +168,7 @@ function PurchaseHistoryDirectorySection({
         onDeleteRow={onDeletePurchase}
         compactRows={isPaginated ? 0 : 5}
         enableViewAll={!isPaginated}
+        initialDetailRow={initialDetailRow}
         headerActions={
           <button className="primary-button" type="button" onClick={onCreatePurchase}>
             {t("purchaseHistory.newPurchase")}

@@ -200,26 +200,39 @@ export function useSalesActions({
       return true;
     }
 
-    try {
-      const savedSale = await api.updateSale(
-        updatedSale.id,
-        buildSaleUpdatePayload(updatedSale)
-      );
-      const resolvedSale = savedSale || updatedSale;
+    // Optimistic save: patch the row and show the success notice immediately so
+    // the detail modal / edit form reflect the save in the same frame, then
+    // reconcile with the server in the background. Roll the row back on failure.
+    // The credit-note prompt stays in the confirmed-save branch — it must not
+    // fire for cancellations that never persisted if the request fails.
+    setSales((currentRows) => updateEntityById(currentRows, updatedSale));
+    setSaleRows((currentRows) => updateEntityById(currentRows, updatedSale));
+    setNotice(successNotice);
 
-      setSales((currentRows) => updateEntityById(currentRows, resolvedSale));
-      setSaleRows((currentRows) => updateEntityById(currentRows, resolvedSale));
-      setNotice(successNotice);
-      maybeOpenCreditNotePrompt(previousSale, resolvedSale);
-      // Local rows are already patched optimistically; run the heavier server
-      // refreshes in the background so the save returns instantly.
-      refreshBillingNoteEligibility();
-      loadData(true);
-      return resolvedSale;
-    } catch (requestError) {
-      showWarning(requestError.message || t("app.messages.saleUpdateFailed"));
-      return false;
-    }
+    (async () => {
+      try {
+        const savedSale = await api.updateSale(
+          updatedSale.id,
+          buildSaleUpdatePayload(updatedSale)
+        );
+        const resolvedSale = savedSale || updatedSale;
+        if (savedSale) {
+          setSales((currentRows) => updateEntityById(currentRows, resolvedSale));
+          setSaleRows((currentRows) => updateEntityById(currentRows, resolvedSale));
+        }
+        maybeOpenCreditNotePrompt(previousSale, resolvedSale);
+        refreshBillingNoteEligibility();
+        loadData(true);
+      } catch (requestError) {
+        if (previousSale) {
+          setSales((currentRows) => updateEntityById(currentRows, previousSale));
+          setSaleRows((currentRows) => updateEntityById(currentRows, previousSale));
+        }
+        showWarning(requestError.message || t("app.messages.saleUpdateFailed"));
+      }
+    })();
+
+    return updatedSale;
   }
 
   async function handleSaleDelete(deletedSale) {

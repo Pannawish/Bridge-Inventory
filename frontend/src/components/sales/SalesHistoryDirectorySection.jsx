@@ -47,6 +47,7 @@ function SalesHistoryDirectorySection({
   onDeleteSale,
   onCreateSale,
   onPageChange,
+  initialDetailRow = null,
 }) {
   const { t } = useLanguage();
 
@@ -175,6 +176,7 @@ function SalesHistoryDirectorySection({
         onDeleteRow={onDeleteSale}
         compactRows={isPaginated ? 0 : 5}
         enableViewAll={!isPaginated}
+        initialDetailRow={initialDetailRow}
         headerActions={
           <button className="primary-button" type="button" onClick={onCreateSale}>
             {t("salesHistory.newSale")}
