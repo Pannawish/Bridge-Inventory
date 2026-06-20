@@ -177,11 +177,7 @@ function QuotationPage({
     }
 
     setShowNewQuotationForm(false);
-    if (editingQuotation) {
-      setEditingQuotation(saved && typeof saved === "object" ? saved : quotation);
-    } else {
-      setEditingQuotation(null);
-    }
+    setEditingQuotation(null);
     return saved;
   }
 

@@ -450,12 +450,12 @@ export function useQuotationFormState({
         return;
       }
 
-      if (isEditing) {
-        setIsDirty(false);
-        setSaveSuccess(true);
-      } else {
-        onCancel?.();
-      }
+      // After a successful save (create *or* edit) return to the main quotation
+      // directory — same end state as a status update. onCancel resolves to
+      // setShowNewQuotationForm(false) for new docs and setEditingQuotation(null)
+      // for edits, both of which render the directory.
+      setIsDirty(false);
+      onCancel?.();
     } catch (error) {
       setFormError(error.message);
     } finally {
