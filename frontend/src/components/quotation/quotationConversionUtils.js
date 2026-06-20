@@ -45,7 +45,7 @@ export function buildPurchaseGroups(quotation, rows, suppliers = []) {
     supplier_name: group.supplierName,
     supplier: group.supplier,
     referenceLabel: quotation.reference_no || "",
-    transaction_date: quotation.quotation_date || getToday(),
+    transaction_date: getToday(),
     note: refNote,
     items: group.items,
   }));
@@ -59,7 +59,7 @@ export function buildSalesPrefillFromRows(quotation, rows, customers = []) {
 
   return {
     customer_name: quotation.customer_name || "",
-    transaction_date: quotation.quotation_date || getToday(),
+    transaction_date: getToday(),
     vat_mode: quotation.vat_mode || "not_included",
     payment_term_type: paymentTermType,
     payment_term_days: paymentTermDays,

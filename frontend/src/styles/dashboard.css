@@ -141,76 +141,80 @@
    Paging swaps content; the three rows always split the available height. */
 .dash-reorder-list {
   display: grid;
-  grid-template-rows: repeat(5, 1fr);
-  gap: 10px;
+  grid-auto-rows: 1fr;
+  gap: 8px;
   flex: 1;
   min-height: 0;
   margin: 0;
   padding: 0;
   list-style: none;
+  overflow: hidden;
 }
 
-/* Each product is a compact, colour-coded decision box: urgency reads from the
-   left accent + faint wash, the "when to buy" pill is the hero, supporting
-   numbers sit on one muted line below. */
+/* Each product is a fixed-coordinate widget grid: identity | on-hand | restock |
+   action-window | Quick PO. The columns are identical on every card so a metric
+   reads as one vertical column down the list; a thin left accent (+ badge)
+   encodes urgency at a glance. Boxes stretch to fill the row — zero whitespace. */
 .dash-reorder-row {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 5px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 84px;
+  align-items: stretch;
+  gap: 8px;
   min-height: 0;
-  padding: 9px 11px;
+  padding: 7px 10px;
   border: 1px solid var(--line);
   border-left-width: 3px;
-  border-radius: 8px;
+  border-radius: 9px;
   background: #fff;
 }
 
-.dash-reorder-row.tone-danger {
-  border-left-color: var(--danger);
-  background: #fff5f5;
+/* The metric cluster: three fixed-width boxes whose columns line up card-to-card.
+   Widths vary with the data each holds (a count, a qty+unit, a date+countdown). */
+.dash-rp-metrics {
+  display: grid;
+  grid-template-columns: 62px 96px 132px;
+  gap: 7px;
+  align-items: stretch;
 }
 
-.dash-reorder-row.tone-warning {
-  border-left-color: var(--warning);
-  background: #fffaf3;
-}
+.dash-reorder-row.tone-danger { border-left-color: var(--danger); }
+.dash-reorder-row.tone-warning { border-left-color: var(--warning); }
 
 .dash-reorder-row.is-empty {
   border: 1px dashed var(--line);
-  border-radius: 8px;
+  border-radius: 9px;
   background: transparent;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
-.dash-reorder-head {
+/* Identity cell: urgency badge stacked over the product-name deep-link. */
+.dash-rp-id {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
 }
 
-/* Reuse the Inventory health badge verbatim, just a touch more compact so it
-   fits the tile head beside the name + Quick PO button. */
-.dash-reorder-head .inv-health-badge {
+.dash-rp-id .inv-health-badge {
+  align-self: flex-start;
   flex-shrink: 0;
-  padding: 2px 7px;
-  font-size: 0.7rem;
+  padding: 1px 7px;
+  font-size: 0.64rem;
 }
-
 
 /* Product name doubles as a deep-link into the Inventory page (full graph). */
 .dash-reorder-name.is-link {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  flex: 1;
   min-width: 0;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--text);
-  font-size: 0.86rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
   text-align: left;
   cursor: pointer;
 }
@@ -262,42 +266,92 @@
   font-weight: 800;
 }
 
-/* The "when to buy" hero pill — reuses the dashboard status-chip so it reads the
-   same as the pills in Order/Delivery planning. */
-.dash-reorder-when {
+/* Metric boxes: fixed columns, varied widths, clearly bounded fills. They
+   stretch to the full card height so the row never carries empty space. */
+.dash-rp-box {
   display: flex;
-}
-
-.dash-reorder-when .dash-status-chip {
-  font-size: 0.72rem;
-}
-
-/* Supporting numbers on one muted line: on-hand · restock · days of cover. */
-.dash-reorder-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
   min-width: 0;
+  padding: 4px 6px;
+  border-radius: 7px;
+  background: var(--panel-muted, #f3f4f6);
+  text-align: center;
 }
 
-.dash-reorder-stat {
+.dash-rp-lbl {
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--muted);
-  font-size: 0.74rem;
-  font-weight: 600;
   white-space: nowrap;
 }
 
-.dash-reorder-stat + .dash-reorder-stat::before {
-  content: "·";
-  margin: 0 7px;
-  color: var(--line);
+.dash-rp-val {
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--text);
+  white-space: nowrap;
 }
 
-/* Recommended restock — the headline number, in confident green. */
-.dash-reorder-stat.dash-reorder-restock {
-  color: #0f7a4d;
-  font-weight: 800;
+.dash-rp-unit {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.dash-rp-sub {
+  font-size: 0.58rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dash-rp-dash { color: var(--muted); }
+
+/* Restock — the primary corrective action, crisp green. */
+.dash-rp-restock { background: #e9f9f0; }
+.dash-rp-restock .dash-rp-lbl,
+.dash-rp-restock .dash-rp-val { color: #0f7a4d; }
+.dash-rp-restock .dash-rp-unit { color: #4f9e78; }
+
+/* Action window — soft fill matching the order urgency (red = order today). */
+.dash-rp-action.tone-danger { background: #fff1f0; }
+.dash-rp-action.tone-danger .dash-rp-val,
+.dash-rp-action.tone-danger .dash-rp-sub { color: var(--danger); }
+.dash-rp-action.tone-warning { background: #fff7e6; }
+.dash-rp-action.tone-warning .dash-rp-val,
+.dash-rp-action.tone-warning .dash-rp-sub { color: #9a7b16; }
+.dash-rp-action.tone-muted { background: var(--panel-muted, #f3f4f6); }
+
+/* Quick PO — pinned to the right margin, vertically centred in the row. */
+.dash-rp-order {
+  align-self: center;
+  justify-self: end;
+}
+
+.dash-rp-order-empty { display: block; }
+
+/* Phones: stack identity + Quick PO on top, the three metric boxes share a full
+   row below and split the width evenly so nothing overflows horizontally. */
+@media (max-width: 680px) {
+  .dash-reorder-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "id order"
+      "metrics metrics";
+    row-gap: 7px;
+  }
+  .dash-rp-id { grid-area: id; }
+  .dash-rp-order,
+  .dash-rp-order-empty { grid-area: order; }
+  .dash-rp-metrics {
+    grid-area: metrics;
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .dash-order-btn {

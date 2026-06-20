@@ -2,6 +2,7 @@ import DocumentRefChip from "../DocumentRefChip";
 import { printTransactionDocument } from "../documentRefs/printTransactionDocument";
 import { formatDate, formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
+import { getStatusLabel } from "../../i18n/statusLabels";
 import {
   computeAmount,
   computeVatSummary,
@@ -40,6 +41,16 @@ function QuotationDetailModal({
   );
   const vatSummary = computeVatSummary(itemTotal, quotation.vat_mode);
   const showVat = isVatEnabled(quotation.vat_mode);
+
+  // Flatten every on-the-way PO line across the quote's products so they can be
+  // shown in one "incoming stock" table below the items.
+  const incomingRows = (stockCoverage?.lines || []).flatMap((line, index) => {
+    const lineItem = (quotation.items || [])[index];
+    return (line.incomingPOs || []).map((po) => ({
+      ...po,
+      productName: lineItem?.product_name || "—",
+    }));
+  });
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -236,16 +247,20 @@ function QuotationDetailModal({
                             className={`status-badge health-badge ${
                               lineStockCoverage.status === "covered"
                                 ? "positive"
-                                : lineStockCoverage.status === "short"
-                                  ? "warning"
-                                  : "danger"
+                                : lineStockCoverage.status === "incoming"
+                                  ? "info"
+                                  : lineStockCoverage.status === "short"
+                                    ? "warning"
+                                    : "danger"
                             }`}
                           >
                             {lineStockCoverage.status === "covered"
                               ? t("quotationDetail.stockCovered")
-                              : lineStockCoverage.status === "short"
-                                ? t("quotationDetail.stockShort")
-                                : t("quotationDetail.stockUnknown")}
+                              : lineStockCoverage.status === "incoming"
+                                ? t("quotationDetail.stockOnTheWay")
+                                : lineStockCoverage.status === "short"
+                                  ? t("quotationDetail.stockShort")
+                                  : t("quotationDetail.stockUnknown")}
                           </span>
                           <span className="quotation-detail-stock-meta">
                             {t(lineStockCoverage.metaKey, lineStockCoverage.metaValues)}
@@ -293,6 +308,52 @@ function QuotationDetailModal({
             </table>
           </div>
         </div>
+
+        {incomingRows.length > 0 ? (
+          <div className="detail-items">
+            <p className="detail-label">{t("quotationDetail.incomingTitle")}</p>
+            <div className="table-scroll quotation-detail-scroll">
+              <table className="quotation-detail-table">
+                <thead>
+                  <tr>
+                    <th className="table-index-cell">#</th>
+                    <th>{t("quotation.detailColProduct")}</th>
+                    <th>{t("quotationDetail.incomingColPO")}</th>
+                    <th>{t("quotationDetail.incomingColStatus")}</th>
+                    <th>{t("quotationDetail.incomingColArrival")}</th>
+                    <th>{t("quotationDetail.incomingColQty")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {incomingRows.map((row, rowIndex) => (
+                    <tr key={`${row.id}-${rowIndex}`}>
+                      <td className="table-index-cell">{rowIndex + 1}</td>
+                      <td>{row.productName}</td>
+                      <td>
+                        <DocumentRefChip
+                          label={row.reference_no}
+                          docType="purchase"
+                          onClick={() => onOpenDocRef("purchase", row.id, row.reference_no)}
+                        />
+                      </td>
+                      <td>
+                        <span className={`status-badge status-${row.status}`}>
+                          {getStatusLabel(t, row.status)}
+                        </span>
+                      </td>
+                      <td>
+                        {row.expected_delivery_date
+                          ? formatDate(row.expected_delivery_date)
+                          : "—"}
+                      </td>
+                      <td>{formatQuantityWithUnit(row.quantity, row.unit)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
 
         <div className="tx-sales-summary">
           {showVat ? (

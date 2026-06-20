@@ -103,8 +103,8 @@ function QuotationPage({
     t,
   });
   const viewingQuotationStockCoverage = useMemo(
-    () => getQuotationStockCoverage(viewingQuotation, products),
-    [products, viewingQuotation]
+    () => getQuotationStockCoverage(viewingQuotation, products, purchases),
+    [products, purchases, viewingQuotation]
   );
 
   async function handleDelete(quotation) {

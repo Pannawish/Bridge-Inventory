@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatNumber as formatLocaleNumber } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
 import { getHealth } from "./inventory/inventoryUtils";
@@ -172,25 +172,24 @@ function formatDMY(date) {
   return `${dd}/${mm}/${yy}`;
 }
 
-// "When to purchase" for a reorder row. Order-by date = the day stock falls to
-// the reorder point: today + (available − reorder) / daily-demand. At/below the
-// reorder point it's already due → urgent. Demand-zero (rare watch-by-pending)
-// can't be dated → soft "order soon".
-function getReorderTiming(row) {
-  const available = num(row._available);
-  const reorder = num(row._reorder);
-  const demand = num(row.average_daily_demand) || num(row.predicted_7_day_demand) / 7;
-  if (available <= reorder) {
-    return { urgent: true, date: null };
+// The "action window": the last day a PO can still be placed without opening a
+// stockout gap = stockout date − supplier lead time. Returns that deadline date
+// plus the grace-day countdown (how long the user can safely wait). At/inside the
+// lead-time window it's already due → urgent. No demand → can't be dated.
+function getActionWindow(row) {
+  const daysToStockout = row._days; // floor(available / daily-demand); null if no demand
+  if (daysToStockout == null) {
+    return { kind: "none" };
   }
-  if (demand <= 0) {
-    return { urgent: false, date: null };
+  const leadDays = Math.round(num(row.average_lead_time_days));
+  const graceDays = daysToStockout - leadDays;
+  if (graceDays <= 0) {
+    return { kind: "urgent", graceDays: 0 };
   }
-  const daysToReorder = Math.max(0, (available - reorder) / demand);
   const date = new Date();
   date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + Math.ceil(daysToReorder));
-  return { urgent: false, date };
+  date.setDate(date.getDate() + graceDays);
+  return { kind: "soon", date, graceDays };
 }
 
 // ── Zone 1 · Reorder planning (hero) ───────────────────────────────────
@@ -200,12 +199,39 @@ function getReorderTiming(row) {
 // colour-coded decision card: WHEN to buy + on-hand, restock, days-of-cover.
 function ReorderPlanningWidget({ rows, replenishCost, onQuickOrder, onOpenProduct }) {
   const { t } = useLanguage();
+  const listRef = useRef(null);
+  const [rowsPerPage, setRowsPerPage] = useState(REORDER_PAGE_SIZE);
   const [page, setPage] = useState(0);
 
-  const pageCount = Math.max(1, Math.ceil(rows.length / REORDER_PAGE_SIZE));
+  // Pack the fixed-height column with as many compact cards as fit (no wasted
+  // whitespace on tall screens, no overflow on short ones). On the stacked
+  // mobile layout the list grows, so fall back to a constant page size.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) {
+      return undefined;
+    }
+    const ROW_PX = 84; // one compact card + the row gap
+    const compute = () => {
+      if (window.matchMedia("(max-width: 1100px)").matches) {
+        setRowsPerPage(REORDER_PAGE_SIZE);
+        return;
+      }
+      const height = el.clientHeight;
+      if (height > 0) {
+        setRowsPerPage(Math.max(4, Math.floor(height / ROW_PX)));
+      }
+    };
+    compute();
+    const observer = new ResizeObserver(compute);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage));
   const safePage = Math.min(page, pageCount - 1);
-  const start = safePage * REORDER_PAGE_SIZE;
-  const visible = rows.slice(start, start + REORDER_PAGE_SIZE);
+  const start = safePage * rowsPerPage;
+  const visible = rows.slice(start, start + rowsPerPage);
 
   return (
     <section className="dash-card dash-reorder">
@@ -221,7 +247,7 @@ function ReorderPlanningWidget({ rows, replenishCost, onQuickOrder, onOpenProduc
               <strong>{formatCompact(replenishCost)}</strong>
             </span>
           ) : null}
-          {rows.length > REORDER_PAGE_SIZE ? (
+          {rows.length > rowsPerPage ? (
             <div className="dash-pager">
               <button
                 type="button"
@@ -250,9 +276,11 @@ function ReorderPlanningWidget({ rows, replenishCost, onQuickOrder, onOpenProduc
       {rows.length === 0 ? (
         <p className="dash-empty">{t("dashboard.reorder.empty")}</p>
       ) : (
-        // Fixed slots: paging only swaps content, the layout never shifts.
-        <ol className="dash-reorder-list">
-          {Array.from({ length: REORDER_PAGE_SIZE }).map((_, slot) => {
+        // Each card is a fixed-coordinate grid: identity · on-hand · restock ·
+        // action-window · Quick PO. Columns line up down the whole list so the
+        // eye scans one metric vertically. Empty slots hold the last page steady.
+        <ol className="dash-reorder-list" ref={listRef}>
+          {Array.from({ length: rowsPerPage }).map((_, slot) => {
             const row = visible[slot];
             if (!row) {
               return <li className="dash-reorder-row is-empty" key={`empty-${slot}`} aria-hidden="true" />;
@@ -260,16 +288,12 @@ function ReorderPlanningWidget({ rows, replenishCost, onQuickOrder, onOpenProduc
             const health = row._health; // "low" | "watch"
             const tone = HEALTH_TONE[health] || "accent";
             const restock = num(row.recommended_restock);
-            const timing = getReorderTiming(row);
-            const whenTone = timing.urgent ? "danger" : "warning";
-            const whenLabel = timing.urgent
-              ? t("dashboard.reorder.orderToday")
-              : timing.date
-                ? t("dashboard.reorder.orderBefore", { date: formatDMY(timing.date) })
-                : t("dashboard.reorder.orderSoon");
+            const action = getActionWindow(row);
+            const actionTone =
+              action.kind === "urgent" ? "danger" : action.kind === "soon" ? "warning" : "muted";
             return (
               <li className={`dash-reorder-row tone-${tone}`} key={row.product_id || slot}>
-                <div className="dash-reorder-head">
+                <div className="dash-rp-id">
                   <span className={`inv-health-badge inv-health-${health}`}>
                     <i className="inv-health-dot" aria-hidden="true" />
                     {t(`inventory.health.${health}`)}
@@ -283,35 +307,57 @@ function ReorderPlanningWidget({ rows, replenishCost, onQuickOrder, onOpenProduc
                     <span className="dash-reorder-nametext">{row.product_name || "—"}</span>
                     <span className="dash-reorder-namego" aria-hidden="true">→</span>
                   </button>
-                  {restock > 0 ? (
-                    <button type="button" className="dash-order-btn" onClick={() => onQuickOrder(row)}>
-                      {t("dashboard.reorder.quickOrder")}
-                    </button>
-                  ) : null}
                 </div>
-                <div className="dash-reorder-when">
-                  <span className={`dash-status-chip tone-${whenTone}`}>{whenLabel}</span>
+
+                <div className="dash-rp-metrics">
+                  <div className="dash-rp-box dash-rp-onhand">
+                    <span className="dash-rp-lbl">{t("dashboard.reorder.boxOnHand")}</span>
+                    <span className="dash-rp-val">{formatUnits(Math.max(0, num(row._available)))}</span>
+                  </div>
+
+                  <div className="dash-rp-box dash-rp-restock">
+                    <span className="dash-rp-lbl">{t("dashboard.reorder.boxRestock")}</span>
+                    {restock > 0 ? (
+                      <span className="dash-rp-val">
+                        {formatUnits(restock)}
+                        {row.unit ? <span className="dash-rp-unit"> {row.unit}</span> : null}
+                      </span>
+                    ) : (
+                      <span className="dash-rp-val dash-rp-dash">-</span>
+                    )}
+                  </div>
+
+                  <div className={`dash-rp-box dash-rp-action tone-${actionTone}`}>
+                    <span className="dash-rp-lbl">{t("dashboard.reorder.boxOrderBy")}</span>
+                    {action.kind === "none" ? (
+                      <span className="dash-rp-val dash-rp-dash">-</span>
+                    ) : action.kind === "urgent" ? (
+                      <>
+                        <span className="dash-rp-val">{t("dashboard.reorder.today")}</span>
+                        <span className="dash-rp-sub">{t("dashboard.reorder.graceNow")}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="dash-rp-val">{formatDMY(action.date)}</span>
+                        <span className="dash-rp-sub">
+                          {t("dashboard.reorder.daysLeft", { days: action.graceDays })}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="dash-reorder-meta">
-                  <span className="dash-reorder-stat">
-                    {t("dashboard.reorder.onHand", {
-                      qty: formatUnits(Math.max(0, num(row._available))),
-                    })}
-                  </span>
-                  {restock > 0 ? (
-                    <span className="dash-reorder-stat dash-reorder-restock">
-                      {t("dashboard.reorder.restockShort", {
-                        qty: formatUnits(restock),
-                        unit: row.unit || "",
-                      })}
-                    </span>
-                  ) : null}
-                  {row._days != null ? (
-                    <span className="dash-reorder-stat">
-                      {t("dashboard.reorder.runsOut", { days: formatUnits(row._days) })}
-                    </span>
-                  ) : null}
-                </div>
+
+                {restock > 0 ? (
+                  <button
+                    type="button"
+                    className="dash-order-btn dash-rp-order"
+                    onClick={() => onQuickOrder(row)}
+                  >
+                    {t("dashboard.reorder.quickOrder")}
+                  </button>
+                ) : (
+                  <span className="dash-rp-order-empty" aria-hidden="true" />
+                )}
               </li>
             );
           })}

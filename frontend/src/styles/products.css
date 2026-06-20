@@ -430,6 +430,11 @@
   background: #fff2f4;
 }
 
+.health-badge.info {
+  color: #1d6fb8;
+  background: #eaf4fd;
+}
+
 .status-draft,
 .status-packed,
 .status-partially_received,

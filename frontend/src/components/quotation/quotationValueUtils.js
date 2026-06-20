@@ -265,11 +265,53 @@ export function formatOptionalMoney(value) {
 }
 
 export function getProductStockQuantity(product) {
-  const stock = Number(product?.stock || product?.currentStock || product?.totalStock);
+  // Match the rest of the app's stock reader (see getProductCurrentStock in
+  // products/productUtils): the API sends on-hand as `current_stock`.
+  const stock = Number(
+    product?.current_stock ??
+      product?.currentStock ??
+      product?.available_stock ??
+      product?.stock ??
+      product?.totalStock
+  );
   return Number.isFinite(stock) ? stock : 0;
 }
 
-export function getQuotationStockCoverage(quotation, products = []) {
+// Open purchase orders (Ordered / Partially received) that still have unreceived
+// units of this product on the way. Powers the "On the way" coverage state and
+// the incoming-stock table in the quotation detail.
+function getIncomingPurchasesForProduct(productId, purchases = []) {
+  if (productId == null) {
+    return [];
+  }
+  const rows = [];
+  (Array.isArray(purchases) ? purchases : []).forEach((purchase) => {
+    if (purchase?.status !== "ordered" && purchase?.status !== "partially_received") {
+      return;
+    }
+    (purchase.items || []).forEach((item) => {
+      if (`${item.product_id}` !== `${productId}` || item.item_status !== "pending") {
+        return;
+      }
+      const baseQuantity = Number(item.base_quantity) || 0;
+      if (baseQuantity <= 0) {
+        return;
+      }
+      rows.push({
+        id: purchase.id,
+        reference_no: purchase.reference_no || purchase.id,
+        status: purchase.status,
+        expected_delivery_date: item.expected_delivery_date || null,
+        quantity: item.quantity,
+        unit: item.unit,
+        baseQuantity,
+      });
+    });
+  });
+  return rows;
+}
+
+export function getQuotationStockCoverage(quotation, products = [], purchases = []) {
   const lines = (quotation?.items || []).map((item) => {
     const product = findProductForItem(item, products);
 
@@ -278,6 +320,7 @@ export function getQuotationStockCoverage(quotation, products = []) {
         status: "unknown",
         metaKey: "quotationDetail.stockUnknownMeta",
         metaValues: {},
+        incomingPOs: [],
       };
     }
 
@@ -285,31 +328,58 @@ export function getQuotationStockCoverage(quotation, products = []) {
     const baseUnit = getQuotationItemBaseUnit(item, product);
     const requestedBaseQuantity = getQuotationItemBaseQuantity(item, product);
     const shortageBaseQuantity = Math.max(0, requestedBaseQuantity - availableBaseQuantity);
-    const isCovered = availableBaseQuantity >= requestedBaseQuantity;
 
-    return isCovered
-      ? {
-          status: "covered",
-          metaKey: "quotationDetail.stockAvailableMeta",
-          metaValues: {
-            available: formatStockQuantity(availableBaseQuantity),
-            unit: baseUnit,
-          },
-        }
-      : {
-          status: "short",
-          metaKey: "quotationDetail.stockShortageMeta",
-          metaValues: {
-            available: formatStockQuantity(availableBaseQuantity),
-            shortage: formatStockQuantity(shortageBaseQuantity),
-            unit: baseUnit,
-          },
-        };
+    if (availableBaseQuantity >= requestedBaseQuantity) {
+      return {
+        status: "covered",
+        metaKey: "quotationDetail.stockAvailableMeta",
+        metaValues: {
+          available: formatStockQuantity(availableBaseQuantity),
+          unit: baseUnit,
+        },
+        incomingPOs: [],
+      };
+    }
+
+    // On hand isn't enough — see whether ordered-but-not-yet-received POs close
+    // the gap. If they do, it's "on the way" rather than "need purchase".
+    const incomingPOs = getIncomingPurchasesForProduct(product.id, purchases);
+    const incomingBaseQuantity = incomingPOs.reduce((sum, po) => sum + po.baseQuantity, 0);
+
+    if (
+      incomingPOs.length > 0 &&
+      availableBaseQuantity + incomingBaseQuantity >= requestedBaseQuantity
+    ) {
+      return {
+        status: "incoming",
+        metaKey: "quotationDetail.stockIncomingMeta",
+        metaValues: {
+          incoming: formatStockQuantity(incomingBaseQuantity),
+          unit: baseUnit,
+        },
+        incomingPOs,
+      };
+    }
+
+    return {
+      status: "short",
+      metaKey: "quotationDetail.stockShortageMeta",
+      metaValues: {
+        available: formatStockQuantity(availableBaseQuantity),
+        shortage: formatStockQuantity(shortageBaseQuantity),
+        unit: baseUnit,
+      },
+      incomingPOs,
+    };
   });
 
   return {
     lines,
-    allSufficient: lines.every((line) => line.status === "covered"),
+    // Nothing needs a fresh PO when every line is either in stock or already on
+    // the way; the "Purchase" action stays disabled in that case.
+    allSufficient: lines.every(
+      (line) => line.status === "covered" || line.status === "incoming"
+    ),
   };
 }
 
