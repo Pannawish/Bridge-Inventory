@@ -10,6 +10,7 @@ import {
 } from "./billing/billingNoteUtils";
 import { useBillingNoteDirectoryFilters } from "../hooks/useBillingNoteDirectoryFilters";
 import { useLanguage } from "../i18n/LanguageContext";
+import { deepEqual } from "../equality";
 
 function BillingNotePage({
   billingNotes = [],
@@ -115,7 +116,13 @@ function BillingNotePage({
     const nextActiveBillingNote = (Array.isArray(allBillingNotes) ? allBillingNotes : []).find(
       (note) => `${note.id}` === `${activeBillingNote.id}`
     );
-    if (nextActiveBillingNote && nextActiveBillingNote !== activeBillingNote) {
+    // Only adopt the list copy when its *data* actually differs. The directory
+    // rows and the full list are separate arrays (and credit-note linking builds
+    // fresh enriched objects), so the matching entry is frequently an equal-but-
+    // new reference. Swapping on identity alone would re-point activeBillingNote
+    // every render, which resets the open detail modal's draft and reverts an
+    // in-progress "received" checkbox. Compare by value instead.
+    if (nextActiveBillingNote && !deepEqual(nextActiveBillingNote, activeBillingNote)) {
       setActiveBillingNote(nextActiveBillingNote);
     }
   }, [activeBillingNote, allBillingNotes]);
