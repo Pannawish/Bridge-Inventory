@@ -4,6 +4,7 @@ import shutil
 import tempfile
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.core.management import call_command
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -1718,6 +1719,162 @@ class LookupEligibilityTests(APITestCase):
         self.assertEqual(row["committed_sales_value"], 20)
         self.assertTrue(row["backend_calculated"])
 
+    def test_dashboard_stock_report_matches_manual_reorder_formula(self):
+        product = Product.objects.create(
+            sku="TEST-PEN",
+            product_name="Manual Reorder Product",
+            stock_base_unit="pcs",
+            default_purchase_unit="pcs",
+            default_sales_unit="pcs",
+        )
+        first_purchase = Purchase.objects.create(
+            reference_no="PO-MANUAL-1",
+            supplier_name="Manual Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today - timedelta(days=20),
+        )
+        PurchaseItem.objects.create(
+            purchase=first_purchase,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            received_date=self.today - timedelta(days=16),
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("50"),
+            base_quantity=Decimal("50"),
+            unit_cost=Decimal("5"),
+            amount=Decimal("250"),
+        )
+        second_purchase = Purchase.objects.create(
+            reference_no="PO-MANUAL-2",
+            supplier_name="Manual Supplier",
+            status=Purchase.STATUS_RECEIVED,
+            transaction_date=self.today - timedelta(days=18),
+        )
+        PurchaseItem.objects.create(
+            purchase=second_purchase,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            received_date=self.today - timedelta(days=12),
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("50"),
+            base_quantity=Decimal("50"),
+            unit_cost=Decimal("5"),
+            amount=Decimal("250"),
+        )
+        pending_purchase = Purchase.objects.create(
+            reference_no="PO-MANUAL-PENDING",
+            supplier_name="Manual Supplier",
+            status=Purchase.STATUS_ORDERED,
+            transaction_date=self.today,
+        )
+        PurchaseItem.objects.create(
+            purchase=pending_purchase,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=PurchaseItem.ITEM_PENDING,
+            expected_delivery_date=self.today + timedelta(days=3),
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("10"),
+            base_quantity=Decimal("10"),
+            unit_cost=Decimal("5"),
+            amount=Decimal("50"),
+        )
+
+        first_sale = Sale.objects.create(
+            reference_no="SO-MANUAL-1",
+            customer_name="Manual Customer",
+            status=Sale.STATUS_DELIVERED,
+            transaction_date=self.today - timedelta(days=9),
+        )
+        SaleItem.objects.create(
+            sale=first_sale,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=SaleItem.ITEM_DELIVERED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("20"),
+            base_quantity=Decimal("20"),
+            unit_price=Decimal("12"),
+            unit_cost=Decimal("5"),
+            amount=Decimal("240"),
+        )
+        second_sale = Sale.objects.create(
+            reference_no="SO-MANUAL-2",
+            customer_name="Manual Customer",
+            status=Sale.STATUS_PACKED,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=second_sale,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=SaleItem.ITEM_PACKED,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("20"),
+            base_quantity=Decimal("20"),
+            unit_price=Decimal("12"),
+            unit_cost=Decimal("5"),
+            amount=Decimal("240"),
+        )
+        pending_sale = Sale.objects.create(
+            reference_no="SO-MANUAL-PENDING",
+            customer_name="Manual Customer",
+            status=Sale.STATUS_DRAFT,
+            transaction_date=self.today,
+        )
+        SaleItem.objects.create(
+            sale=pending_sale,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=SaleItem.ITEM_PENDING,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("20"),
+            base_quantity=Decimal("20"),
+            unit_price=Decimal("12"),
+            unit_cost=Decimal("5"),
+            amount=Decimal("240"),
+        )
+
+        response = self.client.get("/api/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        row = next(
+            item for item in response.data["stock_report"] if item["product_id"] == product.id
+        )
+        self.assertEqual(row["received_purchase_units"], 100)
+        self.assertEqual(row["allocated_sales_units"], 40)
+        self.assertEqual(row["available_stock"], 60)
+        self.assertEqual(row["average_unit_cost"], 5)
+        self.assertEqual(row["average_lead_time_days"], 5)
+        self.assertEqual(row["average_daily_demand"], 4)
+        self.assertEqual(row["safety_stock"], 28)
+        self.assertEqual(row["reorder_level"], 48)
+        self.assertEqual(row["pending_sales_units"], 20)
+        self.assertEqual(row["pending_purchase_units"], 10)
+        self.assertEqual(row["recommended_restock"], 0)
+        self.assertEqual(row["days_until_stockout"], 15)
+        self.assertEqual(row["stock_value"], 300)
+
     def test_dashboard_stock_report_recommends_cheapest_supplier(self):
         product = Product.objects.create(
             sku="DASH-SUPPLIER",
@@ -2922,6 +3079,46 @@ class AiReportApiTests(APITestCase):
         self.assertIn("PO-AI-REPORT", html)
         self.assertIn("SO-AI-REPORT", html)
         self.assertNotIn("PO-AI-OLD", html)
+
+    def test_ai_report_wraps_and_sanitizes_model_html(self):
+        unsafe_fragment = """
+            <main class="ai-report-document">
+              <section class="report-section">
+                <h2>Model Summary</h2>
+                <script>alert("bad")</script>
+                <p onclick="bad()">AI Report Supplier</p>
+                <iframe src="https://example.invalid"></iframe>
+                <a href="javascript:bad()">bad link</a>
+              </section>
+            </main>
+        """
+
+        with self.settings(OPENAI_API_KEY="test-key", OPENAI_MODEL="gpt-test"):
+            with patch(
+                "inventory.ai_reports.generate_ai_report_body",
+                return_value=(unsafe_fragment, "gpt-test"),
+            ):
+                response = self.client.post(
+                    "/api/ai-reports/",
+                    {
+                        "scope_type": "supplier",
+                        "entity_id": self.supplier.id,
+                        "period_type": "all",
+                        "language": "en",
+                    },
+                    format="json",
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["used_model"], "gpt-test")
+        html = response.data["html"]
+        self.assertIn("Model Summary", html)
+        self.assertIn("window.print()", html)
+        self.assertNotIn("<script", html.lower())
+        self.assertNotIn("alert(\"bad\")", html)
+        self.assertNotIn("bad()", html)
+        self.assertNotIn("<iframe", html.lower())
+        self.assertNotIn("javascript:", html.lower())
 
     def test_report_requires_selected_entity(self):
         response = self.client.post(

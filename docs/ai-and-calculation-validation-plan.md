@@ -271,3 +271,90 @@ This is enough to support the claim:
 
 > The system validates factual accuracy by comparing AI-visible outputs and calculation results against backend source-of-truth formulas and fixed test data.
 
+---
+
+## 9. Implemented Validation Evidence
+
+The validation plan is now backed by focused Django tests in [backend/inventory/tests.py](../backend/inventory/tests.py).
+
+### 9.1 Calculation Evidence
+
+Test:
+
+```text
+LookupEligibilityTests.test_dashboard_stock_report_matches_manual_reorder_formula
+```
+
+What it validates:
+
+- fixed product dataset from this report
+- received purchase units = `100`
+- allocated sales units = `40`
+- available stock = `60`
+- average unit cost = `5`
+- average lead time = `5`
+- average daily demand = `4`
+- safety stock = `28`
+- reorder level = `48`
+- pending sales = `20`
+- pending purchase = `10`
+- recommended restock = `0`
+- days until stockout = `15`
+- stock value = `300`
+
+This test proves the reorder-point example is not only theoretical; the backend stock report returns the same result as the manual formula.
+
+### 9.2 AI Chat Evidence
+
+Existing tests in `ChatAssistantAlignmentTests` validate that AI Chat:
+
+- returns deterministic backend summaries
+- reports low-stock products
+- reports net position from backend finance values
+- summarizes customer and supplier activity by period
+- shows document line-item detail
+- rejects unsupported reporting scopes instead of inventing answers
+
+Important examples:
+
+```text
+ChatAssistantAlignmentTests.test_chat_reports_low_stock_and_restock_scope
+ChatAssistantAlignmentTests.test_chat_reports_net_position
+ChatAssistantAlignmentTests.test_chat_summarizes_customer_with_date_range
+ChatAssistantAlignmentTests.test_chat_summarizes_supplier_this_month
+ChatAssistantAlignmentTests.test_chat_rejects_generic_transaction_summary_as_out_of_scope
+```
+
+### 9.3 AI Report Evidence
+
+Tests in `AiReportApiTests` validate that AI Report:
+
+- returns printable local HTML when `OPENAI_API_KEY` is empty
+- includes selected supplier/product facts
+- respects custom date ranges
+- rejects missing selected entities
+- rejects incomplete custom date ranges
+- wraps model HTML in a printable page
+- removes unsafe model output such as script tags, unsafe event handlers, iframes, and `javascript:` URLs
+
+Important examples:
+
+```text
+AiReportApiTests.test_supplier_report_returns_printable_local_html_without_ai_key
+AiReportApiTests.test_product_report_respects_custom_date_range
+AiReportApiTests.test_ai_report_wraps_and_sanitizes_model_html
+```
+
+### 9.4 Verification Command
+
+Run the targeted validation tests:
+
+```bash
+backend/.venv/bin/python backend/manage.py test inventory.tests.LookupEligibilityTests.test_dashboard_stock_report_matches_manual_reorder_formula inventory.tests.AiReportApiTests.test_ai_report_wraps_and_sanitizes_model_html
+```
+
+Run the full inventory test suite:
+
+```bash
+backend/.venv/bin/python backend/manage.py test inventory
+```
