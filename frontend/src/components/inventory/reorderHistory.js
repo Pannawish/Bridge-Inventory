@@ -203,6 +203,7 @@ export function collectProductSales({
       if (!(qty > 0)) return;
       entries.push({
         key: `${sale.id}-${item.id ?? index}`,
+        id: sale.id,
         ref: sale.reference_no || sale.id,
         date: sale.transaction_date || "",
         customer: sale.customer_name || "",
@@ -265,6 +266,7 @@ export function collectProductPurchases({
       const leadDays = ordered ? Math.max(0, daysBetween(ordered, recv)) : null;
       entries.push({
         key: `${purchase.id}-${item.id ?? index}`,
+        id: purchase.id,
         ref: purchase.reference_no || purchase.id,
         date: item.received_date || purchase.transaction_date || "",
         supplier: purchase.supplier_name || "",

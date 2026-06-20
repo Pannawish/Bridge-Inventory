@@ -1,4 +1,5 @@
 import PaginationControls from "../PaginationControls";
+import DocumentRefChip from "../DocumentRefChip";
 import { getPurchaseItemDisplayStatus } from "../../purchaseStatus";
 import { getStoredSaleItemStatus } from "../../saleStatus";
 import { getItemQuantityDetails } from "../../unitConversion";
@@ -41,6 +42,7 @@ function ProductHistoryTableSection({
   pagination,
   onPageChange,
   onOpenTransactionDetail,
+  onOpenDocRef,
 }) {
   const { t } = useLanguage();
   const isPurchase = type === "purchase";
@@ -112,7 +114,23 @@ function ProductHistoryTableSection({
                       return (
                         <tr key={`${purchase.id}-${item.id}`}>
                           <td className="table-index-cell">{rowNumber}</td>
-                          <td>{purchase.reference_no}</td>
+                          <td>
+                            {purchase.id != null && onOpenDocRef ? (
+                              <DocumentRefChip
+                                label={purchase.reference_no}
+                                docType="purchase"
+                                onClick={() =>
+                                  onOpenDocRef({
+                                    docType: "purchase",
+                                    docId: purchase.id,
+                                    referenceNo: purchase.reference_no,
+                                  })
+                                }
+                              />
+                            ) : (
+                              purchase.reference_no
+                            )}
+                          </td>
                           <td>{purchase.supplier_name}</td>
                           <td>{formatDate(purchase.transaction_date)}</td>
                           <td>{quantityDetails.enteredLabel}</td>
@@ -191,7 +209,23 @@ function ProductHistoryTableSection({
                       return (
                         <tr key={`${sale.id}-${item.id}`}>
                           <td className="table-index-cell">{rowNumber}</td>
-                          <td>{sale.reference_no}</td>
+                          <td>
+                            {sale.id != null && onOpenDocRef ? (
+                              <DocumentRefChip
+                                label={sale.reference_no}
+                                docType="sale"
+                                onClick={() =>
+                                  onOpenDocRef({
+                                    docType: "sale",
+                                    docId: sale.id,
+                                    referenceNo: sale.reference_no,
+                                  })
+                                }
+                              />
+                            ) : (
+                              sale.reference_no
+                            )}
+                          </td>
                           <td>{sale.customer_name}</td>
                           <td>{formatDate(sale.transaction_date)}</td>
                           <td>{quantityDetails.enteredLabel}</td>

@@ -2,8 +2,6 @@ import { useMemo, useState } from "react";
 import { formatNumber as formatLocaleNumber } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
 import { getHealth } from "./inventory/inventoryUtils";
-import { ReorderProjectionMini } from "./charts/ReorderProjection";
-import { buildRecentStockHistory } from "./inventory/reorderHistory";
 import QuickPoDrawer from "./purchase/QuickPoDrawer";
 
 // Same health → graph-tone mapping the Inventory page uses, so a product reads
@@ -16,7 +14,7 @@ const HEALTH_TONE = { low: "danger", watch: "warning", healthy: "positive", dead
 // in cycles/year so the bands read as a clean frequency ladder.
 const CYCLE_BANDS = ["veryFast", "fast", "steady", "slow", "oneOff"];
 const CYCLE_THRESHOLDS = { veryFast: 26, fast: 12, steady: 4 }; // cycles/year
-const REORDER_PAGE_SIZE = 3;
+const REORDER_PAGE_SIZE = 5;
 const DISPATCH_LIMIT = 12;
 const CLOSED_SALE_STATUSES = new Set(["delivered", "cancelled", "returned"]);
 const SALE_STATUS_TONE = {
@@ -165,12 +163,42 @@ function DashModal({ eyebrow, title, onClose, headerAction, children }) {
   );
 }
 
+// dd/mm/yy from a Date using LOCAL parts (toISOString would shift the day in
+// +07:00), matching the app's formatDate output elsewhere.
+function formatDMY(date) {
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yy = String(date.getFullYear()).slice(-2);
+  return `${dd}/${mm}/${yy}`;
+}
+
+// "When to purchase" for a reorder row. Order-by date = the day stock falls to
+// the reorder point: today + (available − reorder) / daily-demand. At/below the
+// reorder point it's already due → urgent. Demand-zero (rare watch-by-pending)
+// can't be dated → soft "order soon".
+function getReorderTiming(row) {
+  const available = num(row._available);
+  const reorder = num(row._reorder);
+  const demand = num(row.average_daily_demand) || num(row.predicted_7_day_demand) / 7;
+  if (available <= reorder) {
+    return { urgent: true, date: null };
+  }
+  if (demand <= 0) {
+    return { urgent: false, date: null };
+  }
+  const daysToReorder = Math.max(0, (available - reorder) / demand);
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + Math.ceil(daysToReorder));
+  return { urgent: false, date };
+}
+
 // ── Zone 1 · Reorder planning (hero) ───────────────────────────────────
 // Products at/below their reorder point (Low / Urgent) plus those approaching
 // it (Approaching reorder), urgent first. Uses the same health labels/colours
-// as the Inventory page so a SKU reads identically in both places, and each
-// tile carries a minimal version of the inventory reorder-point graph.
-function ReorderPlanningWidget({ rows, replenishCost, purchases, sales, onQuickOrder, onOpenProduct }) {
+// as the Inventory page so a SKU reads identically in both places. Each row is a
+// colour-coded decision card: WHEN to buy + on-hand, restock, days-of-cover.
+function ReorderPlanningWidget({ rows, replenishCost, onQuickOrder, onOpenProduct }) {
   const { t } = useLanguage();
   const [page, setPage] = useState(0);
 
@@ -222,91 +250,72 @@ function ReorderPlanningWidget({ rows, replenishCost, purchases, sales, onQuickO
       {rows.length === 0 ? (
         <p className="dash-empty">{t("dashboard.reorder.empty")}</p>
       ) : (
-        <>
-          <div className="dash-saw-key" aria-hidden="true">
-            <span className="dash-saw-key-item"><i className="sk-now" />{t("dashboard.reorder.key.stock")}</span>
-            <span className="dash-saw-key-item"><i className="sk-rop" />{t("dashboard.reorder.key.reorder")}</span>
-            <span className="dash-saw-key-item"><i className="sk-ss" />{t("dashboard.reorder.key.safety")}</span>
-          </div>
-          {/* Fixed three slots: paging only swaps content, the layout never shifts. */}
-          <ol className="dash-reorder-list">
-            {Array.from({ length: REORDER_PAGE_SIZE }).map((_, slot) => {
-              const row = visible[slot];
-              if (!row) {
-                return <li className="dash-reorder-row is-empty" key={`empty-${slot}`} aria-hidden="true" />;
-              }
-              const health = row._health; // "low" | "watch"
-              const tone = HEALTH_TONE[health] || "accent";
-              const restock = num(row.recommended_restock);
-              const safety = num(row.safety_stock);
-              const etaLabel = t("dashboard.reorder.onHand", {
-                qty: formatUnits(Math.max(0, num(row._available))),
-              });
-              return (
-                <li className="dash-reorder-row" key={row.product_id || slot}>
-                  <div className="dash-reorder-head">
-                    <span className={`inv-health-badge inv-health-${health}`}>
-                      <i className="inv-health-dot" aria-hidden="true" />
-                      {t(`inventory.health.${health}`)}
-                    </span>
-                    <button
-                      type="button"
-                      className="dash-reorder-name is-link"
-                      title={t("dashboard.reorder.openInInventory")}
-                      onClick={() => onOpenProduct(row)}
-                    >
-                      <span className="dash-reorder-nametext">{row.product_name || "—"}</span>
-                      <span className="dash-reorder-namego" aria-hidden="true">→</span>
+        // Fixed slots: paging only swaps content, the layout never shifts.
+        <ol className="dash-reorder-list">
+          {Array.from({ length: REORDER_PAGE_SIZE }).map((_, slot) => {
+            const row = visible[slot];
+            if (!row) {
+              return <li className="dash-reorder-row is-empty" key={`empty-${slot}`} aria-hidden="true" />;
+            }
+            const health = row._health; // "low" | "watch"
+            const tone = HEALTH_TONE[health] || "accent";
+            const restock = num(row.recommended_restock);
+            const timing = getReorderTiming(row);
+            const whenTone = timing.urgent ? "danger" : "warning";
+            const whenLabel = timing.urgent
+              ? t("dashboard.reorder.orderToday")
+              : timing.date
+                ? t("dashboard.reorder.orderBefore", { date: formatDMY(timing.date) })
+                : t("dashboard.reorder.orderSoon");
+            return (
+              <li className={`dash-reorder-row tone-${tone}`} key={row.product_id || slot}>
+                <div className="dash-reorder-head">
+                  <span className={`inv-health-badge inv-health-${health}`}>
+                    <i className="inv-health-dot" aria-hidden="true" />
+                    {t(`inventory.health.${health}`)}
+                  </span>
+                  <button
+                    type="button"
+                    className="dash-reorder-name is-link"
+                    title={t("dashboard.reorder.openInInventory")}
+                    onClick={() => onOpenProduct(row)}
+                  >
+                    <span className="dash-reorder-nametext">{row.product_name || "—"}</span>
+                    <span className="dash-reorder-namego" aria-hidden="true">→</span>
+                  </button>
+                  {restock > 0 ? (
+                    <button type="button" className="dash-order-btn" onClick={() => onQuickOrder(row)}>
+                      {t("dashboard.reorder.quickOrder")}
                     </button>
-                    {restock > 0 ? (
-                      <button type="button" className="dash-order-btn" onClick={() => onQuickOrder(row)}>
-                        {t("dashboard.reorder.quickOrder")}
-                      </button>
-                    ) : null}
-                  </div>
-                  <div className="dash-reorder-meta">
-                    <span className={`dash-reorder-eta tone-${tone}`}>{etaLabel}</span>
-                    {restock > 0 ? (
-                      <span className="dash-reorder-restock">
-                        {t("dashboard.reorder.recommendedRestock", {
-                          qty: formatUnits(restock),
-                          unit: row.unit || "",
-                        })}
-                      </span>
-                    ) : null}
-                    {safety > 0 ? (
-                      <span className="dash-reorder-safety">
-                        {t("dashboard.reorder.safetyStockTile", {
-                          qty: formatUnits(safety),
-                          unit: row.unit || "",
-                        })}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="dash-reorder-chart">
-                    <ReorderProjectionMini
-                      historyPoints={buildRecentStockHistory({
-                        productId: row.product_id,
-                        purchases,
-                        sales,
-                        currentStock: row._available,
-                        cycles: 3,
+                  ) : null}
+                </div>
+                <div className="dash-reorder-when">
+                  <span className={`dash-status-chip tone-${whenTone}`}>{whenLabel}</span>
+                </div>
+                <div className="dash-reorder-meta">
+                  <span className="dash-reorder-stat">
+                    {t("dashboard.reorder.onHand", {
+                      qty: formatUnits(Math.max(0, num(row._available))),
+                    })}
+                  </span>
+                  {restock > 0 ? (
+                    <span className="dash-reorder-stat dash-reorder-restock">
+                      {t("dashboard.reorder.restockShort", {
+                        qty: formatUnits(restock),
+                        unit: row.unit || "",
                       })}
-                      current={row._available}
-                      reorder={row._reorder}
-                      safety={num(row.safety_stock)}
-                      velocity={num(row.average_daily_demand) || num(row.predicted_7_day_demand) / 7}
-                      leadTime={num(row.average_lead_time_days)}
-                      orderQty={restock}
-                      unit={row.unit || ""}
-                      tone={tone}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </>
+                    </span>
+                  ) : null}
+                  {row._days != null ? (
+                    <span className="dash-reorder-stat">
+                      {t("dashboard.reorder.runsOut", { days: formatUnits(row._days) })}
+                    </span>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
       )}
     </section>
   );
@@ -772,8 +781,6 @@ function Dashboard({ dashboard, sales = [], purchases = [], onNavigate }) {
       <ReorderPlanningWidget
         rows={reorderItems}
         replenishCost={replenishCost}
-        purchases={purchases}
-        sales={sales}
         onQuickOrder={setQuickPo}
         onOpenProduct={(row) => openProductInInventory(row.product_id)}
       />

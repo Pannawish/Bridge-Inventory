@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getProductBaseUnit } from "../../unitConversion";
 import { formatDate } from "../../format";
+import DocumentRefChip from "../DocumentRefChip";
 import { formatCurrency, formatStockQuantity } from "./productUtils";
 
 function ProductStockSourcesSection({
@@ -9,6 +10,7 @@ function ProductStockSourcesSection({
   stockLayers = [],
   loading = false,
   error = "",
+  onOpenDocRef,
 }) {
   const { t } = useLanguage();
   const [sectionCollapsed, setSectionCollapsed] = useState(false);
@@ -191,9 +193,25 @@ function ProductStockSourcesSection({
                                     {supplier.layers.map((layer) => (
                                       <tr key={layer.purchase_item_id}>
                                         <td>
-                                          <span className="batch-po-ref">
-                                            {layer.purchase_reference_no || "—"}
-                                          </span>
+                                          {layer.purchase_id != null &&
+                                          layer.purchase_reference_no &&
+                                          onOpenDocRef ? (
+                                            <DocumentRefChip
+                                              label={layer.purchase_reference_no}
+                                              docType="purchase"
+                                              onClick={() =>
+                                                onOpenDocRef({
+                                                  docType: "purchase",
+                                                  docId: layer.purchase_id,
+                                                  referenceNo: layer.purchase_reference_no,
+                                                })
+                                              }
+                                            />
+                                          ) : (
+                                            <span className="batch-po-ref">
+                                              {layer.purchase_reference_no || "—"}
+                                            </span>
+                                          )}
                                         </td>
                                         <td>
                                           {layer.received_date ? formatDate(layer.received_date) : formatDate(layer.transaction_date)}

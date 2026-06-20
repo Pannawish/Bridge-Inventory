@@ -50,9 +50,8 @@
   }
   .dash-reorder-list {
     grid-template-rows: none;
-    grid-auto-rows: minmax(150px, auto);
+    grid-auto-rows: minmax(74px, auto);
   }
-  .dash-reorder-chart { min-height: 150px; }
   .dash-do-list { max-height: 260px; }
 }
 
@@ -142,8 +141,8 @@
    Paging swaps content; the three rows always split the available height. */
 .dash-reorder-list {
   display: grid;
-  grid-template-rows: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-rows: repeat(5, 1fr);
+  gap: 10px;
   flex: 1;
   min-height: 0;
   margin: 0;
@@ -151,16 +150,36 @@
   list-style: none;
 }
 
+/* Each product is a compact, colour-coded decision box: urgency reads from the
+   left accent + faint wash, the "when to buy" pill is the hero, supporting
+   numbers sit on one muted line below. */
 .dash-reorder-row {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  justify-content: center;
+  gap: 5px;
   min-height: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.dash-reorder-row.tone-danger {
+  border-left-color: var(--danger);
+  background: #fff5f5;
+}
+
+.dash-reorder-row.tone-warning {
+  border-left-color: var(--warning);
+  background: #fffaf3;
 }
 
 .dash-reorder-row.is-empty {
   border: 1px dashed var(--line);
-  border-radius: 4px;
+  border-radius: 8px;
+  background: transparent;
   opacity: 0.5;
 }
 
@@ -243,78 +262,43 @@
   font-weight: 800;
 }
 
-/* Sawtooth legend: what the three reference marks on each tile graph mean. */
-.dash-saw-key {
+/* The "when to buy" hero pill — reuses the dashboard status-chip so it reads the
+   same as the pills in Order/Delivery planning. */
+.dash-reorder-when {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  margin: 0 0 6px;
 }
 
-.dash-saw-key-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--muted);
-  font-size: 0.62rem;
-  font-weight: 600;
+.dash-reorder-when .dash-status-chip {
+  font-size: 0.72rem;
 }
 
-.dash-saw-key-item i {
-  display: inline-block;
-  width: 12px;
-  height: 0;
-  border-top-width: 2px;
-  border-top-style: solid;
-}
-
-.dash-saw-key-item .sk-now { border-top-color: var(--text); }
-.dash-saw-key-item .sk-rop { border-top-color: var(--warning); border-top-style: dashed; }
-.dash-saw-key-item .sk-ss { border-top-color: var(--danger); border-top-style: dashed; }
-
-/* Meta line under the tile head: cover/stockout eta + recommended order qty. */
+/* Supporting numbers on one muted line: on-hand · restock · days of cover. */
 .dash-reorder-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 3px 10px;
+  gap: 2px 0;
   min-width: 0;
 }
 
-/* Recommended restock — the headline action, in confident green. */
-.dash-reorder-restock {
-  color: #0f7a4d;
+.dash-reorder-stat {
+  color: var(--muted);
   font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dash-reorder-stat + .dash-reorder-stat::before {
+  content: "·";
+  margin: 0 7px;
+  color: var(--line);
+}
+
+/* Recommended restock — the headline number, in confident green. */
+.dash-reorder-stat.dash-reorder-restock {
+  color: #0f7a4d;
   font-weight: 800;
-  white-space: nowrap;
 }
-
-/* Safety stock — the reassuring buffer, in a softer sage green. */
-.dash-reorder-safety {
-  color: #6f9e83;
-  font-size: 0.72rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-/* Holds the ReorderProjectionMini, which measures this box and renders its SVG
-   at the real pixel size so it fills the fixed tile without distorting text. */
-.dash-reorder-chart {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  margin-top: 4px;
-}
-
-.dash-reorder-eta {
-  flex-shrink: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.dash-reorder-eta.tone-danger { color: var(--danger); }
-.dash-reorder-eta.tone-warning { color: #9a7b16; }
-.dash-reorder-eta.tone-accent { color: var(--accent); }
 
 .dash-order-btn {
   flex-shrink: 0;
@@ -590,6 +574,7 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
 
 .dash-status-chip.tone-neutral { background: var(--panel-muted); color: var(--muted); }
 .dash-status-chip.tone-warning { background: #fff7e6; color: #9a7b16; }
+.dash-status-chip.tone-danger { background: #fff1f0; color: var(--danger); }
 .dash-status-chip.tone-accent { background: var(--accent-soft); color: var(--accent); }
 
 .dash-do-go { flex-shrink: 0; color: var(--muted); font-weight: 700; }
@@ -1238,9 +1223,8 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   }
   .dash-reorder-list {
     grid-template-rows: none;
-    grid-auto-rows: minmax(140px, auto);
+    grid-auto-rows: minmax(74px, auto);
   }
-  .dash-reorder-chart { min-height: 140px; }
   .dash-do-list { max-height: 240px; }
   .dash-card-head h3 { font-size: 0.96rem; }
 }

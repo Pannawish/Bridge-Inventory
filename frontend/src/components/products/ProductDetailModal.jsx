@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
+import DocumentRefModal from "../DocumentRefModal";
 import ProductHistoryProfilePanel from "./ProductHistoryProfilePanel";
 import ProductStockSourcesSection from "./ProductStockSourcesSection";
 import ProductPriceInsightsSection from "./ProductPriceInsightsSection";
@@ -41,8 +43,11 @@ function ProductHistoryModal({
   stockLayersError,
 }) {
   const { t } = useLanguage();
+  // Read-only preview for a PO/TI clicked in the stock-sources / history tables.
+  const [docRefModal, setDocRefModal] = useState(null);
 
   return (
+    <>
     <div
       className="detail-modal product-detail-modal section-card"
       role="dialog"
@@ -89,6 +94,7 @@ function ProductHistoryModal({
           stockLayers={stockLayers}
           loading={stockLayersLoading}
           error={stockLayersError}
+          onOpenDocRef={setDocRefModal}
         />
 
         <ProductPriceInsightsSection
@@ -120,6 +126,7 @@ function ProductHistoryModal({
           pagination={purchaseHistoryPagination}
           onPageChange={onPurchaseHistoryPageChange}
           onOpenTransactionDetail={onOpenTransactionDetail}
+          onOpenDocRef={setDocRefModal}
         />
 
         <ProductHistoryTableSection
@@ -129,9 +136,19 @@ function ProductHistoryModal({
           pagination={salesHistoryPagination}
           onPageChange={onSalesHistoryPageChange}
           onOpenTransactionDetail={onOpenTransactionDetail}
+          onOpenDocRef={setDocRefModal}
         />
       </div>
     </div>
+    {docRefModal ? (
+      <DocumentRefModal
+        docType={docRefModal.docType}
+        docId={docRefModal.docId}
+        referenceNo={docRefModal.referenceNo}
+        onClose={() => setDocRefModal(null)}
+      />
+    ) : null}
+    </>
   );
 }
 

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { formatDate } from "../../format";
+import DocumentRefChip from "../DocumentRefChip";
+import DocumentRefModal from "../DocumentRefModal";
 import { ReorderViewportChart, buildProjection } from "../charts/ReorderProjection";
 import {
   REORDER_WINDOWS,
@@ -47,6 +49,8 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onLoadP
   // the single source of truth shared by the chart AND the calc cards below.
   const [windowKey, setWindowKey] = useState(DEFAULT_REORDER_WINDOW);
   const [viewport, setViewport] = useState(null);
+  // Read-only preview for a PO/TI clicked in the history tables below.
+  const [docRefModal, setDocRefModal] = useState(null);
 
   // Load the full per-product purchase/sales history from the backend so the
   // history tables are not limited to whatever page 1 of the purchase list
@@ -296,7 +300,21 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onLoadP
                         <tr key={entry.key} className="partner-table-row">
                           <td>{entry.date ? formatDate(entry.date) : "—"}</td>
                           <td>
-                            <strong>{entry.ref}</strong>
+                            {entry.id != null ? (
+                              <DocumentRefChip
+                                label={entry.ref}
+                                docType="purchase"
+                                onClick={() =>
+                                  setDocRefModal({
+                                    docType: "purchase",
+                                    docId: entry.id,
+                                    referenceNo: entry.ref,
+                                  })
+                                }
+                              />
+                            ) : (
+                              <strong>{entry.ref}</strong>
+                            )}
                           </td>
                           <td>{entry.supplier || "—"}</td>
                           <td style={{ textAlign: "right" }}>
@@ -349,7 +367,21 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onLoadP
                         <tr key={entry.key} className="partner-table-row">
                           <td>{entry.date ? formatDate(entry.date) : "—"}</td>
                           <td>
-                            <strong>{entry.ref}</strong>
+                            {entry.id != null ? (
+                              <DocumentRefChip
+                                label={entry.ref}
+                                docType="sale"
+                                onClick={() =>
+                                  setDocRefModal({
+                                    docType: "sale",
+                                    docId: entry.id,
+                                    referenceNo: entry.ref,
+                                  })
+                                }
+                              />
+                            ) : (
+                              <strong>{entry.ref}</strong>
+                            )}
                           </td>
                           <td>{entry.customer || "—"}</td>
                           <td style={{ textAlign: "right" }}>
@@ -367,6 +399,14 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onLoadP
 
       </div>
     </div>
+    {docRefModal ? (
+      <DocumentRefModal
+        docType={docRefModal.docType}
+        docId={docRefModal.docId}
+        referenceNo={docRefModal.referenceNo}
+        onClose={() => setDocRefModal(null)}
+      />
+    ) : null}
     </>
   );
 }
