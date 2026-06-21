@@ -1149,6 +1149,13 @@ label textarea[data-blurred="true"]:invalid:not(:focus),
   padding-bottom: 0;
 }
 
+/* A credit-note deduction — shown in red with a leading − so it clearly reads as
+   money taken off the bill, matching the payment-batch cancellation styling. */
+.amount-credit {
+  color: var(--danger);
+  font-weight: 600;
+}
+
 .sales-summary-grand {
   padding-top: 14px;
   color: var(--text);

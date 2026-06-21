@@ -130,7 +130,7 @@ function toPrefillItem(src, quantity, unitCost) {
 }
 
 // ── Reusable modal shell (same chrome as DocumentRefModal) ─────────────
-function DashModal({ eyebrow, title, onClose, headerAction, children }) {
+function DashModal({ eyebrow, title, subtitle, onClose, headerAction, children }) {
   const { t } = useLanguage();
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -145,6 +145,7 @@ function DashModal({ eyebrow, title, onClose, headerAction, children }) {
           <div>
             {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
             <h3>{title}</h3>
+            {subtitle ? <p className="dash-modal-subtitle">{subtitle}</p> : null}
           </div>
           <div className="transaction-detail-actions">
             {headerAction}
@@ -655,7 +656,12 @@ function cycleFrequencyParts(t, band, cyclesPerYear) {
 function CyclingModal({ band, label, items, onClose, onOpenProduct }) {
   const { t } = useLanguage();
   return (
-    <DashModal eyebrow={t("dashboard.cycling.eyebrow")} title={`${label} · ${items.length}`} onClose={onClose}>
+    <DashModal
+      eyebrow={t("dashboard.cycling.eyebrow")}
+      title={`${label} · ${items.length}`}
+      subtitle={t(`dashboard.cycling.${band}Def`)}
+      onClose={onClose}
+    >
       {items.length === 0 ? (
         <p className="dash-empty">{t("dashboard.cycling.empty")}</p>
       ) : (

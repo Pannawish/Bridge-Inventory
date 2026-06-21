@@ -517,10 +517,24 @@ export function buildDocConfig(t) {
           fmt(line.amount),
         ]),
       }),
-      totals: (doc) => [
-        { label: t("documentRef.totalBilled"), value: fmt(doc.total_amount) },
-        { label: t("documentRef.netAfterCredits"), value: fmt(doc.net_amount), strong: true },
-      ],
+      totals: (doc) => {
+        const totalBilled = Number(doc.total_amount) || 0;
+        const netAmount = Number(doc.net_amount) || 0;
+        const creditTotal = totalBilled - netAmount;
+        return [
+          { label: t("documentRef.totalBilled"), value: fmt(totalBilled) },
+          ...(creditTotal > 0.005
+            ? [
+                {
+                  label: t("billingNote.lessCredits"),
+                  value: `−${fmt(creditTotal)}`,
+                  className: "tx-summary-credit",
+                },
+              ]
+            : []),
+          { label: t("documentRef.netAfterCredits"), value: fmt(netAmount), strong: true },
+        ];
+      },
       refs: (doc) => [
         {
           label: t("documentRef.sales"),
@@ -681,7 +695,14 @@ export function buildDocConfig(t) {
           fmt(line.amount),
         ]),
       }),
-      totals: (doc) => [{ label: t("documentRef.totalCredited"), value: fmt(doc.total_amount), strong: true }],
+      totals: (doc) => {
+        const vat = Number(doc.vat_amount) || 0;
+        return [
+          { label: t("creditNote.subtotal"), value: fmt(doc.total_before_vat) },
+          ...(vat > 0 ? [{ label: t("creditNote.vat"), value: fmt(vat) }] : []),
+          { label: t("documentRef.totalCredited"), value: fmt(doc.total_amount), strong: true },
+        ];
+      },
       refs: (doc) => [
         {
           label: t("documentRef.sourceSale"),

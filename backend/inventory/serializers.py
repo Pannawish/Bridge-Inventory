@@ -1,5 +1,5 @@
 import datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.db import transaction
 from rest_framework import serializers
@@ -53,6 +53,30 @@ def decimal_or_zero(value):
         return Decimal("0")
 
     return Decimal(str(value))
+
+
+CREDIT_NOTE_VAT_RATE = Decimal("0.07")
+
+
+def compute_credit_note_vat(line_total, vat_mode):
+    """Split a credit-note's line total into (subtotal, vat) using the SAME rule
+    the source sale used. Mirrors the frontend computeVatSummary:
+      - "included":     line amounts are gross → peel the VAT back out
+      - "not_included": line amounts are net  → add VAT on top
+      - anything else:  no VAT
+    """
+    total = decimal_or_zero(line_total)
+    if vat_mode == "included":
+        subtotal = (total / (Decimal("1") + CREDIT_NOTE_VAT_RATE)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        return subtotal, total - subtotal
+    if vat_mode == "not_included":
+        vat = (total * CREDIT_NOTE_VAT_RATE).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        return total, vat
+    return total, Decimal("0")
 
 
 def decimal_or_none(value):
@@ -2521,6 +2545,9 @@ class CreditNoteSerializer(serializers.ModelSerializer):
             "credit_note_date",
             "status",
             "note",
+            "vat_mode",
+            "total_before_vat",
+            "vat_amount",
             "total_amount",
             "lines",
             "customer_profile",
@@ -2533,6 +2560,10 @@ class CreditNoteSerializer(serializers.ModelSerializer):
             "billing_note": {"required": False, "allow_null": True},
             "note": {"required": False, "allow_blank": True},
             "status": {"required": False},
+            # Derived from the source sale's VAT treatment, not client input.
+            "vat_mode": {"read_only": True},
+            "total_before_vat": {"read_only": True},
+            "vat_amount": {"read_only": True},
             "total_amount": {"required": False},
             "created_at": {"read_only": True},
             "updated_at": {"read_only": True},
@@ -2603,7 +2634,7 @@ class CreditNoteSerializer(serializers.ModelSerializer):
     def _replace_lines(self, credit_note, lines):
         credit_note.lines.all().delete()
         rows = []
-        total = Decimal("0")
+        line_total = Decimal("0")
         for line in lines:
             amount = decimal_or_zero(line.get("amount"))
             rows.append(
@@ -2617,11 +2648,28 @@ class CreditNoteSerializer(serializers.ModelSerializer):
                     amount=amount,
                 )
             )
-            total += amount
+            line_total += amount
 
         CreditNoteLine.objects.bulk_create(rows)
-        credit_note.total_amount = total
-        credit_note.save(update_fields=["total_amount", "updated_at"])
+
+        # Mirror the source sale's VAT treatment so the credit reduces the bill by
+        # the same VAT-inclusive value the customer was charged — not the bare
+        # line price. total_amount becomes the gross credit.
+        vat_mode = (getattr(credit_note.sale, "vat_mode", "") or "not_included")
+        subtotal, vat = compute_credit_note_vat(line_total, vat_mode)
+        credit_note.vat_mode = vat_mode
+        credit_note.total_before_vat = subtotal
+        credit_note.vat_amount = vat
+        credit_note.total_amount = subtotal + vat
+        credit_note.save(
+            update_fields=[
+                "vat_mode",
+                "total_before_vat",
+                "vat_amount",
+                "total_amount",
+                "updated_at",
+            ]
+        )
         return rows
 
     def create(self, validated_data):

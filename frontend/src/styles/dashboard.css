@@ -950,6 +950,15 @@ button.dash-segbar-part { border: 0; padding: 0; font: inherit; }
   max-height: 80vh;
 }
 
+/* The band's plain-language meaning, carried into the detail header beside the
+   title (e.g. "Very fast · 5" → "Reorders weekly+ (≥26×/yr)"). */
+.dash-modal-subtitle {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .dash-modal-body {
   margin-top: 10px;
   min-height: 0;

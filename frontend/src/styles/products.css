@@ -1446,6 +1446,13 @@
   padding-bottom: 0;
 }
 
+/* A credit-note deduction row in a document totals block — only the value goes
+   red (with its leading −), matching the billing-note summary styling. */
+.tx-summary-row.tx-summary-credit span:last-child {
+  color: var(--danger);
+  font-weight: 600;
+}
+
 .tx-summary-grand {
   padding-top: 12px;
   color: var(--text);

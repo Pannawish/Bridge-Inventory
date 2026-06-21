@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatMoney as fmt } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
+import { computeVatSummary } from "./quotation/quotationValueUtils";
 
 function getToday() {
   return new Date().toISOString().split("T")[0];
@@ -45,6 +46,13 @@ function CreditNotePrompt({
   const [submitting, setSubmitting] = useState(false);
   const { t } = useLanguage();
 
+  // Preview of the reference the credit note will be issued with, shown read-only
+  // like every other document so the user sees its number up front.
+  const referenceNo = useMemo(
+    () => nextReferenceNo || getNextReferenceNo(creditNotes),
+    [nextReferenceNo, creditNotes]
+  );
+
   useEffect(() => {
     setSelectedLineIds(new Set(newlyCancelledLines.map((line) => line.sale_item)));
   }, [newlyCancelledLines]);
@@ -74,6 +82,13 @@ function CreditNotePrompt({
     [newlyCancelledLines, selectedLineIds]
   );
 
+  // Mirror the source sale's VAT so the previewed credit equals the actual
+  // VAT-inclusive amount the bill will be reduced by.
+  const creditVat = useMemo(
+    () => computeVatSummary(totalAmount, sale?.vat_mode),
+    [totalAmount, sale]
+  );
+
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -96,7 +111,7 @@ function CreditNotePrompt({
 
     try {
       const payload = {
-        reference_no: nextReferenceNo || getNextReferenceNo(creditNotes),
+        reference_no: referenceNo,
         customer_name: sale.customer_name || "",
         sale: sale.id,
         billing_note: billingNoteId || null,
@@ -160,6 +175,11 @@ function CreditNotePrompt({
 
         <form className="form-layout" onSubmit={handleSubmit}>
           <div className="form-grid">
+            <label>
+              {t("creditNote.referenceNo")}
+              <input value={referenceNo} disabled />
+            </label>
+
             <label>
               {t("creditNotePrompt.customerLabel")}
               <input value={sale.customer_name || ""} disabled />
@@ -268,9 +288,19 @@ function CreditNotePrompt({
           </div>
 
           <div className="sales-summary-card">
+            <div className="sales-summary-row">
+              <span>{t("creditNote.subtotal")}</span>
+              <span>{fmt(creditVat.subtotal)}</span>
+            </div>
+            {creditVat.vat > 0 ? (
+              <div className="sales-summary-row">
+                <span>{t("creditNote.vat")}</span>
+                <span>{fmt(creditVat.vat)}</span>
+              </div>
+            ) : null}
             <div className="sales-summary-row sales-summary-grand">
               <strong>{t("creditNotePrompt.totalCredit")}</strong>
-              <strong>{fmt(totalAmount)}</strong>
+              <strong>{fmt(creditVat.grandTotal)}</strong>
             </div>
           </div>
 

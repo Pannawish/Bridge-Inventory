@@ -1871,7 +1871,9 @@ class LookupEligibilityTests(APITestCase):
         self.assertEqual(row["reorder_level"], 48)
         self.assertEqual(row["pending_sales_units"], 20)
         self.assertEqual(row["pending_purchase_units"], 10)
-        self.assertEqual(row["recommended_restock"], 0)
+        # Order-up-to level = reorder point 48 + one lead-time of demand (4×5=20)
+        # = 68; restock = 68 + 20 pending sales − 60 available − 10 incoming = 18.
+        self.assertEqual(row["recommended_restock"], 18)
         self.assertEqual(row["days_until_stockout"], 15)
         self.assertEqual(row["stock_value"], 300)
 
@@ -2330,10 +2332,58 @@ class CreditNoteTests(APITestCase):
         response = self.client.post("/api/credit-notes/", payload, format="json")
 
         self.assertEqual(response.status_code, 201, response.data)
-        self.assertEqual(Decimal(response.data["total_amount"]), Decimal("100"))
+        # The sale defaults to vat_mode "not_included", so the credit adds 7% VAT
+        # on top — it must reduce the bill by the same VAT-inclusive value.
+        self.assertEqual(response.data["vat_mode"], "not_included")
+        self.assertEqual(Decimal(response.data["total_before_vat"]), Decimal("100"))
+        self.assertEqual(Decimal(response.data["vat_amount"]), Decimal("7.00"))
+        self.assertEqual(Decimal(response.data["total_amount"]), Decimal("107.00"))
         self.assertEqual(response.data["status"], CreditNote.STATUS_ISSUED)
         self.assertEqual(response.data["sale_reference_no"], "SO-CN-1")
         self.assertTrue(response.data["reference_no"].startswith("CN-"))
+
+    def test_credit_note_vat_included_sale_peels_vat_out(self):
+        # vat_included sale: the line amount is already gross, so the credit's
+        # total stays gross and the VAT is peeled back out of it.
+        sale = Sale.objects.create(
+            reference_no="SO-CN-VAT-INC",
+            customer_name="Alpha Customer",
+            status=Sale.STATUS_PARTIALLY_DELIVERED,
+            transaction_date=self.today,
+            vat_mode="included",
+            grand_total=Decimal("107"),
+        )
+        cancelled = SaleItem.objects.create(
+            sale=sale,
+            product_name="Cancelled Item",
+            sku="CN-SKU-INC",
+            item_status=SaleItem.ITEM_CANCELLED,
+            quantity=Decimal("1"),
+            unit_price=Decimal("107"),
+            amount=Decimal("107"),
+        )
+        payload = {
+            "customer_name": "Alpha Customer",
+            "sale": sale.id,
+            "credit_note_date": str(self.today),
+            "lines": [
+                {
+                    "sale_item": cancelled.id,
+                    "product_name": cancelled.product_name,
+                    "sku": cancelled.sku,
+                    "quantity": "1",
+                    "unit_price": "107",
+                    "amount": "107",
+                }
+            ],
+        }
+        response = self.client.post("/api/credit-notes/", payload, format="json")
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data["vat_mode"], "included")
+        self.assertEqual(Decimal(response.data["total_before_vat"]), Decimal("100.00"))
+        self.assertEqual(Decimal(response.data["vat_amount"]), Decimal("7.00"))
+        self.assertEqual(Decimal(response.data["total_amount"]), Decimal("107.00"))
 
     def test_credit_note_eligibility_excludes_already_credited_items(self):
         sale, cancelled = self._sale_with_cancelled_item("SO-CN-2")

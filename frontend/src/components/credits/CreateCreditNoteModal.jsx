@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import EligiblePartyCombobox from "../EligiblePartyCombobox";
+import { computeVatSummary } from "../quotation/quotationValueUtils";
 import {
   customerBillingNoteOptions,
   getNextCreditNoteReferenceNo,
@@ -24,6 +25,13 @@ function CreateCreditNoteModal({
   const [billingNoteId, setBillingNoteId] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+
+  // Preview of the reference the new credit note will carry — shown read-only so
+  // it reads like every other document (quotation/sale/PO) at create time.
+  const referenceNo = useMemo(
+    () => nextReferenceNo || getNextCreditNoteReferenceNo(creditNotes),
+    [nextReferenceNo, creditNotes]
+  );
 
   const customerOptions = useMemo(() => {
     const set = new Set(
@@ -75,6 +83,13 @@ function CreateCreditNoteModal({
     [cancelledLines, selectedLineIds]
   );
 
+  // Mirror the source sale's VAT so the previewed credit equals what the bill
+  // will actually be reduced by (the backend recomputes it the same way).
+  const creditVat = useMemo(
+    () => computeVatSummary(totalAmount, selectedSale?.vat_mode),
+    [totalAmount, selectedSale]
+  );
+
   function handleSubmit(event) {
     event.preventDefault();
 
@@ -96,8 +111,7 @@ function CreateCreditNoteModal({
     }
 
     onCreate({
-      reference_no:
-        nextReferenceNo || getNextCreditNoteReferenceNo(creditNotes),
+      reference_no: referenceNo,
       customer_name: customerName,
       sale: selectedSale.id,
       billing_note: billingNoteId || null,
@@ -136,6 +150,11 @@ function CreateCreditNoteModal({
 
       <form className="form-layout" onSubmit={handleSubmit}>
         <div className="form-grid">
+          <label>
+            {t("creditNote.referenceNo")}
+            <input value={referenceNo} disabled />
+          </label>
+
           <EligiblePartyCombobox
             id="credit-note-customer"
             label={t("creditNote.customerLabel")}
@@ -282,9 +301,19 @@ function CreateCreditNoteModal({
         )}
 
         <div className="sales-summary-card">
+          <div className="sales-summary-row">
+            <span>{t("creditNote.subtotal")}</span>
+            <span>{fmt(creditVat.subtotal)}</span>
+          </div>
+          {creditVat.vat > 0 ? (
+            <div className="sales-summary-row">
+              <span>{t("creditNote.vat")}</span>
+              <span>{fmt(creditVat.vat)}</span>
+            </div>
+          ) : null}
           <div className="sales-summary-row sales-summary-grand">
             <strong>{t("creditNote.totalCredit")}</strong>
-            <strong>{fmt(totalAmount)}</strong>
+            <strong>{fmt(creditVat.grandTotal)}</strong>
           </div>
         </div>
 

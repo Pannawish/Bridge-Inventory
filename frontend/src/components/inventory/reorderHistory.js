@@ -3,7 +3,7 @@
 // feeds the "Today in the middle" reorder-projection charts: the LEFT side is
 // the genuine past stock pattern, and the window velocity sets the RIGHT-side
 // projection slope.
-import { getStoredPurchaseItemStatus } from "../../purchaseStatus";
+import { getStoredPurchaseItemStatus, getPurchaseItemDisplayStatus } from "../../purchaseStatus";
 import { getStoredSaleItemStatus } from "../../saleStatus";
 import { isSaleStockDeducted } from "../../saleStock";
 import { getItemBaseQuantity } from "../../unitConversion";
@@ -194,7 +194,10 @@ export function collectProductSales({
     (sale.items || []).forEach((item, index) => {
       if (`${item.product_id}` !== pid) return;
       const status = getStoredSaleItemStatus(item, sale.status);
-      if (status === "cancelled" || status === "returned") return;
+      // Demand counts only stock that actually went out — Packed / Shipped /
+      // Delivered — matching the dashboard and the stock-history chart. Drafts
+      // and pending orders aren't realised demand, so they don't inflate it.
+      if (!isSaleStockDeducted(status)) return;
       const date = toDate(sale.transaction_date);
       if (!date) return;
       if (rangeFrom && date < rangeFrom) return;
@@ -205,6 +208,7 @@ export function collectProductSales({
         key: `${sale.id}-${item.id ?? index}`,
         id: sale.id,
         ref: sale.reference_no || sale.id,
+        status,
         date: sale.transaction_date || "",
         customer: sale.customer_name || "",
         qty,
@@ -250,39 +254,78 @@ export function collectProductPurchases({
   let totalUnits = 0;
   let leadSum = 0;
   let leadCount = 0;
+  // Incoming (ordered, not-yet-received) lines are shown for context but kept
+  // out of the lead-time/received totals — tracked separately.
+  let incomingUnits = 0;
+  const incomingOrderIds = new Set();
 
   (Array.isArray(purchases) ? purchases : []).forEach((purchase) => {
     if (!purchase) return;
     (purchase.items || []).forEach((item, index) => {
       if (`${item.product_id}` !== pid) return;
-      if (getStoredPurchaseItemStatus(item, purchase.status) !== "received") return;
-      const recv = toDate(item.received_date || purchase.transaction_date);
-      if (!recv) return;
-      if (rangeFrom && recv < rangeFrom) return;
-      if (rangeTo && recv > rangeTo) return;
+      const status = getPurchaseItemDisplayStatus(item, purchase.status);
+      if (status === "cancelled") return;
       const qty = getItemBaseQuantity(item);
       if (!(qty > 0)) return;
-      const ordered = toDate(purchase.transaction_date);
-      const leadDays = ordered ? Math.max(0, daysBetween(ordered, recv)) : null;
-      entries.push({
-        key: `${purchase.id}-${item.id ?? index}`,
-        id: purchase.id,
-        ref: purchase.reference_no || purchase.id,
-        date: item.received_date || purchase.transaction_date || "",
-        supplier: purchase.supplier_name || "",
-        qty,
-        leadDays,
-      });
-      totalUnits += qty;
-      orderIds.add(`${purchase.id}`);
-      if (leadDays != null) {
-        leadSum += leadDays;
-        leadCount += 1;
+
+      if (status === "received") {
+        const recv = toDate(item.received_date || purchase.transaction_date);
+        if (!recv) return;
+        if (rangeFrom && recv < rangeFrom) return;
+        if (rangeTo && recv > rangeTo) return;
+        const ordered = toDate(purchase.transaction_date);
+        const leadDays = ordered ? Math.max(0, daysBetween(ordered, recv)) : null;
+        entries.push({
+          key: `${purchase.id}-${item.id ?? index}`,
+          id: purchase.id,
+          ref: purchase.reference_no || purchase.id,
+          status,
+          date: item.received_date || purchase.transaction_date || "",
+          supplier: purchase.supplier_name || "",
+          qty,
+          leadDays,
+          incoming: false,
+        });
+        totalUnits += qty;
+        orderIds.add(`${purchase.id}`);
+        if (leadDays != null) {
+          leadSum += leadDays;
+          leadCount += 1;
+        }
+      } else {
+        // Incoming (ordered / pending / delayed): on the way, not received yet,
+        // so it has no realised lead time and is NOT part of the averages. Shown
+        // for context so the user can see replenishment already coming.
+        entries.push({
+          key: `${purchase.id}-${item.id ?? index}`,
+          id: purchase.id,
+          ref: purchase.reference_no || purchase.id,
+          status,
+          date: item.expected_delivery_date || purchase.transaction_date || "",
+          supplier: purchase.supplier_name || "",
+          qty,
+          leadDays: null,
+          incoming: true,
+        });
+        incomingUnits += qty;
+        incomingOrderIds.add(`${purchase.id}`);
       }
     });
   });
 
-  entries.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  // Incoming rows float to the top (most actionable); received history below,
+  // newest first.
+  entries.sort((a, b) => {
+    if (Boolean(a.incoming) !== Boolean(b.incoming)) return a.incoming ? -1 : 1;
+    return String(b.date).localeCompare(String(a.date));
+  });
   const avgLead = leadCount > 0 ? leadSum / leadCount : 0;
-  return { entries, totalUnits, orderCount: orderIds.size, avgLead };
+  return {
+    entries,
+    totalUnits,
+    orderCount: orderIds.size,
+    avgLead,
+    incomingUnits,
+    incomingOrders: incomingOrderIds.size,
+  };
 }

@@ -895,6 +895,12 @@ class CreditNote(TimeStampedModel):
     credit_note_date = models.DateField(default=timezone.localdate)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_ISSUED)
     note = models.TextField(blank=True)
+    # VAT mirrors the source sale so the credit reduces the bill by the same
+    # VAT-inclusive value it was charged. total_amount is the gross credit
+    # (total_before_vat + vat_amount).
+    vat_mode = models.CharField(max_length=40, default="not_included")
+    total_before_vat = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    vat_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
 
     class Meta:

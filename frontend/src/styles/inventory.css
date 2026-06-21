@@ -883,6 +883,43 @@
   min-width: 0;
 }
 
+/* Both history tables share one identical 5-column grid so they line up
+   column-for-column when stacked. Lead time rides inside the Status cell (on
+   received rows) instead of its own column, which kept the tables misaligned. */
+.inv-hist-table {
+  table-layout: fixed;
+}
+
+.inv-hist-col-date { width: 100px; }
+.inv-hist-col-order { width: 156px; }
+.inv-hist-col-party { width: auto; }
+.inv-hist-col-status { width: 150px; }
+.inv-hist-col-qty { width: 110px; }
+
+.inv-hist-status {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.inv-hist-status .status-badge {
+  white-space: nowrap;
+}
+
+.inv-hist-lead {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* "+N on the way" note appended to the purchase-history summary. */
+.inv-incoming-note {
+  margin-left: 8px;
+  color: var(--accent, #2d8cf0);
+  font-weight: 700;
+}
+
 .transaction-table-window table.inv-layers-table tbody tr {
   height: 52px;
 }

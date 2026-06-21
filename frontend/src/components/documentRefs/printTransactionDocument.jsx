@@ -226,6 +226,10 @@ const PRINT_STYLES = `
     color: #991b1b;
   }
 
+  .tx-summary-credit span:last-child {
+    color: #991b1b;
+  }
+
   .tx-summary-payable {
     background: #eff6ff;
   }

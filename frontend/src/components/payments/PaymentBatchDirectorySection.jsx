@@ -188,6 +188,9 @@ function PaymentBatchDirectorySection({
           >
             <div className="table-scroll desktop-table">
               <table className="transaction-history-table">
+                <colgroup>
+                  <col className="history-col-index" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th className="table-index-cell">#</th>

@@ -170,6 +170,16 @@ function CreditNoteDetailModal({ creditNote, onClose, onEdit, onLinkBillingNote,
               </tbody>
               <tfoot>
                 <tr>
+                  <td colSpan="4" style={{ textAlign: "right" }}>{t("creditNote.subtotal")}</td>
+                  <td>{fmt(creditNote.total_before_vat)}</td>
+                </tr>
+                {Number(creditNote.vat_amount) > 0 ? (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: "right" }}>{t("creditNote.vat")}</td>
+                    <td>{fmt(creditNote.vat_amount)}</td>
+                  </tr>
+                ) : null}
+                <tr>
                   <td colSpan="4" style={{ textAlign: "right" }}>
                     <strong>{t("creditNote.totalCredit")}</strong>
                   </td>

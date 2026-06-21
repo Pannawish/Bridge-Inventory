@@ -462,7 +462,9 @@ function CreateBillingNoteModal({
           </div>
           <div className="sales-summary-row">
             <span>{t("billingNote.lessCredits")}</span>
-            <span>{fmt(creditAmount)}</span>
+            <span className="amount-credit">
+              {creditAmount > 0 ? "−" : ""}{fmt(creditAmount)}
+            </span>
           </div>
           <div className="sales-summary-row sales-summary-grand">
             <strong>{t("billingNote.netPayable")}</strong>

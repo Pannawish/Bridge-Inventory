@@ -1338,9 +1338,14 @@ def build_stock_report():
         safety_stock = average_daily_demand * Decimal(SAFETY_STOCK_DAYS)
         calculated_reorder_level = Decimal(math.ceil(lead_time_demand + safety_stock))
         reorder_level = calculated_reorder_level or row["reorder_level"]
+        # The reorder point is only the ALARM line. We refill up to a higher
+        # "order-up-to" level — the reorder point plus one more lead-time of
+        # demand — so a triggered reorder is a real batch with a cushion, never 0
+        # when stock is sitting exactly on the reorder line.
+        order_up_to_level = reorder_level + Decimal(math.ceil(lead_time_demand))
         recommended_restock = max(
             Decimal("0"),
-            reorder_level
+            order_up_to_level
             + row["pending_sales_units"]
             + oversold_units
             - available_stock

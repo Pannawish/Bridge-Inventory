@@ -305,7 +305,11 @@ function BillingNoteDetailModal({
                       <td>
                         <CreditNoteStatusPill status={credit.status} />
                       </td>
-                      <td>{fmt(credit.total_amount)}</td>
+                      <td className={credit.status === "cancelled" ? "" : "amount-credit"}>
+                        {credit.status === "cancelled"
+                          ? fmt(credit.total_amount)
+                          : `−${fmt(credit.total_amount)}`}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -407,7 +411,9 @@ function BillingNoteDetailModal({
             </div>
             <div className="sales-summary-row">
               <span>{t("billingNote.lessCredits")}</span>
-              <span>{fmt(creditTotal)}</span>
+              <span className="amount-credit">
+                {creditTotal > 0 ? "−" : ""}{fmt(creditTotal)}
+              </span>
             </div>
             <div className="sales-summary-row sales-summary-grand">
               <strong>{t("billingNote.netPayable")}</strong>

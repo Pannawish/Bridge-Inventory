@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
+import { getStatusLabel } from "../../i18n/statusLabels";
 import { formatDate } from "../../format";
 import DocumentRefChip from "../DocumentRefChip";
 import DocumentRefModal from "../DocumentRefModal";
@@ -282,16 +283,32 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onLoadP
                   orders: formatUnits(productPurchases.orderCount),
                   lead: formatUnits(Math.round(productPurchases.avgLead * 10) / 10),
                 })}
+                {productPurchases.incomingUnits > 0 ? (
+                  <span className="inv-incoming-note">
+                    {t("inventory.purchaseHistory.incoming", {
+                      units: formatUnits(Math.round(productPurchases.incomingUnits)),
+                      unit,
+                      orders: formatUnits(productPurchases.incomingOrders),
+                    })}
+                  </span>
+                ) : null}
               </p>
               <div className="transaction-table-window">
                 <div className="table-scroll inv-layers-scroll">
-                  <table className="transaction-history-table inv-layers-table">
+                  <table className="transaction-history-table inv-layers-table inv-hist-table">
+                    <colgroup>
+                      <col className="inv-hist-col-date" />
+                      <col className="inv-hist-col-order" />
+                      <col className="inv-hist-col-party" />
+                      <col className="inv-hist-col-status" />
+                      <col className="inv-hist-col-qty" />
+                    </colgroup>
                     <thead>
                       <tr>
                         <th>{t("inventory.purchaseHistory.colDate")}</th>
                         <th>{t("inventory.purchaseHistory.colRef")}</th>
                         <th>{t("inventory.purchaseHistory.colSupplier")}</th>
-                        <th style={{ textAlign: "right" }}>{t("inventory.purchaseHistory.colLead")}</th>
+                        <th>{t("inventory.purchaseHistory.colStatus")}</th>
                         <th style={{ textAlign: "right" }}>{t("inventory.purchaseHistory.colQty")}</th>
                       </tr>
                     </thead>
@@ -317,10 +334,17 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onLoadP
                             )}
                           </td>
                           <td>{entry.supplier || "—"}</td>
-                          <td style={{ textAlign: "right" }}>
-                            {entry.leadDays != null
-                              ? t("inventory.calc.daysValue", { days: formatUnits(entry.leadDays) })
-                              : "—"}
+                          <td>
+                            <span className="inv-hist-status">
+                              <span className={`status-badge status-${entry.status}`}>
+                                {getStatusLabel(t, entry.status)}
+                              </span>
+                              {entry.leadDays != null ? (
+                                <span className="inv-hist-lead">
+                                  {t("inventory.purchaseHistory.colLead")}: {formatUnits(entry.leadDays)}d
+                                </span>
+                              ) : null}
+                            </span>
                           </td>
                           <td style={{ textAlign: "right" }}>
                             {formatUnits(entry.qty)} {unit}
@@ -353,12 +377,20 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onLoadP
               </p>
               <div className="transaction-table-window">
                 <div className="table-scroll inv-layers-scroll">
-                  <table className="transaction-history-table inv-layers-table">
+                  <table className="transaction-history-table inv-layers-table inv-hist-table">
+                    <colgroup>
+                      <col className="inv-hist-col-date" />
+                      <col className="inv-hist-col-order" />
+                      <col className="inv-hist-col-party" />
+                      <col className="inv-hist-col-status" />
+                      <col className="inv-hist-col-qty" />
+                    </colgroup>
                     <thead>
                       <tr>
                         <th>{t("inventory.salesActivity.colDate")}</th>
                         <th>{t("inventory.salesActivity.colRef")}</th>
                         <th>{t("inventory.salesActivity.colCustomer")}</th>
+                        <th>{t("inventory.salesActivity.colStatus")}</th>
                         <th style={{ textAlign: "right" }}>{t("inventory.salesActivity.colQty")}</th>
                       </tr>
                     </thead>
@@ -384,6 +416,11 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onLoadP
                             )}
                           </td>
                           <td>{entry.customer || "—"}</td>
+                          <td>
+                            <span className={`status-badge status-${entry.status}`}>
+                              {getStatusLabel(t, entry.status)}
+                            </span>
+                          </td>
                           <td style={{ textAlign: "right" }}>
                             {formatUnits(entry.qty)} {unit}
                           </td>
