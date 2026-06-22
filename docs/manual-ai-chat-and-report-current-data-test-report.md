@@ -256,7 +256,60 @@ AI Report passed the supplier report test with current data. Because the API key
 
 ---
 
-## 9. Manual Test Case 6: AI Report Product Report
+## 9. Manual Test Case 6: AI Report Customer Report
+
+### Test Data Selected
+
+| Field | Value |
+| --- | --- |
+| Report type | Customer |
+| Customer | Admissions Office |
+| Period | 2026-01-01 to 2026-06-22 |
+
+### Source Database Values
+
+| Source Fact | Database Value |
+| --- | ---: |
+| Sales records | 9 |
+| Active sales records | 8 |
+| Active sales total | THB 88,603.37 |
+| Billing notes | 2 |
+| Open AR | THB 31,852.02 |
+| Quotations | 1 |
+| Credit notes | 0 |
+
+Recent customer records used for checking:
+
+| Type | Reference | Date | Amount |
+| --- | --- | --- | ---: |
+| Sale | `TI-6905-023` | 2026-05-26 | THB 214.00 |
+| Billing note | `BN-6904-001` | 2026-04-24 | THB 31,852.02 |
+| Quotation | `QT-000002` | 2026-01-20 | THB 1,487.02 |
+
+### AI Report Result
+
+| Check | Actual Result | Status |
+| --- | --- | --- |
+| Used model | `gpt-5.4-mini` | Pass |
+| Scope | Customer: Admissions Office | Pass |
+| Period | 2026-01-01 to 2026-06-22 | Pass |
+| HTML document returned | Yes | Pass |
+| Contains `<!doctype html>` | Yes | Pass |
+| Contains print button script `window.print()` | Yes | Pass |
+| Contains customer name | Yes | Pass |
+| Contains sale reference `TI-6905-023` | Yes | Pass |
+| Contains billing note `BN-6904-001` | Yes | Pass |
+| Contains quotation `QT-000002` | Yes | Pass |
+| Contains active sales total `THB 88,603.37` | Yes | Pass |
+| Contains open AR `THB 31,852.02` | Yes | Pass |
+
+### My Conclusion
+
+AI Report passed the customer report test with current data. The generated report used the configured AI model and included the expected customer, sale, billing note, quotation, active sales, and open AR details.
+
+---
+
+## 10. Manual Test Case 7: AI Report Product Report
 
 ### Test Data Selected
 
@@ -308,7 +361,7 @@ AI Report passed the product report test with current data. The generated report
 
 ---
 
-## 10. Overall Result
+## 11. Overall Result
 
 | Feature | Current-Data Test | Result |
 | --- | --- | --- |
@@ -317,11 +370,12 @@ AI Report passed the product report test with current data. The generated report
 | AI Chat finance summary | Net position | Pass |
 | AI Chat unsupported question | Show recent quotations | Pass |
 | AI Report supplier report | Smart Label Solutions, all time | Pass |
+| AI Report customer report | Admissions Office, custom period | Pass |
 | AI Report product report | USB-C Cable 2m, custom period | Pass |
 
 ---
 
-## 11. Final Conclusion
+## 12. Final Conclusion
 
 I successfully performed a manual validation using the current real database data.
 
