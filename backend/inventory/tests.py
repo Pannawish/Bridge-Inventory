@@ -3243,6 +3243,50 @@ class AiReportApiTests(APITestCase):
         self.assertIn("Configured Key Supplier purchased THB 450.00.", html)
         self.assertIn("window.print()", html)
 
+    def test_ai_report_replaces_model_chart_html_with_backend_chart_rows(self):
+        poor_chart_fragment = """
+            <main class="ai-report-document">
+              <section class="report-section">
+                <h2>Model Summary</h2>
+                <p>Customer summary stays in the report.</p>
+              </section>
+              <section class="report-section">
+                <h2>Charts</h2>
+                <div class="chart-list">
+                  <div class="chart-row">
+                    <span class="chart-label">Sales trend</span>
+                    <span class="chart-track"><span class="chart-fill" style="--bar: 100%;"></span></span>
+                    <span class="chart-value">2026-02 · THB 100.00</span>
+                  </div>
+                </div>
+              </section>
+            </main>
+        """
+
+        with self.settings(OPENAI_API_KEY="test-key", OPENAI_MODEL="gpt-test"):
+            with patch(
+                "inventory.ai_reports.generate_ai_report_body",
+                return_value=(poor_chart_fragment, "gpt-test"),
+            ):
+                response = self.client.post(
+                    "/api/ai-reports/",
+                    {
+                        "scope_type": "customer",
+                        "entity_id": self.customer.id,
+                        "period_type": "all",
+                        "language": "en",
+                    },
+                    format="json",
+                )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.data["html"]
+        self.assertIn("Customer summary stays in the report.", html)
+        self.assertNotIn('<span class="chart-label">Sales trend</span>', html)
+        self.assertIn(f'<span class="chart-label">{self.today.strftime("%Y-%m")}</span>', html)
+        self.assertIn('<span class="chart-label">AI Report Product (AI-REPORT-1)</span>', html)
+        self.assertIn("THB 180.00", html)
+
     def test_report_requires_selected_entity(self):
         response = self.client.post(
             "/api/ai-reports/",

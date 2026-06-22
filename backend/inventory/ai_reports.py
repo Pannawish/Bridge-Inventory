@@ -172,18 +172,20 @@ UNSAFE_STYLE_ATTR_RE = re.compile(
     r"\s+style\s*=\s*(\"[^\"]*(url\s*\(|expression\s*\(|javascript:)[^\"]*\"|'[^']*(url\s*\(|expression\s*\(|javascript:)[^']*')",
     re.IGNORECASE,
 )
+SECTION_TAG_RE = re.compile(r"<section\b[^>]*>.*?</section>", re.IGNORECASE | re.DOTALL)
 
 
 def generate_ai_report(payload):
     request_data = normalize_report_request(payload)
     context = build_report_context(request_data)
     ai_body, used_model = generate_ai_report_body(context)
+    uses_model_body = bool(ai_body)
 
     if not ai_body:
         ai_body = build_local_report_body(context, fallback=used_model == "local-report-fallback")
         used_model = used_model or "local-report"
 
-    html = build_report_document(context, ai_body)
+    html = build_report_document(context, ai_body, deterministic_charts=uses_model_body)
     return {
         "html": html,
         "used_model": used_model,
@@ -738,10 +740,12 @@ def build_local_report_body(context, fallback=False):
     )
 
 
-def build_report_document(context, body):
+def build_report_document(context, body, deterministic_charts=False):
     labels = context["labels"]
     language = context["language"]
     html_body = ensure_main(sanitize_report_fragment(body), context)
+    if deterministic_charts:
+        html_body = replace_model_chart_sections(html_body, context)
     title = escape(context["title"])
     return (
         "<!doctype html>"
@@ -759,6 +763,44 @@ def build_report_document(context, body):
         "</div>"
         f"{html_body}"
         "</body></html>"
+    )
+
+
+def replace_model_chart_sections(html_body, context):
+    charts_section = deterministic_charts_section(context)
+    if not charts_section:
+        return html_body
+
+    cleaned_body = SECTION_TAG_RE.sub(
+        lambda match: "" if is_model_chart_section(match.group(0), context) else match.group(0),
+        html_body,
+    )
+    if "</main>" in cleaned_body.lower():
+        return re.sub(
+            r"</main\s*>",
+            f"{charts_section}</main>",
+            cleaned_body,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+    return f"{cleaned_body}{charts_section}"
+
+
+def is_model_chart_section(section_html, context):
+    lowered = section_html.lower()
+    if "chart-list" in lowered or "chart-row" in lowered:
+        return True
+    labels = context["labels"]
+    return f"<h2>{labels['charts'].lower()}</h2>" in lowered
+
+
+def deterministic_charts_section(context):
+    charts_html = "".join(chart_html(chart_row) for chart_row in context["charts"])
+    if not charts_html:
+        return ""
+    return (
+        f"<section class=\"report-section\"><h2>{escape(context['labels']['charts'])}</h2>"
+        f"{charts_html}</section>"
     )
 
 
