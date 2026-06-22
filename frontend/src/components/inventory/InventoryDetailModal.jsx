@@ -111,6 +111,20 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onLoadP
 
   const vp = viewport || defaultViewport;
 
+  // Hard scroll/zoom limits tied to the active timeframe button: you can pan back
+  // only to the start of the chosen range (not into older history) and forward
+  // only to the end of the reorder-point projection (not into empty future that
+  // would slide the projection line off-screen). The chart clamps to these.
+  const bounds = useMemo(() => {
+    const tdy = startOfToday().getTime();
+    const windowDays =
+      getReorderWindow(windowKey)?.days ?? getReorderWindow(DEFAULT_REORDER_WINDOW).days;
+    return {
+      min: tdy - windowDays * MS_DAY,
+      max: tdy + futureSpanDays * MS_DAY,
+    };
+  }, [windowKey, futureSpanDays]);
+
   // Free zoom/pan keeps the last-picked preset highlighted (the buttons act as
   // quick "jump back to this range" anchors, not a mode the view exits).
   const handleViewportChange = useCallback((from, to) => {
@@ -199,6 +213,7 @@ function InventoryDetailModal({ row, health, sales = [], purchases = [], onLoadP
               historyPoints={historyPoints}
               model={model}
               viewport={vp}
+              bounds={bounds}
               onViewportChange={handleViewportChange}
               onReset={handleReset}
               unit={unit}

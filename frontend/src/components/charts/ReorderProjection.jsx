@@ -407,6 +407,7 @@ export function ReorderViewportChart({
   historyPoints = [],
   model,
   viewport,
+  bounds,
   onViewportChange,
   onReset,
   unit = "",
@@ -448,8 +449,18 @@ export function ReorderViewportChart({
   const dataMinT = series.length ? series[0].t : todayMs - 90 * MS_DAY;
   const dataMaxT = series.length ? series[series.length - 1].t : todayMs + 14 * MS_DAY;
   const totalSpan = Math.max(MS_DAY, dataMaxT - dataMinT);
+
+  // Hard pan/zoom limits supplied by the parent so the visible window matches the
+  // selected timeframe button: LEFT = the start of the chosen range (no scrolling
+  // back into older history than the button implies), RIGHT = the end of the
+  // reorder-point projection (no scrolling past it into an empty future, which
+  // would drop the projection line off-screen). Falls back to the data extent.
+  const boundLo = toMs(bounds?.min);
+  const boundHi = toMs(bounds?.max);
+  const hasBounds = Number.isFinite(boundLo) && Number.isFinite(boundHi) && boundHi > boundLo;
   const minSpan = 2 * MS_DAY;
-  const maxSpan = totalSpan * 1.6 + 8 * MS_DAY;
+  // Cap zoom-out at the allowed window so you can never see beyond the bounds.
+  const maxSpan = hasBounds ? boundHi - boundLo : totalSpan * 1.6 + 8 * MS_DAY;
 
   // Controlled viewport (fall back to a sensible default if missing).
   const t0 = toMs(viewport?.from) ?? todayMs - 90 * MS_DAY;
@@ -543,8 +554,8 @@ export function ReorderViewportChart({
     const mid = (nT0 + nT1) / 2;
     let a = nT1 - nT0 === s ? nT0 : mid - s / 2;
     let b = a + s;
-    const lo = dataMinT - totalSpan * 0.6;
-    const hi = dataMaxT + totalSpan * 0.6;
+    const lo = hasBounds ? boundLo : dataMinT - totalSpan * 0.6;
+    const hi = hasBounds ? boundHi : dataMaxT + totalSpan * 0.6;
     if (a < lo) { b += lo - a; a = lo; }
     if (b > hi) { a -= b - hi; b = hi; }
     liveRef.current = { t0: a, t1: b }; // sync before the (async) re-render
@@ -720,7 +731,7 @@ export function ReorderViewportChart({
         {orderUpTo > 0 && inY(orderUpTo) ? (
           <>
             <line className="saw-peak rp-vp-peak" x1={m.l} y1={pyY(orderUpTo)} x2={m.l + innerW} y2={pyY(orderUpTo)} />
-            <text className="rp-lab rp-lab-peak" x={m.l + innerW - 5} y={pyY(orderUpTo) - 5}>
+            <text className="rp-lab rp-lab-peak" x={m.l + 6} y={pyY(orderUpTo) - 5}>
               {t("inventory.graph.lineRestock")}
             </text>
           </>
@@ -728,7 +739,7 @@ export function ReorderViewportChart({
         {rop > 0 && inY(rop) ? (
           <>
             <line className="saw-rop" x1={m.l} y1={pyY(rop)} x2={m.l + innerW} y2={pyY(rop)} />
-            <text className="rp-lab rp-lab-rop" x={m.l + innerW - 5} y={pyY(rop) - 5}>
+            <text className="rp-lab rp-lab-rop" x={m.l + 6} y={pyY(rop) - 5}>
               {t("inventory.graph.lineReorder")}
             </text>
           </>
@@ -736,7 +747,7 @@ export function ReorderViewportChart({
         {ss > 0 && inY(ss) ? (
           <>
             <line className="saw-ss" x1={m.l} y1={pyY(ss)} x2={m.l + innerW} y2={pyY(ss)} />
-            <text className="rp-lab rp-lab-ss" x={m.l + innerW - 5} y={pyY(ss) - 5}>
+            <text className="rp-lab rp-lab-ss" x={m.l + 6} y={pyY(ss) - 5}>
               {t("inventory.graph.lineSafety")}
             </text>
           </>

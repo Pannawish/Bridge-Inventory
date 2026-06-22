@@ -56,7 +56,7 @@
 .rp-lab {
   font-size: 9.5px;
   font-weight: 800;
-  text-anchor: end;
+  text-anchor: start;
   letter-spacing: 0.02em;
   paint-order: stroke;
   stroke: #fff;
