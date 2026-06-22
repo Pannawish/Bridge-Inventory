@@ -321,7 +321,101 @@ The AI Report output is safer because the backend sanitizes model HTML before re
 
 ---
 
-## 7. Presentation Summary
+## 7. Test Case 5: API Key Configured With Real Mock Data
+
+### Purpose
+
+To prove how AI Chat and AI Report behave when an AI API key is configured, while still using controlled mock business records in the test database.
+
+Automated test names:
+
+```text
+ChatAssistantAlignmentTests.test_chat_with_configured_key_answers_from_real_mock_data
+AiReportApiTests.test_ai_report_with_configured_key_uses_real_mock_data_context
+```
+
+### Important Note
+
+The test configures an API key setting, but it does not make a live internet call to the AI provider.
+
+This is intentional because automated tests should be:
+
+- repeatable
+- fast
+- safe to run without spending API credits
+- independent from internet availability
+
+For AI Report, the model response is simulated with `patch()`. This allows the test to validate how our system uses model output without depending on a real external response.
+
+### AI Chat Mock Data
+
+| Field | Value |
+| --- | --- |
+| Customer | Configured Chat Customer |
+| Sale reference | `TI-AI-CHAT-KEY` |
+| Sale total | 275 |
+| Period | Today only |
+| API key setting | Configured during the test |
+
+### AI Chat Expected Result
+
+| Check | Expected Result |
+| --- | --- |
+| Model used | `local-summary` |
+| Customer name | Appears in the answer |
+| Sales count | 1 |
+| Sales total | 275 |
+| Record target | Points to the created sale record |
+
+### AI Chat Actual Result
+
+| Check | Expected | Actual | Status |
+| --- | --- | --- | --- |
+| Model used | `local-summary` | `local-summary` | Pass |
+| Sales count | 1 | 1 | Pass |
+| Sales total | 275 | 275 | Pass |
+| Sale reference | `TI-AI-CHAT-KEY` | `TI-AI-CHAT-KEY` | Pass |
+
+### AI Report Mock Data
+
+| Field | Value |
+| --- | --- |
+| Supplier | Configured Key Supplier |
+| Product | Configured Key Product |
+| SKU | `AI-KEY-1` |
+| Purchase reference | `PO-AI-KEY-001` |
+| Purchase total | THB 450.00 |
+| API key setting | Configured during the test |
+| Simulated model | `gpt-test` |
+
+### AI Report Expected Result
+
+| Check | Expected Result |
+| --- | --- |
+| Model used | `gpt-test` |
+| Report context | Contains Configured Key Supplier |
+| Purchase table | Contains `PO-AI-KEY-001` |
+| Purchase amount | THB 450.00 |
+| Final HTML | Contains simulated model summary |
+| Print button | Included |
+
+### AI Report Actual Result
+
+| Check | Expected | Actual | Status |
+| --- | --- | --- | --- |
+| Model used | `gpt-test` | `gpt-test` | Pass |
+| Supplier context | Configured Key Supplier | Configured Key Supplier | Pass |
+| Purchase reference | `PO-AI-KEY-001` | `PO-AI-KEY-001` | Pass |
+| Purchase amount | THB 450.00 | THB 450.00 | Pass |
+| Print button | Included | Included | Pass |
+
+### Conclusion
+
+When an API key is configured, AI Chat still uses backend facts through the deterministic local summary. AI Report can use model-style HTML, but the backend first builds the report context from real database records and then wraps the result into a printable report page.
+
+---
+
+## 8. Presentation Summary
 
 For presentation, the validation can be explained in three simple points:
 
@@ -335,15 +429,16 @@ For presentation, the validation can be explained in three simple points:
 
 3. **We validate AI Report output and safety.**
    - Tests check selected data, date filtering, print output, and HTML safety.
+   - Configured-key tests confirm the report context still comes from backend records.
 
 ---
 
-## 8. Test Evidence
+## 9. Test Evidence
 
 Targeted validation command:
 
 ```bash
-backend/.venv/bin/python backend/manage.py test inventory.tests.LookupEligibilityTests.test_dashboard_stock_report_matches_manual_reorder_formula inventory.tests.AiReportApiTests.test_ai_report_wraps_and_sanitizes_model_html
+backend/.venv/bin/python backend/manage.py test inventory.tests.LookupEligibilityTests.test_dashboard_stock_report_matches_manual_reorder_formula inventory.tests.AiReportApiTests.test_ai_report_wraps_and_sanitizes_model_html inventory.tests.AiReportApiTests.test_ai_report_with_configured_key_uses_real_mock_data_context inventory.tests.ChatAssistantAlignmentTests.test_chat_with_configured_key_answers_from_real_mock_data
 ```
 
 Full backend test command:
@@ -355,17 +450,20 @@ backend/.venv/bin/python backend/manage.py test inventory
 Latest result:
 
 ```text
-Targeted validation tests: 2 tests OK
-Full backend inventory tests: 93 tests OK
+Configured-key AI tests: 2 tests OK
+Targeted validation tests: 4 tests OK
+Backend system check: OK
+Migration check: OK
+Full backend inventory test run: 95 tests run, 1 seed-data workflow failure observed
+Isolated seed-data workflow test: OK
 ```
 
 ---
 
-## 9. Final Conclusion
+## 10. Final Conclusion
 
 The project can show that calculation and AI outputs are accurate by using a clear source-of-truth method:
 
 > Backend formulas calculate the facts. AI Chat and AI Report present those facts. Tests compare both calculations and AI-visible outputs against fixed expected results.
 
 This makes the validation understandable for both technical and non-technical audiences.
-

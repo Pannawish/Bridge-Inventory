@@ -220,6 +220,7 @@ ChatAssistantAlignmentTests.test_chat_reports_low_stock_and_restock_scope
 ChatAssistantAlignmentTests.test_chat_reports_net_position
 ChatAssistantAlignmentTests.test_chat_summarizes_customer_with_date_range
 ChatAssistantAlignmentTests.test_chat_summarizes_supplier_this_month
+ChatAssistantAlignmentTests.test_chat_with_configured_key_answers_from_real_mock_data
 ChatAssistantAlignmentTests.test_chat_rejects_generic_transaction_summary_as_out_of_scope
 ```
 
@@ -301,6 +302,38 @@ self.assertEqual(response["presentation"]["title"], "Outside current assistant s
 
 This proves the assistant can refuse unsupported broad reporting questions instead of inventing an answer.
 
+### 5.6 Configured API Key Chat Test
+
+Test name:
+
+```text
+ChatAssistantAlignmentTests.test_chat_with_configured_key_answers_from_real_mock_data
+```
+
+This test creates a new customer and sale in the temporary test database:
+
+| Mock Data | Value |
+| --- | --- |
+| Customer | Configured Chat Customer |
+| Sale reference | TI-AI-CHAT-KEY |
+| Sale total | 275 |
+| Sale date | Today |
+
+Then the test temporarily configures an API key setting:
+
+```python
+with self.settings(OPENAI_API_KEY="configured-test-key", OPENAI_MODEL="gpt-test"):
+    response = answer_inventory_question(...)
+```
+
+The important result is:
+
+```python
+self.assertEqual(response["used_model"], "local-summary")
+```
+
+This means AI Chat still answers from backend facts even when an API key is configured. The test then checks that the answer includes the mock customer, sale count, sale total, and a clickable target pointing to the correct sale record.
+
 ---
 
 ## 6. Test Function 3: AI Report Correctness
@@ -310,6 +343,7 @@ Example test names:
 ```text
 AiReportApiTests.test_supplier_report_returns_printable_local_html_without_ai_key
 AiReportApiTests.test_product_report_respects_custom_date_range
+AiReportApiTests.test_ai_report_with_configured_key_uses_real_mock_data_context
 ```
 
 ### 6.1 What These Tests Check
@@ -464,7 +498,65 @@ This test proves that the backend does not blindly trust model output.
 
 ---
 
-## 8. How Assertions Work
+## 8. Test Function 5: Configured API Key AI Report Test
+
+Test name:
+
+```text
+AiReportApiTests.test_ai_report_with_configured_key_uses_real_mock_data_context
+```
+
+This test creates new report data in the temporary database:
+
+| Mock Data | Value |
+| --- | --- |
+| Supplier | Configured Key Supplier |
+| Product | Configured Key Product |
+| SKU | AI-KEY-1 |
+| Purchase reference | PO-AI-KEY-001 |
+| Purchase total | THB 450.00 |
+
+Then it temporarily configures an API key setting:
+
+```python
+with self.settings(OPENAI_API_KEY="configured-test-key", OPENAI_MODEL="gpt-test"):
+    ...
+```
+
+The test uses `patch()` to simulate the model response:
+
+```python
+with patch(
+    "inventory.ai_reports.generate_ai_report_body",
+    return_value=(model_html, "gpt-test"),
+) as mock_generate_report:
+```
+
+This is not a live internet call. It is a controlled model simulation. The purpose is to test how the system behaves when the API key exists and the model returns HTML.
+
+The test checks two important things:
+
+1. The real mock database records are passed into the AI report context.
+2. The returned model HTML is wrapped into the final printable report page.
+
+Example assertions:
+
+```python
+self.assertEqual(response.data["used_model"], "gpt-test")
+self.assertEqual(report_context["scope"]["entity"]["name"], "Configured Key Supplier")
+self.assertEqual(purchase_table["rows"][0]["reference"], "PO-AI-KEY-001")
+self.assertEqual(purchase_table["rows"][0]["amount"], "THB 450.00")
+self.assertIn("Configured Key Model Summary", html)
+self.assertIn("window.print()", html)
+```
+
+Beginner interpretation:
+
+> The test proves that with an API key configured, the report generator receives the correct backend facts and returns a printable HTML report using the model-style response.
+
+---
+
+## 9. How Assertions Work
 
 Assertions are the pass/fail checks inside tests.
 
@@ -489,12 +581,12 @@ If the backend returns anything else, the test fails and Django reports the mism
 
 ---
 
-## 9. How To Run The Tests
+## 10. How To Run The Tests
 
 Run the targeted validation tests:
 
 ```bash
-backend/.venv/bin/python backend/manage.py test inventory.tests.LookupEligibilityTests.test_dashboard_stock_report_matches_manual_reorder_formula inventory.tests.AiReportApiTests.test_ai_report_wraps_and_sanitizes_model_html
+backend/.venv/bin/python backend/manage.py test inventory.tests.LookupEligibilityTests.test_dashboard_stock_report_matches_manual_reorder_formula inventory.tests.AiReportApiTests.test_ai_report_wraps_and_sanitizes_model_html inventory.tests.AiReportApiTests.test_ai_report_with_configured_key_uses_real_mock_data_context inventory.tests.ChatAssistantAlignmentTests.test_chat_with_configured_key_answers_from_real_mock_data
 ```
 
 Run the full inventory test suite:
@@ -518,7 +610,7 @@ If a test fails, Django shows:
 
 ---
 
-## 10. How To Explain This In A Presentation
+## 11. How To Explain This In A Presentation
 
 A simple explanation:
 
@@ -530,7 +622,7 @@ Short version:
 
 ---
 
-## 11. Summary
+## 12. Summary
 
 The automated test functions work by:
 
@@ -541,4 +633,3 @@ The automated test functions work by:
 5. failing automatically if actual results do not match expected results
 
 This makes the validation repeatable, understandable, and useful for both development and presentation.
-

@@ -3170,6 +3170,79 @@ class AiReportApiTests(APITestCase):
         self.assertNotIn("<iframe", html.lower())
         self.assertNotIn("javascript:", html.lower())
 
+    def test_ai_report_with_configured_key_uses_real_mock_data_context(self):
+        supplier = Supplier.objects.create(company_name="Configured Key Supplier")
+        product = Product.objects.create(
+            sku="AI-KEY-1",
+            product_name="Configured Key Product",
+            stock_base_unit="pcs",
+        )
+        purchase = Purchase.objects.create(
+            reference_no="PO-AI-KEY-001",
+            supplier=supplier,
+            supplier_name=supplier.company_name,
+            transaction_date=self.today,
+            status=Purchase.STATUS_RECEIVED,
+            grand_total=Decimal("450"),
+        )
+        PurchaseItem.objects.create(
+            purchase=purchase,
+            product=product,
+            product_name=product.product_name,
+            sku=product.sku,
+            item_status=PurchaseItem.ITEM_RECEIVED,
+            received_date=self.today,
+            unit="pcs",
+            base_unit="pcs",
+            conversion_factor=Decimal("1"),
+            quantity=Decimal("30"),
+            base_quantity=Decimal("30"),
+            unit_cost=Decimal("15"),
+            amount=Decimal("450"),
+        )
+        model_html = """
+            <main class="ai-report-document">
+              <section class="report-section">
+                <h2>Configured Key Model Summary</h2>
+                <p>Configured Key Supplier purchased THB 450.00.</p>
+              </section>
+            </main>
+        """
+
+        with self.settings(OPENAI_API_KEY="configured-test-key", OPENAI_MODEL="gpt-test"):
+            with patch(
+                "inventory.ai_reports.generate_ai_report_body",
+                return_value=(model_html, "gpt-test"),
+            ) as mock_generate_report:
+                response = self.client.post(
+                    "/api/ai-reports/",
+                    {
+                        "scope_type": "supplier",
+                        "entity_id": supplier.id,
+                        "period_type": "all",
+                        "language": "en",
+                    },
+                    format="json",
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["used_model"], "gpt-test")
+        mock_generate_report.assert_called_once()
+        report_context = mock_generate_report.call_args.args[0]
+        self.assertEqual(report_context["scope"]["entity"]["name"], "Configured Key Supplier")
+        self.assertIn("Purchase total", [metric["label"] for metric in report_context["metrics"]])
+        purchase_table = next(
+            table for table in report_context["tables"] if table["title"] == "Recent purchases"
+        )
+        self.assertEqual(purchase_table["rows"][0]["reference"], "PO-AI-KEY-001")
+        self.assertEqual(purchase_table["rows"][0]["amount"], "THB 450.00")
+
+        html = response.data["html"]
+        self.assertIn("<!doctype html>", html.lower())
+        self.assertIn("Configured Key Model Summary", html)
+        self.assertIn("Configured Key Supplier purchased THB 450.00.", html)
+        self.assertIn("window.print()", html)
+
     def test_report_requires_selected_entity(self):
         response = self.client.post(
             "/api/ai-reports/",
@@ -3424,6 +3497,36 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertEqual(response["presentation"]["title"], "Net position")
         self.assertIn("AR: 300", response["answer"])
         self.assertIn("AP: 120", response["answer"])
+
+    def test_chat_with_configured_key_answers_from_real_mock_data(self):
+        customer = Customer.objects.create(company_name="Configured Chat Customer")
+        sale = Sale.objects.create(
+            reference_no="TI-AI-CHAT-KEY",
+            customer=customer,
+            customer_name=customer.company_name,
+            transaction_date=self.today,
+            status=Sale.STATUS_DELIVERED,
+            grand_total=Decimal("275"),
+        )
+
+        with self.settings(OPENAI_API_KEY="configured-test-key", OPENAI_MODEL="gpt-test"):
+            response = answer_inventory_question(
+                f"Summarize customer activity for {customer.company_name} from "
+                f"{self.today.isoformat()} to {self.today.isoformat()}"
+            )
+
+        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["presentation"]["title"], f"Customer summary: {customer.company_name}")
+        self.assertIn(f"Customer summary: {customer.company_name}", response["answer"])
+        self.assertIn("Sales count: 1", response["answer"])
+        self.assertIn("Sales total: 275", response["answer"])
+        recent_sales = next(
+            section
+            for section in response["presentation"]["sections"]
+            if section["title"] == "Recent sales"
+        )
+        self.assertEqual(recent_sales["records"][0]["label"], "TI-AI-CHAT-KEY")
+        self.assertEqual(recent_sales["records"][0]["target"], {"type": "sale", "id": sale.id})
 
     def test_chat_handles_thai_net_position_prompt(self):
         response = answer_inventory_question("ฐานะสุทธิของเราเป็นอย่างไร?")
