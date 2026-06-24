@@ -180,6 +180,9 @@ The AI assistant was implemented as a limited read-only assistant. It can answer
 \subsection{AI Report Results}
 The AI report page was completed with scope selection, record selection, optional custom date range, and report generation. The backend collects purchases, sales, quotations, billing notes, payment batches, credit notes, and stock data for the selected supplier, customer, or product. It calculates summary metrics such as purchase totals, sales totals, open payables, open receivables, available stock, gross margin, and margin rate. It also builds trend charts, top product or partner charts, and record tables. When an OpenAI API key is configured, the backend sends the data context to the AI model for an executive summary and business analysis. When no API key is available, the backend builds a local report from the same data. The generated report opens in a new browser tab as a self-contained, print-ready HTML document with bilingual support.
 
+\subsection{User Access and Activity Log Results}
+The user-access function was completed with login, token refresh, authenticated user profile, role assignment, and permission management. Authorized administrators can create users, update account status, assign roles, and manage the permissions inside each role. The frontend uses the authenticated profile to show only the pages that the user is allowed to access. The backend also stores activity logs for important actions such as login, create, update, and delete events, and the activity-log page is only available to users with the correct access.
+
 \section{Feature Evidence Summary}
 \begin{table}[!htbp]
 	\centering
@@ -190,7 +193,7 @@ The AI report page was completed with scope selection, record selection, optiona
 		\hline
 		\textbf{Feature} & \textbf{Evidence in the Implemented System} \\ \hline
 		REST API communication & The frontend API client calls endpoints for dashboard, lookups, products, purchases, sales, quotations, billing notes, payment batches, credit notes, authentication, and chat. \\ \hline
-		Basic JWT authentication support & The backend provides login, refresh, and profile endpoints, and the frontend stores and refreshes access tokens. Role-based access control is not included in the current scope. \\ \hline
+		JWT authentication and user access & The backend provides login, refresh, profile, user-management, role-management, and activity-log endpoints. The frontend stores and refreshes access tokens, shows permission-based navigation, and provides a user-access page for authorized administrators. \\ \hline
 		Backend stock validation & The sale workflow calls backend validation before stock-deducting sale statuses are committed. \\ \hline
 		FIFO and manual allocation & The backend creates sale allocations from received purchase layers and validates manual layer selections. \\ \hline
 		Finance eligibility & Backend endpoints return only eligible sales for billing notes, eligible purchases for payment batches, and eligible sale lines for credit notes. \\ \hline
@@ -433,7 +436,7 @@ The system is functional, but some limitations remain:
 
 \begin{itemize}
 	\item Backend-wide authentication is configurable, so the final deployment setting must be checked before production use.
-	\item The login system is a basic authentication wrapper. It does not include role-based permission levels or user administration screens in the current scope.
+	\item User access is implemented with role and permission management, but production deployment should still review the final staff roles, permission assignments, and administrator accounts before real company use.
 	\item The frontend still keeps mock-data fallback behavior for demonstration, so final evaluation should use backend-connected data.
 	\item Large-scale production performance testing with many users and a very large database was not completed in the current codebase.
 	\item User testing was conducted with 10 participants, so the result is useful for project evaluation but not enough to represent all possible SME users.

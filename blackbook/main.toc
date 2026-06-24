@@ -40,10 +40,10 @@
 \contentsline {subsection}{\numberline {3.3.12}Categories Page}{14}{}%
 \contentsline {subsection}{\numberline {3.3.13}Supplier Page}{14}{}%
 \contentsline {subsection}{\numberline {3.3.14}Customer Page}{14}{}%
-\contentsline {subsection}{\numberline {3.3.15}Login and Settings Support}{14}{}%
+\contentsline {subsection}{\numberline {3.3.15}Login, User Access, and Settings Support}{14}{}%
 \contentsline {section}{\numberline {3.4}System Architecture}{15}{}%
-\contentsline {section}{\numberline {3.5}Frontend Methodology}{15}{}%
-\contentsline {section}{\numberline {3.6}Backend and API Methodology}{16}{}%
+\contentsline {section}{\numberline {3.5}Frontend Methodology}{16}{}%
+\contentsline {section}{\numberline {3.6}Backend and API Methodology}{17}{}%
 \contentsline {section}{\numberline {3.7}Database Design Methodology}{18}{}%
 \contentsline {section}{\numberline {3.8}Business Workflow Design}{18}{}%
 \contentsline {section}{\numberline {3.9}Business Calculations and Rules}{19}{}%
@@ -78,25 +78,26 @@
 \contentsline {subsection}{\numberline {4.4.6}Dashboard and Inventory Results}{44}{}%
 \contentsline {subsection}{\numberline {4.4.7}AI Assistant Results}{44}{}%
 \contentsline {subsection}{\numberline {4.4.8}AI Report Results}{44}{}%
+\contentsline {subsection}{\numberline {4.4.9}User Access and Activity Log Results}{45}{}%
 \contentsline {section}{\numberline {4.5}Feature Evidence Summary}{45}{}%
-\contentsline {section}{\numberline {4.6}Key Findings}{46}{}%
-\contentsline {section}{\numberline {4.7}Discussion of Objective Achievement}{46}{}%
-\contentsline {section}{\numberline {4.8}Testing and Evaluation Results}{46}{}%
+\contentsline {section}{\numberline {4.6}Key Findings}{45}{}%
+\contentsline {section}{\numberline {4.7}Discussion of Objective Achievement}{47}{}%
+\contentsline {section}{\numberline {4.8}Testing and Evaluation Results}{47}{}%
 \contentsline {subsection}{\numberline {4.8.1}Automated Backend Validation}{47}{}%
 \contentsline {subsection}{\numberline {4.8.2}Calculation Validation Detail}{48}{}%
-\contentsline {subsection}{\numberline {4.8.3}AI Chat Validation Detail}{49}{}%
-\contentsline {subsection}{\numberline {4.8.4}AI Report Validation Detail}{49}{}%
-\contentsline {subsection}{\numberline {4.8.5}Manual Scenario Test}{50}{}%
+\contentsline {subsection}{\numberline {4.8.3}AI Chat Validation Detail}{50}{}%
+\contentsline {subsection}{\numberline {4.8.4}AI Report Validation Detail}{51}{}%
+\contentsline {subsection}{\numberline {4.8.5}Manual Scenario Test}{51}{}%
 \contentsline {subsection}{\numberline {4.8.6}Questionnaire Result}{52}{}%
-\contentsline {subsection}{\numberline {4.8.7}User Feedback Summary}{52}{}%
-\contentsline {section}{\numberline {4.9}Limitations Found During Development}{52}{}%
-\contentsline {chapter}{\numberline {5}CONCLUSION}{55}{}%
-\contentsline {section}{\numberline {5.1}Brief Project Overview}{55}{}%
-\contentsline {section}{\numberline {5.2}Objective Summary}{55}{}%
-\contentsline {section}{\numberline {5.3}System Design Summary}{55}{}%
-\contentsline {section}{\numberline {5.4}Implementation Summary}{56}{}%
-\contentsline {section}{\numberline {5.5}Result Summary}{56}{}%
-\contentsline {section}{\numberline {5.6}Key Findings}{57}{}%
-\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{57}{}%
-\contentsline {section}{\numberline {5.8}Future Work}{57}{}%
-\contentsline {chapter}{REFERENCES}{59}{}%
+\contentsline {subsection}{\numberline {4.8.7}User Feedback Summary}{54}{}%
+\contentsline {section}{\numberline {4.9}Limitations Found During Development}{54}{}%
+\contentsline {chapter}{\numberline {5}CONCLUSION}{56}{}%
+\contentsline {section}{\numberline {5.1}Brief Project Overview}{56}{}%
+\contentsline {section}{\numberline {5.2}Objective Summary}{56}{}%
+\contentsline {section}{\numberline {5.3}System Design Summary}{56}{}%
+\contentsline {section}{\numberline {5.4}Implementation Summary}{57}{}%
+\contentsline {section}{\numberline {5.5}Result Summary}{57}{}%
+\contentsline {section}{\numberline {5.6}Key Findings}{58}{}%
+\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{58}{}%
+\contentsline {section}{\numberline {5.8}Future Work}{58}{}%
+\contentsline {chapter}{REFERENCES}{60}{}%

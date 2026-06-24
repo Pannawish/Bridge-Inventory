@@ -16,9 +16,9 @@ The system was designed as a three-layer web application. The frontend handles t
 This design was useful because it keeps important business rules on the backend. The frontend can make the system easier to use, but the backend still controls the rules that protect stock, billing, supplier payments, and credit notes.
 
 \section{Implementation Summary}
-The frontend implementation includes pages for dashboard, inventory, AI chat, AI report, purchases, payment batches, quotations, sales, billing notes, credit notes, products, categories, suppliers, and customers. It also includes a shared API client, basic authentication handling, pagination support, filters, modals, document references, bilingual text, and mock-data fallback for development.
+The frontend implementation includes pages for dashboard, inventory, AI chat, AI report, purchases, payment batches, quotations, sales, billing notes, credit notes, products, categories, suppliers, customers, user access, and activity logs. It also includes a shared API client, authentication handling, permission-based navigation, pagination support, filters, modals, document references, bilingual text, and mock-data fallback for development.
 
-The backend implementation includes Django models, serializers, viewsets, service functions, dashboard endpoints, lookup endpoints, eligibility endpoints, basic authentication endpoints, AI report generation, management commands, and backend tests. The most important backend logic includes stock calculation, stock allocation, sale stock validation, purchase payable calculation, finance eligibility, assistant answer preparation, and AI report context building.
+The backend implementation includes Django models, serializers, viewsets, service functions, dashboard endpoints, lookup endpoints, eligibility endpoints, authentication endpoints, user and role management endpoints, activity logging, AI report generation, management commands, and backend tests. The most important backend logic includes stock calculation, stock allocation, sale stock validation, purchase payable calculation, finance eligibility, permission enforcement, assistant answer preparation, and AI report context building.
 
 \section{Result Summary}
 The final result is a working inventory management system that connects the main trading workflows. A received purchase can increase stock, a committed sale can reduce stock, a billing note can track money expected from a customer, and a payment batch can track money that needs to be paid to a supplier.
@@ -44,7 +44,7 @@ Future work should stay focused on practical improvements:
 
 \begin{enumerate}
 	\item Continue user testing with a larger and more diverse group of SME users.
-	\item Add role-based permissions and user administration screens if the system will be used by staff with different responsibilities.
-	\item Add clearer audit history for important status changes such as purchase receiving, sale delivery, billing receipt, and supplier payment.
+	\item Review the final staff roles and permission assignments with a real business before production deployment.
+	\item Add clearer audit history details for important status changes such as purchase receiving, sale delivery, billing receipt, and supplier payment.
 	\item Improve deployment testing with larger data and more users before real production use.
 \end{enumerate}

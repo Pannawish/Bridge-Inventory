@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  24 JUN 2026 13:13
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  24 JUN 2026 18:14
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1432,7 +1432,7 @@ ailable
 [27]
 
 [28]
-Underfull \hbox (badness 1314) in paragraph at lines 548--549
+Underfull \hbox (badness 1314) in paragraph at lines 551--552
 []\TU/TimesNewRoman(0)/m/n/12 During the test, each participant followed the sc
 enario steps and
  []
@@ -1518,27 +1518,29 @@ File: ./figures/chap4/figure-4-10-payment-batch-workflow.png Graphic file (type
 
 [50]
 
-[51]) (chapter5.tex
+[51]
 
 [52]
 
 [53]
 
-[54]
+[54]) (chapter5.tex
+
+[55]
 CHAPTER 5.
 
 
-[55
+[56
 
 ]
 
-[56]
+[57]
 
-[57])
+[58])
 
-[58] (main.bbl)
+[59] (main.bbl)
 
-[59
+[60
 
 ] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
@@ -1556,10 +1558,10 @@ LaTeX Font Warning: Size substitutions with differences
 Here is how much of TeX's memory you used:
  24460 strings out of 402990
  520205 string characters out of 5447323
- 1106214 words of memory out of 5000000
+ 1099468 words of memory out of 5000000
  52717 multiletter control sequences out of 15000+600000
  633776 words of font info for 104 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  88i,13n,107p,1127b,962s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (75 pages).
+Output written on main.pdf (76 pages).

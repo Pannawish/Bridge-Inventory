@@ -32,7 +32,7 @@ The scope of this project is based on the features that are already implemented 
 	
 	\item \textbf{Dashboard and reporting:} The backend provides dashboard summary and segment endpoints for finance, trends, product movement, cashflow, and order coverage.
 	
-	\item \textbf{Authentication and access flow:} The backend includes JWT login, refresh, and authenticated user profile endpoints. The frontend supports login, token refresh, logout, and guest mode. Backend-wide authentication enforcement is controlled by the \texttt{INVENTORY\_REQUIRE\_AUTH} setting. Role-based permission levels and user administration screens are outside the current project scope.
+	\item \textbf{Authentication and user access flow:} The backend includes JWT login, refresh, and authenticated user profile endpoints. The frontend supports login, token refresh, logout, and guest mode. The system also includes a user-access page for managing users, roles, and role permissions. Backend-wide authentication enforcement is controlled by the \texttt{INVENTORY\_REQUIRE\_AUTH} setting, and protected API actions use Django model permissions when authentication enforcement is enabled.
 	
 	\item \textbf{AI-assisted operation:} The system includes a text-based inventory assistant endpoint for read-only questions covering stock and fulfillment, customer or supplier summaries, receivables and payables with exception checks, and reference or line-item lookup. It also includes an AI report page that generates printable business reports for a selected supplier, customer, or product.
 \end{enumerate}
