@@ -22,7 +22,8 @@ Bridge Inventory is built for a middle-man SME business model:
 7. follow receivables through billing notes
 8. follow payables through payment batches
 9. handle cancelled or returned sale items through credit notes
-10. monitor the full operation through dashboard summaries and the AI assistant
+10. monitor the full operation through dashboard summaries, AI Chat, and AI Reports
+11. control staff access through login, roles, permissions, and activity logs
 
 ## 2. Detailed Workflow Text
 
@@ -125,6 +126,25 @@ Bridge Inventory is built for a middle-man SME business model:
 - It helps answer operational questions such as low stock, customer or supplier summaries, receivables/payables, overdue issues, order coverage, and line-item detail by reference
 - It is an analysis layer, not the source of truth for transactions
 
+### 2.13 AI Report Workflow
+
+- User selects report scope: supplier, customer, or product
+- User selects one existing record and optionally sets a date range
+- Backend collects the related purchases, sales, quotations, billing notes, payment batches, credit notes, and stock data
+- Backend calculates summary metrics, chart rows, and record tables
+- If an OpenAI API key is configured, AI helps write the report analysis
+- If AI output is unavailable, the backend returns a local report from the same selected records
+- The report opens as printable HTML with a print button
+
+### 2.14 User Access and Activity Workflow
+
+- Users sign in with username and password through JWT login
+- The frontend loads `/api/auth/me/` to get profile, roles, permissions, and access flags
+- Navigation is filtered based on permissions, including admin-only pages such as User Access and Activity Log
+- Authorized administrators can create users, assign roles, activate/deactivate accounts, and manage role permissions
+- Backend model viewsets enforce Django model permissions when `INVENTORY_REQUIRE_AUTH=True`
+- Activity logs record successful login, create, update, and delete events for review
+
 ## 3. Compact Diagram Prompt
 
 Use this text if you want a shorter prompt for a diagram generator:
@@ -145,6 +165,8 @@ Use this text if you want a shorter prompt for a diagram generator:
 - `Eligible received/partially received purchases` create `Payment Batches`
 - `Dashboard` reads backend-calculated stock, demand, pipeline, receivables, and payables
 - `AI Assistant` reads system data for operational Q&A
+- `AI Report` generates printable supplier, customer, and product analysis from backend facts
+- `User Access` controls accounts, roles, permissions, and activity-log visibility
 
 ## 4. Recommended Diagram Nodes
 
@@ -163,6 +185,9 @@ Use this text if you want a shorter prompt for a diagram generator:
 - `Credit Notes`
 - `Dashboard`
 - `AI Assistant`
+- `AI Report`
+- `User Access`
+- `Activity Log`
 
 ## 5. Recommended Diagram Connections
 
@@ -187,3 +212,5 @@ Use this text if you want a shorter prompt for a diagram generator:
 - `Payment Batches -> Dashboard`
 - `Credit Notes -> Dashboard`
 - `Dashboard -> AI Assistant`
+- `Dashboard -> AI Report`
+- `User Access -> Activity Log`

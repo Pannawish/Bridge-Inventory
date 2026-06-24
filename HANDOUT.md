@@ -19,13 +19,14 @@ This document is written for end users of the web app: operations staff, purchas
 
 This platform is custom-built to support a middle-man trading business model that buys products from suppliers, holds stock, and resells them to customers. The system maintains robust historical snapshotting so transaction audits stay clean even if catalog details change later.
 
-The app coordinates and relates six distinct workflows:
+The app coordinates and relates seven distinct workflows:
 1.  **Master Catalog**: Products, nested categories, suppliers, and customers.
 2.  **Quotations**: Customer quotes, stock checks, and purchase/sales generation.
 3.  **Purchases**: Supplier orders, expected deliveries, and partial or full receiving logs.
 4.  **Sales**: Outbound sales orders, item-level fulfillment, and automatic/manual FIFO allocations.
 5.  **Finance Follow-up**: Customer receivables (Billing Notes), supplier payables (Payment Batches), and returns/cancel logs (Credit Notes).
-6.  **Operational Review**: Dashboard, inventory control, and AI-assisted analysis.
+6.  **Operational Review**: Dashboard, inventory control, AI Chat, and printable AI Reports.
+7.  **Administration**: Login, role-based user access, permission-aware navigation, and activity logs.
 
 ---
 
@@ -34,6 +35,7 @@ The app coordinates and relates six distinct workflows:
 | Role | Core Workspace Responsibilities |
 | :--- | :--- |
 | **Admin / Supervisor** | `Dashboard`, `Inventory`, `Settings` in the sidebar footer (Monitor margins, low stock, and system language) |
+| **System Administrator** | `User Access`, `Activity Log` (Create users, assign roles, review activity history, and verify access) |
 | **Product Controller** | `Products`, `Categories`, `Inventory` (Keep master catalogs and conversions accurate) |
 | **Purchasing Staff** | `Quotation` (short-stock lines), `Purchases` (POs), `Suppliers` (Vendor records) |
 | **Sales Representatives** | `Quotation` (Inbound deals), `Sales` (Order progression), `Customers` (Accounts) |
@@ -45,10 +47,11 @@ The app coordinates and relates six distinct workflows:
 
 The sidebar navigation bar is grouped logically by business function:
 
-*   **Workspace**: `Dashboard` (operational overview), `Inventory` (reorder planning, stock health, AP/AR snapshots), `AI Chat` (natural language queries).
+*   **Workspace**: `Dashboard` (operational overview), `Inventory` (reorder planning, stock health, AP/AR snapshots), `AI Chat` (natural language queries), and `AI Report` (printable supplier/customer/product reports).
 *   **Purchasing**: `Purchases` (receiving logs and PO history), `Payment Batches` (supplier payables).
 *   **Sales**: `Quotation` (cost checks and conversion), `Sales` (order progress), `Billing Notes` (customer receivables), `Credit Notes` (returns/cancellations).
 *   **Records**: `Products` (item setups), `Categories` (hierarchies), `Suppliers` (vendor records), `Customers` (customer records).
+*   **Administration**: `User Access` and `Activity Log`, shown only to users with the required access.
 *   **Sidebar footer**: `Settings` for language toggling between English and Thai, plus the `Sign Out` action.
 
 <p align="left">
@@ -56,6 +59,8 @@ The sidebar navigation bar is grouped logically by business function:
 </p>
 
 *Sidebar navigation showing the Workspace, Purchasing, Sales, Records groups, plus footer settings and sign-out controls.*
+
+The sidebar is permission-aware. If a logged-in user does not have access to a module, the navigation item is hidden. The backend remains the authority for permission checks when authentication enforcement is enabled.
 
 ---
 
@@ -96,7 +101,8 @@ Train new staff and trainees in this exact progressive order:
 7.  **Receivables**: Assemble Billing Notes for delivered, un-billed sales.
 8.  **Payables**: Formulate Payment Batches for received, un-paid purchases.
 9.  **Adjustments**: Log Credit Notes for returned or cancelled sales.
-10. **Review**: Evaluate dashboard metrics, stock health, and FIFO layers.
+10. **Review**: Evaluate dashboard metrics, stock health, FIFO layers, AI Chat answers, and AI Reports.
+11. **Administration**: For admin users, create staff accounts, assign roles, review role permissions, and check activity logs.
 
 ---
 
@@ -122,6 +128,7 @@ Before logging actual transactions, confirm that all of the following catalog ma
 > 3.  **Sales Decrements Stock**: Outbound deliveries reduce stock according to backend FIFO checks once sales progress beyond draft.
 > 4.  **FIFO Allocation is Authoritative**: Older received stock is cleared first (First In, First Out). The app allocates layers automatically but allows manual override if a specific layer is physically moved.
 > 5.  **Snapshot Logs Are Intentional**: Changing a product's name, cost, or supplier details in the master catalog will *never* corrupt or rewrite past historical invoices. Historical documents preserve a snapshot of the records at the exact time of the transaction for auditable record-keeping.
+> 6.  **Access is Role-Based**: Staff should use accounts and roles that match their responsibilities. Hidden navigation is a convenience, but backend permissions are still the protection layer when authentication enforcement is enabled.
 
 ---
 
@@ -418,6 +425,33 @@ When you need to audit a specific product's movements, open its history panel:
 
 *Product audit view with cost history and transaction details.*
 
+### 9.4 AI Chat
+Use **AI Chat** for read-only operational questions. Good questions include low-stock checks, customer or supplier summaries, overdue issues, AP/AR status, order coverage, and line-item detail by document reference.
+
+*   [ ] Ask only operational questions that match the supported inventory workflows.
+*   [ ] Treat backend records and dashboard calculations as the source of truth.
+*   [ ] Use AI Chat as a faster reading and summarizing tool, not as a record-editing tool.
+
+### 9.5 AI Report
+Use **AI Report** when you need a printable supplier, customer, or product report.
+
+1. Open **AI Report**.
+2. Select the report scope: **Supplier**, **Customer**, or **Product**.
+3. Select the specific record.
+4. Choose a custom period or use all-time reporting.
+5. Click **Generate**.
+6. Review the generated report in the new browser tab.
+7. Use the report page's **Print** button to print or save as PDF.
+
+The report includes backend-calculated metrics, chart rows, related records, and business analysis. If the AI API key is configured, AI can help write the analysis. If not, the system still creates a local report from the same backend data.
+
+### 9.6 User Access and Activity Log
+Use **User Access** to create user accounts, assign roles, activate or deactivate accounts, and manage role permissions. Use **Activity Log** to review login, create, update, and delete events.
+
+*   [ ] Assign each user only the role needed for their responsibility.
+*   [ ] Review administrator accounts before production use.
+*   [ ] Check activity logs when investigating important record changes.
+
 ---
 
 ## 10. Daily End-To-End Example
@@ -471,6 +505,9 @@ Use this exercise during training sessions:
 | **Settle supplier bills** | `Payment Batches` | Group eligible un-paid purchases |
 | **Record returned goods** | `Credit Notes` | Issue adjustments from cancelled/returned sales |
 | **Ask questions in plain text** | `AI Chat` | Query stock, customer/supplier summaries, overdue issues, AP/AR status, and line-item detail |
+| **Generate printable analysis** | `AI Report` | Create supplier, customer, or product reports for a selected period |
+| **Manage staff access** | `User Access` | Create users, assign roles, and manage role permissions |
+| **Review system activity** | `Activity Log` | Check login/create/update/delete events |
 | **Toggle language** | `Settings` in the sidebar footer | Change system language (English / Thai) |
 
 ---
@@ -492,6 +529,9 @@ When exporting this training manual to a PDF or handout, replace the placeholder
 *   [ ] Section 9.1: Dashboard Overview
 *   [ ] Section 9.2: Inventory Stock Review Table
 *   [ ] Section 9.3: Product History View
+*   [ ] Section 9.4: AI Chat
+*   [ ] Section 9.5: AI Report
+*   [ ] Section 9.6: User Access and Activity Log
 
 ---
 

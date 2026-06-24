@@ -8,7 +8,7 @@ This file is for coding agents working in this repository. Follow these rules be
 - Frontend: React + Vite in `frontend/`.
 - Backend: Django + Django REST Framework in `backend/`.
 - Database: MySQL.
-- The app is Bridge Inventory, with products, categories, suppliers, customers, purchases, sales, quotations, billing notes, payment batches, dashboard summaries, and AI inventory assistant.
+- The app is Bridge Inventory, with products, categories, suppliers, customers, purchases, sales, quotations, billing notes, payment batches, credit notes, dashboard summaries, AI chat, AI report, user access, and activity logs.
 
 ## Engineering Standards
 
@@ -159,6 +159,8 @@ npm run dev -- --host 127.0.0.1
 - Quotation line items are stored in `QuotationItem`; `Quotation` no longer has an `items` JSON database column. The quotation API still exposes an `items` array built from `QuotationItem`.
 - `clear_operational_data` can clear purchases, sales, quotations, billing notes, payment batches, and transaction documents while preserving master data.
 - Billing note and payment batch seed data are included in operational seed data.
+- AI report generation is implemented in `backend/inventory/ai_reports.py` and returns printable supplier, customer, or product reports from backend-prepared records.
+- User access is implemented with Simple JWT, Django groups and permissions, `frontend/src/auth/permissions.js`, admin user/role pages, and the inventory `ActivityLog` model.
 
 ## Current Improvement Direction
 

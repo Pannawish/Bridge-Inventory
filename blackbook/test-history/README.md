@@ -11,6 +11,8 @@ This folder keeps a presentation-friendly history of the backend test runs selec
 ## Scope of this test history
 The current selected suite contains 30 backend automated tests taken from the real test suite in `backend/inventory/tests.py`.
 
+This folder is a preserved presentation history for the selected black-box workflow set. It does not list every newer automated test in the codebase. Additional current coverage exists for AI Chat, AI Report, user access, permission enforcement, and activity logs in `backend/inventory/tests.py` and the AI/calculation validation documents under `../../docs/`.
+
 These 30 cases were selected because they cover the business rules that are easiest to explain in a black-box testing presentation:
 
 - product picture validation

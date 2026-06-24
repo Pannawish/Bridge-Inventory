@@ -8,6 +8,8 @@ This file rewrites the selected test coverage into a simpler black-box format fo
 - Failed: `0`
 - Latest run record: `run-02`
 
+This file summarizes the selected 30-case workflow set. It is not the full current automated test suite; newer coverage also exists for AI Chat, AI Report, user access, permission enforcement, and activity logs.
+
 ## Result meaning
 - `Pass` = the system behavior matched the expected result
 - `Fail` = the system behavior did not match the expected result

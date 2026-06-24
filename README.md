@@ -11,7 +11,7 @@
 
 Bridge Inventory is a full-stack, enterprise-lite inventory management system tailored for SME trading businesses. It is built specifically for **middle-man business models** that buy from suppliers, hold stock, and resell to customers. 
 
-Instead of a generic stock tracker, this platform coordinates actual day-to-day operations: **Quotations, Purchases, Sales, Billing Notes, Payment Batches, Credit Notes, inventory control, and an AI inventory assistant**—all unified under authoritative backend calculations.
+Instead of a generic stock tracker, this platform coordinates actual day-to-day operations: **Quotations, Purchases, Sales, Billing Notes, Payment Batches, Credit Notes, inventory control, AI Chat, AI Reports, user access, and activity logs**--all unified under authoritative backend calculations.
 
 ---
 
@@ -40,6 +40,8 @@ Want to explore the user interface without running any local databases?
 | **Finance (BN / PB / CN)** | Billing Notes for receivables, Payment Batches for payables, and Credit Notes for cancelled/returned goods, with server-validated transaction eligibility checks and net-of-credit billing summaries. |
 | **Business Documents** | Printable quotation, purchase order, sales invoice, billing note, payment batch, and credit note layouts generated from shared transaction document configs. |
 | **AI Assistant** | OpenAI-powered bilingual natural language query assistant focused on stock and fulfillment, partner summaries, receivables/payables with exceptions, and reference line-item detail. |
+| **AI Reports** | Printable supplier, customer, and product reports with backend-calculated metrics, charts, record tables, AI-written analysis when configured, and local fallback when not configured. |
+| **User Access & Audit** | Simple JWT login, refresh tokens, user profile lookup, role-based navigation, administrator user/role management, Django model permissions, and activity logs for login/create/update/delete events. |
 
 ---
 
@@ -75,7 +77,9 @@ graph TD
     I --> N
     K --> N
     M --> N
-    N --> O[AI Assistant]
+    N --> O[AI Chat]
+    N --> P[AI Report]
+    Q[User Access<br/>Roles / Permissions] --> R[Activity Logs]
 
     style A fill:#eef,stroke:#333,stroke-width:1px
     style B fill:#bbf,stroke:#333,stroke-width:1px
@@ -86,6 +90,9 @@ graph TD
     style M fill:#ffd1d1,stroke:#333,stroke-width:1px
     style N fill:#d9f2ff,stroke:#333,stroke-width:1px
     style O fill:#e7ddff,stroke:#333,stroke-width:1px
+    style P fill:#e7ddff,stroke:#333,stroke-width:1px
+    style Q fill:#fff0d6,stroke:#333,stroke-width:1px
+    style R fill:#fff0d6,stroke:#333,stroke-width:1px
 ```
 
 ---
@@ -93,9 +100,9 @@ graph TD
 ## Technology Stack
 
 *   **Frontend**: React 18, Vite 7.3, Vanilla CSS custom design tokens (4px square system)
-*   **Backend**: Django 5.1, Django REST Framework 3.15, JWT-based security (Simple JWT)
+*   **Backend**: Django 5.1, Django REST Framework 3.15, JWT-based security (Simple JWT), Django groups/permissions, and activity logging
 *   **Database**: MySQL (relational 3NF with audit-friendly historical snapshots)
-*   **Core Concepts**: Relational master records, derived FIFO layers, opt-in backend pagination, lookup endpoints, and bilingual context dictionaries.
+*   **Core Concepts**: Relational master records, derived FIFO layers, opt-in backend pagination, lookup endpoints, permission-aware navigation, AI report context building, and bilingual context dictionaries.
 
 ---
 
@@ -108,7 +115,7 @@ graph TD
 │   ├── business-rules-reference.md  # Status mappings, FIFO layer calculations
 │   ├── codebase-structure.md         # Source tree navigation map
 │   ├── frontend-refactor-handoff.md  # Maintainability splits and hooks details
-│   ├── login_system.md               # JWT & Guest Mode developer guide
+│   ├── login_system.md               # JWT, user access, roles, and activity-log guide
 │   ├── database-schema.md            # MySQL database schemas & ERD reference
 │   └── workflow-reference.md         # End-to-end business flow narrative
 └── AGENTS.md     # Engineering standards & constraints for contributors
@@ -126,7 +133,7 @@ For deeper codebase context and engineering rules, check out the specialized gui
 *   [docs/business-rules-reference.md](./docs/business-rules-reference.md) — Master business logic for exact status, FIFO, and eligibility behaviors.
 *   [docs/codebase-structure.md](./docs/codebase-structure.md) — Navigation maps for the source tree and modular splits.
 *   [docs/frontend-refactor-handoff.md](./docs/frontend-refactor-handoff.md) — Frontend split structures and state hooks details.
-*   [docs/login_system.md](./docs/login_system.md) — Comprehensive guide on the backend JWT configuration and frontend 401 retry interceptor.
+*   [docs/login_system.md](./docs/login_system.md) — Comprehensive guide on JWT login, guest mode, user access, roles, permissions, activity logs, and frontend 401 retry behavior.
 *   [docs/database-schema.md](./docs/database-schema.md) — Full relational MySQL database tables, fields, ERD, and constraints.
 
 ---
@@ -176,7 +183,7 @@ Once both servers are running, access the local system at [http://127.0.0.1:5173
 Backend configurations live in `backend/.env`. Important operational switches:
 *   `INVENTORY_REQUIRE_AUTH`: Set to `True` to enforce global API JWT validation (all unauthenticated calls will be rejected with `401 Unauthorized`). Defaults to `False` for easy guest development.
 *   `CORS_ALLOWED_ORIGINS`: Allowed frontends (defaults to local Vite URLs).
-*   `OPENAI_API_KEY` & `OPENAI_MODEL`: Optional credentials for the AI Inventory Assistant.
+*   `OPENAI_API_KEY` & `OPENAI_MODEL`: Optional credentials for AI Chat and AI Report analysis.
 
 ---
 

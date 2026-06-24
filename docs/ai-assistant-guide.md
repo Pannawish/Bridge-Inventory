@@ -106,10 +106,10 @@ The assistant is **not** the place for:
 - deep margin or profitability analysis
 - customer buying trend analysis
 - supplier performance analytics
-- broad open-ended reporting
+- broad open-ended reporting inside chat
 - “tell me everything about the business” style questions
 
-If a user asks for those, the assistant should guide them back to the supported core workflows.
+If a user asks for those in AI Chat, the assistant should guide them back to the supported core workflows. For a structured printable supplier, customer, or product report, use the separate `AI Report` page instead.
 
 ---
 
@@ -171,6 +171,8 @@ Use it when you want to:
 - inspect one document quickly
 
 Do **not** use it as a replacement for normal transaction entry screens.
+
+For printable analysis, open `AI Report` instead of using AI Chat. AI Report has fixed report scopes and date filters, while AI Chat is for short operational Q&A.
 
 ---
 

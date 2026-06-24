@@ -10,6 +10,8 @@ The goal is not to describe every line of code. The goal is to help someone quic
 
 For user instructions, see [ai-assistant-guide.md](./ai-assistant-guide.md).
 
+This document covers the `AI Chat` feature only. The separate `AI Report` page has its own backend flow in [backend/inventory/ai_reports.py](../backend/inventory/ai_reports.py), where the user selects supplier, customer, or product scope and receives printable HTML.
+
 ---
 
 ## 1. Big Picture
@@ -48,7 +50,7 @@ So the feature is intentionally scoped to only 4 core workflows:
 3. receivables, payables, and exceptions
 4. reference lookup and line-item detail
 
-Anything outside that scope should be rejected clearly.
+Anything outside that scope should be rejected clearly. If the user needs a structured printable supplier, customer, or product report, the correct workflow is `AI Report`, not AI Chat.
 
 ---
 

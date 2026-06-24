@@ -2,6 +2,8 @@
 
 The following 30 cases were selected from the real backend automated suite in `backend/inventory/tests.py`.
 
+This matrix is the preserved selected black-box set for presentation. The current project also contains separate automated tests for AI Chat, AI Report, user access, permission enforcement, and activity logs.
+
 | ID | Type | Area | Test case purpose | Automated test label | Expected result |
 |---|---|---|---|---|---|
 | TC-01 | Invalid | Product pictures | Reject non-image files during product-picture upload. | `inventory.tests.ProductPictureUploadTests.test_product_picture_upload_rejects_non_image_files` | Pass |

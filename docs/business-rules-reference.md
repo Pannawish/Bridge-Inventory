@@ -38,6 +38,14 @@ These core principles are enforced authoritatively across all operations:
 ### 1.4 Authoritative Backend Validation
 *   While the React frontend provides validation guides to aid operations, all stock allocations, eligibility filtering, and financial status overrides are re-validated and enforced by the Django API backend.
 
+### 1.5 Role-Based Access Control
+*   The system uses Django users, groups, and model permissions for role-based access.
+*   Default role groups include `Admin`, `Manager`, `Sales`, `Purchasing`, `Accounting`, and `Viewer`.
+*   The frontend hides navigation tabs when the authenticated user profile does not include the needed access, but frontend hiding is only a usability layer.
+*   When `INVENTORY_REQUIRE_AUTH=True`, backend model viewsets enforce Django `view`, `add`, `change`, and `delete` permissions.
+*   Administrator-only user and role management endpoints require user-access administrator permission.
+*   The activity log is read-only and available only to user-access administrators or users with activity-log viewing permission.
+
 ---
 
 ## 2. Master Data Rules

@@ -2,7 +2,7 @@
 
 Django + Django REST Framework backend for Bridge Inventory.
 
-This backend supports a middle-man SME workflow: products, categories, suppliers, customers, quotations, purchases, sales, billing notes, payment batches, credit notes, dashboard summaries, and an AI inventory assistant.
+This backend supports a middle-man SME workflow: products, categories, suppliers, customers, quotations, purchases, sales, billing notes, payment batches, credit notes, dashboard summaries, AI chat, AI reports, JWT login, user access, roles, and activity logs.
 
 ## Stack
 
@@ -10,7 +10,7 @@ This backend supports a middle-man SME workflow: products, categories, suppliers
 - Django REST Framework
 - MySQL
 - `django-cors-headers`
-- Optional OpenAI-powered chat answer generation with local fallback
+- Optional OpenAI-powered chat and AI report generation with local fallback
 
 ## Current Domain Model
 
@@ -36,6 +36,7 @@ Important data rules:
 - Historical transaction snapshots such as `supplier_name`, `customer_name`, `product_name`, `sku`, prices, and totals are intentionally preserved on transaction rows.
 - Quotation lines are stored in `QuotationItem`. The quotation API still exposes an `items` array for frontend compatibility, but that array is serialized from normalized quotation line tables.
 - Transaction detail serializers also expose business-partner print profile fields such as `supplier_profile` and `customer_profile` for printable customer/supplier-facing document layouts.
+- User access is implemented with Django users, groups, permissions, Simple JWT, custom DRF permission classes, and the inventory `ActivityLog` model.
 
 ## Project Layout
 
@@ -87,8 +88,8 @@ OPENAI_MODEL=gpt-5.4-mini
 Notes:
 
 - `INVENTORY_REQUIRE_AUTH=False` keeps the API open in local development.
-- When `INVENTORY_REQUIRE_AUTH=True`, DRF switches to `IsAuthenticated`.
-- If `OPENAI_API_KEY` is empty, `/api/chat/` still works using a local summary fallback instead of calling OpenAI.
+- When `INVENTORY_REQUIRE_AUTH=True`, model viewsets require authentication and enforce Django model permissions through `InventoryModelPermissions`.
+- If `OPENAI_API_KEY` is empty, `/api/chat/` and `/api/ai-reports/` still work using local fallback output instead of calling OpenAI.
 - `INVENTORY_DEFAULT_PAGE_SIZE` and `INVENTORY_MAX_PAGE_SIZE` control opt-in pagination limits.
 
 ## MySQL Setup
@@ -211,12 +212,20 @@ Utility endpoints:
 - `/api/eligibility/payment-batch-purchases/`
 - `/api/eligibility/credit-note-sales/`
 - `/api/chat/`
+- `/api/ai-reports/`
 
 Authentication endpoints:
 
 - `/api/auth/login/` (Simple JWT login, returns access/refresh token pair)
 - `/api/auth/refresh/` (Simple JWT token refresh, returns new access token)
-- `/api/auth/me/` (User profile details endpoint)
+- `/api/auth/me/` (User profile, roles, permissions, and access flags)
+
+User access and audit endpoints:
+
+- `/api/admin/users/` (administrator user management)
+- `/api/admin/roles/` (administrator role and permission management)
+- `/api/admin/roles/permission-options/` (manageable permission choices)
+- `/api/activity-logs/` (read-only login/create/update/delete history)
 
 ## Pagination
 
@@ -340,6 +349,21 @@ Not currently in assistant scope:
 
 The assistant is read-only and does not mutate inventory data. It answers from the backend-built inventory context, so it should be treated as an operational analysis layer rather than the source of truth for transaction state.
 
+## AI Reports
+
+`POST /api/ai-reports/`
+
+Behavior:
+
+- Accepts a fixed report scope: supplier, customer, or product.
+- Accepts an optional date range, or all-time reporting when no range is supplied.
+- Builds the report context from backend records, including purchases, sales, quotations, billing notes, payment batches, credit notes, and stock data relevant to the selected record.
+- Calculates summary metrics, chart rows, and record tables in the backend.
+- If `OPENAI_API_KEY` is set, asks the configured model for report wording and business analysis.
+- If `OPENAI_API_KEY` is empty or the model call fails, returns a local report built from the same backend facts.
+- Wraps the result in printable HTML with screen and print styling.
+- Sanitizes model-produced HTML fragments and replaces chart content with backend-generated chart rows.
+
 ## Frontend Connection
 
 The frontend defaults to:
@@ -362,6 +386,6 @@ Before deploying beyond local development:
 - Set `DJANGO_DEBUG=False`
 - Set `DJANGO_ALLOWED_HOSTS`
 - Restrict `CORS_ALLOWED_ORIGINS`
-- Enable `INVENTORY_REQUIRE_AUTH=True` only when an auth flow is in place
+- Enable `INVENTORY_REQUIRE_AUTH=True` for authenticated deployments and review the final user roles, permission assignments, and administrator accounts
 - Configure MySQL credentials for the target environment
 - Serve `MEDIA_ROOT` and `STATIC_ROOT` appropriately

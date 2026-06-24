@@ -3,7 +3,7 @@
 <p align="left">
   <img src="https://img.shields.io/badge/Document-Database%20Schema-4a7b9c?style=flat-square" alt="Database Schema" />
   <img src="https://img.shields.io/badge/Schema-MySQL%208-00758F?style=flat-square&logo=mysql&logoColor=white" alt="MySQL 8" />
-  <img src="https://img.shields.io/badge/ORM-Django%205.2-092E20?style=flat-square&logo=django&logoColor=white" alt="Django ORM" />
+  <img src="https://img.shields.io/badge/ORM-Django%205.x-092E20?style=flat-square&logo=django&logoColor=white" alt="Django ORM" />
   <img src="https://img.shields.io/badge/Design-Practical%203NF-2e7d32?style=flat-square" alt="3NF Design" />
 </p>
 

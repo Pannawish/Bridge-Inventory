@@ -69,10 +69,17 @@ backend/
 │   │   ├── 0022_productsupplier_saleitemallocation.py
 │   │   ├── 0023_add_shipping_date_to_quotation.py
 │   │   ├── 0024_rename_debit_term_to_cash.py
-│   │   └── 0025_add_payment_term_to_quotation.py
+│   │   ├── 0025_add_payment_term_to_quotation.py
+│   │   ├── 0026_creditnote_total_before_vat_creditnote_vat_amount_and_more.py
+│   │   ├── 0027_recompute_creditnote_vat.py
+│   │   └── 0028_activitylog.py
+│   ├── access_control.py
+│   ├── ai_reports.py
+│   ├── audit.py
 │   ├── auth_views.py
 │   ├── models.py
 │   ├── pagination.py
+│   ├── permissions.py
 │   ├── serializers.py
 │   ├── services.py
 │   ├── tests.py
@@ -86,7 +93,9 @@ backend/
 
 - `config/` contains Django project settings and URL bootstrap
 - `inventory/` is the main Django app for domain logic
-- `inventory/services.py` holds stock, allocation, finance, and reporting logic
+- `inventory/services.py` holds stock, allocation, finance, dashboard, and AI chat context logic
+- `inventory/ai_reports.py` builds supplier, customer, and product report contexts and printable AI report HTML
+- `inventory/access_control.py`, `inventory/permissions.py`, `inventory/auth_views.py`, and `inventory/audit.py` implement JWT login support, role permissions, user-access authorization, and activity logging
 - `inventory/serializers.py` and `inventory/views.py` define API behavior
 - `inventory/management/commands/` contains seed/reset operational commands
 - `inventory/tests.py` is the backend test suite
@@ -121,9 +130,11 @@ frontend/
 │   │   └── useAppState.js
 │   ├── assets/
 │   ├── auth/
-│   │   └── AuthContext.jsx
+│   │   ├── AuthContext.jsx
+│   │   └── permissions.js
 │   ├── components/
 │   │   ├── AllItemsDiscountControl.jsx
+│   │   ├── AiReportPage.jsx
 │   │   ├── BillingNotePage.jsx
 │   │   ├── CategoryPage.jsx
 │   │   ├── ChatPanel.jsx
@@ -157,6 +168,9 @@ frontend/
 │   │   ├── contactValidation.js
 │   │   ├── productPriceMetrics.js
 │   │   ├── transactionDiscounts.js
+│   │   ├── admin/
+│   │   │   ├── ActivityLogPage.jsx
+│   │   │   └── UserAccessPage.jsx
 │   │   ├── billing/
 │   │   │   ├── BillingNoteDetailModal.jsx
 │   │   │   ├── BillingNoteDirectorySection.jsx
@@ -173,6 +187,9 @@ frontend/
 │   │   │   └── useCategoryPageState.js
 │   │   ├── charts/
 │   │   │   └── ReorderSawtooth.jsx
+│   │   ├── chat/
+│   │   │   ├── ChatMessageBody.jsx
+│   │   │   └── ChatRecordDetailModal.jsx
 │   │   ├── credits/
 │   │   │   ├── CreateCreditNoteModal.jsx
 │   │   │   ├── CreditNoteDetailModal.jsx
@@ -327,6 +344,8 @@ frontend/
 │   │   ├── statusLabels.js
 │   │   └── translations.js
 │   └── styles/
+│       ├── admin.css
+│       ├── ai-report.css
 │       ├── base-layout.css
 │       ├── dashboard.css
 │       ├── directories.css
@@ -343,7 +362,10 @@ frontend/
 ### Frontend Structure Notes
 
 - `src/app/` contains app shell composition, tab routing, and top-level app state orchestration
+- `src/auth/` contains authentication context and permission helpers for tab visibility
 - `src/components/` contains page components plus domain-focused subfolders
+- `src/components/admin/` contains the User Access and Activity Log pages
+- `src/components/AiReportPage.jsx` contains the printable AI report request workflow
 - `src/components/documentRefs/` centralizes saved-document viewing plus printable business-document rendering
 - `src/hooks/` contains shared data loading, actions, directory filters, and UI state hooks
 - `src/i18n/` contains bilingual translation support
@@ -354,11 +376,19 @@ frontend/
 
 ```text
 docs/
+├── ai-and-calculation-validation-plan.md
+├── ai-assistant-guide.md
+├── ai-assistant-how-it-works.md
+├── automated-test-functions-explained.md
 ├── business-rules-reference.md
 ├── codebase-structure.md
 ├── database-schema.md
 ├── frontend-refactor-handoff.md
 ├── login_system.md
+├── manual-ai-calculation-test-report.md
+├── manual-ai-chat-and-report-current-data-test-report.md
+├── manual-ai-chat-and-report-user-test-report.md
+├── screenshots/
 └── workflow-reference.md
 ```
 
@@ -368,8 +398,9 @@ docs/
 - `codebase-structure.md` is this structure map
 - `database-schema.md` is the comprehensive relational schema reference for the MySQL database
 - `frontend-refactor-handoff.md` documents the current frontend maintainability and refactor state
-- `login_system.md` documents the Django + React JWT login and authentication architecture
+- `login_system.md` documents the Django + React JWT login, role permission, user-access, and activity-log architecture
 - `workflow-reference.md` explains the end-to-end operational story and business flows
+- AI validation and manual-test files document the calculation, AI Chat, and AI Report testing evidence used in the project report
 
 ## Recommended Reading Order
 

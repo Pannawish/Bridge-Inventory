@@ -19,7 +19,7 @@ My objective was to check whether AI Chat and AI Report work correctly with the 
 I checked:
 
 1. Whether AI Chat answers match current customer, supplier, finance, and scope data.
-2. Whether AI Report can generate reports from current supplier and product data.
+2. Whether AI Report can generate reports from current supplier, customer, and product data.
 3. Whether AI Report uses the configured AI model when the API key is available.
 4. Whether the generated report contains a printable HTML document.
 
