@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api";
 import { useAuth } from "../../auth/AuthContext";
 import { useLanguage } from "../../i18n/LanguageContext";
+import { previewPermissionOptions, previewRoles, previewUsers } from "./adminPreviewData";
 
 const ACTION_ORDER = ["view", "add", "change", "delete"];
 const MODULE_ORDER = [
@@ -73,7 +74,7 @@ function sortPermissionGroups(groups) {
   });
 }
 
-function UserAccessPage() {
+function UserAccessPage({ previewMode = false }) {
   const { user: currentUser } = useAuth();
   const { t } = useLanguage();
   const [users, setUsers] = useState([]);
@@ -117,6 +118,33 @@ function UserAccessPage() {
   }, [permissionOptions]);
 
   async function loadAdminData() {
+    if (previewMode) {
+      const nextUsers = previewUsers;
+      const nextRoles = previewRoles;
+      setUsers(nextUsers);
+      setRoles(nextRoles);
+      setPermissionOptions(previewPermissionOptions);
+      if (!selectedUserId && nextUsers.length) {
+        const firstUser = nextUsers[0];
+        setSelectedUserId(firstUser.id);
+        setUserForm({
+          ...BLANK_USER_FORM,
+          ...firstUser,
+          password: "",
+          role_ids: getUserRoleIds(firstUser),
+        });
+      }
+      if (!selectedRoleId && nextRoles.length) {
+        const firstRole = nextRoles[0];
+        setSelectedRoleId(firstRole.id);
+        setRoleForm({
+          name: firstRole.name,
+          permission_ids: getRolePermissionIds(firstRole),
+        });
+      }
+      setError("");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -205,6 +233,10 @@ function UserAccessPage() {
 
   async function saveUser(event) {
     event.preventDefault();
+    if (previewMode) {
+      showMessage(t("userAccess.previewReadOnly"));
+      return;
+    }
     setBusy(true);
     try {
       const payload = {
@@ -239,6 +271,11 @@ function UserAccessPage() {
   }
 
   async function toggleUserActive(nextUser) {
+    if (previewMode) {
+      editUser(nextUser);
+      showMessage(t("userAccess.previewReadOnly"));
+      return;
+    }
     setBusy(true);
     try {
       const saved = await api.updateAdminUser(nextUser.id, {
@@ -281,6 +318,10 @@ function UserAccessPage() {
 
   async function saveRole(event) {
     event.preventDefault();
+    if (previewMode) {
+      showMessage(t("userAccess.previewReadOnly"));
+      return;
+    }
     setBusy(true);
     try {
       const payload = {
@@ -317,6 +358,13 @@ function UserAccessPage() {
             </button>
           </div>
         </div>
+
+        {previewMode ? (
+          <div className="admin-preview-banner">
+            <strong>{t("userAccess.previewTitle")}</strong>
+            <span>{t("userAccess.previewMessage")}</span>
+          </div>
+        ) : null}
 
         {message ? <div className="notice-banner admin-inline-banner">{message}</div> : null}
         {error ? <div className="error-banner admin-inline-banner">{error}</div> : null}

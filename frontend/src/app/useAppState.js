@@ -7,8 +7,9 @@ import { useAppTransactionActions } from "../hooks/useAppTransactionActions";
 import { useLanguage } from "../i18n/LanguageContext";
 import { useAppMasterDataActions } from "../hooks/useAppMasterDataActions";
 import { useInventoryData } from "../hooks/useInventoryData";
+import { buildGuestAiReportResponse } from "./mockGuestHandlers";
 
-export function useAppState() {
+export function useAppState({ useMockOnly = false } = {}) {
   const { language, t } = useLanguage();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -97,6 +98,7 @@ export function useAppState() {
     creditNoteEligibleSales,
     creditNoteNextReferenceNo,
     usingMockCreditNotes,
+    isUsingMockData,
     loading,
     error,
     setError,
@@ -112,7 +114,7 @@ export function useAppState() {
     refreshBillingNoteEligibility,
     refreshPaymentBatchEligibility,
     refreshCreditNoteEligibility,
-  } = useInventoryData();
+  } = useInventoryData({ useMockOnly });
 
   // Auto-dismiss the error/warning toast after the same 5s as the success toast,
   // so every notification clears itself without a manual close.
@@ -141,13 +143,42 @@ export function useAppState() {
     api,
     t,
     setError,
+    mockMode: useMockOnly,
   });
 
   async function handleLoadProductHistory(productId) {
+    if (useMockOnly) {
+      const targetProductId = `${productId ?? ""}`;
+      const historyPurchases = purchases.filter((purchase) =>
+        (purchase.items || []).some((item) => `${item.product_id}` === targetProductId)
+      );
+      const historySales = sales.filter((sale) =>
+        (sale.items || []).some((item) => `${item.product_id}` === targetProductId)
+      );
+
+      return {
+        purchases: historyPurchases,
+        sales: historySales,
+        has_transaction_history: Boolean(historyPurchases.length || historySales.length),
+      };
+    }
+
     return api.getProductHistory(productId);
   }
 
   async function handleGenerateAiReport(payload) {
+    if (useMockOnly) {
+      return buildGuestAiReportResponse({
+        payload,
+        suppliers,
+        customers,
+        products,
+        purchases,
+        sales,
+        t,
+      });
+    }
+
     return api.generateAiReport(payload);
   }
 
@@ -393,6 +424,7 @@ export function useAppState() {
     creditNoteEligibleSales,
     creditNoteNextReferenceNo,
     usingMockCreditNotes,
+    isUsingMockData,
     loading,
     error,
     setError,

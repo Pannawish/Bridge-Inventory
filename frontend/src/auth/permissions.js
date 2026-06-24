@@ -58,15 +58,21 @@ export function canViewActivityLog(user) {
   );
 }
 
-export function canAccessTab(tabId, user, isGuest = false) {
+export function canAccessTab(tabId, user, isGuest = false, allowAdminPreview = false) {
   const permission = TAB_PERMISSION_MAP[tabId];
   if (permission === undefined) {
     return true;
   }
   if (permission === "__manage_users__") {
+    if (allowAdminPreview && isGuest) {
+      return true;
+    }
     return canManageUsers(user);
   }
   if (permission === "__view_activity_log__") {
+    if (allowAdminPreview && isGuest) {
+      return true;
+    }
     return canViewActivityLog(user);
   }
   if (isGuest) {
@@ -75,6 +81,6 @@ export function canAccessTab(tabId, user, isGuest = false) {
   return hasPermission(user, permission);
 }
 
-export function getVisibleTabs(tabs, user, isGuest = false) {
-  return tabs.filter((tab) => canAccessTab(tab.id, user, isGuest));
+export function getVisibleTabs(tabs, user, isGuest = false, allowAdminPreview = false) {
+  return tabs.filter((tab) => canAccessTab(tab.id, user, isGuest, allowAdminPreview));
 }

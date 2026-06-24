@@ -108,6 +108,7 @@ function ActiveTabContent({
   chatDetail,
   closeChatDetail,
   chatBusy,
+  isMockSystem,
   onViewPurchasesTab,
 }) {
   if (activeTab === "dashboard" && dashboard) {
@@ -298,11 +299,11 @@ function ActiveTabContent({
   }
 
   if (activeTab === "user-access") {
-    return <UserAccessPage />;
+    return <UserAccessPage previewMode={isMockSystem} />;
   }
 
   if (activeTab === "activity-log") {
-    return <ActivityLogPage />;
+    return <ActivityLogPage previewMode={isMockSystem} />;
   }
 
   if (activeTab === "products") {

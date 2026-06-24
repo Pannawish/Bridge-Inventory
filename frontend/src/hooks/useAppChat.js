@@ -4,7 +4,7 @@ function buildIntroMessage(t) {
   return { role: "assistant", content: t("app.messages.chatIntro") };
 }
 
-export function useAppChat({ api, t, setError }) {
+export function useAppChat({ api, t, setError, mockMode = false }) {
   const [chatBusy, setChatBusy] = useState(false);
   const [messages, setMessages] = useState([buildIntroMessage(t)]);
   const [chatDetail, setChatDetail] = useState({
@@ -51,6 +51,17 @@ export function useAppChat({ api, t, setError }) {
       return;
     }
 
+    if (mockMode) {
+      setChatDetail({
+        open: true,
+        loading: false,
+        error: t("chat.mockRecordPreview"),
+        target,
+        data: null,
+      });
+      return;
+    }
+
     const fetchers = {
       product: api.getProduct,
       purchase: api.getPurchase,
@@ -88,6 +99,19 @@ export function useAppChat({ api, t, setError }) {
     setError("");
 
     try {
+      if (mockMode) {
+        setMessages([
+          ...nextMessages,
+          {
+            role: "assistant",
+            content: t("chat.mockPreviewAnswer", { question }),
+            model: t("chat.mockPreviewModel"),
+            presentation: null,
+          },
+        ]);
+        return;
+      }
+
       const response = await api.askChat(question);
       setMessages([
         ...nextMessages,

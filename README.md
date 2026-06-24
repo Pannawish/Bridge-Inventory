@@ -23,7 +23,7 @@ Want to explore the user interface without running any local databases?
 
 > [!TIP]
 > **To Preview the App:**  
-> When the login page appears, simply click the secondary **"Continue as Guest"** button to instantly bypass credentials and explore the full app with pre-loaded mock datasets.
+> When the login page appears, simply click the secondary **"Preview as Guest"** button to instantly bypass credentials and explore the full app with pre-loaded mock datasets.
 
 *This preview is a frontend-only deployment, perfect for exploring the interface, navigation, and offline mock-data flows.*
 

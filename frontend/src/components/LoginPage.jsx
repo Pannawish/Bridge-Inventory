@@ -33,6 +33,12 @@ export function LoginPage() {
     }
   };
 
+  const handleContinueAsGuest = () => {
+    setError("");
+    setIsSubmitting(false);
+    continueAsGuest();
+  };
+
   return (
     <div className="login-viewport">
       <div className="login-card">
@@ -111,8 +117,7 @@ export function LoginPage() {
             <button
               type="button"
               className="login-btn login-btn-secondary"
-              onClick={continueAsGuest}
-              disabled={isSubmitting}
+              onClick={handleContinueAsGuest}
             >
               {t("login.guestButton")}
             </button>

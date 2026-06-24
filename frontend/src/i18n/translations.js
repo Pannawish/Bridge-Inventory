@@ -15,7 +15,7 @@ export const translations = {
       password: "Password",
       rememberMe: "Remember me",
       loginButton: "Sign In",
-      guestButton: "Continue as Guest",
+      guestButton: "Preview as Guest",
       invalidCredentials: "Invalid username or password",
       showPassword: "Show password",
       hidePassword: "Hide password",
@@ -25,6 +25,11 @@ export const translations = {
     app: {
       title: "Inventory",
       loadingInventoryData: "Loading inventory data...",
+      mockSystem: {
+        title: "Mock system",
+        message:
+          "This frontend is using mock data because the backend is not connected. Connect to the backend to experience the real system.",
+      },
       entities: {
         purchase: "Purchase",
         purchaseOrder: "Purchase order",
@@ -142,6 +147,10 @@ export const translations = {
       saveRole: "Save Role",
       roleCreated: "Role created.",
       roleUpdated: "Role updated.",
+      previewTitle: "Admin-only page preview",
+      previewMessage:
+        "In a real deployment, this page is accessible only to administrator-level users or users with user-access permission.",
+      previewReadOnly: "This is a static preview. Connect to the backend to manage real users and roles.",
       permissionActions: {
         view: "View",
         add: "Create",
@@ -227,6 +236,9 @@ export const translations = {
       errors: {
         loadFailed: "Could not load activity logs.",
       },
+      previewTitle: "Admin-only page preview",
+      previewMessage:
+        "In a real deployment, this page is accessible only to administrator-level users or users with activity-log permission.",
     },
     common: {
       cancel: "Cancel",
@@ -907,6 +919,18 @@ export const translations = {
       validationMissing: "Select a record and complete the date range before generating.",
       emptyResponse: "The report API did not return HTML.",
       generateFailed: "Failed to generate report.",
+      mockPrepared: "Frontend mock report",
+      mockPrint: "Print report",
+      mockSummaryTitle: "Summary",
+      mockChartTitle: "Chart overview",
+      mockRecommendationText:
+        "This guest preview uses frontend mock records to demonstrate the report layout, metrics, and chart presentation without connecting to the backend AI API.",
+      mockMetricSales: "Sales value",
+      mockMetricPurchases: "Purchase value",
+      mockMetricOpenSales: "Open sales",
+      mockMetricOpenPurchases: "Open purchases",
+      mockSourceNote:
+        "Guest mode is frontend-only. Connect to the backend and AI API to generate reports from live system records.",
     },
     chat: {
       eyebrow: "Natural Language Query",
@@ -925,6 +949,11 @@ export const translations = {
         "Use these examples when you need answers that match the current database. The assistant only answers inside this supported scope.",
       clearHistoryButton: "Clear history",
       clearHistoryBusy: "Wait until the current answer finishes before clearing history.",
+      mockPreviewAnswer:
+        "Guest mode is using frontend mock data only. For your question, \"{question}\", the real system would send the request to the backend AI assistant and answer from current inventory records.",
+      mockPreviewModel: "frontend-mock-preview",
+      mockRecordPreview:
+        "Record detail preview is unavailable in guest AI chat because guest mode does not connect to the backend.",
       instructionUseCases: [
         {
           title: "Stock and restock",
@@ -2551,7 +2580,7 @@ export const translations = {
       password: "รหัสผ่าน",
       rememberMe: "จดจำการเข้าสู่ระบบ",
       loginButton: "เข้าสู่ระบบ",
-      guestButton: "ดำเนินการต่อในฐานะผู้เยี่ยมชม",
+      guestButton: "ดูตัวอย่างในฐานะผู้เยี่ยมชม",
       invalidCredentials: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
       showPassword: "แสดงรหัสผ่าน",
       hidePassword: "ซ่อนรหัสผ่าน",
@@ -2561,6 +2590,11 @@ export const translations = {
     app: {
       title: "คลังสินค้า",
       loadingInventoryData: "กำลังโหลดข้อมูลคลังสินค้า...",
+      mockSystem: {
+        title: "ระบบจำลอง",
+        message:
+          "หน้าฟรอนต์เอนด์นี้กำลังใช้ข้อมูลจำลองเพราะไม่ได้เชื่อมต่อแบ็กเอนด์ หากต้องการใช้งานระบบจริงให้เชื่อมต่อกับแบ็กเอนด์",
+      },
       entities: {
         purchase: "ใบสั่งซื้อ",
         purchaseOrder: "ใบสั่งซื้อ",
@@ -2678,6 +2712,10 @@ export const translations = {
       saveRole: "บันทึกบทบาท",
       roleCreated: "สร้างบทบาทแล้ว",
       roleUpdated: "อัปเดตบทบาทแล้ว",
+      previewTitle: "ตัวอย่างหน้าสำหรับผู้ดูแล",
+      previewMessage:
+        "ในการใช้งานจริง หน้านี้เข้าถึงได้เฉพาะผู้ใช้ระดับผู้ดูแลหรือผู้ใช้ที่มีสิทธิ์จัดการสิทธิ์ผู้ใช้เท่านั้น",
+      previewReadOnly: "นี่เป็นตัวอย่างแบบคงที่ โปรดเชื่อมต่อแบ็กเอนด์เพื่อจัดการผู้ใช้และบทบาทจริง",
       permissionActions: {
         view: "ดู",
         add: "สร้าง",
@@ -2763,6 +2801,9 @@ export const translations = {
       errors: {
         loadFailed: "ไม่สามารถโหลดบันทึกกิจกรรมได้",
       },
+      previewTitle: "ตัวอย่างหน้าสำหรับผู้ดูแล",
+      previewMessage:
+        "ในการใช้งานจริง หน้านี้เข้าถึงได้เฉพาะผู้ใช้ระดับผู้ดูแลหรือผู้ใช้ที่มีสิทธิ์ดูบันทึกกิจกรรมเท่านั้น",
     },
     common: {
       cancel: "ยกเลิก",
@@ -3442,6 +3483,18 @@ export const translations = {
       validationMissing: "เลือกรายการและกรอกช่วงวันที่ให้ครบก่อนสร้างรายงาน",
       emptyResponse: "API รายงานไม่ได้ส่ง HTML กลับมา",
       generateFailed: "ไม่สามารถสร้างรายงานได้",
+      mockPrepared: "รายงานตัวอย่างจากข้อมูลจำลองฝั่งหน้าเว็บ",
+      mockPrint: "พิมพ์รายงาน",
+      mockSummaryTitle: "สรุป",
+      mockChartTitle: "ภาพรวมกราฟ",
+      mockRecommendationText:
+        "โหมดผู้เยี่ยมชมใช้ข้อมูลจำลองฝั่งหน้าเว็บเพื่อแสดงรูปแบบรายงาน ตัวชี้วัด และกราฟ โดยไม่เชื่อมต่อ backend หรือ AI API",
+      mockMetricSales: "มูลค่าขาย",
+      mockMetricPurchases: "มูลค่าซื้อ",
+      mockMetricOpenSales: "รายการขายที่ยังเปิดอยู่",
+      mockMetricOpenPurchases: "รายการซื้อที่ยังเปิดอยู่",
+      mockSourceNote:
+        "โหมดผู้เยี่ยมชมทำงานเฉพาะฝั่งหน้าเว็บ หากต้องการสร้างรายงานจากข้อมูลจริง ให้เชื่อมต่อ backend และ AI API",
     },
     chat: {
       eyebrow: "ค้นหาด้วยภาษาธรรมชาติ",
@@ -3460,6 +3513,11 @@ export const translations = {
         "ใช้ตัวอย่างเหล่านี้เมื่อต้องการคำตอบที่ตรงกับข้อมูลล่าสุดในฐานข้อมูล ผู้ช่วยจะตอบเฉพาะขอบเขตที่รองรับเท่านั้น",
       clearHistoryButton: "ล้างประวัติแชท",
       clearHistoryBusy: "รอให้คำตอบปัจจุบันเสร็จก่อนล้างประวัติแชท",
+      mockPreviewAnswer:
+        "โหมดผู้เยี่ยมชมใช้เฉพาะข้อมูลจำลองฝั่งหน้าเว็บเท่านั้น สำหรับคำถาม \"{question}\" ระบบจริงจะส่งคำถามไปยัง backend AI assistant และตอบจากข้อมูลคลังสินค้าปัจจุบัน",
+      mockPreviewModel: "frontend-mock-preview",
+      mockRecordPreview:
+        "ไม่สามารถแสดงรายละเอียดเอกสารจาก AI chat ในโหมดผู้เยี่ยมชมได้ เพราะโหมดนี้ไม่เชื่อมต่อ backend",
       instructionUseCases: [
         {
           title: "สต็อกและการเติมสินค้า",

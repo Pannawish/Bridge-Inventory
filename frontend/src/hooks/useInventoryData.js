@@ -6,6 +6,7 @@ import {
   createInitialDataRequests,
   createPagedCollectionLoader,
   applyInitialDataResults,
+  applyMockInitialData,
   filterLocalBillingNotes,
   filterLocalCreditNotes,
   filterLocalCustomers,
@@ -17,7 +18,7 @@ import {
 } from "./inventoryDataHelpers";
 import { buildInventoryDataSetters } from "./inventoryDataSetters";
 
-export function useInventoryData() {
+export function useInventoryData({ useMockOnly = false } = {}) {
   const [dashboard, setDashboard] = useState(null);
   const [products, setProducts] = useState([]);
   const [productRows, setProductRows] = useState([]);
@@ -298,9 +299,27 @@ export function useInventoryData() {
     [loadCreditNoteEligibility]
   );
 
+  const isUsingMockData =
+    usingMockSuppliers ||
+    usingMockCustomers ||
+    usingMockPurchases ||
+    usingMockSales ||
+    usingMockQuotations ||
+    usingMockCategories ||
+    usingMockProducts ||
+    usingMockBillingNotes ||
+    usingMockPaymentBatches ||
+    usingMockCreditNotes;
+
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError("");
+
+    if (useMockOnly) {
+      applyMockInitialData(inventoryDataSetters);
+      if (!silent) setLoading(false);
+      return;
+    }
 
     const results = await Promise.allSettled(createInitialDataRequests(api));
     const failures = applyInitialDataResults({
@@ -317,7 +336,7 @@ export function useInventoryData() {
     }
 
     if (!silent) setLoading(false);
-  }, [inventoryDataSetters]);
+  }, [inventoryDataSetters, useMockOnly]);
 
   return {
     dashboard,
@@ -383,6 +402,7 @@ export function useInventoryData() {
     creditNoteEligibleSales,
     creditNoteNextReferenceNo,
     usingMockCreditNotes,
+    isUsingMockData,
     loading,
     error,
     setError,

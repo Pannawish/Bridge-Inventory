@@ -6,6 +6,28 @@
   margin-bottom: 16px;
 }
 
+.admin-preview-banner {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid #dfe5f0;
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.admin-preview-banner strong {
+  font-size: 0.9rem;
+}
+
+.admin-preview-banner span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
 .admin-toolbar,
 .admin-filter-grid {
   display: grid;

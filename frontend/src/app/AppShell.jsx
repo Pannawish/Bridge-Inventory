@@ -16,12 +16,13 @@ function AppShell({
   onSelectTab,
   onCloseNotice,
   onCloseError,
+  isMockSystem,
   t,
   children,
 }) {
   const tabBadges = {};
   const { user, isGuest, logout } = useAuth();
-  const visibleTabs = getVisibleTabs(tabs, user, isGuest);
+  const visibleTabs = getVisibleTabs(tabs, user, isGuest, isMockSystem);
   const activeTabMeta = tabs.find((tab) => tab.id === activeTab) || visibleTabs[0] || tabs[0];
 
   return (
@@ -228,6 +229,13 @@ function AppShell({
                 </button>
               </div>
             ) : null}
+          </div>
+        ) : null}
+
+        {isMockSystem ? (
+          <div className="mock-system-banner" role="status">
+            <strong>{t("app.mockSystem.title")}</strong>
+            <span>{t("app.mockSystem.message")}</span>
           </div>
         ) : null}
 

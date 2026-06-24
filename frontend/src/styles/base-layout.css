@@ -356,6 +356,28 @@ textarea {
   width: min(100%, 1360px);
 }
 
+.mock-system-banner {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid #eadfac;
+  border-left: 4px solid var(--warning);
+  border-radius: 4px;
+  background: #fff9df;
+  color: var(--text);
+}
+
+.mock-system-banner strong {
+  font-size: 0.9rem;
+}
+
+.mock-system-banner span {
+  color: #6f5d1d;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
 @media (min-width: 1600px) {
   .main-panel {
     margin-left: 220px;

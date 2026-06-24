@@ -52,6 +52,13 @@ function useProductDetailState({
       return;
     }
 
+    if (purchases.length || sales.length) {
+      setStockLayers([]);
+      setStockLayersLoading(false);
+      setStockLayersError("");
+      return;
+    }
+
     let isMounted = true;
     async function fetchLayers() {
       setStockLayersLoading(true);
@@ -77,7 +84,7 @@ function useProductDetailState({
     return () => {
       isMounted = false;
     };
-  }, [viewingProduct?.id]);
+  }, [purchases.length, sales.length, viewingProduct?.id]);
 
   async function loadProductHistory(product) {
     const productId = `${product?.id ?? ""}`;

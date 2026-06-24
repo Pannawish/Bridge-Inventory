@@ -739,3 +739,11 @@ export function applyInitialDataResults({
 
   return failures;
 }
+
+export function applyMockInitialData(setters) {
+  const mockOnlyResult = { status: "rejected", reason: "mock-only" };
+  applyInitialDataResults({
+    results: Array.from({ length: 17 }, () => mockOnlyResult),
+    setters,
+  });
+}

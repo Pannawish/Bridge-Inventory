@@ -3,6 +3,7 @@ import { api } from "../../api";
 import { getLocale } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import PaginationControls from "../PaginationControls";
+import { previewActivityLogs } from "./adminPreviewData";
 
 const ACTIONS = ["create", "update", "delete", "login"];
 
@@ -53,7 +54,7 @@ function getObjectKey(objectType) {
   return `${objectType || ""}`.split(".").pop().toLowerCase();
 }
 
-function ActivityLogPage() {
+function ActivityLogPage({ previewMode = false }) {
   const { language, t } = useLanguage();
   const [logs, setLogs] = useState([]);
   const [pagination, setPagination] = useState(null);
@@ -77,6 +78,14 @@ function ActivityLogPage() {
   }, [logs, objectType]);
 
   async function loadLogs(nextPage = page) {
+    if (previewMode) {
+      setLogs(previewActivityLogs);
+      setPagination(null);
+      setPage(nextPage);
+      setSelectedLog((current) => current || previewActivityLogs[0] || null);
+      setError("");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -126,6 +135,13 @@ function ActivityLogPage() {
             {t("activityLog.refresh")}
           </button>
         </div>
+
+        {previewMode ? (
+          <div className="admin-preview-banner">
+            <strong>{t("activityLog.previewTitle")}</strong>
+            <span>{t("activityLog.previewMessage")}</span>
+          </div>
+        ) : null}
 
         {error ? <div className="error-banner admin-inline-banner">{error}</div> : null}
 

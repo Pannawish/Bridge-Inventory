@@ -8,38 +8,17 @@ import { canAccessTab } from "./auth/permissions";
 import { useLanguage } from "./i18n/LanguageContext";
 import { LoginPage } from "./components/LoginPage";
 
-function App() {
-  const state = useAppState();
-  const { isAuthenticated, isGuest, loading, user } = useAuth();
-  const { t } = useLanguage();
+function InventoryAppContent({ isGuest, user }) {
+  const state = useAppState({ useMockOnly: isGuest });
 
   useEffect(() => {
-    if (state.activeTab !== "settings" && !canAccessTab(state.activeTab, user, isGuest)) {
+    if (
+      state.activeTab !== "settings" &&
+      !canAccessTab(state.activeTab, user, isGuest, state.isUsingMockData)
+    ) {
       state.setActiveTab("dashboard");
     }
-  }, [isGuest, state.activeTab, state.setActiveTab, user]);
-
-  if (loading) {
-    return (
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "var(--bg)",
-        color: "var(--muted)",
-        fontSize: "0.875rem",
-        fontFamily: "Inter, sans-serif"
-      }}>
-        {t("app.loadingInventoryData")}
-      </div>
-    );
-  }
-
-  if (!isAuthenticated && !isGuest) {
-    return <LoginPage />;
-  }
+  }, [isGuest, state.activeTab, state.isUsingMockData, state.setActiveTab, user]);
 
   return (
     <>
@@ -56,6 +35,7 @@ function App() {
         onSelectTab={state.handleTabSelect}
         onCloseNotice={() => state.setNotice("")}
         onCloseError={() => state.setError("")}
+        isMockSystem={state.isUsingMockData}
         t={state.t}
       >
         <ActiveTabContent
@@ -150,6 +130,7 @@ function App() {
           chatDetail={state.chatDetail}
           closeChatDetail={state.closeChatDetail}
           chatBusy={state.chatBusy}
+          isMockSystem={state.isUsingMockData}
           onViewPurchasesTab={() => state.setActiveTab("purchase-history")}
         />
       </AppShell>
@@ -167,6 +148,35 @@ function App() {
       ) : null}
     </>
   );
+}
+
+function App() {
+  const { isAuthenticated, isGuest, loading, user } = useAuth();
+  const { t } = useLanguage();
+
+  if (loading) {
+    return (
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100vw",
+        height: "100vh",
+        backgroundColor: "var(--bg)",
+        color: "var(--muted)",
+        fontSize: "0.875rem",
+        fontFamily: "Inter, sans-serif"
+      }}>
+        {t("app.loadingInventoryData")}
+      </div>
+    );
+  }
+
+  if (!isAuthenticated && !isGuest) {
+    return <LoginPage />;
+  }
+
+  return <InventoryAppContent isGuest={isGuest} user={user} />;
 }
 
 export default App;
