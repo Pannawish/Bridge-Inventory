@@ -223,37 +223,125 @@ The second objective was to provide inventory stock information and calculation 
 
 The third objective was to integrate an AI chatbot connected to backend data. This objective is achieved within the current implemented scope. The assistant can answer supported read-only operational questions from backend data, but it is not a general-purpose chatbot and it does not change system records.
 
-\section{User Survey Evaluation}
-At the current stage, the user survey evaluation has not been conducted because no users have evaluated the software yet. This section is kept as a placeholder for the final blackbook after real users or classmates have tested the system.
+\section{Testing and Evaluation Results}
+The system was evaluated using three types of evidence: automated backend validation, manual scenario testing, and user questionnaire results. Automated tests were used for business rules that must be exact, such as stock calculation, eligibility, and AI output validation. Scenario testing and questionnaires were used to evaluate how users performed the main workflow and how they perceived the system.
+
+\subsection{Automated Backend Validation}
+The selected backend validation suite contained 30 black-box aligned automated test cases. These test cases covered valid and invalid workflows for product rules, quotation behavior, purchases, sale stock validation, billing note eligibility, payment batch eligibility, credit notes, and payable synchronization. The latest recorded run passed all 30 cases.
+
+Additional focused validation was performed for the reorder point calculation, AI Chat, and AI Report. The focused validation run contained 5 tests and all 5 passed. The reorder point test confirmed that fixed purchase and sale data produced the expected available stock, average cost, demand, safety stock, reorder level, recommended restock, days until stockout, and stock value. The AI tests confirmed that AI Chat uses backend facts, AI Report receives correct backend context, report charts are rendered from backend chart rows, and unsafe model HTML is removed before the report is returned.
 
 \begin{table}[H]
 	\centering
 	\small
 	\renewcommand{\arraystretch}{1.25}
 	\setlength{\tabcolsep}{4pt}
-	\caption{User Survey Evaluation Placeholder}
-	\label{tab:user-survey-placeholder}
-	\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+	\caption{Automated Validation Result Summary}
+	\label{tab:automated-validation-result-summary}
+	\begin{tabularx}{\textwidth}{|p{4cm}|p{2.3cm}|X|}
 		\hline
-		\textbf{Evaluation Item} & \textbf{Result} \\ \hline
-		Number of participants & TODO: Insert number of users who evaluated the system. \\ \hline
-		User group & TODO: Insert participant type, such as students, SME staff, or project reviewers. \\ \hline
-		Evaluation method & TODO: Insert survey method, rating scale, and evaluation questions. \\ \hline
-		Average score & TODO: Insert average usability or satisfaction score after the survey is completed. \\ \hline
-		User comments & TODO: Insert summarized feedback from users. \\ \hline
+		\textbf{Test Group} & \textbf{Result} & \textbf{Main Evidence} \\ \hline
+		Selected backend workflow tests & 30/30 passed & Product rules, quotation behavior, purchase workflow, sale stock validation, finance eligibility, credit notes, payment batches, and payable synchronization passed. \\ \hline
+		Reorder point calculation & Passed & The backend returned reorder level 48, recommended restock 18, days until stockout 15, and stock value 300 from fixed mock data. \\ \hline
+		AI Chat validation & Passed & AI Chat returned backend-based summaries for supported questions and rejected unsupported broad questions. \\ \hline
+		AI Report validation & Passed & Supplier, customer, and product reports used backend context, returned printable HTML, replaced poor model chart HTML with backend chart rows, and sanitized unsafe HTML. \\ \hline
 	\end{tabularx}
 \end{table}
 
-% TODO: Replace this placeholder with real user survey results after users evaluate the software.
+\subsection{Manual Scenario Test}
+The manual scenario test asked users to complete the main business flow from quotation to purchase, purchase receiving, payment batch, sale, credit note, and billing note. Ten testers completed the scenario test. Tester names were removed from the stored result file and replaced with anonymous labels for privacy.
+
+\begin{table}[H]
+	\centering
+	\small
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{4pt}
+	\caption{Scenario Test Participant Summary}
+	\label{tab:scenario-test-participant-summary}
+	\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+		\hline
+		\textbf{Item} & \textbf{Result} \\ \hline
+		Number of participants & 10 testers \\ \hline
+		Age range & 19 to 68 years old \\ \hline
+		Average age & 43.5 years old \\ \hline
+		Roles represented & SME-related users and general evaluators, including owner, manager, purchasing/sales staff, executives, and students. \\ \hline
+		Scenario parts & Part A to Part H, covering quotation, purchase, receiving, payment, sale, credit note, and billing note workflow. \\ \hline
+	\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+	\centering
+	\small
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{4pt}
+	\caption{Average Scenario Test Time and Score}
+	\label{tab:scenario-test-average-result}
+	\begin{tabularx}{\textwidth}{|p{2cm}|p{4cm}|p{4cm}|X|}
+		\hline
+		\textbf{Part} & \textbf{Average Time} & \textbf{Average Score} & \textbf{Interpretation} \\ \hline
+		Part A & 151.9 seconds & 9.0/10 & Initial quotation workflow took the longest because it starts the process and requires more data entry. \\ \hline
+		Part B & 71.8 seconds & 8.9/10 & Purchase creation from quotation was generally successful, but some users needed time to understand the flow. \\ \hline
+		Part C & 29.7 seconds & 9.5/10 & Receiving purchase items was one of the faster and clearer tasks. \\ \hline
+		Part D & 65.1 seconds & 9.5/10 & Payment-related workflow was completed with high scores. \\ \hline
+		Part E & 40.4 seconds & 9.2/10 & Sale-related checking was completed successfully, although some users needed to read more information. \\ \hline
+		Part F & 43.1 seconds & 8.9/10 & Status-related actions were completed, but comments showed that status buttons should be clearer. \\ \hline
+		Part G & 7.2 seconds & 9.3/10 & The shortest part, showing that the required action was quick once found. \\ \hline
+		Part H & 49.1 seconds & 9.4/10 & Final billing or finance-related workflow was completed with high scores. \\ \hline
+	\end{tabularx}
+\end{table}
+
+The average scenario score across all parts was 9.21 out of 10. This suggests that testers were generally able to complete the main workflow successfully. The lower relative scores in Part B and Part F match the written comments, where some users mentioned that quotation-to-purchase flow, sale form details, or status buttons needed clearer visual guidance.
+
+\subsection{Questionnaire Result}
+After the scenario test, testers answered a 15-item questionnaire using a 1 to 5 rating scale. The average questionnaire score across all testers was 4.58 out of 5. This indicates a positive overall response to the system.
+
+\begin{table}[H]
+	\centering
+	\small
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{4pt}
+	\caption{Questionnaire Result Summary}
+	\label{tab:questionnaire-result-summary}
+	\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+		\hline
+		\textbf{Evaluation Item} & \textbf{Result} \\ \hline
+		Number of questionnaire responses & 10 responses \\ \hline
+		Questionnaire items & 15 items \\ \hline
+		Rating scale & 1 to 5 \\ \hline
+		Average questionnaire score & 4.58/5 \\ \hline
+		General result & Users gave mostly high scores, showing that the system was understandable and usable after completing the scenario. \\ \hline
+	\end{tabularx}
+\end{table}
+
+\subsection{User Feedback Summary}
+The user comments showed several repeated themes. Positive feedback mentioned that purchase order status was understandable, quotation-to-purchase flow was useful, credit note creation could be simple, and connected data reduced the need for repeated entry. Improvement feedback focused mainly on visual clarity and consistency.
+
+\begin{table}[H]
+	\centering
+	\small
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{4pt}
+	\caption{User Feedback Themes}
+	\label{tab:user-feedback-themes}
+	\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+		\hline
+		\textbf{Theme} & \textbf{Summary of Feedback} \\ \hline
+		Easy areas & Users found purchase status, quotation creation, quotation-to-purchase flow, and connected data flow useful and understandable. \\ \hline
+		Difficult areas & Some users had difficulty finding buttons, especially save buttons, detail buttons, status buttons, and finance-related options such as billing notes or credit notes. \\ \hline
+		Visual clarity & Several comments suggested stronger colors, clearer status indicators, and more obvious emphasis for important actions or warning values. \\ \hline
+		Workflow consistency & Some users felt that clickable rows and save-button placement should be more consistent across pages. \\ \hline
+		Information density & Some users felt that certain pages, such as dashboard charts or cost information sections, contained many details and should be simplified or visually reorganized. \\ \hline
+	\end{tabularx}
+\end{table}
+
+Overall, the evaluation results show that the implemented system can support the intended business workflow, but the interface can still be improved by making important buttons, statuses, and financial actions easier to find.
 
 \section{Limitations Found During Development}
 The system is functional, but some limitations remain:
 
 \begin{itemize}
-	\item User survey results are currently placeholders because no users have evaluated the software yet.
 	\item Backend-wide authentication is configurable, so the final deployment setting must be checked before production use.
 	\item The frontend still keeps mock-data fallback behavior for demonstration, so final evaluation should use backend-connected data.
 	\item Large-scale production performance testing with many users and a very large database was not completed in the current codebase.
+	\item User testing was conducted with 10 participants, so the result is useful for project evaluation but not enough to represent all possible SME users.
 \end{itemize}
-
-% TODO: Insert final experiment results, user survey results, and performance notes if they become available.

@@ -361,6 +361,11 @@ The backend stock report calculates several useful inventory values for the dash
 \]
 
 \[
+\text{Lead Time Demand} =
+\text{Average Daily Demand} \times \text{Average Lead Time}
+\]
+
+\[
 \text{Safety Stock} =
 \text{Average Daily Demand} \times \text{Safety Stock Days}
 \]
@@ -371,10 +376,15 @@ The backend stock report calculates several useful inventory values for the dash
 \]
 
 \[
+\text{Order-up-to Level} =
+\text{Reorder Level} + \left\lceil \text{Lead Time Demand} \right\rceil
+\]
+
+\[
 \begin{aligned}
 \text{Recommended Restock}
 &= \max(0,\\
-&\quad \text{Reorder Level} + \text{Pending Sales}\\
+&\quad \text{Order-up-to Level} + \text{Pending Sales}\\
 &\quad + \text{Oversold Units}\\
 &\quad - \text{Available Stock} - \text{Pending Purchases})
 \end{aligned}
@@ -448,13 +458,33 @@ Testing was focused on backend behavior because the backend owns the most import
 		Product data & Product picture upload, active/disabled behavior, lookup data, stock filter, average cost, and product history. \\ \hline
 		Stock validation & Sales cannot commit more stock than available received purchase layers. \\ \hline
 		Stock allocation & FIFO allocation, manual allocation, and stock layer remaining quantity are handled correctly. \\ \hline
+		Reorder calculation & Fixed mock purchase and sale data is used to confirm available stock, average cost, lead time, daily demand, safety stock, reorder level, recommended restock, days until stockout, and stock value. \\ \hline
 		Finance eligibility & Billing notes, payment batches, and credit notes only use eligible records. \\ \hline
 		Financial synchronization & Purchase payable totals and payment batch line amounts stay consistent when purchases change. \\ \hline
 		Assistant scope & Supported questions return data-based answers, while unsupported questions are rejected as out of scope. \\ \hline
+		AI report output & Supplier, customer, and product report contexts are checked against backend data, and generated report HTML is sanitized and rendered with deterministic chart rows. \\ \hline
 	\end{tabularx}
 \end{table}
 
-% TODO: Insert final executed test logs, frontend build result, and audit result after the final verification run.
+The selected black-box aligned backend test suite contains 30 automated cases covering product validation, quotation behavior, purchase workflow, sale stock validation, finance eligibility, credit notes, payment batches, and payable synchronization. The latest recorded run passed all 30 cases. Additional focused validation was also run for the reorder point calculation, AI Chat, and AI Report. The focused validation run executed 5 tests and all 5 passed.
+
+\begin{table}[H]
+	\centering
+	\small
+	\renewcommand{\arraystretch}{1.25}
+	\setlength{\tabcolsep}{4pt}
+	\caption{Final Validation Test Evidence}
+	\label{tab:final-validation-test-evidence}
+	\begin{tabularx}{\textwidth}{|p{3.5cm}|p{2.2cm}|X|}
+		\hline
+		\textbf{Validation Item} & \textbf{Result} & \textbf{Evidence} \\ \hline
+		Selected backend workflow tests & 30/30 passed & The latest recorded black-box aligned backend run passed all selected cases with no failures. \\ \hline
+		Reorder point calculation & Passed & The fixed mock data returned available stock 60, average daily demand 4, safety stock 28, reorder level 48, recommended restock 18, days until stockout 15, and stock value 300. \\ \hline
+		AI Chat configured-key test & Passed & With an API key setting configured, AI Chat still returned a deterministic backend summary based on the created customer and sale records. \\ \hline
+		AI Report configured-key test & Passed & The report context contained the created supplier, purchase reference, and THB 450.00 amount, and the final HTML included a print button. \\ \hline
+		AI Report chart and safety tests & Passed & Model-generated chart HTML was replaced with backend chart rows, and unsafe HTML such as scripts, iframes, event handlers, and JavaScript links was removed. \\ \hline
+	\end{tabularx}
+\end{table}
 
 \section{Tools and Technologies Used}
 \begin{table}[H]

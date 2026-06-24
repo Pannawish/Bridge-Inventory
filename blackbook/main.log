@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  19 JUN 2026 19:18
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  24 JUN 2026 12:01
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1319,19 +1319,21 @@ Underfull \hbox (badness 10000) in paragraph at lines 5--124
 
 ]
 
-[7])
+[7]
+
+[8])
 \tf@toc=\write5
 \openout5 = `main.toc'.
 
 
 
-[8] (main.lot)
+[9] (main.lot)
 \tf@lot=\write6
 \openout6 = `main.lot'.
 
 
 
-[9
+[10
 
 ] (main.lof)
 \tf@lof=\write7
@@ -1339,7 +1341,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 5--124
 
 
 
-[10
+[11
 
 ] (chapter1.tex
 CHAPTER 1.
@@ -1438,91 +1440,116 @@ m/n/12 )
 [23]
 
 [24]
-Underfull \hbox (badness 10000) in paragraph at lines 454--454
+Underfull \hbox (badness 10000) in paragraph at lines 466--466
 []|\TU/TimesNewRoman(0)/m/n/10.95 Financial synchro-
  []
 
 
-Underfull \hbox (badness 1147) in paragraph at lines 479--479
+
+[25]
+Underfull \hbox (badness 10000) in paragraph at lines 486--486
+[]|\TU/TimesNewRoman(0)/m/n/10.95 Selected backend
+ []
+
+
+Underfull \hbox (badness 6141) in paragraph at lines 486--486
+[]|\TU/TimesNewRoman(0)/m/n/10.95 AI Chat configured-
+ []
+
+
+Underfull \hbox (badness 2698) in paragraph at lines 486--486
+[]|\TU/TimesNewRoman(0)/m/n/10.95 AI Report chart and
+ []
+
+
+Underfull \hbox (badness 1515) in paragraph at lines 486--486
+[]|\TU/TimesNewRoman(0)/m/n/10.95 Model-generated chart HTML was replaced with
+ []
+
+
+Underfull \hbox (badness 1742) in paragraph at lines 486--486
+\TU/TimesNewRoman(0)/m/n/10.95 backend chart rows, and unsafe HTML such as
+ []
+
+
+
+[26]
+Underfull \hbox (badness 1147) in paragraph at lines 509--509
 []|\TU/TimesNewRoman(0)/m/n/10 Runs the local development server and production
 
  []
 
 
-Underfull \hbox (badness 4621) in paragraph at lines 479--479
+Underfull \hbox (badness 4621) in paragraph at lines 509--509
 []|\TU/TimesNewRoman(0)/m/n/10 Django REST Frame-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 479--479
+Underfull \hbox (badness 10000) in paragraph at lines 509--509
 []|\TU/TimesNewRoman(0)/m/n/10 Django TestCase and
  []
 
 ) (chapter4.tex
 
-[25]
+[27]
 
-[26]
+[28]
 CHAPTER 4.
 
 
-[27
+[29
 
 ]
 
-[28]
+[30]
 File: ./figures/chap4/figure-4-1-dashboard.png Graphic file (type bmp)
 <./figures/chap4/figure-4-1-dashboard.png>
 
 
-[29]
+[31]
 File: ./figures/chap4/figure-4-2-inventory.png Graphic file (type bmp)
 <./figures/chap4/figure-4-2-inventory.png>
 
 
-[30]
+[32]
 File: ./figures/chap4/figure-4-3-ai-chat.png Graphic file (type bmp)
 <./figures/chap4/figure-4-3-ai-chat.png>
 
 
-[31]
+[33]
 File: ./figures/chap4/figure-4-4-ai-report.png Graphic file (type bmp)
 <./figures/chap4/figure-4-4-ai-report.png>
 
 
-[32]
+[34]
 File: ./figures/chap4/figure-4-5-product-form.png Graphic file (type bmp)
 <./figures/chap4/figure-4-5-product-form.png>
 File: ./figures/chap4/figure-4-6-purchase-workflow.png Graphic file (type bmp)
 <./figures/chap4/figure-4-6-purchase-workflow.png>
 
 
-[33]
+[35]
 File: ./figures/chap4/figure-4-7-sales-workflow.png Graphic file (type bmp)
 <./figures/chap4/figure-4-7-sales-workflow.png>
 
 
-[34]
+[36]
 File: ./figures/chap4/figure-4-8-quotation-workflow.png Graphic file (type bmp)
 
 <./figures/chap4/figure-4-8-quotation-workflow.png>
 
 
-[35]
+[37]
 File: ./figures/chap4/figure-4-9-billing-note-workflow.png Graphic file (type b
 mp)
 <./figures/chap4/figure-4-9-billing-note-workflow.png>
 
 
-[36]
+[38]
 File: ./figures/chap4/figure-4-10-payment-batch-workflow.png Graphic file (type
  bmp)
 <./figures/chap4/figure-4-10-payment-batch-workflow.png>
 
-
-[37]
-
-[38]
 
 [39]
 
@@ -1532,23 +1559,158 @@ File: ./figures/chap4/figure-4-10-payment-batch-workflow.png Graphic file (type
 
 [42]
 
-[43]) (chapter5.tex
+[43]
 
 [44]
+
+[45]
+Underfull \hbox (badness 3108) in paragraph at lines 248--248
+[]|\TU/TimesNewRoman(0)/m/n/10.95 Selected backend work-
+ []
+
+
+Underfull \hbox (badness 6252) in paragraph at lines 248--248
+[]|\TU/TimesNewRoman(0)/m/n/10.95 Product rules, quotation behavior, purchase
+ []
+
+
+Underfull \hbox (badness 1946) in paragraph at lines 248--248
+\TU/TimesNewRoman(0)/m/n/10.95 supported questions and rejected unsupported
+ []
+
+
+Underfull \hbox (badness 1527) in paragraph at lines 248--248
+[]|\TU/TimesNewRoman(0)/m/n/10.95 Supplier, customer, and product reports used
+ []
+
+
+
+[46]
+Underfull \hbox (badness 5592) in paragraph at lines 290--290
+\TU/TimesNewRoman(0)/m/n/10.95 because it starts the
+ []
+
+
+Underfull \hbox (badness 7907) in paragraph at lines 290--290
+\TU/TimesNewRoman(0)/m/n/10.95 process and requires
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+[]|\TU/TimesNewRoman(0)/m/n/10.95 Purchase creation
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+\TU/TimesNewRoman(0)/m/n/10.95 from quotation was
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+\TU/TimesNewRoman(0)/m/n/10.95 generally successful,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+[]|\TU/TimesNewRoman(0)/m/n/10.95 Receiving purchase
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+\TU/TimesNewRoman(0)/m/n/10.95 flow was completed
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+[]|\TU/TimesNewRoman(0)/m/n/10.95 Sale-related checking
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+\TU/TimesNewRoman(0)/m/n/10.95 was completed suc-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+\TU/TimesNewRoman(0)/m/n/10.95 cessfully, although
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+[]|\TU/TimesNewRoman(0)/m/n/10.95 Status-related actions
+ []
+
+
+Underfull \hbox (badness 6001) in paragraph at lines 290--290
+\TU/TimesNewRoman(0)/m/n/10.95 were completed, but
+ []
+
+
+Underfull \hbox (badness 3895) in paragraph at lines 290--290
+\TU/TimesNewRoman(0)/m/n/10.95 status buttons should
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+[]|\TU/TimesNewRoman(0)/m/n/10.95 The shortest part,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+\TU/TimesNewRoman(0)/m/n/10.95 showing that the
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+\TU/TimesNewRoman(0)/m/n/10.95 required action was
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+[]|\TU/TimesNewRoman(0)/m/n/10.95 Final billing or
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+\TU/TimesNewRoman(0)/m/n/10.95 finance-related work-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 290--290
+\TU/TimesNewRoman(0)/m/n/10.95 flow was completed
+ []
+
+
+
+[47]
+Overfull \vbox (131.5829pt too high) has occurred while \output is active []
+
+
+
+[48]
+Underfull \hbox (badness 10000) in paragraph at lines 313--313
+[]|\TU/TimesNewRoman(0)/m/n/10.95 Average questionnaire
+ []
+
+
+
+[49]) (chapter5.tex
+
+[50]
 CHAPTER 5.
 
 
-[45
+[51
 
 ]
 
-[46]
+[52]
 
-[47])
+[53])
 
-[48] (main.bbl)
+[54] (main.bbl)
 
-[49
+[55
 
 ] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
@@ -1564,12 +1726,12 @@ LaTeX Font Warning: Size substitutions with differences
 
  ) 
 Here is how much of TeX's memory you used:
- 24448 strings out of 402990
- 519856 string characters out of 5447323
- 1095600 words of memory out of 5000000
- 52702 multiletter control sequences out of 15000+600000
+ 24453 strings out of 402990
+ 520037 string characters out of 5447323
+ 1095730 words of memory out of 5000000
+ 52707 multiletter control sequences out of 15000+600000
  635046 words of font info for 112 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  88i,13n,107p,1127b,962s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (63 pages).
+Output written on main.pdf (70 pages).
