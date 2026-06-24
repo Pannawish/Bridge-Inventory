@@ -2,15 +2,20 @@ import json
 import logging
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
-from django.db import IntegrityError
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError, Q, Sum
 from django.utils import timezone
 from rest_framework import status, viewsets
-from rest_framework.decorators import api_view
+from rest_framework.decorators import action, api_view
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
+from .access_control import ensure_default_inventory_groups, get_managed_permission_options
+from .audit import log_activity, serialize_model_instance
 from .models import (
+    ActivityLog,
     BillingNote,
     BillingNoteLine,
     Category,
@@ -30,6 +35,9 @@ from .models import (
 )
 from .ai_reports import generate_ai_report
 from .serializers import (
+    ActivityLogSerializer,
+    AdminRoleSerializer,
+    AdminUserSerializer,
     BillingNoteSerializer,
     CategorySerializer,
     CreditNoteSerializer,
@@ -41,7 +49,9 @@ from .serializers import (
     QuotationSerializer,
     SaleSerializer,
     SupplierSerializer,
+    PermissionOptionSerializer,
 )
+from .permissions import CanViewActivityLog, InventoryModelPermissions, IsUserAccessAdmin
 from .services import (
     SALE_INACTIVE_ITEM_STATUSES,
     SALE_STOCK_DEDUCTED_STATUSES,
@@ -57,6 +67,26 @@ from .services import (
 
 
 logger = logging.getLogger(__name__)
+User = get_user_model()
+
+
+def serialize_admin_user_access(user):
+    snapshot = serialize_model_instance(user)
+    if user.pk:
+        snapshot["group_ids"] = list(user.groups.order_by("id").values_list("id", flat=True))
+        snapshot["permission_ids"] = list(
+            user.user_permissions.order_by("id").values_list("id", flat=True)
+        )
+    return snapshot
+
+
+def serialize_admin_role_access(group):
+    snapshot = serialize_model_instance(group)
+    if group.pk:
+        snapshot["permission_ids"] = list(
+            group.permissions.order_by("id").values_list("id", flat=True)
+        )
+    return snapshot
 
 NULL_IF_BLANK_FIELDS = {
     "expected_delivery_date",
@@ -435,6 +465,7 @@ def build_payment_batch_summary():
 
 class InventoryModelViewSet(viewsets.ModelViewSet):
     parser_classes = [JSONParser, FormParser, MultiPartParser]
+    permission_classes = [InventoryModelPermissions]
     lookup_value_regex = "[^/]+"
     search_fields = ()
     date_filter_field = None
@@ -525,9 +556,20 @@ class InventoryModelViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        log_activity(
+            self.request,
+            ActivityLog.ACTION_CREATE,
+            instance,
+            before={},
+            after=serialize_model_instance(instance),
+        )
+
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
+        self._audit_before_update = serialize_model_instance(instance)
 
         try:
             serializer = self.get_serializer(
@@ -554,6 +596,16 @@ class InventoryModelViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data)
 
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        log_activity(
+            self.request,
+            ActivityLog.ACTION_UPDATE,
+            instance,
+            before=getattr(self, "_audit_before_update", {}),
+            after=serialize_model_instance(instance),
+        )
+
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         try:
@@ -565,6 +617,18 @@ class InventoryModelViewSet(viewsets.ModelViewSet):
             )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def perform_destroy(self, instance):
+        before = serialize_model_instance(instance)
+        with transaction.atomic():
+            instance.delete()
+            log_activity(
+                self.request,
+                ActivityLog.ACTION_DELETE,
+                instance,
+                before=before,
+                after={},
+            )
 
 
 class CategoryViewSet(InventoryModelViewSet):
@@ -930,6 +994,176 @@ class PaymentBatchViewSet(AutoReferenceNumberMixin, InventoryModelViewSet):
     party_filter_field = "supplier_name"
     party_filter_param = "supplier"
     amount_filter_field = "total_amount"
+
+
+class AdminUserViewSet(viewsets.ModelViewSet):
+    serializer_class = AdminUserSerializer
+    permission_classes = [IsUserAccessAdmin]
+    lookup_value_regex = "[^/]+"
+
+    def get_queryset(self):
+        ensure_default_inventory_groups()
+        queryset = User.objects.prefetch_related("groups", "user_permissions").order_by(
+            "username"
+        )
+        params = self.request.query_params
+
+        search_query = (params.get("search") or params.get("q") or "").strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(username__icontains=search_query)
+                | Q(email__icontains=search_query)
+                | Q(first_name__icontains=search_query)
+                | Q(last_name__icontains=search_query)
+            )
+
+        active = (params.get("active") or "").strip().lower()
+        if active in {"true", "1", "yes"}:
+            queryset = queryset.filter(is_active=True)
+        elif active in {"false", "0", "no"}:
+            queryset = queryset.filter(is_active=False)
+
+        role_id = (params.get("role") or "").strip()
+        if role_id:
+            queryset = queryset.filter(groups__id=role_id)
+
+        return queryset.distinct()
+
+    def perform_create(self, serializer):
+        user = serializer.save()
+        log_activity(
+            self.request,
+            ActivityLog.ACTION_CREATE,
+            user,
+            before={},
+            after=serialize_admin_user_access(user),
+        )
+
+    def perform_update(self, serializer):
+        before = serialize_admin_user_access(serializer.instance)
+        user = serializer.save()
+        log_activity(
+            self.request,
+            ActivityLog.ACTION_UPDATE,
+            user,
+            before=before,
+            after=serialize_admin_user_access(user),
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        user = self.get_object()
+        if user.id == request.user.id:
+            return Response(
+                {"error": "You cannot delete your own account."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
+
+    def perform_destroy(self, instance):
+        before = serialize_admin_user_access(instance)
+        with transaction.atomic():
+            instance.delete()
+            log_activity(
+                self.request,
+                ActivityLog.ACTION_DELETE,
+                instance,
+                before=before,
+                after={},
+            )
+
+
+class AdminRoleViewSet(viewsets.ModelViewSet):
+    serializer_class = AdminRoleSerializer
+    permission_classes = [IsUserAccessAdmin]
+    queryset = Group.objects.prefetch_related("permissions__content_type").order_by("name")
+
+    def get_queryset(self):
+        ensure_default_inventory_groups()
+        queryset = super().get_queryset()
+        search_query = (self.request.query_params.get("search") or "").strip()
+        if search_query:
+            queryset = queryset.filter(name__icontains=search_query)
+        return queryset
+
+    def perform_create(self, serializer):
+        role = serializer.save()
+        log_activity(
+            self.request,
+            ActivityLog.ACTION_CREATE,
+            role,
+            before={},
+            after=serialize_admin_role_access(role),
+        )
+
+    def perform_update(self, serializer):
+        before = serialize_admin_role_access(serializer.instance)
+        role = serializer.save()
+        log_activity(
+            self.request,
+            ActivityLog.ACTION_UPDATE,
+            role,
+            before=before,
+            after=serialize_admin_role_access(role),
+        )
+
+    def perform_destroy(self, instance):
+        before = serialize_admin_role_access(instance)
+        with transaction.atomic():
+            instance.delete()
+            log_activity(
+                self.request,
+                ActivityLog.ACTION_DELETE,
+                instance,
+                before=before,
+                after={},
+            )
+
+    @action(detail=False, methods=["get"], url_path="permission-options")
+    def permission_options(self, request):
+        permissions = get_managed_permission_options()
+        serializer = PermissionOptionSerializer(permissions, many=True)
+        return Response(serializer.data)
+
+
+class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ActivityLogSerializer
+    permission_classes = [CanViewActivityLog]
+    queryset = ActivityLog.objects.select_related("user").all()
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        params = self.request.query_params
+
+        search_query = (params.get("search") or params.get("q") or "").strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(actor_username__icontains=search_query)
+                | Q(object_type__icontains=search_query)
+                | Q(object_id__icontains=search_query)
+                | Q(object_repr__icontains=search_query)
+                | Q(summary__icontains=search_query)
+            )
+
+        action_value = (params.get("action") or "").strip()
+        if action_value:
+            queryset = queryset.filter(action=action_value)
+
+        user_id = (params.get("user") or "").strip()
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+
+        object_type = (params.get("object_type") or "").strip()
+        if object_type:
+            queryset = queryset.filter(object_type=object_type)
+
+        date_from = (params.get("date_from") or params.get("from") or "").strip()
+        date_to = (params.get("date_to") or params.get("to") or "").strip()
+        if date_from:
+            queryset = queryset.filter(created_at__date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(created_at__date__lte=date_to)
+
+        return queryset
 
 
 @api_view(["GET"])

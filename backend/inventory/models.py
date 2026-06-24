@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -94,6 +95,10 @@ def credit_note_id():
 
 def credit_note_line_id():
     return make_prefixed_id("credit-note-line")
+
+
+def activity_log_id():
+    return make_prefixed_id("activity")
 
 
 def list_default():
@@ -947,3 +952,47 @@ class CreditNoteLine(models.Model):
 
     def __str__(self):
         return f"{self.credit_note_id} / {self.product_name}"
+
+
+class ActivityLog(models.Model):
+    ACTION_CREATE = "create"
+    ACTION_UPDATE = "update"
+    ACTION_DELETE = "delete"
+    ACTION_LOGIN = "login"
+
+    ACTION_CHOICES = [
+        (ACTION_CREATE, "Create"),
+        (ACTION_UPDATE, "Update"),
+        (ACTION_DELETE, "Delete"),
+        (ACTION_LOGIN, "Login"),
+    ]
+
+    id = models.CharField(max_length=80, primary_key=True, default=activity_log_id)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="inventory_activity_logs",
+        blank=True,
+        null=True,
+    )
+    actor_username = models.CharField(max_length=150, blank=True)
+    action = models.CharField(max_length=40, choices=ACTION_CHOICES)
+    object_type = models.CharField(max_length=120, db_index=True)
+    object_id = models.CharField(max_length=120, blank=True, db_index=True)
+    object_repr = models.CharField(max_length=255, blank=True)
+    summary = models.TextField(blank=True)
+    changes = models.JSONField(default=dict, blank=True)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    user_agent = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "created_at"], name="inv_act_user_created"),
+            models.Index(fields=["action", "created_at"], name="inv_act_action_created"),
+            models.Index(fields=["object_type", "created_at"], name="inv_act_object_created"),
+        ]
+
+    def __str__(self):
+        return self.summary or f"{self.action} {self.object_type} {self.object_id}"

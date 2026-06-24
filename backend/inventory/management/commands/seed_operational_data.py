@@ -2222,6 +2222,23 @@ class Command(BaseCommand):
             if creditable_items:
                 sales_with_creditable_items.append((sale, creditable_items))
 
+        if billing_notes_by_sale_id and not any(
+            sale.id in billing_notes_by_sale_id for sale, _ in sales_with_creditable_items
+        ):
+            # Guarantee at least one post-billing return path for demos/tests:
+            # a credit note linked to a billing note should always exist.
+            billed_sale = None
+            for sale_id in billing_notes_by_sale_id:
+                billed_sale = Sale.objects.filter(id=sale_id).prefetch_related("items").first()
+                if billed_sale and billed_sale.items.exists():
+                    break
+
+            if billed_sale:
+                returned_item = billed_sale.items.first()
+                returned_item.item_status = SaleItem.ITEM_RETURNED
+                returned_item.save(update_fields=["item_status"])
+                sales_with_creditable_items.append((billed_sale, [returned_item]))
+
         sales_with_creditable_items.sort(
             key=lambda row: (
                 0 if row[0].id in billing_notes_by_sale_id else 1,

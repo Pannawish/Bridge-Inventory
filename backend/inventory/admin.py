@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import (
+    ActivityLog,
     Category,
     Customer,
     Product,
@@ -16,6 +17,33 @@ from .models import (
     SaleItem,
     Supplier,
 )
+
+
+@admin.register(ActivityLog)
+class ActivityLogAdmin(admin.ModelAdmin):
+    list_display = ["created_at", "actor_username", "action", "object_type", "object_repr"]
+    list_filter = ["action", "object_type", "created_at"]
+    search_fields = ["actor_username", "object_type", "object_id", "object_repr", "summary"]
+    readonly_fields = [
+        "id",
+        "user",
+        "actor_username",
+        "action",
+        "object_type",
+        "object_id",
+        "object_repr",
+        "summary",
+        "changes",
+        "ip_address",
+        "user_agent",
+        "created_at",
+    ]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 class ProductUnitConversionInline(admin.TabularInline):

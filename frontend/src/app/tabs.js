@@ -3,6 +3,7 @@ export const tabGroups = [
   { id: "purchasing", labelKey: "sidebar.groupPurchasing" },
   { id: "sales", labelKey: "sidebar.groupSales" },
   { id: "records", labelKey: "sidebar.groupRecords" },
+  { id: "administration", labelKey: "sidebar.groupAdministration" },
 ];
 
 export const tabs = [
@@ -103,5 +104,19 @@ export const tabs = [
     label: "Customer",
     shortLabel: "CU",
     description: "Customer contact records, branches, billing notes, and shipping details.",
+  },
+  {
+    id: "user-access",
+    group: "administration",
+    label: "User Access",
+    shortLabel: "UA",
+    description: "Create users and manage role-based access.",
+  },
+  {
+    id: "activity-log",
+    group: "administration",
+    label: "Activity Log",
+    shortLabel: "AL",
+    description: "Review user activity and record changes.",
   },
 ];

@@ -105,6 +105,22 @@ const icons = {
       <rect x="15.5" y="12" width="2" height="2" rx=".4" />
     </>
   ),
+  "user-access": (
+    <>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M19 8v6" />
+      <path d="M16 11h6" />
+    </>
+  ),
+  "activity-log": (
+    <>
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+      <polyline points="14 3 14 9 20 9" />
+      <line x1="8" y1="13" x2="16" y2="13" />
+      <line x1="8" y1="17" x2="13" y2="17" />
+    </>
+  ),
   settings: (
     <>
       <circle cx="12" cy="12" r="3" />

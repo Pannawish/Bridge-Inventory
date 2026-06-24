@@ -13,6 +13,8 @@ import PaymentBatchPage from "../components/PaymentBatchPage";
 import CreditNotePage from "../components/CreditNotePage";
 import SettingsPage from "../components/SettingsPage";
 import AiReportPage from "../components/AiReportPage";
+import ActivityLogPage from "../components/admin/ActivityLogPage";
+import UserAccessPage from "../components/admin/UserAccessPage";
 
 function ActiveTabContent({
   activeTab,
@@ -293,6 +295,14 @@ function ActiveTabContent({
         onDeleteCustomer={handleCustomerDelete}
       />
     );
+  }
+
+  if (activeTab === "user-access") {
+    return <UserAccessPage />;
+  }
+
+  if (activeTab === "activity-log") {
+    return <ActivityLogPage />;
   }
 
   if (activeTab === "products") {

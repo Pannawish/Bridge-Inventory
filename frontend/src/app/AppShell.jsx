@@ -1,6 +1,7 @@
 import TabIcon from "../components/TabIcon";
 import { tabs, tabGroups } from "./tabs";
 import { useAuth } from "../auth/AuthContext";
+import { getVisibleTabs } from "../auth/permissions";
 
 function AppShell({
   activeTab,
@@ -18,9 +19,10 @@ function AppShell({
   t,
   children,
 }) {
-  const activeTabMeta = tabs.find((tab) => tab.id === activeTab) || tabs[0];
   const tabBadges = {};
   const { user, isGuest, logout } = useAuth();
+  const visibleTabs = getVisibleTabs(tabs, user, isGuest);
+  const activeTabMeta = tabs.find((tab) => tab.id === activeTab) || visibleTabs[0] || tabs[0];
 
   return (
     <div
@@ -67,7 +69,7 @@ function AppShell({
 
           <nav className="sidebar-nav">
             {tabGroups.map((group) => {
-              const groupTabs = tabs.filter((tab) => tab.group === group.id);
+              const groupTabs = visibleTabs.filter((tab) => tab.group === group.id);
               if (!groupTabs.length) {
                 return null;
               }

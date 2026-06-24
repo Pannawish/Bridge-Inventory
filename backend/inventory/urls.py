@@ -16,6 +16,9 @@ router.register("quotations", views.QuotationViewSet, basename="quotation")
 router.register("billing-notes", views.BillingNoteViewSet, basename="billing-note")
 router.register("payment-batches", views.PaymentBatchViewSet, basename="payment-batch")
 router.register("credit-notes", views.CreditNoteViewSet, basename="credit-note")
+router.register("admin/users", views.AdminUserViewSet, basename="admin-user")
+router.register("admin/roles", views.AdminRoleViewSet, basename="admin-role")
+router.register("activity-logs", views.ActivityLogViewSet, basename="activity-log")
 
 urlpatterns = [
     path("", views.api_home, name="api_home"),

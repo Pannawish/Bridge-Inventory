@@ -302,6 +302,36 @@ export const api = {
   generateAiReport(payload) {
     return request("/ai-reports/", { method: "POST", body: payload });
   },
+  getAdminUsers(params) {
+    return request("/admin/users/", { params });
+  },
+  createAdminUser(payload) {
+    return request("/admin/users/", { method: "POST", body: payload });
+  },
+  updateAdminUser(id, payload) {
+    return request(`/admin/users/${id}/`, { method: "PATCH", body: payload });
+  },
+  deleteAdminUser(id) {
+    return request(`/admin/users/${id}/`, { method: "DELETE" });
+  },
+  getAdminRoles(params) {
+    return request("/admin/roles/", { params });
+  },
+  createAdminRole(payload) {
+    return request("/admin/roles/", { method: "POST", body: payload });
+  },
+  updateAdminRole(id, payload) {
+    return request(`/admin/roles/${id}/`, { method: "PATCH", body: payload });
+  },
+  deleteAdminRole(id) {
+    return request(`/admin/roles/${id}/`, { method: "DELETE" });
+  },
+  getPermissionOptions() {
+    return request("/admin/roles/permission-options/");
+  },
+  getActivityLogs(params) {
+    return request("/activity-logs/", { params });
+  },
   login(username, password) {
     return request("/auth/login/", { method: "POST", body: { username, password } });
   },

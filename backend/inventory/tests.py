@@ -6,6 +6,8 @@ from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group, Permission
 from django.core.management import call_command
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models import Q
@@ -14,6 +16,7 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from .models import (
+    ActivityLog,
     BillingNote,
     BillingNoteLine,
     Category,
@@ -44,6 +47,7 @@ from .services import (
 
 
 TEST_MEDIA_ROOT = tempfile.mkdtemp()
+User = get_user_model()
 
 
 @override_settings(INVENTORY_DEFAULT_PAGE_SIZE=2, INVENTORY_MAX_PAGE_SIZE=3)
@@ -319,6 +323,126 @@ class InventoryPaginationTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["companyName"], "Alpha Supplies")
+
+
+class ActivityLogApiTests(APITestCase):
+    def test_create_and_update_are_logged_with_changed_fields(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            create_response = self.client.post(
+                "/api/products/",
+                {
+                    "sku": "AUDIT-1",
+                    "productName": "Audit Product",
+                },
+                format="json",
+            )
+
+        self.assertEqual(create_response.status_code, 201)
+        product_id = create_response.data["id"]
+        create_log = ActivityLog.objects.get(action=ActivityLog.ACTION_CREATE)
+        self.assertEqual(create_log.object_type, "inventory.Product")
+        self.assertEqual(create_log.object_id, product_id)
+        self.assertEqual(create_log.changes["sku"]["after"], "AUDIT-1")
+
+        with self.captureOnCommitCallbacks(execute=True):
+            update_response = self.client.patch(
+                f"/api/products/{product_id}/",
+                {"productName": "Renamed Audit Product"},
+                format="json",
+            )
+
+        self.assertEqual(update_response.status_code, 200)
+        update_log = ActivityLog.objects.filter(action=ActivityLog.ACTION_UPDATE).first()
+        self.assertIsNotNone(update_log)
+        self.assertEqual(
+            update_log.changes["product_name"],
+            {
+                "before": "Audit Product",
+                "after": "Renamed Audit Product",
+            },
+        )
+
+    def test_activity_log_endpoint_is_admin_only(self):
+        response = self.client.get("/api/activity-logs/")
+
+        self.assertEqual(response.status_code, 401)
+
+
+class UserAccessAdminApiTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="StrongPass123!",
+        )
+
+    def test_regular_user_cannot_list_admin_users(self):
+        user = User.objects.create_user(username="worker", password="StrongPass123!")
+        self.client.force_authenticate(user=user)
+
+        response = self.client.get("/api/admin/users/")
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_can_create_user_and_assign_role(self):
+        self.client.force_authenticate(user=self.admin)
+        roles_response = self.client.get("/api/admin/roles/")
+
+        self.assertEqual(roles_response.status_code, 200)
+        sales_role = Group.objects.get(name="Sales")
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                "/api/admin/users/",
+                {
+                    "username": "sales-user",
+                    "email": "sales@example.com",
+                    "password": "StrongPass123!",
+                    "role_ids": [sales_role.id],
+                    "is_active": True,
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 201)
+        created_user = User.objects.get(username="sales-user")
+        self.assertTrue(created_user.check_password("StrongPass123!"))
+        self.assertTrue(created_user.groups.filter(id=sales_role.id).exists())
+        self.assertTrue(
+            ActivityLog.objects.filter(
+                action=ActivityLog.ACTION_CREATE,
+                object_type="auth.User",
+                object_id=str(created_user.id),
+            ).exists()
+        )
+
+
+@override_settings(INVENTORY_REQUIRE_AUTH=True)
+class InventoryPermissionEnforcementTests(APITestCase):
+    def setUp(self):
+        Product.objects.create(sku="PERM-1", product_name="Permission Product")
+
+    def test_user_without_view_permission_cannot_list_products(self):
+        user = User.objects.create_user(username="no-view", password="StrongPass123!")
+        self.client.force_authenticate(user=user)
+
+        response = self.client.get("/api/products/")
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_user_with_view_permission_can_list_products(self):
+        user = User.objects.create_user(username="viewer", password="StrongPass123!")
+        permission = Permission.objects.get(
+            content_type__app_label="inventory",
+            codename="view_product",
+        )
+        user.user_permissions.add(permission)
+        self.client.force_authenticate(user=user)
+
+        response = self.client.get("/api/products/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]["sku"], "PERM-1")
 
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)

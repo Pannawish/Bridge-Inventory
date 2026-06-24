@@ -1,15 +1,23 @@
+import { useEffect } from "react";
 import ActiveTabContent from "./app/ActiveTabContent";
 import AppShell from "./app/AppShell";
 import CreditNotePrompt from "./components/CreditNotePrompt";
 import { useAppState } from "./app/useAppState";
 import { useAuth } from "./auth/AuthContext";
+import { canAccessTab } from "./auth/permissions";
 import { useLanguage } from "./i18n/LanguageContext";
 import { LoginPage } from "./components/LoginPage";
 
 function App() {
   const state = useAppState();
-  const { isAuthenticated, isGuest, loading } = useAuth();
+  const { isAuthenticated, isGuest, loading, user } = useAuth();
   const { t } = useLanguage();
+
+  useEffect(() => {
+    if (state.activeTab !== "settings" && !canAccessTab(state.activeTab, user, isGuest)) {
+      state.setActiveTab("dashboard");
+    }
+  }, [isGuest, state.activeTab, state.setActiveTab, user]);
 
   if (loading) {
     return (
