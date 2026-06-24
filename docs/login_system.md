@@ -1,154 +1,291 @@
-# Bridge Inventory — Authentication & Login System
+# Bridge Inventory — Authentication, Access Control, and Activity Log
 
-This document explains the architecture, endpoints, and flow of the Django + React JWT login system implemented in Bridge Inventory.
+This document describes the current login flow, permission model, admin user-management APIs, and activity logging implemented in Bridge Inventory.
 
----
+## 1. Overview
 
-## 1. Overview & Business Model
+Bridge Inventory uses Django authentication, Django groups and permissions, Django REST Framework, and Simple JWT.
 
-Bridge Inventory is built for small-to-medium enterprise (SME) middleman businesses (e.g., family-owned reselling businesses). Because of this:
-- **No Self-Registration**: There is no public signup or registration page. Only the business owner (admin/superuser) can create accounts or assign permissions via the Django Admin panel.
-- **Guest Mode Bypass**: To allow developer velocity during coding and review without needing credentials, a **"Continue as Guest"** option is integrated.
-- **Autoritative Backend Validation**: Setting the environment variable `INVENTORY_REQUIRE_AUTH=True` enforces login across all REST API endpoints. When `False` (default for development), endpoints default to `AllowAny`, and Guest mode is fully supported.
+Key design points:
 
----
+- There is no self-registration flow.
+- Accounts are created by administrators.
+- JWT access and refresh tokens are used for frontend API access.
+- Guest mode still exists for local development and review.
+- Detailed backend permission enforcement is enabled only when `INVENTORY_REQUIRE_AUTH=True`.
+- Activity logging records logins and create/update/delete operations.
 
-## 2. Architecture & Flow
+## 2. Authentication Model
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Dev as User / Developer
-    participant FE as React Frontend
-    participant BE as Django Backend
+The system uses:
 
-    Dev->>FE: Open App
-    FE->>FE: Check tokens or guest session
-    alt Has Active Guest Session
-        FE->>FE: Bypass Login Page
-        FE->>Dev: Show App Dashboard
-    else Has Refresh Token
-        FE->>BE: POST /api/auth/refresh/ (With Refresh Token)
-        alt Token Valid
-            BE-->>FE: Return new Access Token
-            FE->>BE: GET /api/auth/me/ (With Access Token)
-            BE-->>FE: Return User Profile
-            FE->>Dev: Show App Dashboard
-        else Token Expired
-            BE-->>FE: Return 401 Unauthorized
-            FE->>FE: Clear Tokens & Session
-            FE->>Dev: Show Login Page
-        end
-    else No Tokens & No Guest Session
-        FE->>Dev: Show Login Page
-    end
+- Django `User` for account identity, password hashing, `is_staff`, and `is_superuser`
+- Django `Group` for role-style access management
+- Django `Permission` for endpoint authorization
+- DRF `JWTAuthentication` for Bearer-token API access
+- Simple JWT for token issue and refresh
+
+When `INVENTORY_REQUIRE_AUTH=False`:
+
+- API endpoints keep the project’s development-friendly behavior
+- guest mode remains usable
+- detailed Django model-permission checks are not enforced
+
+When `INVENTORY_REQUIRE_AUTH=True`:
+
+- login is required for API use
+- model viewsets enforce Django `view` / `add` / `change` / `delete` permissions
+- admin user-management and activity-log APIs require authenticated admin access
+
+## 3. Backend Configuration
+
+Main backend settings live in [backend/config/settings.py](./../backend/config/settings.py).
+
+Relevant configuration:
+
+- `rest_framework_simplejwt` is installed
+- DRF default authentication is `rest_framework_simplejwt.authentication.JWTAuthentication`
+- access token lifetime is 30 minutes
+- refresh token lifetime is 7 days
+- default permission mode switches on `INVENTORY_REQUIRE_AUTH`
+
+The project also adds a custom permission layer in:
+
+- [backend/inventory/permissions.py](./../backend/inventory/permissions.py)
+- [backend/inventory/access_control.py](./../backend/inventory/access_control.py)
+
+`InventoryModelPermissions` extends Django model permissions so REST operations map to:
+
+- `GET` -> `view_*`
+- `POST` -> `add_*`
+- `PATCH` / `PUT` -> `change_*`
+- `DELETE` -> `delete_*`
+
+## 4. Authentication Endpoints
+
+Defined in [backend/config/urls.py](./../backend/config/urls.py) and [backend/inventory/auth_views.py](./../backend/inventory/auth_views.py):
+
+- `POST /api/auth/login/`
+  - handled by `InventoryTokenObtainPairView`
+  - validates username and password
+  - returns `access` and `refresh` tokens
+  - writes an activity-log entry for successful sign-in
+
+- `POST /api/auth/refresh/`
+  - accepts a refresh token
+  - returns a new access token
+
+- `GET /api/auth/me/`
+  - returns current-user profile data, groups, permissions, and admin capability flags
+
+Current `/api/auth/me/` response shape includes fields like:
+
+```json
+{
+  "id": 1,
+  "username": "admin",
+  "email": "admin@example.com",
+  "first_name": "System",
+  "last_name": "Admin",
+  "is_staff": true,
+  "is_superuser": true,
+  "groups": [
+    { "id": 1, "name": "Admin" }
+  ],
+  "permissions": [
+    "inventory.view_product",
+    "inventory.change_product"
+  ],
+  "can_manage_users": true,
+  "can_view_activity_log": true
+}
 ```
 
----
+## 5. Frontend Login Flow
 
-## 3. Backend Implementation
+Frontend auth state is handled in [frontend/src/auth/AuthContext.jsx](./../frontend/src/auth/AuthContext.jsx).
 
-### A. Dependencies
-Added `djangorestframework-simplejwt` to handle JSON Web Tokens (JWT).
+It exposes:
 
-### B. Configuration (`backend/config/settings.py`)
-- Registered `"rest_framework_simplejwt"` in `INSTALLED_APPS`.
-- Configured Simple JWT defaults:
-  - **Access Token Lifetime**: 30 minutes (kept relatively short for security).
-  - **Refresh Token Lifetime**: 7 days.
-  - **Authentication Header**: `Bearer <token>`.
-- Configured `REST_FRAMEWORK` default authentication and permissions:
-  ```python
-  REST_FRAMEWORK = {
-      ...
-      "DEFAULT_PERMISSION_CLASSES": [
-          "rest_framework.permissions.IsAuthenticated"
-          if INVENTORY_REQUIRE_AUTH
-          else "rest_framework.permissions.AllowAny"
-      ],
-      "DEFAULT_AUTHENTICATION_CLASSES": [
-          "rest_framework_simplejwt.authentication.JWTAuthentication",
-      ],
-  }
-  ```
+- `user`
+- `isGuest`
+- `isAuthenticated`
+- `loading`
+- `login(username, password, rememberMe)`
+- `logout()`
+- `continueAsGuest()`
 
-### C. Authentication Endpoints
-All authentication URLs are managed in `backend/config/urls.py`:
-- `POST /api/auth/login/` (Simple JWT default): Validates credentials and returns an `access` and `refresh` token pair.
-- `POST /api/auth/refresh/` (Simple JWT default): Accepts a valid `refresh` token and returns a fresh `access` token.
-- `GET /api/auth/me/` (Custom endpoint in `backend/inventory/auth_views.py`): Returns active user info:
-  ```json
-  {
-    "id": 1,
-    "username": "admin",
-    "email": "admin@example.com",
-    "is_staff": true,
-    "is_superuser": true
-  }
-  ```
+Request handling is centralized in [frontend/src/api.js](./../frontend/src/api.js).
 
----
+Behavior:
 
-## 4. Frontend Implementation
+1. Login posts credentials to `/api/auth/login/`
+2. Access and refresh tokens are stored
+3. Frontend loads `/api/auth/me/`
+4. API requests automatically send `Authorization: Bearer <access>`
+5. On `401`, the frontend attempts silent refresh through `/api/auth/refresh/`
+6. If refresh fails, the frontend clears auth state and returns to the login page
 
-### A. State Provider (`frontend/src/auth/AuthContext.jsx`)
-Exposes the session states and credentials functions:
-- `user`: Object containing active user details (`{ username, email, is_superuser, ... }`) or `null`.
-- `isGuest`: `true` if bypass mode is selected.
-- `isAuthenticated`: `true` if logged in via JWT.
-- `login(username, password, rememberMe)`: Performs credentials post-back, saves tokens, and loads user profile.
-- `logout()`: Clears all tokens, guest keys, and resets state.
-- `continueAsGuest()`: Commits a transient guest bypass flag.
+Storage rules:
 
-### B. Token Storage & "Remember Me"
-- **Remember Me Checked**: Tokens are stored in `localStorage` (persists indefinitely across browser restarts).
-- **Remember Me Unchecked**: Tokens are stored in `sessionStorage` (cleared instantly when the browser tab is closed).
-- **Guest Mode Session**: Guest mode is tracked via `sessionStorage.getItem("inventory_is_guest")`, meaning opening a new tab or restarting the browser prompts the login page again.
+- `rememberMe=true` -> tokens stored in `localStorage`
+- `rememberMe=false` -> tokens stored in `sessionStorage`
+- guest mode flag stored in `sessionStorage` as `inventory_is_guest`
 
-### C. HTTP Request Interceptor (`frontend/src/api.js`)
-All API calls using `request()` automatically handle JWT headers and silent token renewals:
+## 6. User Access and Roles
 
-1. **Authorization Headers**:
-   When an access token exists in storage, the interceptor automatically appends:
-   `Authorization: Bearer <token>`
-   
-2. **Silent Background Token Refresh (401 Interceptor)**:
-   If a request encounters a `401 Unauthorized` status code, the client checks if a `refresh` token is available.
-   - If a refresh token is present, it suspends the original request, fetches a new `access` token from `/api/auth/refresh/`, updates storage, and transparently retries the original request with the new header.
-   - If the refresh token is expired or the refresh endpoint rejects, it triggers a custom `"auth-expired"` event which signals `AuthContext` to instantly wipe the local state and return to the login interface.
+The project now includes app-level user administration, not just Django’s built-in `/admin/`.
 
----
+Backend APIs:
 
-## 5. Bilingual Support (i18n)
+- `GET/POST /api/admin/users/`
+- `PATCH/DELETE /api/admin/users/<id>/`
+- `GET/POST /api/admin/roles/`
+- `PATCH/DELETE /api/admin/roles/<id>/`
+- `GET /api/admin/roles/permission-options/`
 
-All elements on the Login page are translated. Strings are keyed inside `frontend/src/i18n/translations.js` under `login.*` and rendered via the `t()` helper. Language switching can be executed directly from the footer of the login card.
+Frontend pages:
 
----
+- `Administration -> User Access`
+- `Administration -> Activity Log`
 
-## 6. How to Configure & Run
+Frontend files:
 
-### A. Enforcing Authenticated Requests (Production/Staging)
-By default, the backend operates in open/development mode. To enforce authentication rules globally:
-1. Open the backend environment file (`backend/.env`).
-2. Add or update the variable:
-   ```env
-   INVENTORY_REQUIRE_AUTH=True
-   ```
-3. Restart your Django development server. All API endpoints will now reject requests lacking a valid Bearer token.
+- [frontend/src/components/admin/UserAccessPage.jsx](./../frontend/src/components/admin/UserAccessPage.jsx)
+- [frontend/src/components/admin/ActivityLogPage.jsx](./../frontend/src/components/admin/ActivityLogPage.jsx)
+- [frontend/src/auth/permissions.js](./../frontend/src/auth/permissions.js)
 
-### B. Creating Accounts (Staff/Owners)
-Use the standard Django Admin CLI:
+Default role groups are created automatically if missing:
+
+- `Admin`
+- `Manager`
+- `Sales`
+- `Purchasing`
+- `Accounting`
+- `Viewer`
+
+Important behavior:
+
+- role membership is stored through Django `Group`
+- role permissions are stored through Django `Permission`
+- admins can customize role permissions from the app
+- the helper only seeds missing default groups; it does not overwrite edited role permissions
+
+## 7. Sidebar and UI Permission Behavior
+
+Sidebar visibility is permission-aware.
+
+Implemented in:
+
+- [frontend/src/app/tabs.js](./../frontend/src/app/tabs.js)
+- [frontend/src/app/AppShell.jsx](./../frontend/src/app/AppShell.jsx)
+- [frontend/src/App.jsx](./../frontend/src/App.jsx)
+- [frontend/src/auth/permissions.js](./../frontend/src/auth/permissions.js)
+
+Behavior:
+
+- admin-only tabs such as `User Access` and `Activity Log` are hidden unless the current user can access them
+- if a user loses access to the currently active tab, the app falls back to `dashboard`
+- frontend hiding is convenience only; backend permission enforcement remains authoritative when auth is required
+
+## 8. Activity Logging
+
+Activity logging is implemented in:
+
+- [backend/inventory/models.py](./../backend/inventory/models.py)
+- [backend/inventory/audit.py](./../backend/inventory/audit.py)
+- [backend/inventory/views.py](./../backend/inventory/views.py)
+
+Tracked actions:
+
+- successful login
+- create
+- update
+- delete
+
+Tracked details include:
+
+- user
+- actor username snapshot
+- action
+- object type
+- object id
+- object display snapshot
+- summary text
+- field-level `before` / `after` changes
+- IP address
+- user agent
+- created timestamp
+
+The activity-log API is:
+
+- `GET /api/activity-logs/`
+
+It supports filtering by:
+
+- `search`
+- `action`
+- `object_type`
+- `user`
+- `date_from`
+- `date_to`
+
+The logger intentionally skips sensitive fields such as password- or token-like fields.
+
+## 9. Superuser and Admin Rules
+
+Current behavior:
+
+- a user cannot delete their own account through the admin user API
+- only a superuser can change another user’s `is_superuser` flag
+- staff or superusers can access user-management pages and APIs
+- activity-log access is available to user-access admins and users with `inventory.view_activitylog`
+
+## 10. Setup and Operations
+
+### Apply database changes
+
+```bash
+backend/.venv/bin/python backend/manage.py migrate
+```
+
+This is required for the `ActivityLog` table.
+
+### Create an initial admin account
+
 ```bash
 backend/.venv/bin/python backend/manage.py createsuperuser
 ```
-Follow the prompts to enter a username, email, and password. This account can then log in via [http://localhost:5173/](http://localhost:5173/).
 
-### C. Running Verification Tests
-Ensure the authentication and authorization middleware runs correctly:
-```bash
-# Run backend tests
-backend/.venv/bin/python backend/manage.py test inventory
+### Enforce login and permissions
 
-# Run frontend build checks
-cd frontend && npm run build
+Set in `backend/.env`:
+
+```env
+INVENTORY_REQUIRE_AUTH=True
 ```
+
+Restart Django after changing it.
+
+## 11. Verification
+
+Fast checks used for the current auth/access/activity implementation:
+
+```bash
+backend/.venv/bin/python backend/manage.py check
+backend/.venv/bin/python backend/manage.py makemigrations --check --dry-run
+backend/.venv/bin/python backend/manage.py test inventory.tests.ActivityLogApiTests inventory.tests.UserAccessAdminApiTests inventory.tests.InventoryPermissionEnforcementTests inventory.tests.LookupEligibilityTests.test_product_delete_without_transaction_history_succeeds inventory.tests.SeedOperationalDataCommandTests.test_seeded_operational_data_matches_current_workflows
+```
+
+Frontend verification:
+
+```bash
+cd frontend
+npm run build
+npm audit --audit-level=moderate
+```
+
+## 12. Current Limitations
+
+- Detailed model-permission enforcement applies to DRF model viewsets. Custom function-based endpoints such as dashboard, lookup, eligibility, chat, and AI-report endpoints are still controlled mainly by authentication, not by fine-grained module permissions.
+- Guest mode is still intentionally present for development when `INVENTORY_REQUIRE_AUTH=False`.
