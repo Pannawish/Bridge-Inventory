@@ -222,9 +222,9 @@ The third objective was to integrate an AI chatbot connected to backend data. Th
 The system was evaluated using three types of evidence: automated backend validation, manual scenario testing, and user questionnaire results. Automated tests were used for business rules that must be exact, such as stock calculation, eligibility, and AI output validation. Scenario testing and questionnaires were used to evaluate how users performed the main workflow and how they perceived the system.
 
 \subsection{Automated Backend Validation}
-The selected backend validation suite contained 30 black-box aligned automated test cases. These test cases covered valid and invalid workflows for product rules, quotation behavior, purchases, sale stock validation, billing note eligibility, payment batch eligibility, credit notes, and payable synchronization. The latest recorded run passed all 30 cases.
+The selected backend validation history contained 30 black-box aligned automated test cases. These test cases were selected for presentation because they are easy to explain as user-facing workflow tests. They covered valid and invalid workflows for product rules, quotation behavior, purchases, sale stock validation, billing note eligibility, payment batch eligibility, credit notes, and payable synchronization. The latest recorded run passed all 30 cases.
 
-Additional focused validation was performed for the reorder point calculation, AI Chat, and AI Report. The focused validation run contained 5 tests and all 5 passed. The reorder point test confirmed that fixed purchase and sale data produced the expected available stock, average cost, demand, safety stock, reorder level, recommended restock, days until stockout, and stock value. The AI tests confirmed that AI Chat uses backend facts, AI Report receives correct backend context, report charts are rendered from backend chart rows, and unsafe model HTML is removed before the report is returned.
+Additional focused validation was performed for the reorder point calculation, AI Chat, AI Report, user access, permission enforcement, and activity logging. The focused AI and calculation validation run contained 5 tests and all 5 passed. A separate user-access and activity-log validation run contained 6 tests and all 6 passed. The reorder point test confirmed that fixed purchase and sale data produced the expected available stock, average cost, demand, safety stock, reorder level, recommended restock, days until stockout, and stock value. The AI tests confirmed that AI Chat uses backend facts, AI Report receives correct backend context, report charts are rendered from backend chart rows, and unsafe model HTML is removed before the report is returned. The access tests confirmed that ordinary users cannot open administrator user endpoints, administrators can create users and assign roles, protected model APIs enforce permissions when authentication enforcement is enabled, and activity-log access is restricted.
 
 \begin{table}[!htbp]
 	\centering
@@ -238,6 +238,7 @@ Additional focused validation was performed for the reorder point calculation, A
 		Reorder point calculation & Passed & The backend returned reorder level 48, recommended restock 18, days until stockout 15, and stock value 300 from fixed mock data. \\ \hline
 		AI Chat validation & Passed & AI Chat returned backend-based summaries for supported questions and rejected unsupported broad questions. \\ \hline
 		AI Report validation & Passed & Supplier, customer, and product reports used backend context, returned printable HTML, replaced poor model chart HTML with backend chart rows, and sanitized unsafe HTML. \\ \hline
+		User access and activity log validation & 6/6 passed & Regular users were blocked from administrator endpoints, administrators could create users and assign roles, model permissions controlled protected access, and activity-log access was restricted. \\ \hline
 	\end{tabularx}
 \end{table}
 

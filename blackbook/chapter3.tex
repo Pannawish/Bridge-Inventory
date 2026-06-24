@@ -464,7 +464,7 @@ Testing was designed to check both technical correctness and user workflow under
 \subsection{Automated Backend Validation Method}
 Automated backend validation was conducted with Django and Django REST Framework test cases. The tests used a temporary test database, created controlled records, called backend APIs or service functions, and compared the returned values with expected behavior. This method was used because backend rules must still be correct even if a user bypasses the frontend and calls the API directly.
 
-The automated suite covered product validation, quotation behavior, purchase workflow, sales stock validation, finance eligibility, credit notes, payment batches, payable synchronization, lookup endpoints, filters, and pagination. The test command used for the backend suite was:
+The preserved black-box test history contains a selected 30-case workflow suite for presentation. That selected suite covered product validation, quotation behavior, purchase workflow, sales stock validation, finance eligibility, credit notes, payment batches, payable synchronization, lookup endpoints, filters, and pagination. The current backend test coverage also includes additional focused tests for reorder calculation, AI Chat, AI Report, user access, permission enforcement, and activity logging. The test command used for the backend suite was:
 
 \begin{verbatim}
 backend/.venv/bin/python backend/manage.py test inventory
@@ -481,6 +481,7 @@ backend/.venv/bin/python backend/manage.py test inventory
 		Test data & Controlled products, suppliers, customers, purchases, sales, quotations, billing notes, payment batches, and credit notes were created inside the test database. \\ \hline
 		Test action & The test cases called backend endpoints or backend service functions, similar to how the frontend sends requests during real use. \\ \hline
 		Expected output & The returned API data, status codes, calculated values, and validation errors were compared with the expected business rules. \\ \hline
+		Access-control checks & User-access tests checked that ordinary users cannot open administrator endpoints, administrators can create users and assign roles, permissions control protected API access, and activity-log access is restricted. \\ \hline
 		Reason for method & Automated tests are repeatable and suitable for checking exact rules such as stock validation, eligibility, and financial synchronization. \\ \hline
 	\end{tabularx}
 \end{table}
