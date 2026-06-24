@@ -10,17 +10,15 @@ The project objectives focused on three main goals: recording purchase and sales
 
 The implemented system meets these goals within the current project scope. Purchases and sales support status tracking and documents. Inventory stock is calculated from received purchases and committed sales. The assistant can answer supported read-only questions, but it cannot create or edit records.
 
-% TODO: Review this section after the final objective wording is approved by the project authors and supervisor.
-
 \section{System Design Summary}
 The system was designed as a three-layer web application. The frontend handles the pages and user interaction. The backend handles APIs, validation, stock rules, eligibility rules, dashboard summaries, and assistant context. The database stores the actual business records using relational tables.
 
 This design was useful because it keeps important business rules on the backend. The frontend can make the system easier to use, but the backend still controls the rules that protect stock, billing, supplier payments, and credit notes.
 
 \section{Implementation Summary}
-The frontend implementation includes pages for dashboard, inventory, AI chat, AI report, purchases, payment batches, quotations, sales, billing notes, credit notes, products, categories, suppliers, and customers. It also includes a shared API client, authentication handling, pagination support, filters, modals, document references, bilingual text, and mock-data fallback for development.
+The frontend implementation includes pages for dashboard, inventory, AI chat, AI report, purchases, payment batches, quotations, sales, billing notes, credit notes, products, categories, suppliers, and customers. It also includes a shared API client, basic authentication handling, pagination support, filters, modals, document references, bilingual text, and mock-data fallback for development.
 
-The backend implementation includes Django models, serializers, viewsets, service functions, dashboard endpoints, lookup endpoints, eligibility endpoints, authentication endpoints, AI report generation, management commands, and backend tests. The most important backend logic includes stock calculation, stock allocation, sale stock validation, purchase payable calculation, finance eligibility, assistant answer preparation, and AI report context building.
+The backend implementation includes Django models, serializers, viewsets, service functions, dashboard endpoints, lookup endpoints, eligibility endpoints, basic authentication endpoints, AI report generation, management commands, and backend tests. The most important backend logic includes stock calculation, stock allocation, sale stock validation, purchase payable calculation, finance eligibility, assistant answer preparation, and AI report context building.
 
 \section{Result Summary}
 The final result is a working inventory management system that connects the main trading workflows. A received purchase can increase stock, a committed sale can reduce stock, a billing note can track money expected from a customer, and a payment batch can track money that needs to be paid to a supplier.
@@ -46,7 +44,7 @@ Future work should stay focused on practical improvements:
 
 \begin{enumerate}
 	\item Continue user testing with a larger and more diverse group of SME users.
-	\item Add role-based permissions if the system will be used by staff with different responsibilities.
+	\item Add role-based permissions and user administration screens if the system will be used by staff with different responsibilities.
 	\item Add clearer audit history for important status changes such as purchase receiving, sale delivery, billing receipt, and supplier payment.
 	\item Improve deployment testing with larger data and more users before real production use.
 \end{enumerate}

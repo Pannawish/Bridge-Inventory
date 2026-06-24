@@ -100,6 +100,8 @@ The customer page was developed for maintaining customer master data. It stores 
 \subsection{Login and Settings Support}
 The frontend includes login-related behavior through the authentication context and API client. The backend provides Simple JWT login, refresh, and authenticated profile endpoints. The frontend stores tokens in local storage or session storage depending on the login option, refreshes access tokens, and logs out when authentication expires. The backend-wide requirement for authentication can be turned on through the \texttt{INVENTORY\_REQUIRE\_AUTH} environment setting.
 
+In the current scope, the login system is implemented as a basic authentication wrapper. It can protect API access when authentication enforcement is enabled, but it does not include role-based permission levels, user administration screens, or different access rules for different staff responsibilities.
+
 \section{System Architecture}
 The system uses a three-tier web architecture. React is responsible for the user interface, Django REST Framework provides the API and business rules, and MySQL stores the relational records. The frontend does not connect directly to the database. Every important action goes through the API.
 
@@ -431,7 +433,7 @@ Quotation validity is calculated from the quotation date and validity setting. I
 \section{Validation and Security Design}
 Validation is handled mainly by the backend. The frontend helps the user by showing form messages and previews, but direct API calls still need to be safe. The backend validates stock availability, active product usage, allocation rules, document eligibility, quotation validity dates, and finance document selection rules.
 
-Security support is implemented with Simple JWT. The backend exposes login, token refresh, and authenticated profile endpoints. The frontend stores and refreshes tokens, then attaches the access token to API requests. In local development, the backend can allow unauthenticated access depending on \texttt{INVENTORY\_REQUIRE\_AUTH}; when that setting is enabled, API access requires authentication.
+Security support is implemented with Simple JWT. The backend exposes login, token refresh, and authenticated profile endpoints. The frontend stores and refreshes tokens, then attaches the access token to API requests. In local development, the backend can allow unauthenticated access depending on \texttt{INVENTORY\_REQUIRE\_AUTH}; when that setting is enabled, API access requires authentication. This should be understood as basic authentication support, not a complete access-control system, because role-based permissions and user management are not implemented in the current project scope.
 
 \section{Testing Methodology}
 Testing was designed to check both technical correctness and user workflow understanding. The technical tests focused on backend behavior because the backend owns the most important business rules, including stock calculation, stock validation, finance eligibility, payable synchronization, and AI data preparation. Manual testing and questionnaires were added to check whether users could complete the main business workflow and understand the interface.
@@ -581,6 +583,8 @@ The questionnaire was used as a supporting evaluation method. It did not replace
 \end{table}
 
 \section{Tools and Technologies Used}
+The project used separate tools for frontend development, backend development, database storage, authentication, AI integration, styling, and testing. These tools were selected to support a full-stack web application with server-side business rules and a React-based user interface.
+
 \begin{table}[!htbp]
 	\centering
 	\BlackbookTableSetup
@@ -594,7 +598,7 @@ The questionnaire was used as a supporting evaluation method. It did not replace
 		Backend framework & Django 5 & Provides project structure, ORM, migrations, settings, and backend application logic. \\ \hline
 		API framework & Django REST Framework & Provides serializers, viewsets, API views, JSON responses, parsers, and API tests. \\ \hline
 		Database & MySQL & Stores relational inventory, transaction, and finance data. \\ \hline
-		Authentication & Simple JWT & Provides access and refresh token authentication. \\ \hline
+		Authentication & Simple JWT & Provides basic access and refresh token authentication; role-based permissions are outside the current scope. \\ \hline
 		AI integration & OpenAI API with local fallback & Supports read-only assistant answers when configured, with local summary fallback when no API key is available. \\ \hline
 		Styling & CSS files by domain & Provides the compact inventory system interface. \\ \hline
 		Testing & Django TestCase and DRF APITestCase & Validates backend business rules and API behavior. \\ \hline

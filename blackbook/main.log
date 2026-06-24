@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  24 JUN 2026 12:56
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  24 JUN 2026 13:13
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1356,18 +1356,18 @@ CHAPTER 1.
 
 [2]
 
+[3]
+
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10> not avail
 able
-(Font)              size <12> substituted on input line 53.
+(Font)              size <12> substituted on input line 52.
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <5> not availa
 ble
-(Font)              size <12> substituted on input line 56.
+(Font)              size <12> substituted on input line 55.
 
-
-
-[3]) (chapter2.tex
+) (chapter2.tex
 
 [4]
 CHAPTER 2.
@@ -1401,7 +1401,7 @@ CHAPTER 3.
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10.95> not av
 ailable
-(Font)              size <12> substituted on input line 128.
+(Font)              size <12> substituted on input line 130.
 
 
 
@@ -1432,71 +1432,71 @@ ailable
 [27]
 
 [28]
-Underfull \hbox (badness 1314) in paragraph at lines 546--547
+Underfull \hbox (badness 1314) in paragraph at lines 548--549
 []\TU/TimesNewRoman(0)/m/n/12 During the test, each participant followed the sc
 enario steps and
  []
 
-) (chapter4.tex
 
-[29]
+
+[29]) (chapter4.tex
 
 [30]
+
+[31]
 CHAPTER 4.
 File: ./figures/chap4/figure-4-1-dashboard.png Graphic file (type bmp)
 <./figures/chap4/figure-4-1-dashboard.png>
 
 
-[31
+[32
 
 ]
 
-[32]
+[33]
 File: ./figures/chap4/figure-4-2-inventory.png Graphic file (type bmp)
 <./figures/chap4/figure-4-2-inventory.png>
 
 
-[33]
+[34]
 File: ./figures/chap4/figure-4-3-ai-chat.png Graphic file (type bmp)
 <./figures/chap4/figure-4-3-ai-chat.png>
 
 
-[34]
+[35]
 File: ./figures/chap4/figure-4-4-ai-report.png Graphic file (type bmp)
 <./figures/chap4/figure-4-4-ai-report.png>
 
 
-[35]
+[36]
 File: ./figures/chap4/figure-4-5-product-form.png Graphic file (type bmp)
 <./figures/chap4/figure-4-5-product-form.png>
 File: ./figures/chap4/figure-4-6-purchase-workflow.png Graphic file (type bmp)
 <./figures/chap4/figure-4-6-purchase-workflow.png>
 
 
-[36]
+[37]
 File: ./figures/chap4/figure-4-7-sales-workflow.png Graphic file (type bmp)
 <./figures/chap4/figure-4-7-sales-workflow.png>
 
 
-[37]
+[38]
 File: ./figures/chap4/figure-4-8-quotation-workflow.png Graphic file (type bmp)
 
 <./figures/chap4/figure-4-8-quotation-workflow.png>
 
 
-[38]
+[39]
 File: ./figures/chap4/figure-4-9-billing-note-workflow.png Graphic file (type b
 mp)
 <./figures/chap4/figure-4-9-billing-note-workflow.png>
 
 
-[39]
+[40]
 File: ./figures/chap4/figure-4-10-payment-batch-workflow.png Graphic file (type
  bmp)
 <./figures/chap4/figure-4-10-payment-batch-workflow.png>
 
-
-[40]
 
 [41]
 
@@ -1516,27 +1516,29 @@ File: ./figures/chap4/figure-4-10-payment-batch-workflow.png Graphic file (type
 
 [49]
 
-[50]) (chapter5.tex
+[50]
 
-[51]
+[51]) (chapter5.tex
 
 [52]
 
 [53]
+
+[54]
 CHAPTER 5.
 
 
-[54
+[55
 
 ]
 
-[55]
+[56]
 
-[56])
+[57])
 
-[57] (main.bbl)
+[58] (main.bbl)
 
-[58
+[59
 
 ] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
@@ -1553,11 +1555,11 @@ LaTeX Font Warning: Size substitutions with differences
  ) 
 Here is how much of TeX's memory you used:
  24460 strings out of 402990
- 520200 string characters out of 5447323
+ 520205 string characters out of 5447323
  1106214 words of memory out of 5000000
  52717 multiletter control sequences out of 15000+600000
  633776 words of font info for 104 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  88i,13n,107p,1127b,962s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (74 pages).
+Output written on main.pdf (75 pages).

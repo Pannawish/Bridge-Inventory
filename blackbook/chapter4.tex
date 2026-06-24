@@ -67,7 +67,6 @@ Figure~\ref{fig:dashboard-page} is the first thing the user sees after logging i
 
 Figure~\ref{fig:inventory-page} is the daily stock-checking workspace. It shows how many units are on hand, which products need reordering, which suppliers offer the best price, and how quickly each item is selling. All of this is calculated by the backend so the numbers stay reliable.
 
-% TODO: Replace placeholder filename with actual AI chat screenshot.
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.95\textwidth]{figure-4-3-ai-chat.png}
@@ -78,7 +77,6 @@ Figure~\ref{fig:inventory-page} is the daily stock-checking workspace. It shows 
 
 Figure~\ref{fig:ai-chat-page} shows the AI chat page where users can type natural-language questions about stock, partners, receivables, payables, or document references. The assistant reads real data from the backend and returns a focused answer, so users can get quick insights without navigating through multiple pages or filtering tables manually.
 
-% TODO: Replace placeholder filename with actual AI report screenshot.
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.95\textwidth]{figure-4-4-ai-report.png}
@@ -192,7 +190,7 @@ The AI report page was completed with scope selection, record selection, optiona
 		\hline
 		\textbf{Feature} & \textbf{Evidence in the Implemented System} \\ \hline
 		REST API communication & The frontend API client calls endpoints for dashboard, lookups, products, purchases, sales, quotations, billing notes, payment batches, credit notes, authentication, and chat. \\ \hline
-		JWT authentication support & The backend provides login, refresh, and profile endpoints, and the frontend stores and refreshes access tokens. \\ \hline
+		Basic JWT authentication support & The backend provides login, refresh, and profile endpoints, and the frontend stores and refreshes access tokens. Role-based access control is not included in the current scope. \\ \hline
 		Backend stock validation & The sale workflow calls backend validation before stock-deducting sale statuses are committed. \\ \hline
 		FIFO and manual allocation & The backend creates sale allocations from received purchase layers and validates manual layer selections. \\ \hline
 		Finance eligibility & Backend endpoints return only eligible sales for billing notes, eligible purchases for payment batches, and eligible sale lines for credit notes. \\ \hline
@@ -435,6 +433,7 @@ The system is functional, but some limitations remain:
 
 \begin{itemize}
 	\item Backend-wide authentication is configurable, so the final deployment setting must be checked before production use.
+	\item The login system is a basic authentication wrapper. It does not include role-based permission levels or user administration screens in the current scope.
 	\item The frontend still keeps mock-data fallback behavior for demonstration, so final evaluation should use backend-connected data.
 	\item Large-scale production performance testing with many users and a very large database was not completed in the current codebase.
 	\item User testing was conducted with 10 participants, so the result is useful for project evaluation but not enough to represent all possible SME users.

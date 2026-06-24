@@ -8,7 +8,6 @@ Many small businesses still depend on spreadsheets, paper records, manual docume
 This project was created to bring those daily tasks into one web application. The Inventory Management System focuses on the main workflow of a trading business: managing master data, recording purchases and sales, checking stock, preparing quotations, tracking billing notes and payment batches, handling credit notes, viewing dashboard summaries, and asking limited read-only questions through the AI assistant.
 
 \section{Objective}
-% TODO: The project authors provided this objective section. Review and adjust the final wording if the project scope changes.
 \begin{enumerate}
 	\item To develop a system that records purchase and sales transactions, including the current status of each process, with an attachment file function that links all supporting documents directly to the corresponding transactions.
 	\item To develop an inventory management system that displays the overall product stock in the warehouse and provides tools for calculating essential inventory information.
@@ -33,7 +32,7 @@ The scope of this project is based on the features that are already implemented 
 	
 	\item \textbf{Dashboard and reporting:} The backend provides dashboard summary and segment endpoints for finance, trends, product movement, cashflow, and order coverage.
 	
-	\item \textbf{Authentication and access flow:} The backend includes JWT login, refresh, and authenticated user profile endpoints. The frontend supports login, token refresh, logout, and guest mode. Backend-wide authentication enforcement is controlled by the \texttt{INVENTORY\_REQUIRE\_AUTH} setting.
+	\item \textbf{Authentication and access flow:} The backend includes JWT login, refresh, and authenticated user profile endpoints. The frontend supports login, token refresh, logout, and guest mode. Backend-wide authentication enforcement is controlled by the \texttt{INVENTORY\_REQUIRE\_AUTH} setting. Role-based permission levels and user administration screens are outside the current project scope.
 	
 	\item \textbf{AI-assisted operation:} The system includes a text-based inventory assistant endpoint for read-only questions covering stock and fulfillment, customer or supplier summaries, receivables and payables with exception checks, and reference or line-item lookup. It also includes an AI report page that generates printable business reports for a selected supplier, customer, or product.
 \end{enumerate}
@@ -52,7 +51,7 @@ The system is also expected to make daily checking easier through dashboard summ
 	\centering
 	\BlackbookTableSetup
 	\caption{Project Timeline}
-	\label{tab: your-table} %for cross-reference
+	\label{tab:project-timeline}
 	\begin{tabular}{|p{2.5cm}|c|c|c|c|c|c|c|c|c|c|}
 		\hline
 		\multicolumn{1}{|c|}{} & \multicolumn{10}{c|}{\textbf{Timeline}} \\ \cline{2-11}
@@ -60,7 +59,7 @@ The system is also expected to make daily checking easier through dashboard summ
 		\multicolumn{1}{|c|}{\multirow{-3}{2cm}{\textbf{Plan}}} & \textbf{Sep} & \textbf{Oct} & \textbf{Nov} & \textbf{Dec} & \textbf{Jan} & \textbf{Feb} & \textbf{Mar} & \textbf{Apr} & \textbf{May} & \textbf{Jun} \\ \hline
 		1: Initiation & 
 		\cellcolor[HTML]{000000} & & & & & & & & & \\ \hline
-		2: Data Analyze & & 
+		2: Data Analysis & &
 		\cellcolor[HTML]{000000} &
 		\cellcolor[HTML]{000000} &
 		\cellcolor[HTML]{000000} &
