@@ -11,7 +11,7 @@ This document serves as the absolute, authoritative business-logic and validatio
 
 > [!NOTE]
 > **Scope & Purpose:**  
-> Use this reference when you need to inspect exact database behaviors, status state-machines, or financial constraints. For training checklists or onboarding guides, refer to [HANDOUT.md](../HANDOUT.md). If this file and user training sheets differ, this document represents the authoritative description of system behavior.
+> Use this reference when you need to inspect exact database behaviors, status state-machines, or financial constraints. For training checklists or onboarding guides, refer to [HANDOUT.md](../../HANDOUT.md). If this file and user training sheets differ, this document represents the authoritative description of system behavior.
 
 ---
 
@@ -348,5 +348,5 @@ $$\text{Document Grand Total} = \text{Document Discounted Subtotal} + \text{Docu
 > Always follow this exact order of operations to prevent system divergence:
 > 1.  **Backend First**: Update backend validation, serializers, and eligibility views.
 > 2.  **Verify Tests**: Update and run all unit tests (`python manage.py test inventory`).
-> 3.  **Document Rules**: Update this file (`docs/business-rules-reference.md`) to reflect the exact new schema behaviors.
-> 4.  **Update Handout**: Update [HANDOUT.md](../HANDOUT.md) only if the end-user instructions should change.
+> 3.  **Document Rules**: Update this file (`docs/business/business-rules-reference.md`) to reflect the exact new schema behaviors.
+> 4.  **Update Handout**: Update [HANDOUT.md](../../HANDOUT.md) only if the end-user instructions should change.

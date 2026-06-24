@@ -127,14 +127,14 @@ graph TD
 
 For deeper codebase context and engineering rules, check out the specialized guides:
 *   [HANDOUT.md](./HANDOUT.md) — End-user training manual and user workflows.
-*   [docs/ai-assistant-guide.md](./docs/ai-assistant-guide.md) — Supported AI assistant question types, limits, and usage examples.
-*   [docs/ai-assistant-how-it-works.md](./docs/ai-assistant-how-it-works.md) — Plain-language developer explainer for how the assistant works behind the scenes.
-*   [docs/workflow-reference.md](./docs/workflow-reference.md) — End-to-end workflow text for diagrams, presentations, and onboarding.
-*   [docs/business-rules-reference.md](./docs/business-rules-reference.md) — Master business logic for exact status, FIFO, and eligibility behaviors.
-*   [docs/codebase-structure.md](./docs/codebase-structure.md) — Navigation maps for the source tree and modular splits.
-*   [docs/frontend-refactor-handoff.md](./docs/frontend-refactor-handoff.md) — Frontend split structures and state hooks details.
-*   [docs/login_system.md](./docs/login_system.md) — Comprehensive guide on JWT login, guest mode, user access, roles, permissions, activity logs, and frontend 401 retry behavior.
-*   [docs/database-schema.md](./docs/database-schema.md) — Full relational MySQL database tables, fields, ERD, and constraints.
+*   [docs/ai/ai-assistant-guide.md](./docs/ai/ai-assistant-guide.md) — Supported AI assistant question types, limits, and usage examples.
+*   [docs/ai/ai-assistant-how-it-works.md](./docs/ai/ai-assistant-how-it-works.md) — Plain-language developer explainer for how the assistant works behind the scenes.
+*   [docs/business/workflow-reference.md](./docs/business/workflow-reference.md) — End-to-end workflow text for diagrams, presentations, and onboarding.
+*   [docs/business/business-rules-reference.md](./docs/business/business-rules-reference.md) — Master business logic for exact status, FIFO, and eligibility behaviors.
+*   [docs/architecture/codebase-structure.md](./docs/architecture/codebase-structure.md) — Navigation maps for the source tree and modular splits.
+*   [docs/architecture/frontend-refactor-handoff.md](./docs/architecture/frontend-refactor-handoff.md) — Frontend split structures and state hooks details.
+*   [docs/security/login-system.md](./docs/security/login-system.md) — Comprehensive guide on JWT login, guest mode, user access, roles, permissions, activity logs, and frontend 401 retry behavior.
+*   [docs/architecture/database-schema.md](./docs/architecture/database-schema.md) — Full relational MySQL database tables, fields, ERD, and constraints.
 
 ---
 

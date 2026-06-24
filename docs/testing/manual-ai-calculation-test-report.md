@@ -2,7 +2,7 @@
 
 This document is written as a simple manual test report for presentation. It explains how the project proves that important calculations, AI Chat answers, and AI Report outputs are accurate enough to trust for operational use.
 
-The tests are based on automated Django tests in [backend/inventory/tests.py](../backend/inventory/tests.py), but the explanation below is written so non-developers can understand the validation process.
+The tests are based on automated Django tests in [backend/inventory/tests.py](../../backend/inventory/tests.py), but the explanation below is written so non-developers can understand the validation process.
 
 Related technical plan:
 

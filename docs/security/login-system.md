@@ -39,7 +39,7 @@ When `INVENTORY_REQUIRE_AUTH=True`:
 
 ## 3. Backend Configuration
 
-Main backend settings live in [backend/config/settings.py](./../backend/config/settings.py).
+Main backend settings live in [backend/config/settings.py](../../backend/config/settings.py).
 
 Relevant configuration:
 
@@ -51,8 +51,8 @@ Relevant configuration:
 
 The project also adds a custom permission layer in:
 
-- [backend/inventory/permissions.py](./../backend/inventory/permissions.py)
-- [backend/inventory/access_control.py](./../backend/inventory/access_control.py)
+- [backend/inventory/permissions.py](../../backend/inventory/permissions.py)
+- [backend/inventory/access_control.py](../../backend/inventory/access_control.py)
 
 `InventoryModelPermissions` extends Django model permissions so REST operations map to:
 
@@ -63,7 +63,7 @@ The project also adds a custom permission layer in:
 
 ## 4. Authentication Endpoints
 
-Defined in [backend/config/urls.py](./../backend/config/urls.py) and [backend/inventory/auth_views.py](./../backend/inventory/auth_views.py):
+Defined in [backend/config/urls.py](../../backend/config/urls.py) and [backend/inventory/auth_views.py](../../backend/inventory/auth_views.py):
 
 - `POST /api/auth/login/`
   - handled by `InventoryTokenObtainPairView`
@@ -103,7 +103,7 @@ Current `/api/auth/me/` response shape includes fields like:
 
 ## 5. Frontend Login Flow
 
-Frontend auth state is handled in [frontend/src/auth/AuthContext.jsx](./../frontend/src/auth/AuthContext.jsx).
+Frontend auth state is handled in [frontend/src/auth/AuthContext.jsx](../../frontend/src/auth/AuthContext.jsx).
 
 It exposes:
 
@@ -115,7 +115,7 @@ It exposes:
 - `logout()`
 - `continueAsGuest()`
 
-Request handling is centralized in [frontend/src/api.js](./../frontend/src/api.js).
+Request handling is centralized in [frontend/src/api.js](../../frontend/src/api.js).
 
 Behavior:
 
@@ -151,9 +151,9 @@ Frontend pages:
 
 Frontend files:
 
-- [frontend/src/components/admin/UserAccessPage.jsx](./../frontend/src/components/admin/UserAccessPage.jsx)
-- [frontend/src/components/admin/ActivityLogPage.jsx](./../frontend/src/components/admin/ActivityLogPage.jsx)
-- [frontend/src/auth/permissions.js](./../frontend/src/auth/permissions.js)
+- [frontend/src/components/admin/UserAccessPage.jsx](../../frontend/src/components/admin/UserAccessPage.jsx)
+- [frontend/src/components/admin/ActivityLogPage.jsx](../../frontend/src/components/admin/ActivityLogPage.jsx)
+- [frontend/src/auth/permissions.js](../../frontend/src/auth/permissions.js)
 
 Default role groups are created automatically if missing:
 
@@ -177,10 +177,10 @@ Sidebar visibility is permission-aware.
 
 Implemented in:
 
-- [frontend/src/app/tabs.js](./../frontend/src/app/tabs.js)
-- [frontend/src/app/AppShell.jsx](./../frontend/src/app/AppShell.jsx)
-- [frontend/src/App.jsx](./../frontend/src/App.jsx)
-- [frontend/src/auth/permissions.js](./../frontend/src/auth/permissions.js)
+- [frontend/src/app/tabs.js](../../frontend/src/app/tabs.js)
+- [frontend/src/app/AppShell.jsx](../../frontend/src/app/AppShell.jsx)
+- [frontend/src/App.jsx](../../frontend/src/App.jsx)
+- [frontend/src/auth/permissions.js](../../frontend/src/auth/permissions.js)
 
 Behavior:
 
@@ -192,9 +192,9 @@ Behavior:
 
 Activity logging is implemented in:
 
-- [backend/inventory/models.py](./../backend/inventory/models.py)
-- [backend/inventory/audit.py](./../backend/inventory/audit.py)
-- [backend/inventory/views.py](./../backend/inventory/views.py)
+- [backend/inventory/models.py](../../backend/inventory/models.py)
+- [backend/inventory/audit.py](../../backend/inventory/audit.py)
+- [backend/inventory/views.py](../../backend/inventory/views.py)
 
 Tracked actions:
 

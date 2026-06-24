@@ -376,40 +376,46 @@ frontend/
 
 ```text
 docs/
-├── ai-and-calculation-validation-plan.md
-├── ai-assistant-guide.md
-├── ai-assistant-how-it-works.md
-├── automated-test-functions-explained.md
-├── business-rules-reference.md
-├── codebase-structure.md
-├── database-schema.md
-├── frontend-refactor-handoff.md
-├── login_system.md
-├── manual-ai-calculation-test-report.md
-├── manual-ai-chat-and-report-current-data-test-report.md
-├── manual-ai-chat-and-report-user-test-report.md
+├── README.md
+├── ai/
+│   ├── ai-assistant-guide.md
+│   └── ai-assistant-how-it-works.md
+├── architecture/
+│   ├── codebase-structure.md
+│   ├── database-schema.md
+│   └── frontend-refactor-handoff.md
+├── business/
+│   ├── business-rules-reference.md
+│   └── workflow-reference.md
+├── security/
+│   └── login-system.md
+├── testing/
+│   ├── ai-and-calculation-validation-plan.md
+│   ├── automated-test-functions-explained.md
+│   ├── manual-ai-calculation-test-report.md
+│   ├── manual-ai-chat-and-report-current-data-test-report.md
+│   └── manual-ai-chat-and-report-user-test-report.md
 ├── screenshots/
-└── workflow-reference.md
+└── ...
 ```
 
 ### Docs Notes
 
-- `business-rules-reference.md` is the detailed workflow and business-rules reference
-- `codebase-structure.md` is this structure map
-- `database-schema.md` is the comprehensive relational schema reference for the MySQL database
-- `frontend-refactor-handoff.md` documents the current frontend maintainability and refactor state
-- `login_system.md` documents the Django + React JWT login, role permission, user-access, and activity-log architecture
-- `workflow-reference.md` explains the end-to-end operational story and business flows
-- AI validation and manual-test files document the calculation, AI Chat, and AI Report testing evidence used in the project report
+- `docs/README.md` is the entry point for grouped documentation
+- `docs/ai/` covers AI Chat and AI Report behavior from user and developer perspectives
+- `docs/testing/` contains calculation, AI Chat, and AI Report validation plans and test reports
+- `docs/business/` contains workflow and business-rule references
+- `docs/architecture/` contains source structure, database schema, and frontend refactor notes
+- `docs/security/` documents Django + React JWT login, role permission, user-access, and activity-log architecture
 
 ## Recommended Reading Order
 
 For a new contributor, this is the fastest reading order:
 
-1. [README.md](../README.md)
-2. [AGENTS.md](../AGENTS.md)
-3. [HANDOUT.md](../HANDOUT.md)
-4. [docs/business-rules-reference.md](./business-rules-reference.md)
-5. [backend/README.md](../backend/README.md)
+1. [README.md](../../README.md)
+2. [AGENTS.md](../../AGENTS.md)
+3. [HANDOUT.md](../../HANDOUT.md)
+4. [docs/business/business-rules-reference.md](../business/business-rules-reference.md)
+5. [backend/README.md](../../backend/README.md)
 6. `backend/inventory/`
 7. `frontend/src/app/`, `frontend/src/hooks/`, and the domain folders under `frontend/src/components/`

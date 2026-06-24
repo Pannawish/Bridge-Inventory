@@ -10,7 +10,7 @@ The goal is not to describe every line of code. The goal is to help someone quic
 
 For user instructions, see [ai-assistant-guide.md](./ai-assistant-guide.md).
 
-This document covers the `AI Chat` feature only. The separate `AI Report` page has its own backend flow in [backend/inventory/ai_reports.py](../backend/inventory/ai_reports.py), where the user selects supplier, customer, or product scope and receives printable HTML.
+This document covers the `AI Chat` feature only. The separate `AI Report` page has its own backend flow in [backend/inventory/ai_reports.py](../../backend/inventory/ai_reports.py), where the user selects supplier, customer, or product scope and receives printable HTML.
 
 ---
 
@@ -64,7 +64,7 @@ The frontend sends the question to:
 
 The backend chat view lives in:
 
-- [backend/inventory/views.py](../backend/inventory/views.py)
+- [backend/inventory/views.py](../../backend/inventory/views.py)
 
 ### Step 2: The backend builds a safe context
 
@@ -83,7 +83,7 @@ Instead, it builds a controlled data package from current app data such as:
 
 This main context builder lives in:
 
-- [backend/inventory/services.py](../backend/inventory/services.py)
+- [backend/inventory/services.py](../../backend/inventory/services.py)
 
 In simple terms:
 
@@ -295,7 +295,7 @@ If the question is outside the supported scope, the backend returns a structured
 
 This routing logic is handled in the chat presentation builder in:
 
-- [backend/inventory/services.py](../backend/inventory/services.py)
+- [backend/inventory/services.py](../../backend/inventory/services.py)
 
 If you want the simplest product explanation, it is this:
 
@@ -365,9 +365,9 @@ The frontend chat panel:
 
 The main files are:
 
-- [frontend/src/components/ChatPanel.jsx](../frontend/src/components/ChatPanel.jsx)
-- [frontend/src/components/chat/ChatMessageBody.jsx](../frontend/src/components/chat/ChatMessageBody.jsx)
-- [frontend/src/hooks/useAppChat.js](../frontend/src/hooks/useAppChat.js)
+- [frontend/src/components/ChatPanel.jsx](../../frontend/src/components/ChatPanel.jsx)
+- [frontend/src/components/chat/ChatMessageBody.jsx](../../frontend/src/components/chat/ChatMessageBody.jsx)
+- [frontend/src/hooks/useAppChat.js](../../frontend/src/hooks/useAppChat.js)
 
 In simple words:
 

@@ -2,7 +2,7 @@
 
 This guide explains what the Bridge Inventory AI Assistant is for, what it can answer now, and how users should use it well.
 
-For the simple developer explainer, see [ai-assistant-how-it-works.md](./ai-assistant-how-it-works.md). For backend setup details, see [../backend/README.md](../backend/README.md).
+For the simple developer explainer, see [ai-assistant-how-it-works.md](./ai-assistant-how-it-works.md). For backend setup details, see [backend/README.md](../../backend/README.md).
 
 ---
 

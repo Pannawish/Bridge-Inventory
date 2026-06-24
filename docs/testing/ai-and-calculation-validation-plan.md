@@ -8,12 +8,12 @@ Short answer: **yes, for the factual parts, if validation is done against backen
 
 Related references:
 
-- [AI Assistant: How It Works](./ai-assistant-how-it-works.md)
-- [AI Assistant Guide](./ai-assistant-guide.md)
-- [Business Rules Reference](./business-rules-reference.md)
-- [Backend inventory services](../backend/inventory/services.py)
-- [Backend tests](../backend/inventory/tests.py)
-- [AI Report backend module](../backend/inventory/ai_reports.py)
+- [AI Assistant: How It Works](../ai/ai-assistant-how-it-works.md)
+- [AI Assistant Guide](../ai/ai-assistant-guide.md)
+- [Business Rules Reference](../business/business-rules-reference.md)
+- [Backend inventory services](../../backend/inventory/services.py)
+- [Backend tests](../../backend/inventory/tests.py)
+- [AI Report backend module](../../backend/inventory/ai_reports.py)
 
 ---
 
@@ -64,7 +64,7 @@ The most important calculations should be validated before validating AI, becaus
 
 ### 3.1 Reorder And Stock Formulas
 
-The stock report is built in [backend/inventory/services.py](../backend/inventory/services.py), mainly through `build_stock_report()`.
+The stock report is built in [backend/inventory/services.py](../../backend/inventory/services.py), mainly through `build_stock_report()`.
 
 Core formula behavior:
 
@@ -275,7 +275,7 @@ This is enough to support the claim:
 
 ## 9. Implemented Validation Evidence
 
-The validation plan is now backed by focused Django tests in [backend/inventory/tests.py](../backend/inventory/tests.py).
+The validation plan is now backed by focused Django tests in [backend/inventory/tests.py](../../backend/inventory/tests.py).
 
 ### 9.1 Calculation Evidence
 

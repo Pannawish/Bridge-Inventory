@@ -6,7 +6,7 @@ It is technical, but written for beginners. The goal is to help you explain the 
 
 The test code is in:
 
-- [backend/inventory/tests.py](../backend/inventory/tests.py)
+- [backend/inventory/tests.py](../../backend/inventory/tests.py)
 
 ---
 

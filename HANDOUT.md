@@ -11,7 +11,7 @@ This document is written for end users of the web app: operations staff, purchas
 
 > [!NOTE]
 > **Operational Scope:**  
-> This file is a step-by-step training guide, not a technical developer document. For codebase architectures, local server configurations, or migration steps, refer to [README.md](./README.md) and [docs/login_system.md](./docs/login_system.md).
+> This file is a step-by-step training guide, not a technical developer document. For codebase architectures, local server configurations, or migration steps, refer to [README.md](./README.md) and [docs/security/login-system.md](./docs/security/login-system.md).
 
 ---
 

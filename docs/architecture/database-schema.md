@@ -95,7 +95,7 @@ Current default seeded groups:
 *   `Accounting`
 *   `Viewer`
 
-These groups are created automatically if missing by [backend/inventory/access_control.py](./../backend/inventory/access_control.py).
+These groups are created automatically if missing by [backend/inventory/access_control.py](../../backend/inventory/access_control.py).
 
 ### 2.3 Permission (`auth_permission`)
 Standard Django permission table.
