@@ -23,6 +23,18 @@
 \definecolor{backcolour}{rgb}{1,1,1}
 %=======================
 
+%====== Blackbook table style ==============
+\newcolumntype{B}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{D}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{Z}{>{\raggedright\arraybackslash}X}
+\newcommand{\BlackbookTableSetup}{%
+	\footnotesize
+	\sloppy
+	\renewcommand{\arraystretch}{1.18}
+	\setlength{\tabcolsep}{3pt}
+}
+%=======================
+
 %====== Path to Figure Directories ===============
 \graphicspath{{./figures/chap1/}{./figures/chap2/}{./figures/chap3/}{./figures/chap4/}{./figures/chap5/}{./figures/chap6/}{./figures/appendix/}}
 

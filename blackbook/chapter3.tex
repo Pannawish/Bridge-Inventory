@@ -20,12 +20,10 @@ The web application is organized around the main work areas that a trading busin
 
 \begin{table}[!htbp]
 	\centering
-	\footnotesize
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{3pt}
+	\BlackbookTableSetup
 	\caption{Requirement Areas and Implemented Pages}
 	\label{tab:requirement-page-map}
-	\begin{tabularx}{\textwidth}{|p{3cm}|p{3cm}|X|}
+	\begin{tabularx}{\textwidth}{|B{2.8cm}|B{2.8cm}|Z|}
 		\hline
 		\textbf{Requirement Area} & \textbf{Web-App Page} & \textbf{Purpose in the System} \\ \hline
 		Operation summary & Dashboard & Shows stock, finance, cashflow, product movement, and order coverage summaries. \\ \hline
@@ -41,12 +39,10 @@ The web application is organized around the main work areas that a trading busin
 
 \begin{table}[!htbp]
 	\centering
-	\footnotesize
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{3pt}
+	\BlackbookTableSetup
 	\caption{Record and Support Page Scope}
 	\label{tab:record-support-page-map}
-	\begin{tabularx}{\textwidth}{|p{3cm}|p{3cm}|X|}
+	\begin{tabularx}{\textwidth}{|B{2.8cm}|B{2.8cm}|Z|}
 		\hline
 		\textbf{Requirement Area} & \textbf{Web-App Page} & \textbf{Purpose in the System} \\ \hline
 		Customer billing & Billing Notes & Groups eligible sales into customer billing notes and tracks received or outstanding lines. \\ \hline
@@ -135,14 +131,12 @@ The system uses a three-tier web architecture. React is responsible for the user
 \label{fig:system-architecture-overview}
 \end{figure}
 
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\footnotesize
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{3pt}
+	\BlackbookTableSetup
 	\caption{Architecture Components}
 	\label{tab:architecture-components}
-	\begin{tabularx}{\textwidth}{|p{3cm}|p{3.1cm}|X|}
+	\begin{tabularx}{\textwidth}{|B{2.8cm}|B{3cm}|Z|}
 		\hline
 		\textbf{Layer} & \textbf{Implementation} & \textbf{Main Responsibility} \\ \hline
 		Frontend & React 18 and Vite & Builds the tabbed interface, forms, filters, tables, modals, and bilingual text display. \\ \hline
@@ -163,14 +157,12 @@ The frontend also keeps a mock-data fallback for development and demonstration. 
 \section{Backend and API Methodology}
 The backend was developed as a Django project with one main inventory application. Django REST Framework viewsets provide CRUD endpoints for products, categories, suppliers, customers, purchases, sales, quotations, billing notes, payment batches, and credit notes. Separate API views provide dashboard summaries, dashboard segments, lookup lists, product history, product stock layers, eligibility lists, and chat responses.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\footnotesize
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{3pt}
+	\BlackbookTableSetup
 	\caption{Main API Endpoint Groups}
 	\label{tab:api-endpoint-groups}
-	\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{4.1cm}|>{\raggedright\arraybackslash}X|}
+	\begin{tabularx}{\textwidth}{|B{4cm}|Z|}
 		\hline
 		\textbf{Endpoint Group} & \textbf{Purpose} \\ \hline
 		\texttt{/api/products/}, \texttt{/api/categories/} & Product catalog and category tree management. \\ \hline
@@ -194,14 +186,12 @@ The database was designed as a relational MySQL schema managed by Django migrati
 
 The system also keeps snapshot fields inside transaction records. A sale item stores product name, SKU, quantity, price, and amount. A purchase stores supplier name and line item details. These snapshot values are important because old business documents should remain readable even if a product, supplier, or customer is edited later.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\BlackbookTableSetup
 	\caption{Primary Database Model Groups}
 	\label{tab:database-model-groups}
-	\begin{tabularx}{\textwidth}{|p{3.2cm}|X|}
+	\begin{tabularx}{\textwidth}{|B{3.1cm}|Z|}
 		\hline
 		\textbf{Group} & \textbf{Models} \\ \hline
 		Master data & \texttt{Category}, \texttt{Supplier}, \texttt{Customer}, \texttt{Product}, \texttt{ProductPicture}, \texttt{ProductUnitConversion}, \texttt{ProductSupplier} \\ \hline
@@ -326,8 +316,10 @@ For VAT-not-included transactions:
 The backend calculates product stock from transaction status instead of storing a manual stock number on the product.
 
 \[
-\text{Current Stock} =
-\max(0, \text{Received Purchase Base Quantity} - \text{Committed Sale Base Quantity})
+\begin{aligned}
+\text{Current Stock} = \max(0,\;&\text{Received Purchase Base Quantity}\\
+&-\text{Committed Sale Base Quantity})
+\end{aligned}
 \]
 
 Received purchase quantity comes only from purchase items with received status. Committed sale quantity comes only from sale items with packed, shipped, or delivered status. Pending sales are shown separately as demand, but they do not reduce current stock until they reach a stock-deducting status.
@@ -444,14 +436,12 @@ Security support is implemented with Simple JWT. The backend exposes login, toke
 \section{Testing Methodology}
 Testing was focused on backend behavior because the backend owns the most important business rules. The test suite checks pagination, filters, product pictures, operational data commands, stock validation, FIFO allocation, manual allocation, purchase item status changes, quotation normalization, reference numbers, lookup endpoints, eligibility endpoints, credit notes, purchase payable synchronization, seed data, and assistant answer alignment.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\BlackbookTableSetup
 	\caption{Testing Summary}
 	\label{tab:testing-summary}
-	\begin{tabularx}{\textwidth}{|p{3.4cm}|X|}
+	\begin{tabularx}{\textwidth}{|B{3.2cm}|Z|}
 		\hline
 		\textbf{Test Area} & \textbf{What It Checks} \\ \hline
 		Pagination and filtering & Paginated responses, page size limits, search, status filters, date filters, and product or partner filters. \\ \hline
@@ -468,14 +458,12 @@ Testing was focused on backend behavior because the backend owns the most import
 
 The selected black-box aligned backend test suite contains 30 automated cases covering product validation, quotation behavior, purchase workflow, sale stock validation, finance eligibility, credit notes, payment batches, and payable synchronization. The latest recorded run passed all 30 cases. Additional focused validation was also run for the reorder point calculation, AI Chat, and AI Report. The focused validation run executed 5 tests and all 5 passed.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\BlackbookTableSetup
 	\caption{Final Validation Test Evidence}
 	\label{tab:final-validation-test-evidence}
-	\begin{tabularx}{\textwidth}{|p{3.5cm}|p{2.2cm}|X|}
+	\begin{tabularx}{\textwidth}{|B{3.2cm}|D{1.9cm}|Z|}
 		\hline
 		\textbf{Validation Item} & \textbf{Result} & \textbf{Evidence} \\ \hline
 		Selected backend workflow tests & 30/30 passed & The latest recorded black-box aligned backend run passed all selected cases with no failures. \\ \hline
@@ -487,14 +475,12 @@ The selected black-box aligned backend test suite contains 30 automated cases co
 \end{table}
 
 \section{Tools and Technologies Used}
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\footnotesize
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{3pt}
+	\BlackbookTableSetup
 	\caption{Tools and Technologies}
 	\label{tab:tools-technologies}
-	\begin{tabularx}{\textwidth}{|p{3cm}|p{3.4cm}|X|}
+	\begin{tabularx}{\textwidth}{|B{2.8cm}|B{3.2cm}|Z|}
 		\hline
 		\textbf{Category} & \textbf{Tool or Technology} & \textbf{Use in This Project} \\ \hline
 		Frontend framework & React 18 & Builds the web application screens and reusable UI components. \\ \hline

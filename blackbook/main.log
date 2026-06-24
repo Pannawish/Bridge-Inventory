@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  24 JUN 2026 12:01
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  24 JUN 2026 12:40
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1086,22 +1086,22 @@ Package: lipsum 2021-09-20 v2.7 150 paragraphs of Lorem Ipsum dummy text
 /lipsum.ltd.tex)) (main.aux)
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 124.
+LaTeX Font Info:    ... okay on input line 124.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 124.
+LaTeX Font Info:    ... okay on input line 124.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 124.
+LaTeX Font Info:    ... okay on input line 124.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 124.
+LaTeX Font Info:    ... okay on input line 124.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 124.
+LaTeX Font Info:    ... okay on input line 124.
+LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 124.
+LaTeX Font Info:    ... okay on input line 124.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 124.
+LaTeX Font Info:    ... okay on input line 124.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 124.
+LaTeX Font Info:    ... okay on input line 124.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: xetex
@@ -1148,85 +1148,85 @@ Package fontspec Info:
 
 \symlegacymaths=\mathgroup5
 LaTeX Font Info:    Overwriting symbol font `legacymaths' in version `bold'
-(Font)                  OT1/cmr/m/n --> OT1/cmr/bx/n on input line 112.
-LaTeX Font Info:    Redeclaring math accent \acute on input line 112.
-LaTeX Font Info:    Redeclaring math accent \grave on input line 112.
-LaTeX Font Info:    Redeclaring math accent \ddot on input line 112.
-LaTeX Font Info:    Redeclaring math accent \tilde on input line 112.
-LaTeX Font Info:    Redeclaring math accent \bar on input line 112.
-LaTeX Font Info:    Redeclaring math accent \breve on input line 112.
-LaTeX Font Info:    Redeclaring math accent \check on input line 112.
-LaTeX Font Info:    Redeclaring math accent \hat on input line 112.
-LaTeX Font Info:    Redeclaring math accent \dot on input line 112.
-LaTeX Font Info:    Redeclaring math accent \mathring on input line 112.
-LaTeX Font Info:    Redeclaring math symbol \Gamma on input line 112.
-LaTeX Font Info:    Redeclaring math symbol \Delta on input line 112.
-LaTeX Font Info:    Redeclaring math symbol \Theta on input line 112.
-LaTeX Font Info:    Redeclaring math symbol \Lambda on input line 112.
-LaTeX Font Info:    Redeclaring math symbol \Xi on input line 112.
-LaTeX Font Info:    Redeclaring math symbol \Pi on input line 112.
-LaTeX Font Info:    Redeclaring math symbol \Sigma on input line 112.
-LaTeX Font Info:    Redeclaring math symbol \Upsilon on input line 112.
-LaTeX Font Info:    Redeclaring math symbol \Phi on input line 112.
-LaTeX Font Info:    Redeclaring math symbol \Psi on input line 112.
-LaTeX Font Info:    Redeclaring math symbol \Omega on input line 112.
-LaTeX Font Info:    Redeclaring math symbol \mathdollar on input line 112.
-LaTeX Font Info:    Redeclaring symbol font `operators' on input line 112.
+(Font)                  OT1/cmr/m/n --> OT1/cmr/bx/n on input line 124.
+LaTeX Font Info:    Redeclaring math accent \acute on input line 124.
+LaTeX Font Info:    Redeclaring math accent \grave on input line 124.
+LaTeX Font Info:    Redeclaring math accent \ddot on input line 124.
+LaTeX Font Info:    Redeclaring math accent \tilde on input line 124.
+LaTeX Font Info:    Redeclaring math accent \bar on input line 124.
+LaTeX Font Info:    Redeclaring math accent \breve on input line 124.
+LaTeX Font Info:    Redeclaring math accent \check on input line 124.
+LaTeX Font Info:    Redeclaring math accent \hat on input line 124.
+LaTeX Font Info:    Redeclaring math accent \dot on input line 124.
+LaTeX Font Info:    Redeclaring math accent \mathring on input line 124.
+LaTeX Font Info:    Redeclaring math symbol \Gamma on input line 124.
+LaTeX Font Info:    Redeclaring math symbol \Delta on input line 124.
+LaTeX Font Info:    Redeclaring math symbol \Theta on input line 124.
+LaTeX Font Info:    Redeclaring math symbol \Lambda on input line 124.
+LaTeX Font Info:    Redeclaring math symbol \Xi on input line 124.
+LaTeX Font Info:    Redeclaring math symbol \Pi on input line 124.
+LaTeX Font Info:    Redeclaring math symbol \Sigma on input line 124.
+LaTeX Font Info:    Redeclaring math symbol \Upsilon on input line 124.
+LaTeX Font Info:    Redeclaring math symbol \Phi on input line 124.
+LaTeX Font Info:    Redeclaring math symbol \Psi on input line 124.
+LaTeX Font Info:    Redeclaring math symbol \Omega on input line 124.
+LaTeX Font Info:    Redeclaring math symbol \mathdollar on input line 124.
+LaTeX Font Info:    Redeclaring symbol font `operators' on input line 124.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `normal' on input line 112.
+(Font)              `operators' in the math version `normal' on input line 124.
 
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
 (Font)                  OT1/cmr/m/n --> TU/TimesNewRoman(1)/m/n on input line 1
-12.
+24.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `bold' on input line 112.
+(Font)              `operators' in the math version `bold' on input line 124.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
 (Font)                  OT1/cmr/bx/n --> TU/TimesNewRoman(1)/m/n on input line 
-112.
+124.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
 (Font)                  TU/TimesNewRoman(1)/m/n --> TU/TimesNewRoman(1)/m/n on 
-input line 112.
+input line 124.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
 (Font)                  OT1/cmr/m/it --> TU/TimesNewRoman(1)/m/it on input line
- 112.
+ 124.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
 (Font)                  OT1/cmr/bx/n --> TU/TimesNewRoman(1)/b/n on input line 
-112.
+124.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `normal'
-(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 112.
+(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 124.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `normal'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 112.
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 124.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
 (Font)                  TU/TimesNewRoman(1)/m/n --> TU/TimesNewRoman(1)/b/n on 
-input line 112.
+input line 124.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
 (Font)                  OT1/cmr/bx/it --> TU/TimesNewRoman(1)/b/it on input lin
-e 112.
+e 124.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  OT1/cmss/bx/n --> TU/lmss/b/n on input line 112.
+(Font)                  OT1/cmss/bx/n --> TU/lmss/b/n on input line 124.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/b/n on input line 112.
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/b/n on input line 124.
 \c@lstlisting=\count372
 File: ./figures/MU_Logo-BW.png Graphic file (type bmp)
 <./figures/MU_Logo-BW.png>
-LaTeX Font Info:    Calculating math sizes for size <14> on input line 114.
+LaTeX Font Info:    Calculating math sizes for size <14> on input line 126.
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <14> not avail
 able
-(Font)              size <12> substituted on input line 114.
+(Font)              size <12> substituted on input line 126.
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <9.79996> not 
 available
-(Font)              size <12> substituted on input line 114.
+(Font)              size <12> substituted on input line 126.
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <7> not availa
 ble
-(Font)              size <12> substituted on input line 114.
+(Font)              size <12> substituted on input line 126.
 
-LaTeX Font Info:    Trying to load font information for U+lasy on input line 11
-4.
+LaTeX Font Info:    Trying to load font information for U+lasy on input line 12
+6.
 (/Library/Application Support/MiKTeX/texmfs/install/tex/latex/base/ulasy.fd
 File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 )
@@ -1258,27 +1258,27 @@ File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 [2
 
 ] (acknowledgement.tex)
-Underfull \hbox (badness 10000) in paragraph at lines 5--122
+Underfull \hbox (badness 10000) in paragraph at lines 5--134
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 5--122
+Underfull \hbox (badness 10000) in paragraph at lines 5--134
 
  []
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <8> not availa
 ble
-(Font)              size <12> substituted on input line 122.
+(Font)              size <12> substituted on input line 134.
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <6> not availa
 ble
-(Font)              size <12> substituted on input line 122.
+(Font)              size <12> substituted on input line 134.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 122--122
+Underfull \hbox (badness 10000) in paragraph at lines 134--134
 
  []
 
@@ -1288,23 +1288,23 @@ Underfull \hbox (badness 10000) in paragraph at lines 122--122
 
 ]
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/m/n' will be
-(Font)              scaled to size 15.96002pt on input line 123.
+(Font)              scaled to size 15.96002pt on input line 135.
 
 Missing character: There is no ด in font Times New Roman/OT:script=latn;languag
 e=dflt;!
 Missing character: There is no ร in font Times New Roman/OT:script=latn;languag
 e=dflt;!
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/b/n' will be
-(Font)              scaled to size 18.62003pt on input line 123.
+(Font)              scaled to size 18.62003pt on input line 135.
 (abstractTH.tex)
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/b/n' will be
-(Font)              scaled to size 15.96002pt on input line 123.
+(Font)              scaled to size 15.96002pt on input line 135.
 
 
 [4
 
 ] (abstractENG.tex)
-Underfull \hbox (badness 10000) in paragraph at lines 5--124
+Underfull \hbox (badness 10000) in paragraph at lines 5--136
 
  []
 
@@ -1356,12 +1356,12 @@ CHAPTER 1.
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10> not avail
 able
-(Font)              size <12> substituted on input line 52.
+(Font)              size <12> substituted on input line 53.
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <5> not availa
 ble
-(Font)              size <12> substituted on input line 57.
+(Font)              size <12> substituted on input line 56.
 
 
 
@@ -1386,12 +1386,6 @@ CHAPTER 3.
 [9
 
 ]
-Underfull \hbox (badness 1038) in paragraph at lines 58--58
-[]|\TU/TimesNewRoman(0)/m/n/10 Groups eligible sales into customer billing note
-s and
- []
-
-
 
 [10]
 
@@ -1405,7 +1399,7 @@ s and
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10.95> not av
 ailable
-(Font)              size <12> substituted on input line 132.
+(Font)              size <12> substituted on input line 128.
 
 
 
@@ -1414,24 +1408,12 @@ ailable
 [16]
 
 [17]
-Underfull \hbox (badness 6842) in paragraph at lines 212--212
-[]|\TU/TimesNewRoman(0)/m/n/10.95 BillingNote, BillingNoteLine, PaymentBatch, P
-aymentBatchLine,
- []
-
-
 
 [18]
 
 [19]
 
 [20]
-Overfull \hbox (24.65022pt too wide) detected at line 331
-[] \OT1/cmr/m/n/12 = [](0\OML/cmm/m/it/12 ; [] \OMS/cmsy/m/n/12 ^^@ []\OT1/cmr/
-m/n/12 )
- []
-
-
 
 [21]
 
@@ -1440,116 +1422,69 @@ m/n/12 )
 [23]
 
 [24]
-Underfull \hbox (badness 10000) in paragraph at lines 466--466
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Financial synchro-
- []
 
-
-
-[25]
-Underfull \hbox (badness 10000) in paragraph at lines 486--486
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Selected backend
- []
-
-
-Underfull \hbox (badness 6141) in paragraph at lines 486--486
-[]|\TU/TimesNewRoman(0)/m/n/10.95 AI Chat configured-
- []
-
-
-Underfull \hbox (badness 2698) in paragraph at lines 486--486
-[]|\TU/TimesNewRoman(0)/m/n/10.95 AI Report chart and
- []
-
-
-Underfull \hbox (badness 1515) in paragraph at lines 486--486
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Model-generated chart HTML was replaced with
- []
-
-
-Underfull \hbox (badness 1742) in paragraph at lines 486--486
-\TU/TimesNewRoman(0)/m/n/10.95 backend chart rows, and unsafe HTML such as
- []
-
-
+[25]) (chapter4.tex
 
 [26]
-Underfull \hbox (badness 1147) in paragraph at lines 509--509
-[]|\TU/TimesNewRoman(0)/m/n/10 Runs the local development server and production
-
- []
-
-
-Underfull \hbox (badness 4621) in paragraph at lines 509--509
-[]|\TU/TimesNewRoman(0)/m/n/10 Django REST Frame-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 509--509
-[]|\TU/TimesNewRoman(0)/m/n/10 Django TestCase and
- []
-
-) (chapter4.tex
-
-[27]
-
-[28]
 CHAPTER 4.
-
-
-[29
-
-]
-
-[30]
 File: ./figures/chap4/figure-4-1-dashboard.png Graphic file (type bmp)
 <./figures/chap4/figure-4-1-dashboard.png>
 
 
-[31]
+[27
+
+]
+
+[28]
 File: ./figures/chap4/figure-4-2-inventory.png Graphic file (type bmp)
 <./figures/chap4/figure-4-2-inventory.png>
 
 
-[32]
+[29]
 File: ./figures/chap4/figure-4-3-ai-chat.png Graphic file (type bmp)
 <./figures/chap4/figure-4-3-ai-chat.png>
 
 
-[33]
+[30]
 File: ./figures/chap4/figure-4-4-ai-report.png Graphic file (type bmp)
 <./figures/chap4/figure-4-4-ai-report.png>
 
 
-[34]
+[31]
 File: ./figures/chap4/figure-4-5-product-form.png Graphic file (type bmp)
 <./figures/chap4/figure-4-5-product-form.png>
 File: ./figures/chap4/figure-4-6-purchase-workflow.png Graphic file (type bmp)
 <./figures/chap4/figure-4-6-purchase-workflow.png>
 
 
-[35]
+[32]
 File: ./figures/chap4/figure-4-7-sales-workflow.png Graphic file (type bmp)
 <./figures/chap4/figure-4-7-sales-workflow.png>
 
 
-[36]
+[33]
 File: ./figures/chap4/figure-4-8-quotation-workflow.png Graphic file (type bmp)
 
 <./figures/chap4/figure-4-8-quotation-workflow.png>
 
 
-[37]
+[34]
 File: ./figures/chap4/figure-4-9-billing-note-workflow.png Graphic file (type b
 mp)
 <./figures/chap4/figure-4-9-billing-note-workflow.png>
 
 
-[38]
+[35]
 File: ./figures/chap4/figure-4-10-payment-batch-workflow.png Graphic file (type
  bmp)
 <./figures/chap4/figure-4-10-payment-batch-workflow.png>
 
+
+[36]
+
+[37]
+
+[38]
 
 [39]
 
@@ -1564,153 +1499,26 @@ File: ./figures/chap4/figure-4-10-payment-batch-workflow.png Graphic file (type
 [44]
 
 [45]
-Underfull \hbox (badness 3108) in paragraph at lines 248--248
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Selected backend work-
- []
-
-
-Underfull \hbox (badness 6252) in paragraph at lines 248--248
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Product rules, quotation behavior, purchase
- []
-
-
-Underfull \hbox (badness 1946) in paragraph at lines 248--248
-\TU/TimesNewRoman(0)/m/n/10.95 supported questions and rejected unsupported
- []
-
-
-Underfull \hbox (badness 1527) in paragraph at lines 248--248
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Supplier, customer, and product reports used
- []
-
-
 
 [46]
-Underfull \hbox (badness 5592) in paragraph at lines 290--290
-\TU/TimesNewRoman(0)/m/n/10.95 because it starts the
- []
 
-
-Underfull \hbox (badness 7907) in paragraph at lines 290--290
-\TU/TimesNewRoman(0)/m/n/10.95 process and requires
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Purchase creation
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-\TU/TimesNewRoman(0)/m/n/10.95 from quotation was
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-\TU/TimesNewRoman(0)/m/n/10.95 generally successful,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Receiving purchase
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-\TU/TimesNewRoman(0)/m/n/10.95 flow was completed
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Sale-related checking
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-\TU/TimesNewRoman(0)/m/n/10.95 was completed suc-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-\TU/TimesNewRoman(0)/m/n/10.95 cessfully, although
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Status-related actions
- []
-
-
-Underfull \hbox (badness 6001) in paragraph at lines 290--290
-\TU/TimesNewRoman(0)/m/n/10.95 were completed, but
- []
-
-
-Underfull \hbox (badness 3895) in paragraph at lines 290--290
-\TU/TimesNewRoman(0)/m/n/10.95 status buttons should
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-[]|\TU/TimesNewRoman(0)/m/n/10.95 The shortest part,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-\TU/TimesNewRoman(0)/m/n/10.95 showing that the
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-\TU/TimesNewRoman(0)/m/n/10.95 required action was
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Final billing or
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-\TU/TimesNewRoman(0)/m/n/10.95 finance-related work-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 290--290
-\TU/TimesNewRoman(0)/m/n/10.95 flow was completed
- []
-
-
-
-[47]
-Overfull \vbox (131.5829pt too high) has occurred while \output is active []
-
-
+[47]) (chapter5.tex
 
 [48]
-Underfull \hbox (badness 10000) in paragraph at lines 313--313
-[]|\TU/TimesNewRoman(0)/m/n/10.95 Average questionnaire
- []
-
-
-
-[49]) (chapter5.tex
-
-[50]
 CHAPTER 5.
 
 
-[51
+[49
 
 ]
 
-[52]
+[50]
 
-[53])
+[51])
 
-[54] (main.bbl)
+[52] (main.bbl)
 
-[55
+[53
 
 ] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
@@ -1727,11 +1535,11 @@ LaTeX Font Warning: Size substitutions with differences
  ) 
 Here is how much of TeX's memory you used:
  24453 strings out of 402990
- 520037 string characters out of 5447323
- 1095730 words of memory out of 5000000
- 52707 multiletter control sequences out of 15000+600000
- 635046 words of font info for 112 fonts, out of 8000000 for 9000
+ 519983 string characters out of 5447323
+ 1098929 words of memory out of 5000000
+ 52710 multiletter control sequences out of 15000+600000
+ 633776 words of font info for 104 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  88i,13n,107p,1127b,962s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (70 pages).
+Output written on main.pdf (68 pages).

@@ -8,14 +8,12 @@ The final system is a full-stack web application for an SME trading business. It
 The main result is that the system connects business documents together instead of keeping them as separate records. A product can appear in purchases, sales, quotations, inventory reports, and product history. A sale can later become part of a billing note or a credit note. A purchase can later become part of a payment batch. This connection makes the system more useful than a simple product list.
 
 \section{Implemented Modules}
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\BlackbookTableSetup
 	\caption{Implemented Workspace and Transaction Modules}
 	\label{tab:implemented-system-modules}
-	\begin{tabularx}{\textwidth}{|p{3cm}|X|p{2.1cm}|}
+	\begin{tabularx}{\textwidth}{|B{2.8cm}|Z|D{1.9cm}|}
 		\hline
 		\textbf{Module} & \textbf{Implemented Result} & \textbf{Status} \\ \hline
 		Dashboard & Shows stock, finance, cashflow, product movement, and order coverage summaries. & Completed \\ \hline
@@ -29,14 +27,12 @@ The main result is that the system connects business documents together instead 
 	\end{tabularx}
 \end{table}
 
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\BlackbookTableSetup
 	\caption{Implemented Finance and Master Data Modules}
 	\label{tab:implemented-record-modules}
-	\begin{tabularx}{\textwidth}{|p{3cm}|X|p{2.1cm}|}
+	\begin{tabularx}{\textwidth}{|B{2.8cm}|Z|D{1.9cm}|}
 		\hline
 		\textbf{Module} & \textbf{Implemented Result} & \textbf{Status} \\ \hline
 		Billing Notes & Groups eligible sales for customer receivable tracking and tracks received or outstanding lines. & Completed \\ \hline
@@ -187,14 +183,12 @@ The AI assistant was implemented as a limited read-only assistant. It can answer
 The AI report page was completed with scope selection, record selection, optional custom date range, and report generation. The backend collects purchases, sales, quotations, billing notes, payment batches, credit notes, and stock data for the selected supplier, customer, or product. It calculates summary metrics such as purchase totals, sales totals, open payables, open receivables, available stock, gross margin, and margin rate. It also builds trend charts, top product or partner charts, and record tables. When an OpenAI API key is configured, the backend sends the data context to the AI model for an executive summary and business analysis. When no API key is available, the backend builds a local report from the same data. The generated report opens in a new browser tab as a self-contained, print-ready HTML document with bilingual support.
 
 \section{Feature Evidence Summary}
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\footnotesize
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\BlackbookTableSetup
 	\caption{Evidence of Implemented Features}
 	\label{tab:feature-evidence-summary}
-	\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{3.5cm}|>{\raggedright\arraybackslash}X|}
+	\begin{tabularx}{\textwidth}{|B{3.4cm}|Z|}
 		\hline
 		\textbf{Feature} & \textbf{Evidence in the Implemented System} \\ \hline
 		REST API communication & The frontend API client calls endpoints for dashboard, lookups, products, purchases, sales, quotations, billing notes, payment batches, credit notes, authentication, and chat. \\ \hline
@@ -231,14 +225,12 @@ The selected backend validation suite contained 30 black-box aligned automated t
 
 Additional focused validation was performed for the reorder point calculation, AI Chat, and AI Report. The focused validation run contained 5 tests and all 5 passed. The reorder point test confirmed that fixed purchase and sale data produced the expected available stock, average cost, demand, safety stock, reorder level, recommended restock, days until stockout, and stock value. The AI tests confirmed that AI Chat uses backend facts, AI Report receives correct backend context, report charts are rendered from backend chart rows, and unsafe model HTML is removed before the report is returned.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\BlackbookTableSetup
 	\caption{Automated Validation Result Summary}
 	\label{tab:automated-validation-result-summary}
-	\begin{tabularx}{\textwidth}{|p{4cm}|p{2.3cm}|X|}
+	\begin{tabularx}{\textwidth}{|B{3.5cm}|D{2cm}|Z|}
 		\hline
 		\textbf{Test Group} & \textbf{Result} & \textbf{Main Evidence} \\ \hline
 		Selected backend workflow tests & 30/30 passed & Product rules, quotation behavior, purchase workflow, sale stock validation, finance eligibility, credit notes, payment batches, and payable synchronization passed. \\ \hline
@@ -248,17 +240,125 @@ Additional focused validation was performed for the reorder point calculation, A
 	\end{tabularx}
 \end{table}
 
+\subsection{Calculation Validation Detail}
+The calculation validation focused on the reorder point and recommended restock calculation because this is one of the most important inventory decisions in the system. The test did not use random data. Instead, it created fixed purchase and sale records in a temporary Django test database so that the expected result could be calculated manually.
+
+The test first created one product, two received purchase records, one pending purchase record, two committed sales, and one pending sale. Then the test called the dashboard API, which runs the same backend stock report calculation used by the real dashboard and inventory page. The backend output was compared with the manually calculated expected values.
+
+\begin{table}[!htbp]
+	\centering
+	\BlackbookTableSetup
+	\caption{Calculation Validation Input}
+	\label{tab:calculation-validation-input}
+	\begin{tabularx}{\textwidth}{|B{3.2cm}|B{2.6cm}|Z|}
+		\hline
+		\textbf{Input Item} & \textbf{Value} & \textbf{Reason for Test} \\ \hline
+		Product & TEST-PEN & A single controlled product makes the stock row easy to identify. \\ \hline
+		Received purchase units & 100 pcs & Used as the stock added into the system. \\ \hline
+		Received purchase value & 500 & Used to calculate average unit cost. \\ \hline
+		Committed sale units & 40 pcs & Used as stock already allocated to fulfilled sales. \\ \hline
+		Pending sale units & 20 pcs & Used as future demand that should affect restock recommendation. \\ \hline
+		Pending purchase units & 10 pcs & Used as incoming stock that should reduce restock recommendation. \\ \hline
+		Lead time samples & 4 days and 6 days & Used to calculate average lead time of 5 days. \\ \hline
+		Sales history & 40 pcs over 10 days & Used to calculate average daily demand of 4 pcs per day. \\ \hline
+	\end{tabularx}
+\end{table}
+
+\begin{table}[!htbp]
+	\centering
+	\BlackbookTableSetup
+	\caption{Calculation Validation Output}
+	\label{tab:calculation-validation-output}
+	\begin{tabularx}{\textwidth}{|B{3.2cm}|B{2.4cm}|B{2.4cm}|Z|}
+		\hline
+		\textbf{Output Item} & \textbf{Expected Value} & \textbf{Backend Value} & \textbf{Result} \\ \hline
+		Available stock & 60 & 60 & Passed \\ \hline
+		Average unit cost & 5 & 5 & Passed \\ \hline
+		Average lead time & 5 days & 5 days & Passed \\ \hline
+		Average daily demand & 4 pcs/day & 4 pcs/day & Passed \\ \hline
+		Safety stock & 28 & 28 & Passed \\ \hline
+		Reorder level & 48 & 48 & Passed \\ \hline
+		Recommended restock & 18 & 18 & Passed \\ \hline
+		Days until stockout & 15 days & 15 days & Passed \\ \hline
+		Stock value & 300 & 300 & Passed \\ \hline
+	\end{tabularx}
+\end{table}
+
+This result shows that the backend formula matched the manually expected values. The important point is that the dashboard did not only display a number; it returned values that could be reproduced from the input data.
+
+\subsection{AI Chat Validation Detail}
+The AI Chat validation checked whether the chat page answers from backend data instead of inventing business values. The test was performed by calling the backend chat function with fixed questions and known data. The important output fields were the answer text, the presentation title, the selected record references, and the model marker.
+
+In this implementation, AI Chat returns a deterministic backend summary for supported operational questions. This means the answer is generated from the current database context and is marked as \texttt{local-summary}. The test also checked that unsupported broad questions are rejected instead of being answered freely.
+
+\begin{table}[!htbp]
+	\centering
+	\BlackbookTableSetup
+	\caption{AI Chat Validation Input and Output}
+	\label{tab:ai-chat-validation-input-output}
+	\begin{tabularx}{\textwidth}{|B{2.8cm}|B{2.8cm}|Z|D{1.5cm}|}
+		\hline
+		\textbf{Test Question} & \textbf{Input Data Used} & \textbf{Expected Output Checked} & \textbf{Result} \\ \hline
+		Customer activity summary & Customer with one known sale worth 275 & Chat title shows the selected customer, sales count is 1, sales total is 275, and the sale record target points to the created sale. & Passed \\ \hline
+		Net position question & Existing billing note and payment batch data & Answer includes backend AR, AP, and net position values with presentation title ``Net position''. & Passed \\ \hline
+		Low stock question & Product stock report rows from backend & Answer lists low-stock products and restock priorities from backend stock calculations. & Passed \\ \hline
+		Unsupported quotation summary & A broad request outside the supported assistant scope & Assistant returns ``Outside current assistant scope'' and does not invent a quotation report. & Passed \\ \hline
+		Configured key condition & API key setting temporarily enabled during the test & Chat still returns \texttt{local-summary}, proving that operational chat answers remain backend-controlled. & Passed \\ \hline
+	\end{tabularx}
+\end{table}
+
+This validation shows that AI Chat works as a controlled assistant. It can help users find operational information faster, but the important numbers still come from backend records and backend calculations.
+
+\subsection{AI Report Validation Detail}
+The AI Report validation checked whether supplier, customer, and product reports are generated from the correct selected records. The test also checked that the final report is printable HTML, that chart rows come from backend data, and that unsafe model HTML is removed.
+
+The report test used a controlled supplier and purchase record. The backend built a report context containing the supplier name, purchase reference, purchase amount, metrics, chart rows, and tables. With the API key setting configured, the model response was simulated so that the test could check the system behavior without depending on internet availability or changing AI output. This is important because automated tests must be repeatable.
+
+\begin{table}[!htbp]
+	\centering
+	\BlackbookTableSetup
+	\caption{AI Report Validation Input}
+	\label{tab:ai-report-validation-input}
+	\begin{tabularx}{\textwidth}{|B{3.1cm}|B{2.7cm}|Z|}
+		\hline
+		\textbf{Input Item} & \textbf{Value} & \textbf{Purpose} \\ \hline
+		Report scope & Supplier report & Confirms that the selected report type controls which records are collected. \\ \hline
+		Selected supplier & Configured Key Supplier & Confirms that the report context uses the selected supplier. \\ \hline
+		Product & Configured Key Product & Confirms that line-item data is included in the report context. \\ \hline
+		Purchase reference & PO-AI-KEY-001 & Confirms that the report includes the expected transaction record. \\ \hline
+		Purchase amount & THB 450.00 & Confirms that report totals and table values match backend data. \\ \hline
+		Model output & Simulated HTML body & Confirms how the system wraps model-style output into a final report document. \\ \hline
+	\end{tabularx}
+\end{table}
+
+\begin{table}[!htbp]
+	\centering
+	\BlackbookTableSetup
+	\caption{AI Report Validation Output}
+	\label{tab:ai-report-validation-output}
+	\begin{tabularx}{\textwidth}{|B{3.1cm}|Z|D{1.5cm}|}
+		\hline
+		\textbf{Output Checked} & \textbf{Expected Result} & \textbf{Result} \\ \hline
+		Report context & Contains Configured Key Supplier, PO-AI-KEY-001, and THB 450.00. & Passed \\ \hline
+		Printable document & Final HTML contains document structure and a print button. & Passed \\ \hline
+		AI model body handling & Simulated model summary remains in the final report after wrapping. & Passed \\ \hline
+		Chart rendering & Poor model chart labels are replaced with backend chart row labels. & Passed \\ \hline
+		HTML safety & Script tags, unsafe event handlers, iframes, and JavaScript links are removed. & Passed \\ \hline
+		Current-data report check & Supplier, customer, and product reports generated from current database records and contained expected references and totals. & Passed \\ \hline
+	\end{tabularx}
+\end{table}
+
+This validation shows that AI Report can use AI for presentation, but the selected records, metrics, charts, and tables are still prepared by the backend. The report therefore remains tied to system data rather than free-form model guessing.
+
 \subsection{Manual Scenario Test}
 The manual scenario test asked users to complete the main business flow from quotation to purchase, purchase receiving, payment batch, sale, credit note, and billing note. Ten testers completed the scenario test. Tester names were removed from the stored result file and replaced with anonymous labels for privacy.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\BlackbookTableSetup
 	\caption{Scenario Test Participant Summary}
 	\label{tab:scenario-test-participant-summary}
-	\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+	\begin{tabularx}{\textwidth}{|B{3.5cm}|Z|}
 		\hline
 		\textbf{Item} & \textbf{Result} \\ \hline
 		Number of participants & 10 testers \\ \hline
@@ -269,14 +369,12 @@ The manual scenario test asked users to complete the main business flow from quo
 	\end{tabularx}
 \end{table}
 
-\begin{table}[H]
+\begin{table}[p]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\BlackbookTableSetup
 	\caption{Average Scenario Test Time and Score}
 	\label{tab:scenario-test-average-result}
-	\begin{tabularx}{\textwidth}{|p{2cm}|p{4cm}|p{4cm}|X|}
+	\begin{tabularx}{\textwidth}{|D{1.5cm}|B{2.2cm}|B{2cm}|Z|}
 		\hline
 		\textbf{Part} & \textbf{Average Time} & \textbf{Average Score} & \textbf{Interpretation} \\ \hline
 		Part A & 151.9 seconds & 9.0/10 & Initial quotation workflow took the longest because it starts the process and requires more data entry. \\ \hline
@@ -295,14 +393,12 @@ The average scenario score across all parts was 9.21 out of 10. This suggests th
 \subsection{Questionnaire Result}
 After the scenario test, testers answered a 15-item questionnaire using a 1 to 5 rating scale. The average questionnaire score across all testers was 4.58 out of 5. This indicates a positive overall response to the system.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\BlackbookTableSetup
 	\caption{Questionnaire Result Summary}
 	\label{tab:questionnaire-result-summary}
-	\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+	\begin{tabularx}{\textwidth}{|B{3.5cm}|Z|}
 		\hline
 		\textbf{Evaluation Item} & \textbf{Result} \\ \hline
 		Number of questionnaire responses & 10 responses \\ \hline
@@ -316,14 +412,12 @@ After the scenario test, testers answered a 15-item questionnaire using a 1 to 5
 \subsection{User Feedback Summary}
 The user comments showed several repeated themes. Positive feedback mentioned that purchase order status was understandable, quotation-to-purchase flow was useful, credit note creation could be simple, and connected data reduced the need for repeated entry. Improvement feedback focused mainly on visual clarity and consistency.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 	\centering
-	\small
-	\renewcommand{\arraystretch}{1.25}
-	\setlength{\tabcolsep}{4pt}
+	\BlackbookTableSetup
 	\caption{User Feedback Themes}
 	\label{tab:user-feedback-themes}
-	\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+	\begin{tabularx}{\textwidth}{|B{3.5cm}|Z|}
 		\hline
 		\textbf{Theme} & \textbf{Summary of Feedback} \\ \hline
 		Easy areas & Users found purchase status, quotation creation, quotation-to-purchase flow, and connected data flow useful and understandable. \\ \hline
