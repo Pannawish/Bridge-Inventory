@@ -434,7 +434,7 @@ Validation is handled mainly by the backend. The frontend helps the user by show
 Security support is implemented with Simple JWT. The backend exposes login, token refresh, and authenticated profile endpoints. The frontend stores and refreshes tokens, then attaches the access token to API requests. In local development, the backend can allow unauthenticated access depending on \texttt{INVENTORY\_REQUIRE\_AUTH}; when that setting is enabled, API access requires authentication.
 
 \section{Testing Methodology}
-Testing was focused on backend behavior because the backend owns the most important business rules. The test suite checks pagination, filters, product pictures, operational data commands, stock validation, FIFO allocation, manual allocation, purchase item status changes, quotation normalization, reference numbers, lookup endpoints, eligibility endpoints, credit notes, purchase payable synchronization, seed data, and assistant answer alignment.
+Testing was designed to check both technical correctness and user workflow understanding. The technical tests focused on backend behavior because the backend owns the most important business rules, including stock calculation, stock validation, finance eligibility, payable synchronization, and AI data preparation. Manual testing and questionnaires were added to check whether users could complete the main business workflow and understand the interface.
 
 \begin{table}[!htbp]
 	\centering
@@ -453,24 +453,130 @@ Testing was focused on backend behavior because the backend owns the most import
 		Financial synchronization & Purchase payable totals and payment batch line amounts stay consistent when purchases change. \\ \hline
 		Assistant scope & Supported questions return data-based answers, while unsupported questions are rejected as out of scope. \\ \hline
 		AI report output & Supplier, customer, and product report contexts are checked against backend data, and generated report HTML is sanitized and rendered with deterministic chart rows. \\ \hline
-	\end{tabularx}
+\end{tabularx}
 \end{table}
 
-The selected black-box aligned backend test suite contains 30 automated cases covering product validation, quotation behavior, purchase workflow, sale stock validation, finance eligibility, credit notes, payment batches, and payable synchronization. The latest recorded run passed all 30 cases. Additional focused validation was also run for the reorder point calculation, AI Chat, and AI Report. The focused validation run executed 5 tests and all 5 passed.
+\subsection{Automated Backend Validation Method}
+Automated backend validation was conducted with Django and Django REST Framework test cases. The tests used a temporary test database, created controlled records, called backend APIs or service functions, and compared the returned values with expected behavior. This method was used because backend rules must still be correct even if a user bypasses the frontend and calls the API directly.
+
+The automated suite covered product validation, quotation behavior, purchase workflow, sales stock validation, finance eligibility, credit notes, payment batches, payable synchronization, lookup endpoints, filters, and pagination. The test command used for the backend suite was:
+
+\begin{verbatim}
+backend/.venv/bin/python backend/manage.py test inventory
+\end{verbatim}
 
 \begin{table}[!htbp]
 	\centering
 	\BlackbookTableSetup
-	\caption{Final Validation Test Evidence}
-	\label{tab:final-validation-test-evidence}
-	\begin{tabularx}{\textwidth}{|B{3.2cm}|D{1.9cm}|Z|}
+	\caption{Automated Backend Test Method}
+	\label{tab:automated-backend-test-method}
+	\begin{tabularx}{\textwidth}{|B{3.1cm}|Z|}
 		\hline
-		\textbf{Validation Item} & \textbf{Result} & \textbf{Evidence} \\ \hline
-		Selected backend workflow tests & 30/30 passed & The latest recorded black-box aligned backend run passed all selected cases with no failures. \\ \hline
-		Reorder point calculation & Passed & The fixed mock data returned available stock 60, average daily demand 4, safety stock 28, reorder level 48, recommended restock 18, days until stockout 15, and stock value 300. \\ \hline
-		AI Chat configured-key test & Passed & With an API key setting configured, AI Chat still returned a deterministic backend summary based on the created customer and sale records. \\ \hline
-		AI Report configured-key test & Passed & The report context contained the created supplier, purchase reference, and THB 450.00 amount, and the final HTML included a print button. \\ \hline
-		AI Report chart and safety tests & Passed & Model-generated chart HTML was replaced with backend chart rows, and unsafe HTML such as scripts, iframes, event handlers, and JavaScript links was removed. \\ \hline
+		\textbf{Method Item} & \textbf{Description} \\ \hline
+		Test data & Controlled products, suppliers, customers, purchases, sales, quotations, billing notes, payment batches, and credit notes were created inside the test database. \\ \hline
+		Test action & The test cases called backend endpoints or backend service functions, similar to how the frontend sends requests during real use. \\ \hline
+		Expected output & The returned API data, status codes, calculated values, and validation errors were compared with the expected business rules. \\ \hline
+		Reason for method & Automated tests are repeatable and suitable for checking exact rules such as stock validation, eligibility, and financial synchronization. \\ \hline
+	\end{tabularx}
+\end{table}
+
+\subsection{Calculation Validation Method}
+The calculation validation focused on the reorder point and inventory dashboard calculation. The method used fixed mock data instead of live random data so that the expected output could be manually calculated and compared with the backend result.
+
+The test created one product, received purchase stock, committed sales, pending sales, pending purchases, and lead-time samples. After the records were created, the dashboard stock report calculation was executed. The output was checked against expected values such as available stock, average unit cost, average daily demand, safety stock, reorder level, recommended restock, days until stockout, and stock value.
+
+\begin{table}[!htbp]
+	\centering
+	\BlackbookTableSetup
+	\caption{Calculation Validation Method}
+	\label{tab:calculation-validation-method}
+	\begin{tabularx}{\textwidth}{|B{3.1cm}|Z|}
+		\hline
+		\textbf{Method Item} & \textbf{Description} \\ \hline
+		Input data & Fixed purchase and sale records were created for a known product so the expected stock calculation could be reproduced manually. \\ \hline
+		Test action & The backend dashboard stock report logic was called using the controlled test records. \\ \hline
+		Expected output & The backend should return the same reorder, restock, stock value, and stockout values as the manual calculation. \\ \hline
+		Reason for method & Reorder point output affects purchasing decisions, so the formula must be validated using traceable input data. \\ \hline
+	\end{tabularx}
+\end{table}
+
+\subsection{AI Chat Validation Method}
+AI Chat validation was designed to confirm that the assistant answered from backend data and stayed within the supported assistant scope. The tests used known database records and sent fixed chat questions to the backend chat function. The checked output included the answer text, presentation title, referenced records, and the model marker.
+
+The method also tested unsupported questions. This was important because the assistant should not invent broad business reports or perform actions outside the current read-only assistant scope. When an API key setting was configured, the validation still checked that operational answers remained tied to backend summaries and selected records.
+
+\begin{table}[!htbp]
+	\centering
+	\BlackbookTableSetup
+	\caption{AI Chat Validation Method}
+	\label{tab:ai-chat-validation-method}
+	\begin{tabularx}{\textwidth}{|B{3.1cm}|Z|}
+		\hline
+		\textbf{Method Item} & \textbf{Description} \\ \hline
+		Input data & Known customer, sale, stock, billing, and payment records were prepared or selected from the backend context. \\ \hline
+		Test action & Fixed user questions were sent to AI Chat, such as customer activity, net position, low stock, and unsupported broad requests. \\ \hline
+		Expected output & Supported questions should return backend-based summaries, while unsupported questions should be rejected as outside scope. \\ \hline
+		Reason for method & AI Chat must help users read system data without inventing values or changing records. \\ \hline
+	\end{tabularx}
+\end{table}
+
+\subsection{AI Report Validation Method}
+AI Report validation checked whether report generation used the selected supplier, customer, or product records correctly. The method focused on the report context before and after the AI-written body was added. The backend prepared metrics, charts, record tables, and selected transaction references, then returned a self-contained printable HTML report.
+
+The validation also checked report safety. Model-style HTML was simulated during testing so the system could verify that unsafe content was removed and that chart rows came from backend-prepared data. This makes the test repeatable and prevents the result from depending on changing AI output.
+
+\begin{table}[!htbp]
+	\centering
+	\BlackbookTableSetup
+	\caption{AI Report Validation Method}
+	\label{tab:ai-report-validation-method}
+	\begin{tabularx}{\textwidth}{|B{3.1cm}|Z|}
+		\hline
+		\textbf{Method Item} & \textbf{Description} \\ \hline
+		Input data & A selected supplier, customer, or product was used with related purchases, sales, quotations, finance records, and stock data. \\ \hline
+		Test action & The report endpoint generated the report context and final HTML document for the selected scope. \\ \hline
+		Expected output & The report should contain correct selected-record references, summary metrics, backend chart rows, tables, a print button, and sanitized HTML. \\ \hline
+		Reason for method & AI Report may use AI for presentation, but the business values and charts must still come from reliable backend data. \\ \hline
+	\end{tabularx}
+\end{table}
+
+\subsection{Manual Scenario Test Method}
+Manual scenario testing was conducted to check whether users could complete the main business workflow in the system. The scenario was divided into parts that followed the intended workflow: quotation, purchase creation, purchase receiving, supplier payment, sale checking, status update, credit note, and billing note.
+
+During the test, each participant followed the scenario steps and recorded the time and score for each part. Tester names were removed from the stored result file for privacy. This method was used because automated tests can prove that rules work, but they cannot show whether users can understand the screen flow and find the required actions.
+
+\begin{table}[!htbp]
+	\centering
+	\BlackbookTableSetup
+	\caption{Manual Scenario Test Method}
+	\label{tab:manual-scenario-test-method}
+	\begin{tabularx}{\textwidth}{|B{3.1cm}|Z|}
+		\hline
+		\textbf{Method Item} & \textbf{Description} \\ \hline
+		Input data & Testers used the prepared system data and followed scenario tasks covering the main transaction and finance workflow. \\ \hline
+		Test action & Testers completed each scenario part while completion time, task score, and comments were collected. \\ \hline
+		Expected output & Users should be able to complete the main workflow and identify where the system is easy or difficult to use. \\ \hline
+		Reason for method & Manual testing checks practical usability and workflow clarity from the user's point of view. \\ \hline
+	\end{tabularx}
+\end{table}
+
+\subsection{Questionnaire Method}
+After the scenario test, participants answered a questionnaire using a rating scale. The questionnaire measured their perception of usability, workflow clarity, system usefulness, and areas that may need improvement. Written comments were also reviewed to find repeated feedback themes.
+
+The questionnaire was used as a supporting evaluation method. It did not replace automated validation, but it helped show whether the implemented system was understandable and useful to users after they tried the workflow.
+
+\begin{table}[!htbp]
+	\centering
+	\BlackbookTableSetup
+	\caption{Questionnaire Method}
+	\label{tab:questionnaire-method}
+	\begin{tabularx}{\textwidth}{|B{3.1cm}|Z|}
+		\hline
+		\textbf{Method Item} & \textbf{Description} \\ \hline
+		Input data & Participants answered rating-scale questions and optional written feedback after completing the scenario test. \\ \hline
+		Test action & Scores were summarized, and comments were grouped into repeated themes such as easy areas, difficult areas, and visual clarity. \\ \hline
+		Expected output & The questionnaire should show general user perception and highlight improvement areas for the interface and workflow. \\ \hline
+		Reason for method & Questionnaire feedback adds user-centered evidence that cannot be captured by automated backend tests alone. \\ \hline
 	\end{tabularx}
 \end{table}
 

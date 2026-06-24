@@ -7,7 +7,7 @@
 \contentsline {chapter}{ABSTRACT (ENGLISH)}{v}{}%
 \contentsline {chapter}{CONTENTS}{vi}{}%
 \contentsline {chapter}{LIST OF TABLES}{x}{}%
-\contentsline {chapter}{LIST OF FIGURES}{xi}{}%
+\contentsline {chapter}{LIST OF FIGURES}{xii}{}%
 \contentsline {chapter}{\numberline {1}INTRODUCTION}{1}{}%
 \contentsline {section}{\numberline {1.1}Background}{1}{}%
 \contentsline {section}{\numberline {1.2}Objective}{1}{}%
@@ -58,39 +58,45 @@
 \contentsline {subsection}{\numberline {3.9.9}Quotation Validity}{24}{}%
 \contentsline {section}{\numberline {3.10}Validation and Security Design}{25}{}%
 \contentsline {section}{\numberline {3.11}Testing Methodology}{25}{}%
-\contentsline {section}{\numberline {3.12}Tools and Technologies Used}{25}{}%
-\contentsline {chapter}{\numberline {4}RESULTS}{28}{}%
-\contentsline {section}{\numberline {4.1}Completed System Overview}{28}{}%
-\contentsline {section}{\numberline {4.2}Implemented Modules}{28}{}%
-\contentsline {section}{\numberline {4.3}How the System Looks in Practice}{28}{}%
-\contentsline {section}{\numberline {4.4}Results by Workflow}{38}{}%
-\contentsline {subsection}{\numberline {4.4.1}Master Data Results}{38}{}%
-\contentsline {subsection}{\numberline {4.4.2}Purchasing and Stock Results}{39}{}%
-\contentsline {subsection}{\numberline {4.4.3}Sales Results}{39}{}%
-\contentsline {subsection}{\numberline {4.4.4}Quotation Results}{39}{}%
-\contentsline {subsection}{\numberline {4.4.5}Finance Results}{40}{}%
-\contentsline {subsection}{\numberline {4.4.6}Dashboard and Inventory Results}{40}{}%
-\contentsline {subsection}{\numberline {4.4.7}AI Assistant Results}{40}{}%
-\contentsline {subsection}{\numberline {4.4.8}AI Report Results}{40}{}%
-\contentsline {section}{\numberline {4.5}Feature Evidence Summary}{41}{}%
-\contentsline {section}{\numberline {4.6}Key Findings}{41}{}%
-\contentsline {section}{\numberline {4.7}Discussion of Objective Achievement}{42}{}%
-\contentsline {section}{\numberline {4.8}Testing and Evaluation Results}{42}{}%
-\contentsline {subsection}{\numberline {4.8.1}Automated Backend Validation}{43}{}%
-\contentsline {subsection}{\numberline {4.8.2}Calculation Validation Detail}{43}{}%
-\contentsline {subsection}{\numberline {4.8.3}AI Chat Validation Detail}{45}{}%
-\contentsline {subsection}{\numberline {4.8.4}AI Report Validation Detail}{45}{}%
-\contentsline {subsection}{\numberline {4.8.5}Manual Scenario Test}{47}{}%
-\contentsline {subsection}{\numberline {4.8.6}Questionnaire Result}{47}{}%
-\contentsline {subsection}{\numberline {4.8.7}User Feedback Summary}{47}{}%
-\contentsline {section}{\numberline {4.9}Limitations Found During Development}{49}{}%
-\contentsline {chapter}{\numberline {5}CONCLUSION}{50}{}%
-\contentsline {section}{\numberline {5.1}Brief Project Overview}{50}{}%
-\contentsline {section}{\numberline {5.2}Objective Summary}{50}{}%
-\contentsline {section}{\numberline {5.3}System Design Summary}{50}{}%
-\contentsline {section}{\numberline {5.4}Implementation Summary}{51}{}%
-\contentsline {section}{\numberline {5.5}Result Summary}{51}{}%
-\contentsline {section}{\numberline {5.6}Key Findings}{52}{}%
-\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{52}{}%
-\contentsline {section}{\numberline {5.8}Future Work}{52}{}%
-\contentsline {chapter}{REFERENCES}{54}{}%
+\contentsline {subsection}{\numberline {3.11.1}Automated Backend Validation Method}{25}{}%
+\contentsline {subsection}{\numberline {3.11.2}Calculation Validation Method}{27}{}%
+\contentsline {subsection}{\numberline {3.11.3}AI Chat Validation Method}{27}{}%
+\contentsline {subsection}{\numberline {3.11.4}AI Report Validation Method}{28}{}%
+\contentsline {subsection}{\numberline {3.11.5}Manual Scenario Test Method}{28}{}%
+\contentsline {subsection}{\numberline {3.11.6}Questionnaire Method}{29}{}%
+\contentsline {section}{\numberline {3.12}Tools and Technologies Used}{30}{}%
+\contentsline {chapter}{\numberline {4}RESULTS}{31}{}%
+\contentsline {section}{\numberline {4.1}Completed System Overview}{31}{}%
+\contentsline {section}{\numberline {4.2}Implemented Modules}{31}{}%
+\contentsline {section}{\numberline {4.3}How the System Looks in Practice}{31}{}%
+\contentsline {section}{\numberline {4.4}Results by Workflow}{41}{}%
+\contentsline {subsection}{\numberline {4.4.1}Master Data Results}{41}{}%
+\contentsline {subsection}{\numberline {4.4.2}Purchasing and Stock Results}{42}{}%
+\contentsline {subsection}{\numberline {4.4.3}Sales Results}{42}{}%
+\contentsline {subsection}{\numberline {4.4.4}Quotation Results}{42}{}%
+\contentsline {subsection}{\numberline {4.4.5}Finance Results}{43}{}%
+\contentsline {subsection}{\numberline {4.4.6}Dashboard and Inventory Results}{43}{}%
+\contentsline {subsection}{\numberline {4.4.7}AI Assistant Results}{43}{}%
+\contentsline {subsection}{\numberline {4.4.8}AI Report Results}{43}{}%
+\contentsline {section}{\numberline {4.5}Feature Evidence Summary}{44}{}%
+\contentsline {section}{\numberline {4.6}Key Findings}{44}{}%
+\contentsline {section}{\numberline {4.7}Discussion of Objective Achievement}{45}{}%
+\contentsline {section}{\numberline {4.8}Testing and Evaluation Results}{45}{}%
+\contentsline {subsection}{\numberline {4.8.1}Automated Backend Validation}{46}{}%
+\contentsline {subsection}{\numberline {4.8.2}Calculation Validation Detail}{46}{}%
+\contentsline {subsection}{\numberline {4.8.3}AI Chat Validation Detail}{48}{}%
+\contentsline {subsection}{\numberline {4.8.4}AI Report Validation Detail}{48}{}%
+\contentsline {subsection}{\numberline {4.8.5}Manual Scenario Test}{50}{}%
+\contentsline {subsection}{\numberline {4.8.6}Questionnaire Result}{50}{}%
+\contentsline {subsection}{\numberline {4.8.7}User Feedback Summary}{50}{}%
+\contentsline {section}{\numberline {4.9}Limitations Found During Development}{52}{}%
+\contentsline {chapter}{\numberline {5}CONCLUSION}{53}{}%
+\contentsline {section}{\numberline {5.1}Brief Project Overview}{53}{}%
+\contentsline {section}{\numberline {5.2}Objective Summary}{53}{}%
+\contentsline {section}{\numberline {5.3}System Design Summary}{53}{}%
+\contentsline {section}{\numberline {5.4}Implementation Summary}{54}{}%
+\contentsline {section}{\numberline {5.5}Result Summary}{54}{}%
+\contentsline {section}{\numberline {5.6}Key Findings}{55}{}%
+\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{55}{}%
+\contentsline {section}{\numberline {5.8}Future Work}{55}{}%
+\contentsline {chapter}{REFERENCES}{57}{}%
