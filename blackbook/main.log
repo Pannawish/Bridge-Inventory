@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  28 JUN 2026 11:19
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  28 JUN 2026 11:40
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1435,7 +1435,7 @@ ailable
 [27]
 
 [28]
-Underfull \hbox (badness 1314) in paragraph at lines 552--553
+Underfull \hbox (badness 1314) in paragraph at lines 572--573
 []\TU/TimesNewRoman(0)/m/n/12 During the test, each participant followed the sc
 enario steps and
  []
@@ -1639,10 +1639,10 @@ LaTeX Font Warning: Size substitutions with differences
 
  ) 
 Here is how much of TeX's memory you used:
- 24637 strings out of 402990
- 525444 string characters out of 5447323
- 1100902 words of memory out of 5000000
- 52879 multiletter control sequences out of 15000+600000
+ 24740 strings out of 402990
+ 527667 string characters out of 5447323
+ 1112078 words of memory out of 5000000
+ 52982 multiletter control sequences out of 15000+600000
  633776 words of font info for 104 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  88i,13n,107p,1127b,964s stack positions out of 10000i,1000n,20000p,200000b,200000s

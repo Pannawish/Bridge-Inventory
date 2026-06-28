@@ -209,59 +209,79 @@ The system also keeps snapshot fields inside transaction records. A sale item st
 \section{Business Workflow Design}
 The main workflow starts from master data. Products belong to categories and are used in purchase, sale, and quotation line items. Purchases bring stock into the system only when purchase items are received. Sales commit stock only when sale items are packed, shipped, or delivered. This is why the system does not treat product stock as a manually edited field.
 
-Quotations are used before purchase or sales records are created. Billing notes are created from eligible sales for customer receivable tracking. Payment batches are created from eligible purchases for supplier payable tracking. Credit notes are created from eligible cancelled or returned sale lines.
+Quotations are used before purchase or sales records are created. Billing notes are created from eligible sales for customer receivable tracking. Payment batches are created from eligible purchases for supplier payable tracking. Credit notes are created from eligible cancelled or returned sale lines. Dashboard summaries, AI Chat, and AI Report read from the operational records, while user access and activity logs support administration and audit review.
 
 \begin{figure}[H]
 \centering
-\resizebox{0.95\textwidth}{!}{
+\resizebox{\textwidth}{!}{
 \begin{tikzpicture}[
 	>=Stealth,
-	font=\scriptsize,
+	font=\tiny,
 	arrow/.style={->, thick, shorten >=2pt, shorten <=2pt},
 	dasharrow/.style={->, thick, dashed, shorten >=2pt, shorten <=2pt},
-	master/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=3.8cm, minimum height=0.95cm, fill=blue!12},
-	action/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.9cm, minimum height=0.85cm, fill=blue!18},
-	decision/.style={diamond, draw=black, thick, align=center, aspect=2.1, text width=2.2cm, inner sep=2pt, fill=yellow!25},
-	stock/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=2.9cm, minimum height=0.85cm, fill=magenta!12},
-	financeg/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.9cm, minimum height=0.85cm, fill=green!18},
-	financer/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.8cm, minimum height=0.85cm, fill=red!12},
-	report/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=3.1cm, minimum height=0.85cm, fill=cyan!14},
-	assistant/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.7cm, minimum height=0.85cm, fill=violet!12}
+	master/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=3.7cm, minimum height=0.85cm, fill=blue!10},
+	action/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.55cm, minimum height=0.75cm, fill=blue!18},
+	decision/.style={diamond, draw=black, thick, align=center, aspect=2.25, text width=2.15cm, inner sep=1pt, fill=yellow!25},
+	stock/.style={rectangle, rounded corners=2pt, draw=black, thick, align=center, text width=2.55cm, minimum height=0.75cm, fill=magenta!12},
+	financeg/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.55cm, minimum height=0.75cm, fill=green!18},
+	financer/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.55cm, minimum height=0.75cm, fill=red!12},
+	report/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.65cm, minimum height=0.75cm, fill=cyan!14},
+	assistant/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.35cm, minimum height=0.75cm, fill=violet!12},
+	admin/.style={rectangle, rounded corners=2pt, draw=black, align=center, text width=2.65cm, minimum height=0.75cm, fill=orange!16}
 ]
 	\node[master] (master) at (0,0) {Master Data\\Categories / Products / Suppliers / Customers};
-	\node[action] (quotation) at (0,-1.9) {Quotation};
-	\node[decision] (check) at (0,-4.2) {Stock\\Sufficiency\\Check};
-	\node[action] (purchase) at (-4.3,-6.6) {Purchase Order};
-	\node[action] (sale) at (4.3,-6.6) {Sale Order};
-	\node[action] (received) at (-4.3,-8.8) {Received Purchase Items};
-	\node[stock] (available) at (0,-8.8) {Available Stock};
-	\node[action] (fulfilled) at (4.3,-8.8) {Packed / Shipped /\\Delivered Sale Items};
-	\node[financeg] (payment) at (-4.3,-11.0) {Payment Batches};
-	\node[financeg] (billing) at (4.3,-11.0) {Billing Notes};
-	\node[financer] (credit) at (8.1,-11.0) {Credit Notes};
-	\node[report] (dashboard) at (0,-13.3) {Dashboard};
-	\node[assistant] (ai) at (0,-15.2) {AI Assistant};
-	\coordinate (dashpay) at ([xshift=-1.2cm]dashboard.north);
-	\coordinate (dashstock) at (dashboard.north);
-	\coordinate (dashbill) at ([xshift=1.2cm]dashboard.north);
-	\coordinate (dashcredit) at ([xshift=-0.25cm]dashboard.north east);
+	\node[action] (quotation) at (0,-1.45) {Quotation};
+	\node[decision] (check) at (0,-3.25) {Stock\\Sufficiency\\Check};
+	\node[action] (purchase) at (-5.2,-5.25) {Purchase Order};
+	\node[action] (sale) at (5.2,-5.25) {Sale Order};
+	\node[action] (received) at (-5.2,-7.05) {Received Purchase Items};
+	\node[stock] (available) at (0,-7.05) {Available Stock};
+	\node[action] (fulfilled) at (5.2,-7.05) {Packed / Shipped /\\Delivered Sale Items};
+	\node[action] (eligiblepurchases) at (-5.2,-8.85) {Eligible Purchases};
+	\node[financeg] (payment) at (-5.2,-10.4) {Payment Batches};
+	\node[financeg] (billing) at (3.2,-9.25) {Billing Notes};
+	\node[financer] (cancelled) at (7.4,-9.25) {Cancelled / Returned\\Sale Items};
+	\node[financer] (credit) at (7.4,-10.8) {Credit Notes};
+	\node[report] (dashboard) at (0,-12.25) {Dashboard};
+	\node[assistant] (chat) at (-1.75,-14.0) {AI Chat};
+	\node[assistant] (aireport) at (1.75,-14.0) {AI Report};
+	\node[admin] (access) at (8.0,-1.45) {User Access\\Roles / Permissions};
+	\node[admin] (logs) at (8.0,-3.25) {Activity Logs};
+	\coordinate (leftlane) at (-6.85,0);
+	\coordinate (rightlane) at (8.95,0);
+	\coordinate (dashpurchase) at ([xshift=-0.95cm]dashboard.north);
+	\coordinate (dashsale) at ([xshift=0.2cm]dashboard.north);
+	\coordinate (dashbilling) at ([xshift=0.95cm]dashboard.north);
+	\coordinate (dashpayment) at (dashboard.west);
+	\coordinate (dashcredit) at (dashboard.east);
+	\coordinate (purchaseMasterIn) at ([xshift=-0.45cm]purchase.north);
+	\coordinate (purchaseCheckIn) at (purchase.north east);
+	\coordinate (saleCheckIn) at (sale.north west);
+	\coordinate (saleMasterIn) at ([xshift=0.45cm]sale.north);
 	
 	\draw[arrow] (master) -- (quotation);
+	\draw[arrow] (master.west) -- ++(-1.6,0) |- (purchaseMasterIn);
+	\draw[arrow] (master.east) -- ++(1.6,0) |- (saleMasterIn);
 	\draw[arrow] (quotation) -- (check);
-	\draw[arrow] (check.west) -- ++(-1.0,0) |- node[pos=0.25, above]{Short stock} (purchase.north);
-	\draw[arrow] (check.east) -- ++(1.0,0) |- node[pos=0.25, above]{Enough stock} (sale.north);
+	\draw[arrow] (check.south west) -- node[pos=0.5, above, sloped]{Short stock} (purchaseCheckIn);
+	\draw[arrow] (check.south east) -- node[pos=0.5, above, sloped]{Enough stock} (saleCheckIn);
 	\draw[arrow] (purchase) -- (received);
-	\draw[arrow] (received.east) -- (available.west);
+	\draw[arrow] (purchase.west) -- ++(-0.75,0) |- (eligiblepurchases.west);
+	\draw[arrow] (eligiblepurchases) -- (payment);
+	\draw[arrow] (received) -- (available);
 	\draw[arrow] (available.east) -- ++(0.8,0) |- (sale.west);
 	\draw[arrow] (sale) -- (fulfilled);
-	\draw[arrow] (received) -- (payment);
-	\draw[arrow] (fulfilled) -- (billing);
-	\draw[arrow] (fulfilled.east) -- ++(0.8,0) |- (credit.west);
-	\draw[dasharrow] (available.south) -- (dashstock);
-	\draw[dasharrow] (payment.south) -- ++(0,-0.45) -| (dashpay);
-	\draw[dasharrow] (billing.south) -- ++(0,-0.7) -| (dashbill);
-	\draw[dasharrow] (credit.south) -- ++(0,-0.95) -| (dashcredit);
-	\draw[arrow] (dashboard) -- (ai);
+	\draw[arrow] (fulfilled.south) -- ++(0,-0.65) -| (billing.north);
+	\draw[arrow] (sale.east) -- (rightlane |- sale.east) |- (cancelled.east);
+	\draw[arrow] (cancelled) -- (credit);
+	\draw[dasharrow] (received.west) -- (leftlane |- received.west) |- (leftlane |- dashboard.west) -- (dashpayment);
+	\draw[dasharrow] (fulfilled.south) -- ++(0,-3.35) -| (dashsale);
+	\draw[dasharrow] (billing.south) -- ++(0,-1.55) -| (dashbilling);
+	\draw[dasharrow] (payment.south) -- ++(0,-0.85) -| (dashpurchase);
+	\draw[dasharrow] (credit.east) -- (rightlane |- credit.east) |- (rightlane |- dashboard.east) -- (dashcredit);
+	\draw[arrow] (dashboard) -- (chat);
+	\draw[arrow] (dashboard) -- (aireport);
+	\draw[arrow] (access) -- (logs);
 \end{tikzpicture}
 }
 \vspace{1em}
