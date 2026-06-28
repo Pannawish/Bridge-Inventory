@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  28 JUN 2026 11:06
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  28 JUN 2026 11:19
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1448,8 +1448,6 @@ enario steps and
 
 [31]
 CHAPTER 4.
-File: ./figures/chap4/figure-4-1-dashboard.png Graphic file (type bmp)
-<./figures/chap4/figure-4-1-dashboard.png>
 
 
 [32
@@ -1457,55 +1455,64 @@ File: ./figures/chap4/figure-4-1-dashboard.png Graphic file (type bmp)
 ]
 
 [33]
+File: ./figures/chap4/figure-4-1-dashboard.png Graphic file (type bmp)
+<./figures/chap4/figure-4-1-dashboard.png>
+
+
+[34]
 File: ./figures/chap4/figure-4-2-inventory.png Graphic file (type bmp)
 <./figures/chap4/figure-4-2-inventory.png>
 
 
-[34]
+[35]
 File: ./figures/chap4/figure-4-3-ai-chat.png Graphic file (type bmp)
 <./figures/chap4/figure-4-3-ai-chat.png>
 
 
-[35]
+[36]
 File: ./figures/chap4/figure-4-4-ai-report.png Graphic file (type bmp)
 <./figures/chap4/figure-4-4-ai-report.png>
 
 
-[36]
+[37]
 File: ./figures/chap4/figure-4-5-product-form.png Graphic file (type bmp)
 <./figures/chap4/figure-4-5-product-form.png>
 File: ./figures/chap4/figure-4-6-purchase-workflow.png Graphic file (type bmp)
 <./figures/chap4/figure-4-6-purchase-workflow.png>
 
 
-[37]
+[38]
 File: ./figures/chap4/figure-4-7-sales-workflow.png Graphic file (type bmp)
 <./figures/chap4/figure-4-7-sales-workflow.png>
 
 
-[38]
+[39]
 File: ./figures/chap4/figure-4-8-quotation-workflow.png Graphic file (type bmp)
 
 <./figures/chap4/figure-4-8-quotation-workflow.png>
 
 
-[39]
+[40]
 File: ./figures/chap4/figure-4-9-billing-note-workflow.png Graphic file (type b
 mp)
 <./figures/chap4/figure-4-9-billing-note-workflow.png>
 
 
-[40]
+[41]
 File: ./figures/chap4/figure-4-10-payment-batch-workflow.png Graphic file (type
  bmp)
 <./figures/chap4/figure-4-10-payment-batch-workflow.png>
 
 
-[41]
-
 [42]
+File: ./figures/chap4/figure-4-11-user-access.png Graphic file (type bmp)
+<./figures/chap4/figure-4-11-user-access.png>
+
 
 [43]
+File: ./figures/chap4/figure-4-12-activity-log.png Graphic file (type bmp)
+<./figures/chap4/figure-4-12-activity-log.png>
+
 
 [44]
 
@@ -1523,25 +1530,31 @@ File: ./figures/chap4/figure-4-10-payment-batch-workflow.png Graphic file (type
 
 [51]
 
-[52]) (chapter5.tex
+[52]
 
 [53]
 
 [54]
 
 [55]
+
+[56]
+
+[57]) (chapter5.tex
+
+[58]
 CHAPTER 5.
 
 
-[56
+[59
 
 ]
 
-[57]
+[60]
 
-[58])
+[61])
 
-[59] (main.bbl
+[62] (main.bbl
 Underfull \hbox (badness 10000) in paragraph at lines 45--52
 []\TU/TimesNewRoman(0)/m/n/12 The Times.  Sole traders still not prepared for d
 igital tax re-
@@ -1567,17 +1580,17 @@ Underfull \hbox (badness 10000) in paragraph at lines 45--52
 
 )
 
-[60
+[63
 
 ]
 
-[61] (AppendixA.tex
+[64] (AppendixA.tex
 Appendix A.
 File: ../docs/screenshots/sidebar-navigation.png Graphic file (type bmp)
 <../docs/screenshots/sidebar-navigation.png>
 
 
-[62
+[65
 
 ]
 File: ../docs/screenshots/product-form-unit-conversions.png Graphic file (type 
@@ -1585,14 +1598,14 @@ bmp)
 <../docs/screenshots/product-form-unit-conversions.png>
 
 
-[63]
+[66]
 
-[64]
+[67]
 File: ../docs/screenshots/quotation-entry.png Graphic file (type bmp)
 <../docs/screenshots/quotation-entry.png>
 
 
-[65]
+[68]
 File: ../docs/screenshots/purchase-form-receiving-status.png Graphic file (type
  bmp)
 <../docs/screenshots/purchase-form-receiving-status.png>
@@ -1601,18 +1614,18 @@ mp)
 <../docs/screenshots/sales-form-delivery-statuses.png>
 
 
-[66]
+[69]
 
-[67]
+[70]
 File: ../docs/screenshots/dashboard-overview.png Graphic file (type bmp)
 <../docs/screenshots/dashboard-overview.png>
 
 
-[68])
+[71])
 
-[69]
+[72]
 
-[70] 
+[73] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
 (main.aux)
  ***********
@@ -1626,12 +1639,12 @@ LaTeX Font Warning: Size substitutions with differences
 
  ) 
 Here is how much of TeX's memory you used:
- 24612 strings out of 402990
- 524409 string characters out of 5447323
- 1098844 words of memory out of 5000000
- 52856 multiletter control sequences out of 15000+600000
+ 24637 strings out of 402990
+ 525444 string characters out of 5447323
+ 1100902 words of memory out of 5000000
+ 52879 multiletter control sequences out of 15000+600000
  633776 words of font info for 104 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  88i,13n,107p,1127b,964s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (86 pages).
+Output written on main.pdf (89 pages).

@@ -8,7 +8,7 @@ The final system is a full-stack web application for an SME trading business. It
 The main result is that the system connects business documents together instead of keeping them as separate records. A product can appear in purchases, sales, quotations, inventory reports, and product history. A sale can later become part of a billing note or a credit note. A purchase can later become part of a payment batch. This connection makes the system more useful than a simple product list.
 
 \section{Implemented Modules}
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Implemented Workspace and Transaction Modules}
@@ -27,7 +27,7 @@ The main result is that the system connects business documents together instead 
 	\end{tabularx}
 \end{table}
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Implemented Finance and Master Data Modules}
@@ -146,6 +146,26 @@ Figure~\ref{fig:billing-note-workflow} shows how eligible sales are grouped into
 \end{figure}
 
 Figure~\ref{fig:payment-batch-workflow} shows the payment batch page for supplier payables. Eligible purchases are grouped into one batch, and the user can mark individual lines as paid and record bank references, keeping supplier payment tracking in one place.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\textwidth,height=0.65\textheight,keepaspectratio]{figure-4-11-user-access.png}
+	\vspace{10pt}
+	\caption{User access management page}
+	\label{fig:user-access-page}
+\end{figure}
+
+Figure~\ref{fig:user-access-page} shows the user access page where authorized administrators can create staff accounts, assign roles, update account status, and review role permissions.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\textwidth,height=0.65\textheight,keepaspectratio]{figure-4-12-activity-log.png}
+	\vspace{10pt}
+	\caption{Activity log page}
+	\label{fig:activity-log-page}
+\end{figure}
+
+Figure~\ref{fig:activity-log-page} shows the activity log page where authorized users can review important system events such as login, create, update, and delete actions.
 
 \section{Results by Workflow}
 \subsection{Master Data Results}
