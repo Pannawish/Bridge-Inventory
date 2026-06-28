@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  28 JUN 2026 10:59
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  28 JUN 2026 11:06
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1330,15 +1330,15 @@ Underfull \hbox (badness 10000) in paragraph at lines 5--137
 
 
 
-[9] (main.lot)
+[9] (main.lot
+
+[10
+
+])
 \tf@lot=\write6
 \openout6 = `main.lot'.
 
 
-
-[10
-
-]
 
 [11] (main.lof)
 \tf@lof=\write7
@@ -1569,7 +1569,50 @@ Underfull \hbox (badness 10000) in paragraph at lines 45--52
 
 [60
 
-] 
+]
+
+[61] (AppendixA.tex
+Appendix A.
+File: ../docs/screenshots/sidebar-navigation.png Graphic file (type bmp)
+<../docs/screenshots/sidebar-navigation.png>
+
+
+[62
+
+]
+File: ../docs/screenshots/product-form-unit-conversions.png Graphic file (type 
+bmp)
+<../docs/screenshots/product-form-unit-conversions.png>
+
+
+[63]
+
+[64]
+File: ../docs/screenshots/quotation-entry.png Graphic file (type bmp)
+<../docs/screenshots/quotation-entry.png>
+
+
+[65]
+File: ../docs/screenshots/purchase-form-receiving-status.png Graphic file (type
+ bmp)
+<../docs/screenshots/purchase-form-receiving-status.png>
+File: ../docs/screenshots/sales-form-delivery-statuses.png Graphic file (type b
+mp)
+<../docs/screenshots/sales-form-delivery-statuses.png>
+
+
+[66]
+
+[67]
+File: ../docs/screenshots/dashboard-overview.png Graphic file (type bmp)
+<../docs/screenshots/dashboard-overview.png>
+
+
+[68])
+
+[69]
+
+[70] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
 (main.aux)
  ***********
@@ -1583,12 +1626,12 @@ LaTeX Font Warning: Size substitutions with differences
 
  ) 
 Here is how much of TeX's memory you used:
- 24542 strings out of 402990
- 521303 string characters out of 5447323
- 1098600 words of memory out of 5000000
- 52796 multiletter control sequences out of 15000+600000
+ 24612 strings out of 402990
+ 524409 string characters out of 5447323
+ 1098844 words of memory out of 5000000
+ 52856 multiletter control sequences out of 15000+600000
  633776 words of font info for 104 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  88i,13n,107p,1127b,964s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (76 pages).
+Output written on main.pdf (86 pages).

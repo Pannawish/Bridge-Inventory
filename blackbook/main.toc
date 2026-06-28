@@ -101,3 +101,15 @@
 \contentsline {section}{\numberline {5.7}Obstacles and Challenges}{58}{}%
 \contentsline {section}{\numberline {5.8}Future Work}{58}{}%
 \contentsline {chapter}{REFERENCES}{60}{}%
+\setcounter {tocdepth}{0}
+\renewcommand {\cftchappresnum }{\MakeUppercase []{Appendix~}}\renewcommand {\cftchapnumwidth }{\dimexpr \appendixToCPrefix +2.5em}
+\contentsline {chapter}{\numberline {A}SOFTWARE USER GUIDE}{62}{}%
+\contentsline {section}{\numberline {A.1}Accessing the System}{62}{}%
+\contentsline {section}{\numberline {A.2}Basic Operating Rules}{63}{}%
+\contentsline {section}{\numberline {A.3}First-Time Master Data Setup}{63}{}%
+\contentsline {section}{\numberline {A.4}Daily Transaction Workflow}{65}{}%
+\contentsline {section}{\numberline {A.5}Finance Follow-Up Workflow}{66}{}%
+\contentsline {section}{\numberline {A.6}Inventory and Business Review}{68}{}%
+\contentsline {section}{\numberline {A.7}AI Chat and AI Report}{68}{}%
+\contentsline {section}{\numberline {A.8}Administration}{69}{}%
+\contentsline {section}{\numberline {A.9}Quick Reference}{69}{}%
