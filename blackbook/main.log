@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  24 JUN 2026 18:39
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  28 JUN 2026 10:59
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -735,6 +735,9 @@ LaTeX Info: Redefining \Relbar on input line 970.
 \mathdisplay@stack=\toks36
 LaTeX Info: Redefining \[ on input line 2950.
 LaTeX Info: Redefining \] on input line 2951.
+) (/Library/Application Support/MiKTeX/texmfs/install/tex/latex/url/url.sty
+\Urlmuskip=\muskip18
+Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
 )
 (/Library/Application Support/MiKTeX/texmfs/install/tex/latex/pgf/frontendlayer
 /tikz.sty
@@ -1086,22 +1089,22 @@ Package: lipsum 2021-09-20 v2.7 150 paragraphs of Lorem Ipsum dummy text
 /lipsum.ltd.tex)) (main.aux)
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 124.
-LaTeX Font Info:    ... okay on input line 124.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 124.
-LaTeX Font Info:    ... okay on input line 124.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 124.
-LaTeX Font Info:    ... okay on input line 124.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 124.
-LaTeX Font Info:    ... okay on input line 124.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 124.
-LaTeX Font Info:    ... okay on input line 124.
-LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 124.
-LaTeX Font Info:    ... okay on input line 124.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 124.
-LaTeX Font Info:    ... okay on input line 124.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 124.
-LaTeX Font Info:    ... okay on input line 124.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 125.
+LaTeX Font Info:    ... okay on input line 125.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 125.
+LaTeX Font Info:    ... okay on input line 125.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 125.
+LaTeX Font Info:    ... okay on input line 125.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 125.
+LaTeX Font Info:    ... okay on input line 125.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 125.
+LaTeX Font Info:    ... okay on input line 125.
+LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 125.
+LaTeX Font Info:    ... okay on input line 125.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 125.
+LaTeX Font Info:    ... okay on input line 125.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 125.
+LaTeX Font Info:    ... okay on input line 125.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: xetex
@@ -1148,85 +1151,85 @@ Package fontspec Info:
 
 \symlegacymaths=\mathgroup5
 LaTeX Font Info:    Overwriting symbol font `legacymaths' in version `bold'
-(Font)                  OT1/cmr/m/n --> OT1/cmr/bx/n on input line 124.
-LaTeX Font Info:    Redeclaring math accent \acute on input line 124.
-LaTeX Font Info:    Redeclaring math accent \grave on input line 124.
-LaTeX Font Info:    Redeclaring math accent \ddot on input line 124.
-LaTeX Font Info:    Redeclaring math accent \tilde on input line 124.
-LaTeX Font Info:    Redeclaring math accent \bar on input line 124.
-LaTeX Font Info:    Redeclaring math accent \breve on input line 124.
-LaTeX Font Info:    Redeclaring math accent \check on input line 124.
-LaTeX Font Info:    Redeclaring math accent \hat on input line 124.
-LaTeX Font Info:    Redeclaring math accent \dot on input line 124.
-LaTeX Font Info:    Redeclaring math accent \mathring on input line 124.
-LaTeX Font Info:    Redeclaring math symbol \Gamma on input line 124.
-LaTeX Font Info:    Redeclaring math symbol \Delta on input line 124.
-LaTeX Font Info:    Redeclaring math symbol \Theta on input line 124.
-LaTeX Font Info:    Redeclaring math symbol \Lambda on input line 124.
-LaTeX Font Info:    Redeclaring math symbol \Xi on input line 124.
-LaTeX Font Info:    Redeclaring math symbol \Pi on input line 124.
-LaTeX Font Info:    Redeclaring math symbol \Sigma on input line 124.
-LaTeX Font Info:    Redeclaring math symbol \Upsilon on input line 124.
-LaTeX Font Info:    Redeclaring math symbol \Phi on input line 124.
-LaTeX Font Info:    Redeclaring math symbol \Psi on input line 124.
-LaTeX Font Info:    Redeclaring math symbol \Omega on input line 124.
-LaTeX Font Info:    Redeclaring math symbol \mathdollar on input line 124.
-LaTeX Font Info:    Redeclaring symbol font `operators' on input line 124.
+(Font)                  OT1/cmr/m/n --> OT1/cmr/bx/n on input line 125.
+LaTeX Font Info:    Redeclaring math accent \acute on input line 125.
+LaTeX Font Info:    Redeclaring math accent \grave on input line 125.
+LaTeX Font Info:    Redeclaring math accent \ddot on input line 125.
+LaTeX Font Info:    Redeclaring math accent \tilde on input line 125.
+LaTeX Font Info:    Redeclaring math accent \bar on input line 125.
+LaTeX Font Info:    Redeclaring math accent \breve on input line 125.
+LaTeX Font Info:    Redeclaring math accent \check on input line 125.
+LaTeX Font Info:    Redeclaring math accent \hat on input line 125.
+LaTeX Font Info:    Redeclaring math accent \dot on input line 125.
+LaTeX Font Info:    Redeclaring math accent \mathring on input line 125.
+LaTeX Font Info:    Redeclaring math symbol \Gamma on input line 125.
+LaTeX Font Info:    Redeclaring math symbol \Delta on input line 125.
+LaTeX Font Info:    Redeclaring math symbol \Theta on input line 125.
+LaTeX Font Info:    Redeclaring math symbol \Lambda on input line 125.
+LaTeX Font Info:    Redeclaring math symbol \Xi on input line 125.
+LaTeX Font Info:    Redeclaring math symbol \Pi on input line 125.
+LaTeX Font Info:    Redeclaring math symbol \Sigma on input line 125.
+LaTeX Font Info:    Redeclaring math symbol \Upsilon on input line 125.
+LaTeX Font Info:    Redeclaring math symbol \Phi on input line 125.
+LaTeX Font Info:    Redeclaring math symbol \Psi on input line 125.
+LaTeX Font Info:    Redeclaring math symbol \Omega on input line 125.
+LaTeX Font Info:    Redeclaring math symbol \mathdollar on input line 125.
+LaTeX Font Info:    Redeclaring symbol font `operators' on input line 125.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `normal' on input line 124.
+(Font)              `operators' in the math version `normal' on input line 125.
 
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
 (Font)                  OT1/cmr/m/n --> TU/TimesNewRoman(1)/m/n on input line 1
-24.
+25.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `bold' on input line 124.
+(Font)              `operators' in the math version `bold' on input line 125.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
 (Font)                  OT1/cmr/bx/n --> TU/TimesNewRoman(1)/m/n on input line 
-124.
+125.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
 (Font)                  TU/TimesNewRoman(1)/m/n --> TU/TimesNewRoman(1)/m/n on 
-input line 124.
+input line 125.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
 (Font)                  OT1/cmr/m/it --> TU/TimesNewRoman(1)/m/it on input line
- 124.
+ 125.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
 (Font)                  OT1/cmr/bx/n --> TU/TimesNewRoman(1)/b/n on input line 
-124.
+125.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `normal'
-(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 124.
+(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 125.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `normal'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 124.
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 125.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
 (Font)                  TU/TimesNewRoman(1)/m/n --> TU/TimesNewRoman(1)/b/n on 
-input line 124.
+input line 125.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
 (Font)                  OT1/cmr/bx/it --> TU/TimesNewRoman(1)/b/it on input lin
-e 124.
+e 125.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  OT1/cmss/bx/n --> TU/lmss/b/n on input line 124.
+(Font)                  OT1/cmss/bx/n --> TU/lmss/b/n on input line 125.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/b/n on input line 124.
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/b/n on input line 125.
 \c@lstlisting=\count372
 File: ./figures/MU_Logo-BW.png Graphic file (type bmp)
 <./figures/MU_Logo-BW.png>
-LaTeX Font Info:    Calculating math sizes for size <14> on input line 126.
+LaTeX Font Info:    Calculating math sizes for size <14> on input line 127.
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <14> not avail
 able
-(Font)              size <12> substituted on input line 126.
+(Font)              size <12> substituted on input line 127.
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <9.79996> not 
 available
-(Font)              size <12> substituted on input line 126.
+(Font)              size <12> substituted on input line 127.
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <7> not availa
 ble
-(Font)              size <12> substituted on input line 126.
+(Font)              size <12> substituted on input line 127.
 
 LaTeX Font Info:    Trying to load font information for U+lasy on input line 12
-6.
+7.
 (/Library/Application Support/MiKTeX/texmfs/install/tex/latex/base/ulasy.fd
 File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 )
@@ -1258,27 +1261,27 @@ File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 [2
 
 ] (acknowledgement.tex)
-Underfull \hbox (badness 10000) in paragraph at lines 5--134
+Underfull \hbox (badness 10000) in paragraph at lines 5--135
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 5--134
+Underfull \hbox (badness 10000) in paragraph at lines 5--135
 
  []
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <8> not availa
 ble
-(Font)              size <12> substituted on input line 134.
+(Font)              size <12> substituted on input line 135.
 
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <6> not availa
 ble
-(Font)              size <12> substituted on input line 134.
+(Font)              size <12> substituted on input line 135.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 134--134
+Underfull \hbox (badness 10000) in paragraph at lines 135--135
 
  []
 
@@ -1288,23 +1291,23 @@ Underfull \hbox (badness 10000) in paragraph at lines 134--134
 
 ]
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/m/n' will be
-(Font)              scaled to size 15.96002pt on input line 135.
+(Font)              scaled to size 15.96002pt on input line 136.
 
 Missing character: There is no ด in font Times New Roman/OT:script=latn;languag
 e=dflt;!
 Missing character: There is no ร in font Times New Roman/OT:script=latn;languag
 e=dflt;!
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/b/n' will be
-(Font)              scaled to size 18.62003pt on input line 135.
+(Font)              scaled to size 18.62003pt on input line 136.
 (abstractTH.tex)
 LaTeX Font Info:    Font shape `TU/THSarabun(0)/b/n' will be
-(Font)              scaled to size 15.96002pt on input line 135.
+(Font)              scaled to size 15.96002pt on input line 136.
 
 
 [4
 
 ] (abstractENG.tex)
-Underfull \hbox (badness 10000) in paragraph at lines 5--136
+Underfull \hbox (badness 10000) in paragraph at lines 5--137
 
  []
 
@@ -1538,7 +1541,31 @@ CHAPTER 5.
 
 [58])
 
-[59] (main.bbl)
+[59] (main.bbl
+Underfull \hbox (badness 10000) in paragraph at lines 45--52
+[]\TU/TimesNewRoman(0)/m/n/12 The Times.  Sole traders still not prepared for d
+igital tax re-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 45--52
+\TU/TimesNewRoman(0)/m/n/12 turns in april, December 2025.  URL $[][][][][] [] 
+[] [] [][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 45--52
+[][][][][][][][] [] [][][] [] [][][][][][][][] [] [][][][][][][][][][][][][][][
+][][][] [] [][][][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 45--52
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][
+][][][][][][][][][][][][][][]$\TU/TimesNewRoman(0)/m/n/12 .  Reports
+ []
+
+)
 
 [60
 
@@ -1556,12 +1583,12 @@ LaTeX Font Warning: Size substitutions with differences
 
  ) 
 Here is how much of TeX's memory you used:
- 24460 strings out of 402990
- 520205 string characters out of 5447323
- 1097468 words of memory out of 5000000
- 52717 multiletter control sequences out of 15000+600000
+ 24542 strings out of 402990
+ 521303 string characters out of 5447323
+ 1098600 words of memory out of 5000000
+ 52796 multiletter control sequences out of 15000+600000
  633776 words of font info for 104 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 88i,13n,107p,1127b,962s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 88i,13n,107p,1127b,964s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
 Output written on main.pdf (76 pages).

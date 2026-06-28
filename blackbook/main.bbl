@@ -8,21 +8,20 @@
 \bibitem[Bishop(2008)]{bishop2008spreadsheet}
 K.~Bishop.
 \newblock {Qtier-Rapor}: Managing spreadsheet systems and improving corporate
-  performance, compliance and governance.
-\newblock arXiv:0803.0011, 2008.
-\newblock \url{https://arxiv.org/abs/0803.0011}.
+  performance, compliance and governance, 2008.
+\newblock URL \url{https://arxiv.org/abs/0803.0011}.
 
 \bibitem[Lappalainen and Narayanan(2023)]{paper_3}
 K.~Lappalainen and S.~Narayanan.
-\newblock {Aisha}: A custom {AI} library chatbot using the {ChatGPT} {API}.
+\newblock {Aisha}: A custom ai library chatbot using the {ChatGPT} api.
 \newblock \emph{Journal of Library and Information Services in Distance
   Learning}, pages 1--15, 2023.
 \newblock \doi{10.1080/19322909.2023.2221477}.
 
 \bibitem[Mittal and Arora(2024)]{paper_1}
 H.~Mittal and M.~Arora.
-\newblock A full-stack web solution for online {FMCG} (fast-moving consumer
-  goods) management system using {MERN}: Design, implementation and evaluation.
+\newblock {A Full-Stack Web Solution for Online FMCG (Fast-Moving Consumer
+  Goods) Management System Using MERN: Design, Implementation and Evaluation}.
 \newblock \emph{International Journal of Latest Trends in Engineering,
   Management and Applied Sciences (IJLTEMAS)}, 2024.
 
@@ -30,19 +29,25 @@ H.~Mittal and M.~Arora.
 M.~Muller.
 \newblock \emph{Essentials of Inventory Management}.
 \newblock AMACOM, New York, NY, 2 edition, 2011.
+\newblock ISBN 9780814416556.
 
-\bibitem[Office of Management and Budget(2022)]{naics_2022_wholesale_trade}
-Office of Management and Budget.
-\newblock \emph{North American Industry Classification System: United States,
-  2022}.
-\newblock Executive Office of the President, Office of Management and Budget,
+\bibitem[{Office of Management and Budget}(2022)]{naics_2022_wholesale_trade}
+{Office of Management and Budget}.
+\newblock \emph{{North American Industry Classification System: United States,
+  2022}}.
+\newblock {Executive Office of the President, Office of Management and Budget},
   2022.
+\newblock URL
+  \url{https://www.census.gov/naics/reference_files_tools/2022_NAICS_Manual.pdf}.
 \newblock Sector 42, Wholesale Trade.
 
-\bibitem[The Times(2025)]{times_sage_sole_traders_2025}
-The Times.
-\newblock Sole traders still not prepared for digital tax returns in April.
-\newblock Published 1 December 2025. Reports Sage research on sole traders' use
-  of spreadsheets, bank statements, and pen-and-paper accounting.
+\bibitem[{The Times}(2025)]{times_sage_sole_traders_2025}
+{The Times}.
+\newblock Sole traders still not prepared for digital tax returns in april,
+  December 2025.
+\newblock URL
+  \url{https://www.thetimes.com/business/companies-markets/article/hmrc-self-employed-digital-tax-returns-8rwf8x8s2}.
+\newblock Reports Sage research on sole traders' use of spreadsheets, bank
+  statements, and pen-and-paper accounting.
 
 \end{thebibliography}
