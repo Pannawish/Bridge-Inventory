@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
-from django.db.models import Prefetch, Q, Sum
+from django.db.models import Count, Prefetch, Q, Sum
 from django.utils.dateparse import parse_date
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -53,6 +53,25 @@ SALE_ITEM_STATUSES = {
 }
 PURCHASE_ITEM_STATUSES = {"pending", "received", "cancelled"}
 PURCHASE_FULL_TRANSACTION_STATUSES = {"draft", "ordered", "received", "cancelled"}
+
+# Dashboard funnel stages. These MUST mirror the frontend's stage maps in
+# Dashboard.jsx so the funnel numbers (computed here over ALL records) equal what
+# the purchase/sales page shows when a stage is opened by its statuses.
+DASHBOARD_PURCHASE_STAGES = [
+    ("draft", ["draft"]),
+    ("ordered", ["ordered"]),
+    ("receiving", ["partially_received"]),
+]
+DASHBOARD_DELIVERY_STAGES = [
+    ("draft", ["draft"]),
+    ("packing", ["partially_packed", "packed"]),
+    ("delivering", ["partially_shipped", "shipped", "partially_delivered"]),
+]
+# Open = appears in some funnel stage (i.e. not a closed/terminal status).
+DASHBOARD_OPEN_PURCHASE_STATUSES = [s for _, statuses in DASHBOARD_PURCHASE_STAGES for s in statuses]
+DASHBOARD_OPEN_SALE_STATUSES = [s for _, statuses in DASHBOARD_DELIVERY_STAGES for s in statuses]
+DASHBOARD_FUNNEL_LIST_LIMIT = 12
+
 SAFETY_STOCK_DAYS = 7
 RECENT_AVERAGE_COST_HISTORY_LIMIT = 3
 RECENT_AVERAGE_SALE_PRICE_HISTORY_LIMIT = 3
@@ -1707,6 +1726,14 @@ def serialize_credit_note_for_chat(note):
     }
 
 
+def _funnel_stage_counts(status_counts, stages):
+    """Sum per-status DB counts into the funnel stage buckets."""
+    return {
+        stage_key: sum(status_counts.get(status, 0) for status in statuses)
+        for stage_key, statuses in stages
+    }
+
+
 def build_dashboard_summary(request=None):
     stock_report = build_stock_report()
     low_stock_items = [
@@ -1743,6 +1770,36 @@ def build_dashboard_summary(request=None):
         "documents",
     ).order_by("-transaction_date", "-created_at")[:5]
 
+    # ── Procurement / delivery funnels ──────────────────────────────────
+    # Counts are computed over EVERY purchase/sale (not the paginated list the
+    # frontend holds), so each funnel number equals the rows the purchase/sales
+    # page returns when that stage is opened. The lists are the oldest open
+    # orders, mirroring the frontend's "oldest first" display order.
+    purchase_status_counts = {
+        row["status"]: row["count"]
+        for row in Purchase.objects.values("status").annotate(count=Count("id"))
+    }
+    sale_status_counts = {
+        row["status"]: row["count"]
+        for row in Sale.objects.values("status").annotate(count=Count("id"))
+    }
+    open_purchases = (
+        Purchase.objects.filter(status__in=DASHBOARD_OPEN_PURCHASE_STATUSES)
+        .prefetch_related(
+            Prefetch("items", queryset=PurchaseItem.objects.select_related("product")),
+            "documents",
+        )
+        .order_by("transaction_date", "created_at")[:DASHBOARD_FUNNEL_LIST_LIMIT]
+    )
+    open_sales = (
+        Sale.objects.filter(status__in=DASHBOARD_OPEN_SALE_STATUSES)
+        .prefetch_related(
+            Prefetch("items", queryset=SaleItem.objects.select_related("product")),
+            "documents",
+        )
+        .order_by("transaction_date", "created_at")[:DASHBOARD_FUNNEL_LIST_LIMIT]
+    )
+
     return {
         "metrics": {
             "total_products": Product.objects.count(),
@@ -1766,6 +1823,14 @@ def build_dashboard_summary(request=None):
             serialize_light_sale(sale, request)
             for sale in recent_sales
         ],
+        "order_planning": {
+            "stages": _funnel_stage_counts(purchase_status_counts, DASHBOARD_PURCHASE_STAGES),
+            "orders": [serialize_light_purchase(purchase, request) for purchase in open_purchases],
+        },
+        "delivery_planning": {
+            "stages": _funnel_stage_counts(sale_status_counts, DASHBOARD_DELIVERY_STAGES),
+            "orders": [serialize_light_sale(sale, request) for sale in open_sales],
+        },
     }
 
 

@@ -780,14 +780,21 @@ function Dashboard({ dashboard, sales = [], purchases = [], onNavigate }) {
       .sort((a, b) => String(a.transaction_date || "").localeCompare(String(b.transaction_date || "")));
   }, [sales]);
 
+  // Prefer the backend funnel (counts computed over EVERY order, so the number
+  // equals what the sales page shows when a stage is opened). Fall back to the
+  // local paginated derivation for mock/guest mode, where the full set is in hand.
   const stageCounts = useMemo(() => {
+    const backend = dashboard?.delivery_planning?.stages;
+    if (backend) {
+      return { draft: 0, packing: 0, delivering: 0, ...backend };
+    }
     const counts = { draft: 0, packing: 0, delivering: 0 };
     openOrders.forEach((sale) => {
       const stage = STAGE_BY_STATUS[sale.status];
       if (stage) counts[stage] += 1;
     });
     return counts;
-  }, [openOrders]);
+  }, [dashboard, openOrders]);
 
   // Order planning: open purchase orders, oldest first, each deep-linkable.
   const openPurchases = useMemo(() => {
@@ -797,13 +804,22 @@ function Dashboard({ dashboard, sales = [], purchases = [], onNavigate }) {
   }, [purchases]);
 
   const purchaseStageCounts = useMemo(() => {
+    const backend = dashboard?.order_planning?.stages;
+    if (backend) {
+      return { draft: 0, ordered: 0, receiving: 0, ...backend };
+    }
     const counts = { draft: 0, ordered: 0, receiving: 0 };
     openPurchases.forEach((po) => {
       const stage = PURCHASE_STAGE_BY_STATUS[po.status];
       if (stage) counts[stage] += 1;
     });
     return counts;
-  }, [openPurchases]);
+  }, [dashboard, openPurchases]);
+
+  // Funnel lists: backend supplies the oldest open orders across the full set;
+  // fall back to the local paginated slice for mock/guest mode.
+  const orderPlanningRows = dashboard?.order_planning?.orders ?? openPurchases.slice(0, DISPATCH_LIMIT);
+  const deliveryPlanningRows = dashboard?.delivery_planning?.orders ?? openOrders.slice(0, DISPATCH_LIMIT);
 
   // ── deep-link / action helpers ──
   const orderProducts = (items, supplierName) =>
@@ -839,13 +855,13 @@ function Dashboard({ dashboard, sales = [], purchases = [], onNavigate }) {
 
       <div className="dash-col-right">
         <OrderPlanningWidget
-          orders={openPurchases.slice(0, DISPATCH_LIMIT)}
+          orders={orderPlanningRows}
           stageCounts={purchaseStageCounts}
           onOpenPurchase={openPurchase}
           onOpenStage={openPurchaseStage}
         />
         <DeliveryPipelineWidget
-          orders={openOrders.slice(0, DISPATCH_LIMIT)}
+          orders={deliveryPlanningRows}
           stageCounts={stageCounts}
           onOpenSale={openSale}
           onOpenStage={openStage}
