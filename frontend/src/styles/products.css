@@ -944,6 +944,13 @@
   background: var(--accent-soft);
 }
 
+/* A primary button kept at table-action size must still read as the prominent
+   CTA (white text on accent), not inherit the soft secondary look above. */
+.primary-button.table-action-button {
+  color: #fff;
+  background: var(--accent);
+}
+
 .edit-button {
   color: #0f5a3d;
   background: #e9fbf2;

@@ -3,94 +3,35 @@ import { api } from "../../api";
 import { useAuth } from "../../auth/AuthContext";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { previewPermissionOptions, previewRoles, previewUsers } from "./adminPreviewData";
-
-const ACTION_ORDER = ["view", "add", "change", "delete"];
-const MODULE_ORDER = [
-  "user",
-  "group",
-  "activitylog",
-  "product",
-  "category",
-  "supplier",
-  "customer",
-  "productsupplier",
-  "purchase",
-  "sale",
-  "quotation",
-  "billingnote",
-  "paymentbatch",
-  "creditnote",
-];
-
-const BLANK_USER_FORM = {
-  username: "",
-  email: "",
-  first_name: "",
-  last_name: "",
-  password: "",
-  is_active: true,
-  is_staff: false,
-  is_superuser: false,
-  role_ids: [],
-};
-
-const BLANK_ROLE_FORM = {
-  name: "",
-  permission_ids: [],
-};
+import EditUserModal from "./EditUserModal";
+import ManageRolesModal from "./ManageRolesModal";
+import EditRoleModal from "./EditRoleModal";
 
 function normalizeListResponse(data) {
   return Array.isArray(data) ? data : data?.results || [];
 }
 
-function getUserRoleIds(user) {
-  return (user?.roles || []).map((role) => role.id);
-}
-
-function getRolePermissionIds(role) {
-  return (role?.permissions || []).map((permission) => permission.id);
-}
-
-function getLabel(t, baseKey, value) {
-  const key = `${baseKey}.${value}`;
-  const translated = t(key);
-  return translated === key ? value : translated;
-}
-
-function sortPermissionGroups(groups) {
-  return Object.entries(groups).sort(([left], [right]) => {
-    const leftIndex = MODULE_ORDER.indexOf(left);
-    const rightIndex = MODULE_ORDER.indexOf(right);
-    if (leftIndex === -1 && rightIndex === -1) {
-      return left.localeCompare(right);
-    }
-    if (leftIndex === -1) {
-      return 1;
-    }
-    if (rightIndex === -1) {
-      return -1;
-    }
-    return leftIndex - rightIndex;
-  });
-}
-
+// Admin "User Access" page. The page itself is a clean directory of users; all
+// editing happens in popups (EditUserModal / ManageRolesModal → EditRoleModal),
+// each holding its own draft and committing only on its single Save button. This
+// replaced the older always-open inline forms, whose shared live state could
+// bleed one record's edits into another.
 function UserAccessPage({ previewMode = false }) {
   const { user: currentUser } = useAuth();
   const { t } = useLanguage();
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [permissionOptions, setPermissionOptions] = useState([]);
-  const [selectedUserId, setSelectedUserId] = useState(null);
-  const [selectedRoleId, setSelectedRoleId] = useState(null);
-  const [userForm, setUserForm] = useState(BLANK_USER_FORM);
-  const [roleForm, setRoleForm] = useState(BLANK_ROLE_FORM);
   const [userSearch, setUserSearch] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const selectedUser = users.find((item) => item.id === selectedUserId) || null;
-  const selectedRole = roles.find((item) => item.id === selectedRoleId) || null;
+  // Modal state. Each holds the record being edited; a null record = "create new".
+  const [userModal, setUserModal] = useState(null); // { user: object|null } | null
+  const [rolesOpen, setRolesOpen] = useState(false);
+  const [roleModal, setRoleModal] = useState(null); // { role: object|null } | null
+
   const canEditSuperuser = Boolean(currentUser?.is_superuser);
 
   const filteredUsers = useMemo(() => {
@@ -103,45 +44,13 @@ function UserAccessPage({ previewMode = false }) {
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(search))
     );
-  }, [userSearch, users]);
-
-  const permissionGroups = useMemo(() => {
-    return permissionOptions.reduce((groups, permission) => {
-      const moduleKey = permission.module_key || permission.model || "other";
-      const action = permission.action || permission.codename?.split("_", 1)[0] || "";
-      if (!groups[moduleKey]) {
-        groups[moduleKey] = {};
-      }
-      groups[moduleKey][action] = permission;
-      return groups;
-    }, {});
-  }, [permissionOptions]);
+  }, [users, userSearch]);
 
   async function loadAdminData() {
     if (previewMode) {
-      const nextUsers = previewUsers;
-      const nextRoles = previewRoles;
-      setUsers(nextUsers);
-      setRoles(nextRoles);
+      setUsers(previewUsers);
+      setRoles(previewRoles);
       setPermissionOptions(previewPermissionOptions);
-      if (!selectedUserId && nextUsers.length) {
-        const firstUser = nextUsers[0];
-        setSelectedUserId(firstUser.id);
-        setUserForm({
-          ...BLANK_USER_FORM,
-          ...firstUser,
-          password: "",
-          role_ids: getUserRoleIds(firstUser),
-        });
-      }
-      if (!selectedRoleId && nextRoles.length) {
-        const firstRole = nextRoles[0];
-        setSelectedRoleId(firstRole.id);
-        setRoleForm({
-          name: firstRole.name,
-          permission_ids: getRolePermissionIds(firstRole),
-        });
-      }
       setError("");
       return;
     }
@@ -153,31 +62,9 @@ function UserAccessPage({ previewMode = false }) {
         api.getAdminRoles(),
         api.getPermissionOptions(),
       ]);
-      const nextUsers = normalizeListResponse(usersData);
-      const nextRoles = normalizeListResponse(rolesData);
-      setUsers(nextUsers);
-      setRoles(nextRoles);
+      setUsers(normalizeListResponse(usersData));
+      setRoles(normalizeListResponse(rolesData));
       setPermissionOptions(normalizeListResponse(permissionsData));
-
-      if (!selectedUserId && nextUsers.length) {
-        const firstUser = nextUsers[0];
-        setSelectedUserId(firstUser.id);
-        setUserForm({
-          ...BLANK_USER_FORM,
-          ...firstUser,
-          password: "",
-          role_ids: getUserRoleIds(firstUser),
-        });
-      }
-
-      if (!selectedRoleId && nextRoles.length) {
-        const firstRole = nextRoles[0];
-        setSelectedRoleId(firstRole.id);
-        setRoleForm({
-          name: firstRole.name,
-          permission_ids: getRolePermissionIds(firstRole),
-        });
-      }
     } catch (err) {
       setError(err.message || t("userAccess.errors.loadFailed"));
     } finally {
@@ -200,90 +87,35 @@ function UserAccessPage({ previewMode = false }) {
     setError(nextError);
   }
 
-  function startNewUser() {
-    setSelectedUserId(null);
-    setUserForm(BLANK_USER_FORM);
+  // Save handlers throw on failure so the calling modal can show the error inline
+  // (e.g. a rejected weak password); on success they reload + close the modal.
+  async function handleSaveUser(payload, id) {
+    if (previewMode) {
+      showMessage(t("userAccess.previewReadOnly"));
+      setUserModal(null);
+      return;
+    }
+    const saved = id
+      ? await api.updateAdminUser(id, payload)
+      : await api.createAdminUser(payload);
+    showMessage(id ? t("userAccess.userUpdated") : t("userAccess.userCreated"));
+    await loadAdminData();
+    setUserModal(null);
+    return saved;
   }
 
-  function editUser(nextUser) {
-    setSelectedUserId(nextUser.id);
-    setUserForm({
-      ...BLANK_USER_FORM,
-      ...nextUser,
-      password: "",
-      role_ids: getUserRoleIds(nextUser),
-    });
-  }
-
-  function updateUserField(field, value) {
-    setUserForm((form) => ({ ...form, [field]: value }));
-  }
-
-  function toggleUserRole(roleId) {
-    setUserForm((form) => {
-      const hasRole = form.role_ids.includes(roleId);
-      return {
-        ...form,
-        role_ids: hasRole
-          ? form.role_ids.filter((id) => id !== roleId)
-          : [...form.role_ids, roleId],
-      };
-    });
-  }
-
-  async function saveUser(event) {
-    event.preventDefault();
+  async function handleToggleActive(targetUser) {
     if (previewMode) {
       showMessage(t("userAccess.previewReadOnly"));
       return;
     }
     setBusy(true);
     try {
-      const payload = {
-        username: userForm.username.trim(),
-        email: userForm.email.trim(),
-        first_name: userForm.first_name.trim(),
-        last_name: userForm.last_name.trim(),
-        is_active: userForm.is_active,
-        is_staff: userForm.is_staff,
-        role_ids: userForm.role_ids,
-      };
-
-      if (canEditSuperuser) {
-        payload.is_superuser = userForm.is_superuser;
-      }
-      if (userForm.password) {
-        payload.password = userForm.password;
-      }
-
-      const saved = selectedUser
-        ? await api.updateAdminUser(selectedUser.id, payload)
-        : await api.createAdminUser(payload);
-
-      showMessage(selectedUser ? t("userAccess.userUpdated") : t("userAccess.userCreated"));
-      await loadAdminData();
-      editUser(saved);
-    } catch (err) {
-      showError(err.message || t("userAccess.errors.saveUserFailed"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function toggleUserActive(nextUser) {
-    if (previewMode) {
-      editUser(nextUser);
-      showMessage(t("userAccess.previewReadOnly"));
-      return;
-    }
-    setBusy(true);
-    try {
-      const saved = await api.updateAdminUser(nextUser.id, {
-        is_active: !nextUser.is_active,
+      const saved = await api.updateAdminUser(targetUser.id, {
+        is_active: !targetUser.is_active,
       });
       showMessage(saved.is_active ? t("userAccess.userActivated") : t("userAccess.userDeactivated"));
       await loadAdminData();
-      editUser(saved);
     } catch (err) {
       showError(err.message || t("userAccess.errors.saveUserFailed"));
     } finally {
@@ -291,54 +123,19 @@ function UserAccessPage({ previewMode = false }) {
     }
   }
 
-  function startNewRole() {
-    setSelectedRoleId(null);
-    setRoleForm(BLANK_ROLE_FORM);
-  }
-
-  function editRole(nextRole) {
-    setSelectedRoleId(nextRole.id);
-    setRoleForm({
-      name: nextRole.name,
-      permission_ids: getRolePermissionIds(nextRole),
-    });
-  }
-
-  function toggleRolePermission(permissionId) {
-    setRoleForm((form) => {
-      const hasPermission = form.permission_ids.includes(permissionId);
-      return {
-        ...form,
-        permission_ids: hasPermission
-          ? form.permission_ids.filter((id) => id !== permissionId)
-          : [...form.permission_ids, permissionId],
-      };
-    });
-  }
-
-  async function saveRole(event) {
-    event.preventDefault();
+  async function handleSaveRole(payload, id) {
     if (previewMode) {
       showMessage(t("userAccess.previewReadOnly"));
+      setRoleModal(null);
       return;
     }
-    setBusy(true);
-    try {
-      const payload = {
-        name: roleForm.name.trim(),
-        permission_ids: roleForm.permission_ids,
-      };
-      const saved = selectedRole
-        ? await api.updateAdminRole(selectedRole.id, payload)
-        : await api.createAdminRole(payload);
-      showMessage(selectedRole ? t("userAccess.roleUpdated") : t("userAccess.roleCreated"));
-      await loadAdminData();
-      editRole(saved);
-    } catch (err) {
-      showError(err.message || t("userAccess.errors.saveRoleFailed"));
-    } finally {
-      setBusy(false);
-    }
+    const saved = id
+      ? await api.updateAdminRole(id, payload)
+      : await api.createAdminRole(payload);
+    showMessage(id ? t("userAccess.roleUpdated") : t("userAccess.roleCreated"));
+    await loadAdminData();
+    setRoleModal(null);
+    return saved;
   }
 
   return (
@@ -353,7 +150,10 @@ function UserAccessPage({ previewMode = false }) {
             <button className="secondary-button" type="button" onClick={loadAdminData} disabled={busy}>
               {t("userAccess.refresh")}
             </button>
-            <button className="primary-button" type="button" onClick={startNewUser}>
+            <button className="secondary-button" type="button" onClick={() => setRolesOpen(true)}>
+              {t("userAccess.manageRoles")}
+            </button>
+            <button className="primary-button" type="button" onClick={() => setUserModal({ user: null })}>
               {t("userAccess.newUser")}
             </button>
           </div>
@@ -396,12 +196,7 @@ function UserAccessPage({ previewMode = false }) {
               </thead>
               <tbody>
                 {filteredUsers.map((item, index) => (
-                  <tr
-                    key={item.id}
-                    className={
-                      selectedUserId === item.id ? "partner-table-row active" : "partner-table-row"
-                    }
-                  >
+                  <tr key={item.id} className="partner-table-row">
                     <td className="table-index-cell">{index + 1}</td>
                     <td>
                       <strong>{item.username}</strong>
@@ -426,13 +221,17 @@ function UserAccessPage({ previewMode = false }) {
                     </td>
                     <td>
                       <div className="admin-row-actions">
-                        <button className="table-action-button" type="button" onClick={() => editUser(item)}>
+                        <button
+                          className="table-action-button"
+                          type="button"
+                          onClick={() => setUserModal({ user: item })}
+                        >
                           {t("common.edit")}
                         </button>
                         <button
                           className="secondary-button table-action-button"
                           type="button"
-                          onClick={() => toggleUserActive(item)}
+                          onClick={() => handleToggleActive(item)}
                           disabled={busy || item.id === currentUser?.id}
                         >
                           {item.is_active ? t("userAccess.deactivate") : t("userAccess.activate")}
@@ -447,205 +246,33 @@ function UserAccessPage({ previewMode = false }) {
         </div>
       </section>
 
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{selectedUser ? t("userAccess.editUserEyebrow") : t("userAccess.newUserEyebrow")}</p>
-            <h3>{selectedUser ? selectedUser.username : t("userAccess.newUserTitle")}</h3>
-          </div>
-        </div>
+      {userModal ? (
+        <EditUserModal
+          user={userModal.user}
+          roles={roles}
+          canEditSuperuser={canEditSuperuser}
+          onSave={handleSaveUser}
+          onClose={() => setUserModal(null)}
+        />
+      ) : null}
 
-        <form className="admin-form" onSubmit={saveUser}>
-          <div className="form-grid">
-            <label>
-              <span className="required-label">{t("login.username")}</span>
-              <input
-                value={userForm.username}
-                onChange={(event) => updateUserField("username", event.target.value)}
-                required
-              />
-            </label>
-            <label>
-              <span>{t("userAccess.email")}</span>
-              <input
-                type="email"
-                value={userForm.email}
-                onChange={(event) => updateUserField("email", event.target.value)}
-              />
-            </label>
-            <label>
-              <span>{t("userAccess.firstName")}</span>
-              <input
-                value={userForm.first_name}
-                onChange={(event) => updateUserField("first_name", event.target.value)}
-              />
-            </label>
-            <label>
-              <span>{t("userAccess.lastName")}</span>
-              <input
-                value={userForm.last_name}
-                onChange={(event) => updateUserField("last_name", event.target.value)}
-              />
-            </label>
-            <label className="full-width">
-              <span className={!selectedUser ? "required-label" : ""}>
-                {selectedUser ? t("userAccess.newPassword") : t("login.password")}
-              </span>
-              <input
-                type="password"
-                value={userForm.password}
-                onChange={(event) => updateUserField("password", event.target.value)}
-                required={!selectedUser}
-                placeholder={selectedUser ? t("userAccess.passwordPlaceholder") : ""}
-              />
-            </label>
-          </div>
+      {rolesOpen ? (
+        <ManageRolesModal
+          roles={roles}
+          onNewRole={() => setRoleModal({ role: null })}
+          onEditRole={(role) => setRoleModal({ role })}
+          onClose={() => setRolesOpen(false)}
+        />
+      ) : null}
 
-          <div className="admin-toggle-grid">
-            <label className="admin-checkbox">
-              <input
-                type="checkbox"
-                checked={userForm.is_active}
-                onChange={(event) => updateUserField("is_active", event.target.checked)}
-              />
-              <span>{t("userAccess.activeAccount")}</span>
-            </label>
-            <label className="admin-checkbox">
-              <input
-                type="checkbox"
-                checked={userForm.is_staff}
-                onChange={(event) => updateUserField("is_staff", event.target.checked)}
-              />
-              <span>{t("userAccess.staffAccess")}</span>
-            </label>
-            {canEditSuperuser ? (
-              <label className="admin-checkbox">
-                <input
-                  type="checkbox"
-                  checked={userForm.is_superuser}
-                  onChange={(event) => updateUserField("is_superuser", event.target.checked)}
-                />
-                <span>{t("userAccess.superuserAccess")}</span>
-              </label>
-            ) : null}
-          </div>
-
-          <div className="admin-fieldset">
-            <div className="admin-fieldset-heading">
-              <strong>{t("userAccess.assignedRoles")}</strong>
-              <span>{t("userAccess.assignedRolesHint")}</span>
-            </div>
-            <div className="admin-checkbox-grid">
-              {roles.map((role) => (
-                <label className="admin-checkbox" key={role.id}>
-                  <input
-                    type="checkbox"
-                    checked={userForm.role_ids.includes(role.id)}
-                    onChange={() => toggleUserRole(role.id)}
-                  />
-                  <span>{role.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="admin-form-actions">
-            <button className="primary-button" type="submit" disabled={busy}>
-              {busy ? t("common.saving") : t("common.save")}
-            </button>
-            <button className="secondary-button" type="button" onClick={startNewUser}>
-              {t("common.cancel")}
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <section className="section-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{t("userAccess.rolesEyebrow")}</p>
-            <h3>{t("userAccess.rolesTitle")}</h3>
-          </div>
-          <button className="secondary-button" type="button" onClick={startNewRole}>
-            {t("userAccess.newRole")}
-          </button>
-        </div>
-
-        <div className="admin-role-layout">
-          <div className="admin-role-list">
-            {roles.map((role) => (
-              <button
-                key={role.id}
-                type="button"
-                className={selectedRoleId === role.id ? "admin-role-button active" : "admin-role-button"}
-                onClick={() => editRole(role)}
-              >
-                <strong>{role.name}</strong>
-                <span>
-                  {t("userAccess.permissionCount", {
-                    count: getRolePermissionIds(role).length,
-                  })}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          <form className="admin-form admin-role-form" onSubmit={saveRole}>
-            <label>
-              <span className="required-label">{t("userAccess.roleName")}</span>
-              <input
-                value={roleForm.name}
-                onChange={(event) => setRoleForm((form) => ({ ...form, name: event.target.value }))}
-                required
-              />
-            </label>
-
-            <div className="admin-permission-table">
-              <div className="admin-permission-header">
-                <span>{t("userAccess.permissionModule")}</span>
-                {ACTION_ORDER.map((action) => (
-                  <span key={action}>{getLabel(t, "userAccess.permissionActions", action)}</span>
-                ))}
-              </div>
-              {sortPermissionGroups(permissionGroups).map(([moduleKey, permissionsByAction]) => (
-                <div className="admin-permission-row" key={moduleKey}>
-                  <strong>{getLabel(t, "userAccess.permissionGroups", moduleKey)}</strong>
-                  {ACTION_ORDER.map((action) => {
-                    const permission = permissionsByAction[action];
-                    return permission ? (
-                      <label className="admin-permission-check" key={action}>
-                        <input
-                          type="checkbox"
-                          checked={roleForm.permission_ids.includes(permission.id)}
-                          onChange={() => toggleRolePermission(permission.id)}
-                          aria-label={`${getLabel(t, "userAccess.permissionGroups", moduleKey)} ${getLabel(
-                            t,
-                            "userAccess.permissionActions",
-                            action
-                          )}`}
-                        />
-                      </label>
-                    ) : (
-                      <span className="admin-permission-empty" key={action}>
-                        {t("userAccess.notAvailable")}
-                      </span>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-
-            <div className="admin-form-actions">
-              <button className="primary-button" type="submit" disabled={busy}>
-                {busy ? t("common.saving") : t("userAccess.saveRole")}
-              </button>
-              <button className="secondary-button" type="button" onClick={startNewRole}>
-                {t("common.cancel")}
-              </button>
-            </div>
-          </form>
-        </div>
-      </section>
+      {roleModal ? (
+        <EditRoleModal
+          role={roleModal.role}
+          permissionOptions={permissionOptions}
+          onSave={handleSaveRole}
+          onClose={() => setRoleModal(null)}
+        />
+      ) : null}
     </div>
   );
 }

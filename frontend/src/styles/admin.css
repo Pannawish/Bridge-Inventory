@@ -240,6 +240,21 @@
   min-width: 0;
 }
 
+/* User Access editing now happens in popups; give the modal body breathing room
+   and stack the role editor above the roles-list modal. */
+.admin-modal .admin-form {
+  margin-top: 4px;
+}
+
+.admin-role-list-modal {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  margin-top: 12px;
+}
+
+.modal-backdrop.admin-modal-stack {
+  z-index: 120;
+}
+
 .admin-permission-table {
   display: grid;
   min-width: 0;
