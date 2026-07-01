@@ -9,6 +9,11 @@ import { useAppMasterDataActions } from "../hooks/useAppMasterDataActions";
 import { useInventoryData } from "../hooks/useInventoryData";
 import { buildGuestAiReportResponse } from "./mockGuestHandlers";
 
+// How often to silently pull fresh data so other users' committed changes appear
+// without a manual refresh. 15s keeps views near-live without hammering the API;
+// a focused tab also refreshes instantly (see the live-sync effect below).
+const LIVE_REFRESH_MS = 15000;
+
 export function useAppState({ useMockOnly = false } = {}) {
   const { language, t } = useLanguage();
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -185,6 +190,41 @@ export function useAppState({ useMockOnly = false } = {}) {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Live cross-user sync: silently reload everything on a timer and whenever the
+  // tab regains focus, so a change one user commits (a status change, a new PO,
+  // etc.) shows up for other users without a manual refresh. This reuses the same
+  // silent reload fired after every local mutation, so it never shows a spinner or
+  // resets the user's filters/pagination. Skipped in guest/mock mode, and paused
+  // while the tab is hidden to avoid pointless background requests.
+  useEffect(() => {
+    if (useMockOnly || typeof document === "undefined") {
+      return undefined;
+    }
+
+    const refreshNow = () => loadData(true);
+
+    const intervalId = window.setInterval(() => {
+      if (!document.hidden) {
+        refreshNow();
+      }
+    }, LIVE_REFRESH_MS);
+
+    // A backgrounded tab skips its ticks; catch it up the moment it's focused.
+    const handleVisible = () => {
+      if (!document.hidden) {
+        refreshNow();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisible);
+    window.addEventListener("focus", refreshNow);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisible);
+      window.removeEventListener("focus", refreshNow);
+    };
+  }, [loadData, useMockOnly]);
 
   useEffect(() => {
     if (typeof document === "undefined") {
