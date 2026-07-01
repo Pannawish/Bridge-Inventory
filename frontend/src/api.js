@@ -61,6 +61,10 @@ async function request(path, options = {}) {
   const response = await fetch(url, config);
 
   if (response.status === 401 && !path.startsWith("/auth/")) {
+    // Refresh in whichever store holds the refresh token, so a session-only login
+    // never leaves an orphan access token in localStorage that would shadow a
+    // fresh token on the next sign-in ("token not valid" on the first try).
+    const usingLocal = Boolean(localStorage.getItem("inventory_refresh_token"));
     const refreshToken =
       localStorage.getItem("inventory_refresh_token") ||
       sessionStorage.getItem("inventory_refresh_token");
@@ -78,8 +82,8 @@ async function request(path, options = {}) {
           const refreshData = await refreshResponse.json();
           const newAccessToken = refreshData.access;
 
-          localStorage.setItem("inventory_access_token", newAccessToken);
-          sessionStorage.setItem("inventory_access_token", newAccessToken);
+          const tokenStore = usingLocal ? localStorage : sessionStorage;
+          tokenStore.setItem("inventory_access_token", newAccessToken);
 
           config.headers["Authorization"] = `Bearer ${newAccessToken}`;
           const retryResponse = await fetch(url, config);

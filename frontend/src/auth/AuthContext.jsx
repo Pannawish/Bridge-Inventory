@@ -33,14 +33,16 @@ export const AuthProvider = ({ children }) => {
     // Refresh access token every 15 minutes to keep it fresh
     refreshTimerRef.current = setInterval(async () => {
       try {
+        // Refresh the access token in whichever store holds the refresh token, so
+        // a session-only login never leaves an orphan token in localStorage.
+        const usingLocal = Boolean(localStorage.getItem("inventory_refresh_token"));
         const refreshToken =
           localStorage.getItem("inventory_refresh_token") ||
           sessionStorage.getItem("inventory_refresh_token");
         if (refreshToken) {
           const res = await api.refreshToken(refreshToken);
-          const access = res.access;
-          localStorage.setItem("inventory_access_token", access);
-          sessionStorage.setItem("inventory_access_token", access);
+          const store = usingLocal ? localStorage : sessionStorage;
+          store.setItem("inventory_access_token", res.access);
         }
       } catch (err) {
         console.error("Background auto token refresh failed:", err);
@@ -60,6 +62,10 @@ export const AuthProvider = ({ children }) => {
     }
 
     if (!refreshToken) {
+      // No session to restore — drop any orphan access token so it can't shadow
+      // a fresh token on the next sign-in (the "token not valid" first-try bug).
+      localStorage.removeItem("inventory_access_token");
+      sessionStorage.removeItem("inventory_access_token");
       setLoading(false);
       return;
     }
@@ -105,13 +111,18 @@ export const AuthProvider = ({ children }) => {
       const authData = await api.login(username, password);
       const { access, refresh } = authData;
 
-      if (rememberMe) {
-        localStorage.setItem("inventory_refresh_token", refresh);
-        localStorage.setItem("inventory_access_token", access);
-      } else {
-        sessionStorage.setItem("inventory_refresh_token", refresh);
-        sessionStorage.setItem("inventory_access_token", access);
-      }
+      // Clear tokens from BOTH stores first. request() reads localStorage before
+      // sessionStorage, so a leftover token in the other store would shadow the
+      // fresh one and make getMe() send a stale token → "token not valid" on the
+      // first sign-in. Writing only to the chosen store keeps exactly one token.
+      localStorage.removeItem("inventory_access_token");
+      localStorage.removeItem("inventory_refresh_token");
+      sessionStorage.removeItem("inventory_access_token");
+      sessionStorage.removeItem("inventory_refresh_token");
+
+      const store = rememberMe ? localStorage : sessionStorage;
+      store.setItem("inventory_refresh_token", refresh);
+      store.setItem("inventory_access_token", access);
 
       // Fetch profile
       const userData = await api.getMe();
