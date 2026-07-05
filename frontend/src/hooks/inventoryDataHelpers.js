@@ -479,6 +479,15 @@ export function createInitialDataRequests(api) {
   ];
 }
 
+// A 401/403 means the logged-in user's role simply isn't allowed this data (once
+// the backend enforces permissions). That's not an outage and not guest/offline
+// mode — render the section EMPTY (its tab is hidden anyway), never mock data and
+// never a "data unavailable" / demo-mode warning.
+function resultWasBlocked(result) {
+  const status = result?.reason?.status;
+  return result?.status === "rejected" && (status === 401 || status === 403);
+}
+
 function applyLookupWithFallback({
   result,
   setAll,
@@ -501,6 +510,14 @@ function applyLookupWithFallback({
       setRows(rows);
       setPagination(null);
     }
+    return;
+  }
+
+  if (resultWasBlocked(result)) {
+    setAll([]);
+    setRows([]);
+    setPagination(buildInitialLocalPagination([]));
+    setUsingMock(false);
     return;
   }
 
@@ -528,6 +545,14 @@ function applyPageCollectionWithFallback({
     setAll(rows);
     setRows(rows);
     setPagination(getCollectionPagination(result.value));
+    setUsingMock(false);
+    return;
+  }
+
+  if (resultWasBlocked(result)) {
+    setAll([]);
+    setRows([]);
+    setPagination(buildInitialLocalPagination([]));
     setUsingMock(false);
     return;
   }
@@ -599,6 +624,9 @@ export function applyInitialDataResults({
   if (categoryResult.status === "fulfilled") {
     setters.setCategories(getCollectionRows(categoryResult.value));
     setters.setUsingMockCategories(false);
+  } else if (resultWasBlocked(categoryResult)) {
+    setters.setCategories([]);
+    setters.setUsingMockCategories(false);
   } else {
     setters.setCategories(getDefaultCategories());
     setters.setUsingMockCategories(true);
@@ -642,6 +670,9 @@ export function applyInitialDataResults({
   if (quotationResult.status === "fulfilled") {
     const quotationRows = getCollectionRows(quotationResult.value);
     setters.setQuotations(mergeQuotationRowsWithMocks(quotationRows, false));
+    setters.setUsingMockQuotations(false);
+  } else if (resultWasBlocked(quotationResult)) {
+    setters.setQuotations([]);
     setters.setUsingMockQuotations(false);
   } else {
     setters.setQuotations(

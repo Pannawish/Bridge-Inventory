@@ -72,14 +72,17 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
+# Local .env uses MYSQL_HOST-style names (with underscore); Railway's MySQL
+# plugin injects MYSQLHOST-style names (no underscore). Read both so the same
+# settings file works locally and on Railway without renaming variables.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": os.getenv("MYSQL_DATABASE", "inventory_db"),
-        "USER": os.getenv("MYSQL_USER", "inventory_user"),
-        "PASSWORD": os.getenv("MYSQL_PASSWORD", "inventory_password"),
-        "HOST": os.getenv("MYSQL_HOST", "127.0.0.1"),
-        "PORT": os.getenv("MYSQL_PORT", "3306"),
+        "NAME": os.getenv("MYSQL_DATABASE") or os.getenv("MYSQLDATABASE", "inventory_db"),
+        "USER": os.getenv("MYSQL_USER") or os.getenv("MYSQLUSER", "inventory_user"),
+        "PASSWORD": os.getenv("MYSQL_PASSWORD") or os.getenv("MYSQLPASSWORD", "inventory_password"),
+        "HOST": os.getenv("MYSQL_HOST") or os.getenv("MYSQLHOST", "127.0.0.1"),
+        "PORT": os.getenv("MYSQL_PORT") or os.getenv("MYSQLPORT", "3306"),
         "OPTIONS": {
             "charset": "utf8mb4",
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",

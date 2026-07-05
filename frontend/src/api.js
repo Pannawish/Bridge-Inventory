@@ -91,7 +91,11 @@ async function request(path, options = {}) {
 
           isRefreshing = false;
           if (!retryResponse.ok) {
-            throw new Error(retryData.error || retryData.detail || "Request failed after refresh.");
+            const retryError = new Error(
+              retryData.error || retryData.detail || "Request failed after refresh."
+            );
+            retryError.status = retryResponse.status;
+            throw retryError;
           }
           return retryData;
         } else {
@@ -110,7 +114,11 @@ async function request(path, options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error || data.detail || "Request failed.");
+    const requestError = new Error(data.error || data.detail || "Request failed.");
+    // Expose the HTTP status so callers can tell a permission block (401/403)
+    // apart from a real outage — a blocked endpoint is "not allowed", not "down".
+    requestError.status = response.status;
+    throw requestError;
   }
 
   return data;
