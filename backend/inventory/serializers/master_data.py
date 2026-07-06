@@ -1,4 +1,9 @@
-"""Master data serializers."""
+"""Master data serializers.
+
+These serializers translate between the frontend's compatibility field names
+and normalized master-data models. They intentionally preserve aliases,
+snapshots, and attachment payloads used by existing frontend workflows.
+"""
 
 from decimal import Decimal
 

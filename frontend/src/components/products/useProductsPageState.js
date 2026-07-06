@@ -1,3 +1,8 @@
+// Products page orchestration hook.
+//
+// Directory filtering, product editor state, detail/history loading, and
+// delete/disable guards meet here. Keep product-specific business rules in the
+// extracted helpers and backend endpoints, not in the page component.
 import { useEffect } from "react";
 import { normalizeProduct } from "./productUtils";
 import { getCategoryPathById } from "../CategoryPage";

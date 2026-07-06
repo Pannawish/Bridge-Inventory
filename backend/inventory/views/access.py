@@ -1,4 +1,9 @@
-"""User access and activity log views."""
+"""User access and activity log views.
+
+Only the managed inventory permission set is exposed here. These viewsets also
+write audit logs around user and role changes because access changes are part of
+the operational history.
+"""
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group

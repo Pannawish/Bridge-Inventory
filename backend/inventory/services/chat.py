@@ -1,4 +1,9 @@
-"""AI chat context and response services."""
+"""AI chat context and response services.
+
+The chat assistant answers from backend-prepared inventory context first. Model
+calls, when configured, should consume this context rather than querying raw
+tables directly, so totals and eligibility stay aligned with normal API rules.
+"""
 
 import re
 from datetime import date, timedelta
@@ -402,6 +407,7 @@ def serialize_credit_note_for_chat(note):
 
 
 def build_ai_inventory_context(question, request=None):
+    """Prepare deterministic business context used by both local and model answers."""
     terms = get_query_terms(question)
     date_interval = get_date_interval(question)
     matching_customer_names = get_matching_partner_names(question, Customer)
@@ -1801,6 +1807,7 @@ def build_local_chat_answer(question, context=None, presentation=None):
 
 
 def answer_inventory_question(question, request=None):
+    """Return the assistant answer for a user question."""
     context = build_ai_inventory_context(question, request)
     presentation = build_chat_presentation(question, context)
     local_answer = build_local_chat_answer(question, context, presentation)

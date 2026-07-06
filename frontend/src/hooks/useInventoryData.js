@@ -1,3 +1,8 @@
+// Application data loader and mock fallback coordinator.
+//
+// Keep paginated row state separate from full lookup/reference collections:
+// forms need complete options, while directory pages should avoid full startup
+// loads for large transaction tables.
 import { useCallback, useMemo, useState } from "react";
 import { api } from "../api";
 import {

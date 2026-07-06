@@ -1,4 +1,9 @@
-"""Purchase, sale, and payment transaction services."""
+"""Purchase, sale, and payment transaction services.
+
+These helpers own status propagation and payable synchronization that must stay
+consistent across serializers, viewsets, seed data, and tests. Keep money math
+as Decimal and keep document totals separate from derived payable totals.
+"""
 
 from decimal import Decimal
 
@@ -36,6 +41,7 @@ PURCHASE_FULL_TRANSACTION_STATUSES = {"draft", "ordered", "received", "cancelled
 
 
 def apply_purchase_status_to_items(purchase):
+    """Push whole-purchase status changes down to every purchase line item."""
     today = timezone.localdate()
 
     if purchase.status == Purchase.STATUS_RECEIVED:

@@ -1,4 +1,9 @@
-"""Master data viewsets and lookup endpoints."""
+"""Master data viewsets and lookup endpoints.
+
+Products, categories, suppliers, and customers are master data used by many
+transaction serializers. Keep lookup endpoints lightweight and keep delete
+guards strict when transaction history would be corrupted by removing a record.
+"""
 
 from decimal import Decimal
 
@@ -45,6 +50,7 @@ from .common import (
 
 
 def product_has_transaction_history(product):
+    """Return whether deleting a product would orphan business history."""
     return (
         product.purchase_items.exists()
         or product.sale_items.exists()

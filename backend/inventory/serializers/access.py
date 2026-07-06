@@ -1,4 +1,9 @@
-"""User access and activity log serializers."""
+"""User access and activity log serializers.
+
+The admin API exposes Django users, groups, and a curated permission set through
+inventory-shaped payloads. Keep password handling and managed permission checks
+inside these serializers so the viewsets stay thin.
+"""
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission

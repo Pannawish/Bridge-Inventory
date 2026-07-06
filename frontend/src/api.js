@@ -1,3 +1,6 @@
+// Central API client for Bridge Inventory. It owns token attachment, refresh,
+// query serialization, and consistent error objects so page hooks can focus on
+// business flow instead of HTTP mechanics.
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "");

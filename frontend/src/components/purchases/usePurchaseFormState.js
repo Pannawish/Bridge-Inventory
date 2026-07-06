@@ -1,3 +1,8 @@
+// State and business-flow hook for the new purchase form.
+//
+// It owns draft purchase lines, supplier terms, VAT totals, and generated
+// reference numbers. Backend serializers still normalize item statuses and
+// payable totals after save.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { computePaymentDate } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";

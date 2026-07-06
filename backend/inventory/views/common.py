@@ -1,4 +1,9 @@
-"""Shared view helpers and base classes."""
+"""Shared view helpers and base classes.
+
+The focused view modules all pass through this file for request normalization,
+common filters, permissions, error formatting, and activity logging. Keep cross
+cutting API behavior here so individual domain viewsets stay small.
+"""
 
 import json
 import logging
@@ -119,6 +124,12 @@ def normalize_decimal_fields(data):
 
 
 def normalize_request_data(request):
+    """Normalize JSON and multipart payloads into serializer-friendly data.
+
+    The frontend can submit either JSON bodies or multipart forms with uploaded
+    files. This function keeps both shapes compatible while preserving the
+    serializer as the authority for validation.
+    """
     data = {key: value for key, value in request.data.items()}
 
     if hasattr(request, "FILES"):
@@ -217,6 +228,7 @@ def build_next_sequential_reference_no(model, prefix):
 
 
 class AutoReferenceNumberMixin:
+    """Assign a reference number when a create request leaves it blank or reused."""
     reference_prefix = ""
     sequential_reference = False
 
@@ -252,6 +264,7 @@ def build_party_options(names, model):
     ]
 
 class InventoryModelViewSet(viewsets.ModelViewSet):
+    """Base viewset for inventory records with shared filters and audit logging."""
     parser_classes = [JSONParser, FormParser, MultiPartParser]
     permission_classes = [InventoryModelPermissions]
     lookup_value_regex = "[^/]+"

@@ -1,4 +1,8 @@
-"""Dashboard API endpoints."""
+"""Dashboard API endpoints.
+
+Dashboard calculations live in services so this module only validates request
+shape and returns the prepared summary/segment payloads.
+"""
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response

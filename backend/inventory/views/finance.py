@@ -1,4 +1,9 @@
-"""Billing note and payment batch views."""
+"""Billing note and payment batch views.
+
+Finance endpoints expose server-side eligibility and summaries for receivable
+and payable workflows. Create screens should use these endpoints instead of
+loading every transaction and filtering eligibility in the browser.
+"""
 
 from decimal import Decimal
 

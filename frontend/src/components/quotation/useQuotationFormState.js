@@ -1,3 +1,7 @@
+// State and business-flow hook for quotation create/edit forms.
+//
+// Quotation items stay editable as a frontend array, while the backend persists
+// normalized QuotationItem rows and still exposes the array for compatibility.
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { isProductActive } from "../products/productUtils";

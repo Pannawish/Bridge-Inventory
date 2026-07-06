@@ -1,3 +1,8 @@
+// State and business-flow hook for editing existing sales.
+//
+// It preserves sale-line identity where needed for allocation exclusions,
+// handles manual stock source selection, and keeps frontend stock warnings in
+// step with the backend's authoritative validation.
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api";
 import { useLanguage } from "../../i18n/LanguageContext";
@@ -175,6 +180,8 @@ export function useSalesEditFormState({
   const itemTotal = items.reduce((sum, item) => sum + computeAmount(item, sale), 0);
   const vatSummary = computeVatSummary(itemTotal, vatMode);
 
+  // Preview only: exclude the current sale so unchanged allocated lines do not
+  // count against themselves. The backend repeats this check on save.
   const stockPreviewItems = useMemo(
     () =>
       items

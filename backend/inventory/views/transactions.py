@@ -1,4 +1,9 @@
-"""Purchase, sale, quotation, and credit-note views."""
+"""Purchase, sale, quotation, and credit-note views.
+
+This module owns transaction list filtering and create-flow eligibility helpers.
+Validation and stock-changing behavior remain in serializers/services so direct
+API calls get the same safety rules as frontend workflows.
+"""
 
 from decimal import Decimal
 

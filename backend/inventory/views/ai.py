@@ -1,4 +1,8 @@
-"""AI chat and report endpoints."""
+"""AI chat and report endpoints.
+
+These endpoints are intentionally thin: services prepare the business context
+and report payloads so chat/report behavior can be tested without HTTP setup.
+"""
 
 from rest_framework import status
 from rest_framework.decorators import api_view

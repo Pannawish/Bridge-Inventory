@@ -1,3 +1,8 @@
+// State and business-flow hook for the new sales form.
+//
+// It owns draft line items, customer terms, VAT totals, frontend stock preview,
+// and manual stock allocation UI state. Backend serializers/services still make
+// the final stock and status decisions on save.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../api";
 import { computePaymentDate } from "../../format";
@@ -158,6 +163,8 @@ function useSalesFormState({
     [items, products]
   );
 
+  // Preview only: this mirrors backend stock rules so users get immediate
+  // feedback, but save-time validation is still enforced by the API.
   const saleStockIssues = useMemo(
     () =>
       enableStockValidation
@@ -241,6 +248,8 @@ function useSalesFormState({
   }
 
   function handleStatusChange(nextStatus) {
+    // Keep status changes from moving the draft into a stock-deducting state
+    // when the currently loaded reference data already shows a shortage.
     const nextIssues = enableStockValidation
       ? getSaleStockIssues(
           {

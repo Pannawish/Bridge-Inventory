@@ -1,4 +1,10 @@
-"""Dashboard summary and segment services."""
+"""Dashboard summary and segment services.
+
+The dashboard reads aggregated backend data so the frontend does not need full
+startup loads of purchases, sales, and stock history. Keep list limits here
+small and add dedicated summary fields instead of making the frontend infer
+global totals from paginated rows.
+"""
 
 from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP

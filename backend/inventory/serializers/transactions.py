@@ -1,4 +1,9 @@
-"""Purchase, sale, quotation, and credit-note serializers."""
+"""Purchase, sale, quotation, and credit-note serializers.
+
+This module owns transaction payload compatibility, line-item replacement, and
+server-side validation for stock and financial document rules. Keep snapshot
+fields in API payloads even when a normalized foreign key also exists.
+"""
 
 import datetime
 from decimal import Decimal
@@ -230,6 +235,8 @@ class PurchaseSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         from ..services import normalize_purchase_items_for_status
 
+        # Resolve the supplier relationship while preserving supplier_name as
+        # the historical snapshot printed on the purchase document.
         supplier_id_value = attrs.pop("supplier_id", None)
         should_resolve_supplier = (
             supplier_id_value is not None
@@ -269,6 +276,8 @@ class PurchaseSerializer(serializers.ModelSerializer):
                 purchase_item__purchase=self.instance,
             ).exists()
             if has_allocated_items and items_submitted:
+                # Once received stock has been allocated to sales, the purchase
+                # lines are part of the stock ledger and must not be rewritten.
                 raise serializers.ValidationError(
                     {
                         "items": (
@@ -320,6 +329,8 @@ class PurchaseSerializer(serializers.ModelSerializer):
         if items is None:
             return
 
+        # Line items are replaced as a set to keep totals/status derivation
+        # deterministic and avoid stale rows from earlier drafts.
         purchase.items.all().delete()
         for item in items:
             item = strip_existing_item_id(item)
@@ -667,6 +678,8 @@ class SaleSerializer(serializers.ModelSerializer):
         if items is None:
             return None
 
+        # Manual allocation requests ride along on temporary item attributes
+        # until sync_sale_allocations creates durable allocation rows.
         sale.items.all().delete()
         created_items = []
         for item in items:
@@ -693,6 +706,8 @@ class SaleSerializer(serializers.ModelSerializer):
             normalize_sale_items_for_status,
         )
 
+        # Resolve the customer relationship while preserving customer_name as
+        # the historical snapshot printed on the sale document.
         customer_id_value = attrs.pop("customer_id", None)
         should_resolve_customer = (
             customer_id_value is not None
@@ -749,6 +764,8 @@ class SaleSerializer(serializers.ModelSerializer):
             current_sale_status=current_sale_status,
         )
         if issues:
+            # The frontend shows a stock preview, but the backend makes the
+            # authoritative decision using all committed purchase/sale rows.
             details = "; ".join(
                 (
                     f"{issue['product']} needs {issue['requested']} {issue['unit']}, "
@@ -825,6 +842,12 @@ class SaleSerializer(serializers.ModelSerializer):
 
 
 class QuotationSerializer(serializers.ModelSerializer):
+    """Serializer for quotation headers with normalized line-item rows.
+
+    The API still accepts and returns an ``items`` array for frontend
+    compatibility, but the database source of truth is ``QuotationItem``.
+    """
+
     items = serializers.JSONField(required=False, write_only=True)
     customer_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     supplier_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)

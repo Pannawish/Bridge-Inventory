@@ -1,3 +1,7 @@
+// Category page orchestration hook.
+//
+// The category tree is intentionally handled as a full hierarchy rather than a
+// paginated list, because parent/child context matters for editing and filters.
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import {

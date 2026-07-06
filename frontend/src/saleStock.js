@@ -1,3 +1,7 @@
+// Frontend stock preview helpers.
+//
+// These calculations keep the UI responsive, but the backend stock services are
+// still authoritative for direct API writes and final sale validation.
 import { getStoredPurchaseItemStatus } from "./purchaseStatus";
 import { getStoredSaleItemStatus } from "./saleStatus";
 import { getProductBaseUnit, getItemBaseQuantity } from "./unitConversion";

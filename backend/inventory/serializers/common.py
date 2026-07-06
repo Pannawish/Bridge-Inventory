@@ -1,4 +1,9 @@
-"""Shared serializer helpers."""
+"""Shared serializer helpers.
+
+Domain serializers use these helpers for compatibility payloads, Decimal
+coercion, partner/product resolution, and print profiles. Keep shared helpers
+small; domain-specific rules should stay in the owning serializer module.
+"""
 
 import datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP

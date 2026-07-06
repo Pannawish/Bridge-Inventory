@@ -1,3 +1,8 @@
+// Purchase history page orchestration hook.
+//
+// Supports both server-paginated pages and local mock-data filtering. Keep the
+// two paths aligned so development fallback behavior does not drift from API
+// behavior.
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { withinRange } from "../FilterControls";

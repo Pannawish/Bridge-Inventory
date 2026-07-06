@@ -1,4 +1,9 @@
-"""Billing note and payment batch serializers."""
+"""Billing note and payment batch serializers.
+
+These serializers enforce receivable/payable grouping rules: one customer per
+billing note, one supplier per payment batch, and no duplicate active source
+documents across finance batches.
+"""
 
 from decimal import Decimal
 
@@ -204,6 +209,7 @@ class BillingNoteSerializer(serializers.ModelSerializer):
                 )
 
     def _check_unique_active_sales(self, lines, current_billing_note_id=None):
+        """Prevent a sale from appearing in two active billing notes."""
         sale_ids = [
             line["sale"].id if hasattr(line["sale"], "id") else line["sale"]
             for line in lines
@@ -227,6 +233,7 @@ class BillingNoteSerializer(serializers.ModelSerializer):
             )
 
     def _replace_lines(self, billing_note, lines):
+        """Replace billing lines and recompute the document total atomically."""
         billing_note.lines.all().delete()
         rows = []
         total = Decimal("0")
@@ -482,6 +489,7 @@ class PaymentBatchSerializer(serializers.ModelSerializer):
                 )
 
     def _check_unique_active_purchases(self, lines, current_payment_batch_id=None):
+        """Prevent a purchase from appearing in two active payment batches."""
         purchase_ids = [
             line["purchase"].id if hasattr(line["purchase"], "id") else line["purchase"]
             for line in lines

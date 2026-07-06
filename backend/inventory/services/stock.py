@@ -1,4 +1,10 @@
-"""Stock, allocation, and inventory report services."""
+"""Stock, allocation, and inventory report services.
+
+This module is the backend source of truth for available stock, sale
+commitments, allocation rows, and stock report metrics. Frontend stock previews
+should stay aligned with these rules, but direct API writes must be validated
+here before changing stock-affecting records.
+"""
 
 import math
 from datetime import date
@@ -120,6 +126,7 @@ def get_purchase_item_remaining_quantity(purchase_item, exclude_sale_item_id=Non
 
 
 def get_available_stock_layers(product_id, exclude_sale_item_id=None):
+    """Return FIFO-ready received purchase layers with their remaining quantity."""
     layers = []
     if not product_id:
         return layers
@@ -333,6 +340,12 @@ def allocate_sale_item_fifo(sale_item):
 
 
 def sync_sale_item_allocations(sale_item):
+    """Keep allocation rows in sync with the current sale item status.
+
+    Non-deducting statuses release stock. Deducting statuses either preserve
+    existing allocations, apply explicit user-selected layers, or fall back to
+    FIFO allocation.
+    """
     if sale_item.item_status not in SALE_STOCK_DEDUCTED_STATUSES:
         sale_item.allocations.all().delete()
         return
@@ -354,6 +367,8 @@ def sync_sale_item_allocations(sale_item):
 def sync_sale_allocations(sale, sale_items=None):
     sale_items = sale_items or list(sale.items.select_related("product").all())
     with transaction.atomic():
+        # Lock the parent sale before allocating layers so two concurrent edits
+        # cannot commit overlapping stock reservations for the same sale.
         Sale.objects.select_for_update().filter(pk=sale.pk).exists()
         for sale_item in sale_items:
             sync_sale_item_allocations(sale_item)
@@ -373,6 +388,7 @@ def get_sale_item_base_unit_price(item):
 
 
 def get_product_metric_snapshots(product_ids=None, exclude_sale_id=None):
+    """Return compact per-product stock and price metrics for list endpoints."""
     product_ids = {product_id for product_id in product_ids or [] if product_id}
     received = {}
     received_purchase_count = {}
@@ -562,6 +578,12 @@ def get_sale_stock_issues(
     current_items=None,
     current_sale_status=None,
 ):
+    """Return stock shortages for a proposed sale status/items payload.
+
+    When editing an existing sale, the sale's current committed stock is first
+    released from the comparison so unchanged packed/shipped lines do not count
+    against themselves.
+    """
     requested_by_product_id = get_sale_committed_quantity_by_product_id(items, sale_status)
 
     if current_items is not None:
@@ -713,6 +735,7 @@ def build_supplier_options(supplier_costs):
 
 
 def build_stock_report():
+    """Build dashboard stock rows from transaction history, not stored stock counts."""
     today = timezone.localdate()
     product_rows = {
         product.id: create_empty_stock_row(product)

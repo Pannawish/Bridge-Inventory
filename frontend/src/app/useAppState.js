@@ -1,3 +1,8 @@
+// Top-level application state coordinator.
+//
+// This hook composes data loading, cross-page actions, chat/report handlers,
+// live refresh, and deep-link intents. Page-specific form rules should stay in
+// their own hooks so this file remains an orchestration layer.
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { buildAppMessageHelpers } from "./appMessageUtils";

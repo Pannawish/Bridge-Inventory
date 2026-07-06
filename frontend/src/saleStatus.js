@@ -1,3 +1,7 @@
+// Sale status derivation shared by forms and history views.
+//
+// Keep this in sync with backend transaction services so frontend status
+// previews match the server-side normalization applied during saves.
 import { formatStatusLabel, getTodayString } from "./purchaseStatus";
 
 export { formatStatusLabel, getTodayString };
