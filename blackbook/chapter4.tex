@@ -208,7 +208,7 @@ The AI report page was completed with scope selection, record selection, optiona
 The user-access function was completed with login, token refresh, authenticated user profile, role assignment, and permission management. Authorized administrators can create users, update account status, assign roles, and manage the permissions inside each role. The frontend uses the authenticated profile to show only the pages that the user is allowed to access. The backend also stores activity logs for important actions such as login, create, update, and delete events, and the activity-log page is only available to users with the correct access.
 
 \section{Feature Evidence Summary}
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Evidence of Implemented Features}
@@ -250,7 +250,7 @@ The selected backend validation history contained 30 black-box aligned automated
 
 Additional focused validation was performed for the reorder point calculation, AI Chat, AI Report, user access, permission enforcement, and activity logging. The focused AI and calculation validation run contained 5 tests and all 5 passed. A separate user-access and activity-log validation run contained 6 tests and all 6 passed. The reorder point test confirmed that fixed purchase and sale data produced the expected available stock, average cost, demand, safety stock, reorder level, recommended restock, days until stockout, and stock value. The AI tests confirmed that AI Chat uses backend facts, AI Report receives correct backend context, report charts are rendered from backend chart rows, and unsafe model HTML is removed before the report is returned. The access tests confirmed that ordinary users cannot open administrator user endpoints, administrators can create users and assign roles, protected model APIs enforce permissions when authentication enforcement is enabled, and activity-log access is restricted.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Automated Validation Result Summary}
@@ -271,7 +271,7 @@ The calculation validation focused on the reorder point and recommended restock 
 
 The test first created one product, two received purchase records, one pending purchase record, two committed sales, and one pending sale. Then the test called the dashboard API, which runs the same backend stock report calculation used by the real dashboard and inventory page. The backend output was compared with the manually calculated expected values.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Calculation Validation Input}
@@ -290,7 +290,7 @@ The test first created one product, two received purchase records, one pending p
 	\end{tabularx}
 \end{table}
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Calculation Validation Output}
@@ -317,7 +317,7 @@ The AI Chat validation checked whether the chat page answers from backend data i
 
 In this implementation, AI Chat returns a deterministic backend summary for supported operational questions. This means the answer is generated from the current database context and is marked as \texttt{local-summary}. The test also checked that unsupported broad questions are rejected instead of being answered freely.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{AI Chat Validation Input and Output}
@@ -340,7 +340,7 @@ The AI Report validation checked whether supplier, customer, and product reports
 
 The report test used a controlled supplier and purchase record. The backend built a report context containing the supplier name, purchase reference, purchase amount, metrics, chart rows, and tables. With the API key setting configured, the model response was simulated so that the test could check the system behavior without depending on internet availability or changing AI output. This is important because automated tests must be repeatable.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{AI Report Validation Input}
@@ -357,7 +357,7 @@ The report test used a controlled supplier and purchase record. The backend buil
 	\end{tabularx}
 \end{table}
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{AI Report Validation Output}
@@ -379,7 +379,7 @@ This validation shows that AI Report can use AI for presentation, but the select
 \subsection{Manual Scenario Test}
 The manual scenario test asked users to complete the main business flow from quotation to purchase, purchase receiving, payment batch, sale, credit note, and billing note. Ten testers completed the scenario test. Tester names were removed from the stored result file and replaced with anonymous labels for privacy.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Scenario Test Participant Summary}
@@ -395,7 +395,7 @@ The manual scenario test asked users to complete the main business flow from quo
 	\end{tabularx}
 \end{table}
 
-\begin{table}[p]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Average Scenario Test Time and Score}
@@ -419,7 +419,7 @@ The average scenario score across all parts was 9.21 out of 10. This suggests th
 \subsection{Questionnaire Result}
 After the scenario test, testers answered a 15-item questionnaire using a 1 to 5 rating scale. The average questionnaire score across all testers was 4.58 out of 5. This indicates a positive overall response to the system.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Questionnaire Result Summary}
@@ -438,7 +438,7 @@ After the scenario test, testers answered a 15-item questionnaire using a 1 to 5
 \subsection{User Feedback Summary}
 The user comments showed several repeated themes. Positive feedback mentioned that purchase order status was understandable, quotation-to-purchase flow was useful, credit note creation could be simple, and connected data reduced the need for repeated entry. Improvement feedback focused mainly on visual clarity and consistency.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{User Feedback Themes}

@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  6 JUL 2026 18:43
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  6 JUL 2026 18:51
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1390,19 +1390,23 @@ able
 (Font)              size <12> substituted on input line 25.
 
 
+
+[16]
+
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10.95> not av
 ailable
 (Font)              size <12> substituted on input line 84.
 
 
 
-[16]
-
 [17]
 
 [18]
 
 [19]
+Overfull \vbox (10.28255pt too high) has occurred while \output is active []
+
+
 
 [20]
 
@@ -1415,6 +1419,10 @@ ailable
 [24]
 
 [25]
+
+[26]
+
+[27]
 Underfull \hbox (badness 1314) in paragraph at lines 366--367
 []\TU/TimesNewRoman(0)/m/n/12 During the test, each participant followed the sc
 enario steps and
@@ -1422,86 +1430,82 @@ enario steps and
 
 
 
-[26]) (chapter4.tex
+[28]
 
-[27]
+[29]) (chapter4.tex
+
+[30]
+
+[31]
 CHAPTER 4.
 
 
-[28
+[32
 
 ]
 
-[29]
+[33]
 File: ./figures/chap4/figure-4-1-dashboard.png Graphic file (type bmp)
 <./figures/chap4/figure-4-1-dashboard.png>
 
 
-[30]
+[34]
 File: ./figures/chap4/figure-4-2-inventory.png Graphic file (type bmp)
 <./figures/chap4/figure-4-2-inventory.png>
 
 
-[31]
+[35]
 File: ./figures/chap4/figure-4-3-ai-chat.png Graphic file (type bmp)
 <./figures/chap4/figure-4-3-ai-chat.png>
 
 
-[32]
+[36]
 File: ./figures/chap4/figure-4-4-ai-report.png Graphic file (type bmp)
 <./figures/chap4/figure-4-4-ai-report.png>
 
 
-[33]
+[37]
 File: ./figures/chap4/figure-4-5-product-form.png Graphic file (type bmp)
 <./figures/chap4/figure-4-5-product-form.png>
 
 
-[34]
+[38]
 File: ./figures/chap4/figure-4-6-purchase-workflow.png Graphic file (type bmp)
 <./figures/chap4/figure-4-6-purchase-workflow.png>
 
 
-[35]
+[39]
 File: ./figures/chap4/figure-4-7-sales-workflow.png Graphic file (type bmp)
 <./figures/chap4/figure-4-7-sales-workflow.png>
 
 
-[36]
+[40]
 File: ./figures/chap4/figure-4-8-quotation-workflow.png Graphic file (type bmp)
 
 <./figures/chap4/figure-4-8-quotation-workflow.png>
 
 
-[37]
+[41]
 File: ./figures/chap4/figure-4-9-billing-note-workflow.png Graphic file (type b
 mp)
 <./figures/chap4/figure-4-9-billing-note-workflow.png>
 
 
-[38]
+[42]
 File: ./figures/chap4/figure-4-10-payment-batch-workflow.png Graphic file (type
  bmp)
 <./figures/chap4/figure-4-10-payment-batch-workflow.png>
 
 
-[39]
+[43]
 File: ./figures/chap4/figure-4-11-user-access.png Graphic file (type bmp)
 <./figures/chap4/figure-4-11-user-access.png>
 
 
-[40]
+[44]
 File: ./figures/chap4/figure-4-12-activity-log.png Graphic file (type bmp)
 <./figures/chap4/figure-4-12-activity-log.png>
 
-
-[41]
-
-[42]
-
-[43]
-
-[44]
 
 [45]
 
@@ -1517,25 +1521,41 @@ File: ./figures/chap4/figure-4-12-activity-log.png Graphic file (type bmp)
 
 [51]
 
-[52]) (chapter5.tex
+[52]
 
 [53]
 
 [54]
 
 [55]
-CHAPTER 5.
 
-
-[56
-
-]
+[56]
 
 [57]
 
-[58])
+[58]
 
-[59] (main.bbl
+[59]
+
+[60]
+
+[61]
+
+[62]) (chapter5.tex
+
+[63]
+CHAPTER 5.
+
+
+[64
+
+]
+
+[65]
+
+[66])
+
+[67] (main.bbl
 Underfull \hbox (badness 10000) in paragraph at lines 45--52
 []\TU/TimesNewRoman(0)/m/n/12 The Times.  Sole traders still not prepared for d
 igital tax re-
@@ -1561,32 +1581,32 @@ Underfull \hbox (badness 10000) in paragraph at lines 45--52
 
 )
 
-[60
+[68
 
 ]
 
-[61] (AppendixA.tex
+[69] (AppendixA.tex
 Appendix A.
 File: ../docs/screenshots/sidebar-navigation.png Graphic file (type bmp)
 <../docs/screenshots/sidebar-navigation.png>
 
 
-[62
+[70
 
 ]
+
+[71]
 File: ../docs/screenshots/product-form-unit-conversions.png Graphic file (type 
 bmp)
 <../docs/screenshots/product-form-unit-conversions.png>
 
 
-[63]
-
-[64]
+[72]
 File: ../docs/screenshots/quotation-entry.png Graphic file (type bmp)
 <../docs/screenshots/quotation-entry.png>
 
 
-[65]
+[73]
 File: ../docs/screenshots/purchase-form-receiving-status.png Graphic file (type
  bmp)
 <../docs/screenshots/purchase-form-receiving-status.png>
@@ -1595,18 +1615,18 @@ mp)
 <../docs/screenshots/sales-form-delivery-statuses.png>
 
 
-[66]
+[74]
 
-[67]
+[75]
 File: ../docs/screenshots/dashboard-overview.png Graphic file (type bmp)
 <../docs/screenshots/dashboard-overview.png>
 
 
-[68])
+[76])
 
-[69]
+[77]
 
-[70] 
+[78] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
 (main.aux)
  ***********
@@ -1622,10 +1642,10 @@ LaTeX Font Warning: Size substitutions with differences
 Here is how much of TeX's memory you used:
  24770 strings out of 402990
  528277 string characters out of 5447323
- 1119931 words of memory out of 5000000
+ 1120017 words of memory out of 5000000
  53015 multiletter control sequences out of 15000+600000
  633768 words of font info for 103 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  88i,13n,107p,1086b,964s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (84 pages).
+Output written on main.pdf (92 pages).

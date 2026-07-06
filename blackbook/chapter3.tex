@@ -20,7 +20,7 @@ The AI Chat and AI Report functions use an OpenAI API key when the key is config
 \section{Requirement Areas and Web-App Pages}
 The web application is organized around the main work areas that a trading business needs each day. Each sidebar page has a specific purpose, and the pages are connected through shared product, supplier, customer, purchase, sale, and finance data.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Requirement Areas and Implemented Pages}
@@ -39,7 +39,7 @@ The web application is organized around the main work areas that a trading busin
 	\end{tabularx}
 \end{table}
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Record and Support Page Scope}
@@ -87,7 +87,7 @@ The system uses a three-tier web architecture. React is responsible for the user
 \label{fig:system-architecture-overview}
 \end{figure}
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Architecture Components}
@@ -113,7 +113,7 @@ The frontend also keeps a mock-data fallback for development and demonstration. 
 \section{Backend and API Methodology}
 The backend was developed as a Django project with one main inventory application. Django REST Framework viewsets provide CRUD endpoints for products, categories, suppliers, customers, purchases, sales, quotations, billing notes, payment batches, and credit notes. Separate API views provide dashboard summaries, dashboard segments, lookup lists, product history, product stock layers, eligibility lists, and chat responses.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Main API Endpoint Groups}
@@ -144,7 +144,7 @@ The database was designed as a relational MySQL schema managed by Django migrati
 
 The system also keeps snapshot fields inside transaction records. A sale item stores product name, SKU, quantity, price, and amount. A purchase stores supplier name and line item details. These snapshot values are important because old business documents should remain readable even if a product, supplier, or customer is edited later.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Primary Database Model Groups}
@@ -254,7 +254,7 @@ Security support is implemented with Simple JWT, Django groups, and Django model
 \section{Testing Methodology}
 Testing was designed to check both technical correctness and user workflow understanding. The technical tests focused on backend behavior because the backend owns the most important business rules, including stock calculation, stock validation, finance eligibility, payable synchronization, and AI data preparation. Manual testing and questionnaires were added to check whether users could complete the main business workflow and understand the interface.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Testing Summary}
@@ -284,7 +284,7 @@ The preserved black-box test history contains a selected 30-case workflow suite 
 backend/.venv/bin/python backend/manage.py test inventory
 \end{verbatim}
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Automated Backend Test Method}
@@ -305,7 +305,7 @@ The calculation validation focused on the reorder point and inventory dashboard 
 
 The test created one product, received purchase stock, committed sales, pending sales, pending purchases, and lead-time samples. After the records were created, the dashboard stock report calculation was executed. The output was checked against expected values such as available stock, average unit cost, average daily demand, safety stock, reorder level, recommended restock, days until stockout, and stock value.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Calculation Validation Method}
@@ -325,7 +325,7 @@ AI Chat validation was designed to confirm that the assistant answered from back
 
 The method also tested unsupported questions. This was important because the assistant should not invent broad business reports or perform actions outside the current read-only assistant scope. When an API key setting was configured, the validation still checked that operational answers remained tied to backend summaries and selected records.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{AI Chat Validation Method}
@@ -345,7 +345,7 @@ AI Report validation checked whether report generation used the selected supplie
 
 The validation also checked report safety. Model-style HTML was simulated during testing so the system could verify that unsafe content was removed and that chart rows came from backend-prepared data. This makes the test repeatable and prevents the result from depending on changing AI output.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{AI Report Validation Method}
@@ -365,7 +365,7 @@ Manual scenario testing was conducted to check whether users could complete the 
 
 During the test, each participant followed the scenario steps and recorded the time and score for each part. Tester names were removed from the stored result file for privacy. This method was used because automated tests can prove that rules work, but they cannot show whether users can understand the screen flow and find the required actions.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Manual Scenario Test Method}
@@ -385,7 +385,7 @@ After the scenario test, participants answered a questionnaire using a rating sc
 
 The questionnaire was used as a supporting evaluation method. It did not replace automated validation, but it helped show whether the implemented system was understandable and useful to users after they tried the workflow.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Questionnaire Method}
@@ -403,7 +403,7 @@ The questionnaire was used as a supporting evaluation method. It did not replace
 \section{Tools and Technologies Used}
 The project used separate tools for frontend development, backend development, database storage, authentication, AI integration, styling, and testing. These tools were selected to support a full-stack web application with server-side business rules and a React-based user interface.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 	\centering
 	\BlackbookTableSetup
 	\caption{Tools and Technologies}
