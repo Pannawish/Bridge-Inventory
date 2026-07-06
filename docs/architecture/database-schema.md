@@ -205,7 +205,10 @@ Core catalog listing for inventory records.
 ### 3.5 Supplementary Product Tables
 *   **ProductPicture (`ProductPicture`)**:
     *   `product` (ForeignKey, `Product`, `on_delete=models.CASCADE`): Image owner.
-    *   `file` (FileField): Uploaded path under `products/pictures/`.
+    *   `file` (FileField, nullable): Legacy uploaded path under `products/pictures/`.
+    *   `content` (BinaryField, nullable): Current DB-stored image/PDF bytes, used so attachments survive ephemeral deployment disks.
+    *   `content_type` (CharField, 100): MIME type used when serving the attachment.
+    *   `filename` (CharField, 255): Original display/download filename.
     *   `is_selected` (BooleanField): Primary thumbnail toggle.
 *   **ProductUnitConversion (`ProductUnitConversion`)**:
     *   `product` (ForeignKey, `Product`, `on_delete=models.CASCADE`): Product context.
@@ -296,6 +299,8 @@ The core transactional link mapping sales lines to specific received purchase FI
 *   `base_unit_cost` (DecimalField, 14,6): Unit cost of the matching purchase layer.
 *   `total_cost` (DecimalField, 14,2): Total COGS of this allocated layer (`base_quantity * base_unit_cost`).
 
+Allocation writes are transaction-safe. The backend locks the sale row and each selected `PurchaseItem` row before validating remaining quantity and writing allocation rows.
+
 ---
 
 ### 4.6 Quotation (`Quotation`)
@@ -384,6 +389,6 @@ To protect audit trails, financial calculations, and stock balances, Django on-d
     Used when deleting a referenced entity would corrupt financial ledgers or break stock audits. Deleting the master card is blocked until all transactional links are deleted or resolved first.
     *   *Examples*: `Category` referenced by child `Category` (blocking tree breaking), `PurchaseItem` referenced by `SaleItemAllocation` (blocking FIFO layer deletion), `Sale` referenced by `BillingNoteLine` (blocking billed invoice deletion), `Purchase` referenced by `PaymentBatchLine` (blocking paid PO deletion).
 *   `SET_NULL` (Nullify Reference):
-    Used where historical audit snapshots (`supplier_name`, `customer_name`, `product_name`) are saved on the transaction lines. The transaction remains completely readable and auditable even if the master master card is deleted.
+    Used where historical audit snapshots (`supplier_name`, `customer_name`, `product_name`) are saved on the transaction lines. The transaction remains completely readable and auditable even if the master card is deleted.
     *   *Examples*: `Supplier` on `Purchase`, `Customer` on `Sale`, `Product` on `PurchaseItem` / `SaleItem` / `QuotationItem`.
     *   *Authentication/Audit Example*: `ActivityLog.user` uses `SET_NULL` so audit history remains readable after an account is removed.

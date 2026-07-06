@@ -71,12 +71,12 @@ The system enforces modern secure access to protect transaction logs and supplie
 #### A. Secure Credentials Log In
 1. Open the application URL in your browser.
 2. Enter your assigned **Username** and **Password**.
-3. **Remember Me**: Check this box if you are working on a trusted, private workstation. This stores your session refresh token in `localStorage` so you remain logged in across browser restarts. Leave it unchecked on shared company terminals.
+3. **Remember Me**: Check this box if you are working on a trusted, private workstation. This stores your session tokens in `localStorage` so you remain logged in across browser restarts. Leave it unchecked on shared company terminals; the session will use browser `sessionStorage` instead.
 4. **Language Toggle**: Select **English** or **ไทย** at the bottom of the card. The interface strings will instantly translate.
 5. Click **Sign In**. The page will refresh and establish a live, authenticated link to the Django backend database.
 
-#### B. Continue as Guest (Onboarding & Previews)
-For trainee onboarding, quick walkthroughs, or system demonstrations without connecting to backend servers, click the prominent **"Continue as Guest"** button. This bypasses credentials and starts a sandbox session loaded with pre-configured mock data.
+#### B. Preview as Guest (Onboarding & Previews)
+For trainee onboarding, quick walkthroughs, or system demonstrations without connecting to backend servers, click the **"Preview as Guest"** button. This bypasses credentials and starts a sandbox session loaded with pre-configured mock data.
 
 > [!WARNING]
 > **Guest Sandbox Session:**  

@@ -3,7 +3,7 @@
 <p align="left">
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React 18" />
   <img src="https://img.shields.io/badge/Vite-7.3-646CFF?style=flat-square&logo=vite" alt="Vite 7.3" />
-  <img src="https://img.shields.io/badge/Django-5.1-092E20?style=flat-square&logo=django&logoColor=white" alt="Django 5.1" />
+  <img src="https://img.shields.io/badge/Django-5.x-092E20?style=flat-square&logo=django&logoColor=white" alt="Django 5.x" />
   <img src="https://img.shields.io/badge/MySQL-8-00758F?style=flat-square&logo=mysql&logoColor=white" alt="MySQL 8" />
   <img src="https://img.shields.io/badge/OpenAI-GPT--5-412991?style=flat-square&logo=openai" alt="OpenAI GPT" />
   <img src="https://img.shields.io/badge/Language-EN%20%7C%20TH-714b67?style=flat-square" alt="Bilingual" />
@@ -33,15 +33,15 @@ Want to explore the user interface without running any local databases?
 
 | Functional Area | Implemented Operational Capabilities |
 | :--- | :--- |
-| **Products & Stock** | Product master setups, nested categories, multi-image uploads, supplier-specific sourcing options, unit conversions, on-demand FIFO stock history, and an inventory control workspace for reorder planning. |
+| **Products & Stock** | Product master setups, nested categories, image/PDF product attachments, supplier-specific sourcing options, unit conversions, on-demand FIFO stock history, and an inventory control workspace for reorder planning. |
 | **Quotations** | Customer billing quotes with unit-aware quantities, live stock-sufficiency indicators, and one-click conversion into sales orders or purchase lines. |
 | **Purchases** | Detailed PO setups, partial/full receiving updates, expected arrival schedules, supplier tax invoice tracking, base quantity normalization, and cost snapshotting. |
-| **Sales** | Stock-aware sales validation, live delivery trackers, cancelled/returned flows, average cost references, and automatic/manual FIFO purchase layer allocation. |
+| **Sales** | Stock-aware sales validation, live delivery trackers, cancelled/returned flows, average cost references, and transaction-locked automatic/manual FIFO purchase layer allocation. |
 | **Finance (BN / PB / CN)** | Billing Notes for receivables, Payment Batches for payables, and Credit Notes for cancelled/returned goods, with server-validated transaction eligibility checks and net-of-credit billing summaries. |
 | **Business Documents** | Printable quotation, purchase order, sales invoice, billing note, payment batch, and credit note layouts generated from shared transaction document configs. |
 | **AI Assistant** | OpenAI-powered bilingual natural language query assistant focused on stock and fulfillment, partner summaries, receivables/payables with exceptions, and reference line-item detail. |
 | **AI Reports** | Printable supplier, customer, and product reports with backend-calculated metrics, charts, record tables, AI-written analysis when configured, and local fallback when not configured. |
-| **User Access & Audit** | Simple JWT login, refresh tokens, user profile lookup, role-based navigation, administrator user/role management, Django model permissions, and activity logs for login/create/update/delete events. |
+| **User Access & Audit** | Simple JWT login, refresh tokens, remember-me/session token storage, user profile lookup, role-based navigation, administrator user/role management, Django model permissions, and activity logs for login/create/update/delete events. |
 
 ---
 
@@ -100,25 +100,25 @@ graph TD
 ## Technology Stack
 
 *   **Frontend**: React 18, Vite 7.3, Vanilla CSS custom design tokens (4px square system)
-*   **Backend**: Django 5.1, Django REST Framework 3.15, JWT-based security (Simple JWT), Django groups/permissions, and activity logging
+*   **Backend**: Django 5.x, Django REST Framework 3.x, JWT-based security (Simple JWT), Django groups/permissions, and activity logging
 *   **Database**: MySQL (relational 3NF with audit-friendly historical snapshots)
-*   **Core Concepts**: Relational master records, derived FIFO layers, opt-in backend pagination, lookup endpoints, permission-aware navigation, AI report context building, and bilingual context dictionaries.
+*   **Core Concepts**: Relational master records, derived FIFO layers with row-locked sale allocation, opt-in backend pagination, lookup endpoints, permission-aware navigation, AI report context building, and bilingual context dictionaries.
 
 ---
 
 ## Repository Structure
 
 ```text
-├── frontend/     # React + Vite single-page application
-├── backend/      # Django + DRF REST API
-├── docs/         # Extended reference files for maintainers & devs
-│   ├── business-rules-reference.md  # Status mappings, FIFO layer calculations
-│   ├── codebase-structure.md         # Source tree navigation map
-│   ├── frontend-refactor-handoff.md  # Maintainability splits and hooks details
-│   ├── login_system.md               # JWT, user access, roles, and activity-log guide
-│   ├── database-schema.md            # MySQL database schemas & ERD reference
-│   └── workflow-reference.md         # End-to-end business flow narrative
-└── AGENTS.md     # Engineering standards & constraints for contributors
+├── frontend/         # React + Vite single-page application
+├── backend/          # Django + DRF REST API
+├── docs/             # Extended reference files for maintainers and users
+│   ├── ai/           # AI Chat and AI Report guides
+│   ├── architecture/ # Source tree, schema, and frontend refactor references
+│   ├── business/     # Workflow and business-rule references
+│   ├── security/     # JWT login, roles, permissions, and activity logs
+│   └── testing/      # Test plans and validation reports
+├── blackbook/        # Report and user-evaluation supporting materials
+└── AGENTS.md         # Engineering standards and constraints for contributors
 ```
 
 ---

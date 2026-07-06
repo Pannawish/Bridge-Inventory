@@ -34,6 +34,7 @@ Important data rules:
 
 - Products do not store mutable stock as a source of truth. Available stock is derived from received purchase items minus stock-deducted sale items.
 - Historical transaction snapshots such as `supplier_name`, `customer_name`, `product_name`, `sku`, prices, and totals are intentionally preserved on transaction rows.
+- Product attachments are image/PDF records. New uploads store file bytes, content type, and filename in `ProductPicture` so product media survives ephemeral deploy disks; the legacy nullable `file` field remains for older rows.
 - Quotation lines are stored in `QuotationItem`. The quotation API still exposes an `items` array for frontend compatibility, but that array is serialized from normalized quotation line tables.
 - Transaction detail serializers also expose business-partner print profile fields such as `supplier_profile` and `customer_profile` for printable customer/supplier-facing document layouts.
 - User access is implemented with Django users, groups, permissions, Simple JWT, custom DRF permission classes, and the inventory `ActivityLog` model.
@@ -206,6 +207,7 @@ Utility endpoints:
 - `/api/lookups/products/`
 - `/api/lookups/suppliers/`
 - `/api/lookups/customers/`
+- `/api/product-pictures/<picture_id>/`
 - `/api/products/<product_id>/history/`
 - `/api/products/<product_id>/stock-layers/`
 - `/api/eligibility/billing-note-sales/`
@@ -301,6 +303,7 @@ Stock:
 - Purchase stock contributes only when purchase items are `received`.
 - Sale stock is deducted only when sale items are `packed`, `shipped`, or `delivered`.
 - Stock validation is server-side. Frontend previews are not authoritative.
+- Sale allocation writes run inside database transactions. The backend locks the sale row and selected received `PurchaseItem` rows with `select_for_update()` before checking remaining quantities and creating FIFO/manual `SaleItemAllocation` rows, so concurrent stock-committing updates cannot consume the same layer silently.
 
 Eligibility:
 

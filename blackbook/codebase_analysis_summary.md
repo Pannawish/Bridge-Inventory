@@ -7,8 +7,8 @@ This summary was prepared from the current repository implementation before writ
 - The frontend is a React 18 and Vite single-page application under [`../frontend/`](../frontend/).
 - The application entry points are [`../frontend/src/main.jsx`](../frontend/src/main.jsx), [`../frontend/src/App.jsx`](../frontend/src/App.jsx), and the tab composition shell in [`../frontend/src/app/ActiveTabContent.jsx`](../frontend/src/app/ActiveTabContent.jsx).
 - Main user-facing pages include Dashboard, Inventory, AI Chat, AI Report, Purchases, Sales, Quotations, Billing Notes, Payment Batches, Credit Notes, Products, Categories, Suppliers, Customers, User Access, Activity Log, and Settings.
-- Frontend data access is centralized in [`../frontend/src/api.js`](../frontend/src/api.js), which builds REST requests, attaches JWT bearer tokens when present, and retries requests after token refresh.
-- Authentication state is managed in [`../frontend/src/auth/AuthContext.jsx`](../frontend/src/auth/AuthContext.jsx). The UI supports login, token refresh, logout, guest mode for frontend exploration, and permission-aware navigation through [`../frontend/src/auth/permissions.js`](../frontend/src/auth/permissions.js).
+- Frontend data access is centralized in [`../frontend/src/api.js`](../frontend/src/api.js), which builds REST requests, attaches JWT bearer tokens when present, exposes request status codes on failures, and retries requests after token refresh.
+- Authentication state is managed in [`../frontend/src/auth/AuthContext.jsx`](../frontend/src/auth/AuthContext.jsx). The UI supports login, remember-me or session-only token storage, token refresh, logout, guest mode for frontend exploration, and permission-aware navigation through [`../frontend/src/auth/permissions.js`](../frontend/src/auth/permissions.js).
 - The application includes mock-data fallback behavior through [`../frontend/src/mockData.js`](../frontend/src/mockData.js) and data-loading helpers in [`../frontend/src/hooks/useInventoryData.js`](../frontend/src/hooks/useInventoryData.js).
 - Bilingual English/Thai UI strings are stored in [`../frontend/src/i18n/translations.js`](../frontend/src/i18n/translations.js).
 
@@ -64,9 +64,9 @@ This summary was prepared from the current repository implementation before writ
 - English/Thai translation infrastructure.
 - Login, JWT refresh, guest exploration mode, role-based navigation, user/role management, and activity logging.
 - Master-data CRUD for products, categories, suppliers, and customers.
-- Product media uploads, selected product picture support, unit conversions, active/disabled products, and product supplier links.
+- Product image/PDF uploads, DB-stored product attachment bytes, selected product picture support, unit conversions, active/disabled products, and product supplier links.
 - Purchase and sales transaction creation, editing, deletion, document uploads, status updates, and line item status behavior.
-- Server-side stock validation and FIFO stock layer allocation for stock-deducting sales.
+- Server-side stock validation and transaction-locked FIFO/manual stock layer allocation for stock-deducting sales.
 - Quotation storage through normalized quotation line item tables and supplier option rows.
 - Billing note, payment batch, and credit note workflows with eligibility endpoints.
 - Opt-in backend pagination for list endpoints while preserving unpaginated array responses when no page parameter is supplied.

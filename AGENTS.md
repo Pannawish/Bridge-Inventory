@@ -156,7 +156,9 @@ npm run dev -- --host 127.0.0.1
 - Search/filter database indexes exist for common product, transaction, finance, and partner filters.
 - Dashboard stock report rows are calculated by the backend and include stock position, demand, purchase pipeline, and value fields.
 - Product purchase/sales history is loaded on demand through the product history endpoint.
+- Product image/PDF attachments are stored in `ProductPicture.content` and served through the product-picture endpoint; the legacy file field is nullable for older rows.
 - Quotation line items are stored in `QuotationItem`; `Quotation` no longer has an `items` JSON database column. The quotation API still exposes an `items` array built from `QuotationItem`.
+- Sale stock allocation sync runs inside database transactions and locks the sale row plus selected `PurchaseItem` rows before committing FIFO/manual allocation rows.
 - `clear_operational_data` can clear purchases, sales, quotations, billing notes, payment batches, and transaction documents while preserving master data.
 - Billing note and payment batch seed data are included in operational seed data.
 - AI report generation is implemented in `backend/inventory/ai_reports.py` and returns printable supplier, customer, or product reports from backend-prepared records.

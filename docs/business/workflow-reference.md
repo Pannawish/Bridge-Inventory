@@ -77,6 +77,7 @@ Bridge Inventory is built for a middle-man SME business model:
 - Sale lines are validated by backend stock rules
 - Draft sales may exist before stock is committed
 - Stock is reduced only when sale items reach `packed`, `shipped`, or `delivered`
+- Stock-committing sale updates allocate received purchase layers inside backend database transactions
 - Sale statuses are derived from line statuses
 - Cancelled or returned sale lines release active demand
 - Sale records preserve historical snapshots such as customer name, product name, SKU, and pricing
@@ -87,7 +88,7 @@ Bridge Inventory is built for a middle-man SME business model:
 - `Purchase received` increases stock
 - `Sale packed/shipped/delivered` decreases stock
 - `Sale cancelled/returned` removes or releases active demand
-- Backend is authoritative for stock validation and prevents invalid stock-deducting sales
+- Backend is authoritative for stock validation and prevents invalid or concurrently oversold stock-deducting sales
 
 ### 2.8 Billing Note Workflow
 

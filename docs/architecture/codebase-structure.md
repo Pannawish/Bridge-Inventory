@@ -17,8 +17,10 @@ Scope notes:
 ├── LICENSE
 ├── README.md
 ├── backend/
+├── blackbook/
 ├── docs/
-└── frontend/
+├── frontend/
+└── netlify.toml
 ```
 
 ## Backend
@@ -72,7 +74,8 @@ backend/
 │   │   ├── 0025_add_payment_term_to_quotation.py
 │   │   ├── 0026_creditnote_total_before_vat_creditnote_vat_amount_and_more.py
 │   │   ├── 0027_recompute_creditnote_vat.py
-│   │   └── 0028_activitylog.py
+│   │   ├── 0028_activitylog.py
+│   │   └── 0029_productpicture_content_productpicture_content_type_and_more.py
 │   ├── access_control.py
 │   ├── ai_reports.py
 │   ├── audit.py
@@ -112,6 +115,7 @@ frontend/
 ├── src/
 │   ├── App.jsx
 │   ├── api.js
+│   ├── equality.js
 │   ├── format.js
 │   ├── main.jsx
 │   ├── mockData.js
@@ -125,6 +129,7 @@ frontend/
 │   │   ├── AppShell.jsx
 │   │   ├── appMessageUtils.js
 │   │   ├── appUtils.js
+│   │   ├── mockGuestHandlers.js
 │   │   ├── productPayload.js
 │   │   ├── tabs.js
 │   │   └── useAppState.js
@@ -166,18 +171,25 @@ frontend/
 │   │   ├── TabIcon.jsx
 │   │   ├── TransactionTable.jsx
 │   │   ├── contactValidation.js
+│   │   ├── formBlurValidation.js
 │   │   ├── productPriceMetrics.js
 │   │   ├── transactionDiscounts.js
 │   │   ├── admin/
 │   │   │   ├── ActivityLogPage.jsx
+│   │   │   ├── EditRoleModal.jsx
+│   │   │   ├── EditUserModal.jsx
+│   │   │   ├── ManageRolesModal.jsx
+│   │   │   ├── adminPreviewData.js
 │   │   │   └── UserAccessPage.jsx
 │   │   ├── billing/
 │   │   │   ├── BillingNoteDetailModal.jsx
 │   │   │   ├── BillingNoteDirectorySection.jsx
+│   │   │   ├── BillingNoteEditForm.jsx
 │   │   │   ├── BillingNoteStatusPill.jsx
 │   │   │   ├── CreateBillingNoteModal.jsx
 │   │   │   ├── billingNoteDetailHelpers.js
 │   │   │   ├── billingNoteUtils.js
+│   │   │   ├── useBillingNoteEditFormState.js
 │   │   │   └── useBillingNoteDetailState.js
 │   │   ├── categories/
 │   │   │   ├── CategoryDirectorySection.jsx
@@ -186,7 +198,7 @@ frontend/
 │   │   │   ├── categoryUtils.js
 │   │   │   └── useCategoryPageState.js
 │   │   ├── charts/
-│   │   │   └── ReorderSawtooth.jsx
+│   │   │   └── ReorderProjection.jsx
 │   │   ├── chat/
 │   │   │   ├── ChatMessageBody.jsx
 │   │   │   └── ChatRecordDetailModal.jsx
@@ -194,8 +206,10 @@ frontend/
 │   │   │   ├── CreateCreditNoteModal.jsx
 │   │   │   ├── CreditNoteDetailModal.jsx
 │   │   │   ├── CreditNoteDirectorySection.jsx
+│   │   │   ├── CreditNoteEditForm.jsx
 │   │   │   ├── CreditNoteStatusPill.jsx
-│   │   │   └── creditNoteUtils.js
+│   │   │   ├── creditNoteUtils.js
+│   │   │   └── useCreditNoteEditFormState.js
 │   │   ├── customers/
 │   │   │   ├── CustomerContactSection.jsx
 │   │   │   ├── CustomerDeliverySection.jsx
@@ -221,14 +235,17 @@ frontend/
 │   │   │   ├── InventoryMetricModal.jsx
 │   │   │   ├── InventoryProductStockRow.jsx
 │   │   │   ├── InventoryReferenceModal.jsx
-│   │   │   └── inventoryUtils.js
+│   │   │   ├── inventoryUtils.js
+│   │   │   └── reorderHistory.js
 │   │   ├── payments/
 │   │   │   ├── CreatePaymentBatchModal.jsx
 │   │   │   ├── PaymentBatchDetailModal.jsx
 │   │   │   ├── PaymentBatchDirectorySection.jsx
+│   │   │   ├── PaymentBatchEditForm.jsx
 │   │   │   ├── PaymentBatchStatusPill.jsx
 │   │   │   ├── paymentBatchDetailHelpers.js
 │   │   │   ├── paymentBatchUtils.js
+│   │   │   ├── usePaymentBatchEditFormState.js
 │   │   │   └── usePaymentBatchDetailState.js
 │   │   ├── partners/
 │   │   │   ├── PartnerDirectorySection.jsx
@@ -252,6 +269,8 @@ frontend/
 │   │   │   ├── productUtils.js
 │   │   │   ├── productsPageHelpers.js
 │   │   │   └── useProductsPageState.js
+│   │   ├── purchase/
+│   │   │   └── QuickPoDrawer.jsx
 │   │   ├── purchases/
 │   │   │   ├── PurchaseEditDetailsSection.jsx
 │   │   │   ├── PurchaseEditForm.jsx
@@ -347,6 +366,7 @@ frontend/
 │       ├── admin.css
 │       ├── ai-report.css
 │       ├── base-layout.css
+│       ├── charts.css
 │       ├── dashboard.css
 │       ├── directories.css
 │       ├── finance.css

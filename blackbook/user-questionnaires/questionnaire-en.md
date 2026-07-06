@@ -1,7 +1,7 @@
 # User Evaluation Questionnaire (English)
 
 ## Purpose
-This questionnaire is for normal users to evaluate the Inventory Management web application after trying the main features.
+This questionnaire is for normal users to evaluate the Bridge Inventory web application after trying the main features.
 
 ## Rating method
 Please rate each statement using this scale:
@@ -47,4 +47,3 @@ Answer: ______________________________________________
 - Name: ____________________
 - Date: ____________________
 - Role: ____________________
-

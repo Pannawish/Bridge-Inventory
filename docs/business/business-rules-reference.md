@@ -228,6 +228,13 @@ This sorting ensures that older stock is mathematically consumed first.
 *   Once allocations are locked, the system computes the exact cost of goods sold (COGS) based on the cost of the allocated layers and saves it on the sale line.
 *   If a sale line uses stock from exactly one supplier layer, that supplier's name is snapshotted as the line's supplier reference.
 
+### 6.6 Concurrency and Stock Safety
+*   Stock commitment is protected on the backend, not by frontend previews.
+*   Sale allocation sync runs inside `transaction.atomic()`.
+*   The backend locks the sale row before syncing its allocation rows.
+*   Manual and automatic allocation both lock the selected `PurchaseItem` rows with `select_for_update()` before checking remaining quantity and creating `SaleItemAllocation` rows.
+*   If another transaction has already consumed the selected layer, the update is rejected with an insufficient-stock validation error instead of silently overselling that layer.
+
 ---
 
 ## 7. Billing Note Rules

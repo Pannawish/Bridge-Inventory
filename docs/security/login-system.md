@@ -120,17 +120,27 @@ Request handling is centralized in [frontend/src/api.js](../../frontend/src/api.
 Behavior:
 
 1. Login posts credentials to `/api/auth/login/`
-2. Access and refresh tokens are stored
-3. Frontend loads `/api/auth/me/`
-4. API requests automatically send `Authorization: Bearer <access>`
-5. On `401`, the frontend attempts silent refresh through `/api/auth/refresh/`
-6. If refresh fails, the frontend clears auth state and returns to the login page
+2. Any old access/refresh tokens are removed from both browser stores
+3. Access and refresh tokens are stored in exactly one browser store based on the `Remember Me` choice
+4. Frontend loads `/api/auth/me/`
+5. API requests automatically send `Authorization: Bearer <access>`
+6. On `401`, the frontend attempts one silent refresh through `/api/auth/refresh/`
+7. If refresh fails, the frontend clears auth state and returns to the login page
 
 Storage rules:
 
 - `rememberMe=true` -> tokens stored in `localStorage`
 - `rememberMe=false` -> tokens stored in `sessionStorage`
 - guest mode flag stored in `sessionStorage` as `inventory_is_guest`
+
+Important current behavior:
+
+- `AuthContext.login()` clears `inventory_access_token` and `inventory_refresh_token` from both `localStorage` and `sessionStorage` before writing the new tokens. This prevents a stale token in the other store from shadowing the fresh login token.
+- `api.js` reads `localStorage` before `sessionStorage`, so the single-store write on login is intentional.
+- Request-time refresh writes the new access token back to the same store that holds the refresh token.
+- A background refresh interval runs every 15 minutes while a user session is active.
+- Logout, failed initialization, failed refresh, and the `auth-expired` browser event clear both token stores plus the guest flag.
+- Request errors expose `error.status`, allowing callers to distinguish `401`/`403` authorization failures from service outages.
 
 ## 6. User Access and Roles
 
