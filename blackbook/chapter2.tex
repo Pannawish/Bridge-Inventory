@@ -27,6 +27,198 @@ This book explains that inventory management is more than counting available sto
 
 In the implemented system, stock is calculated from received purchase quantities and committed sale quantities. The dashboard and inventory page also show reorder-related information, pending demand, pending purchases, average cost, stock value, and product movement. These features follow the general inventory management idea that a business should understand both the physical quantity of stock and the financial meaning of that stock.
 
+\section{Business Calculation Formulas}
+This section describes the main calculation logic that is implemented in the web application. Equations~\ref{eq:lead-time-demand} to~\ref{eq:stock-value} are connected to inventory management ideas from \textit{Essentials of Inventory Management}, especially demand, replenishment planning, safety stock, and inventory value \cite{paper_2}. The other formulas are project-specific transaction and finance rules used by this system.
+
+\subsection{Unit Conversion and Line Amounts}
+Products can have different purchase or sale units. The backend normalizes transaction quantities into the product base unit.
+
+\begin{equation}
+\label{eq:base-quantity}
+\text{Base Quantity} = \text{Quantity} \times \text{Conversion Factor}
+\end{equation}
+
+Purchase and sale line amounts are calculated from quantity, unit price or unit cost, and any percentage discount chain. The frontend clamps each discount between 0\% and 100\%.
+
+\begin{equation}
+\label{eq:discounted-amount}
+\text{Discounted Amount} =
+\text{Quantity} \times \text{Unit Price} \times
+\prod_{i=1}^{n}\left(1 - \frac{\text{Discount Percent}_i}{100}\right)
+\end{equation}
+
+For purchases, \textit{Unit Price} means unit cost. For sales and quotations, it means sale price. Sales also apply the bill-level discount to the line amount when the sale total is calculated.
+
+\subsection{VAT Calculation}
+The purchase, sale, and quotation forms support VAT-included and VAT-not-included modes using a 7\% VAT rate.
+
+\begin{equation}
+\label{eq:vat-rate}
+\text{VAT Rate} = 0.07
+\end{equation}
+
+For VAT-included transactions:
+
+\begin{equation}
+\label{eq:vat-included-before-vat}
+\text{Total Before VAT} = \frac{\text{Item Total}}{1 + 0.07}
+\end{equation}
+
+\begin{equation}
+\label{eq:vat-included-amount}
+\text{VAT Amount} = \text{Item Total} - \text{Total Before VAT}
+\end{equation}
+
+For VAT-not-included transactions:
+
+\begin{equation}
+\label{eq:vat-excluded-amount}
+\text{VAT Amount} = \text{Item Total} \times 0.07
+\end{equation}
+
+\begin{equation}
+\label{eq:vat-excluded-grand-total}
+\text{Grand Total} = \text{Item Total} + \text{VAT Amount}
+\end{equation}
+
+\subsection{Current Stock}
+The backend calculates product stock from transaction status instead of storing a manual stock number on the product.
+
+\begin{equation}
+\label{eq:current-stock}
+\begin{aligned}
+\text{Current Stock} = \max(0,\;&\text{Received Purchase Base Quantity}\\
+&-\text{Committed Sale Base Quantity})
+\end{aligned}
+\end{equation}
+
+Received purchase quantity comes only from purchase items with received status. Committed sale quantity comes only from sale items with packed, shipped, or delivered status. Pending sales are shown separately as demand, but they do not reduce current stock until they reach a stock-deducting status.
+
+\subsection{Stock Validation and Allocation}
+Before a sale is allowed to commit stock, the backend compares requested committed quantity with available stock.
+
+\begin{equation}
+\label{eq:stock-issue}
+\text{Stock Issue} = (\text{Requested Quantity} > \text{Available Quantity})
+\end{equation}
+
+When stock is committed, the backend creates sale item allocations from received purchase layers. If the user does not choose stock layers manually, the backend uses first-in, first-out allocation. The received layers are ordered by received date, purchase transaction date, purchase creation date, and item ID.
+
+\begin{equation}
+\label{eq:allocation-quantity}
+\text{Allocation Quantity} = \min(\text{Remaining Sale Quantity}, \text{Layer Available Quantity})
+\end{equation}
+
+Manual allocation is also supported, but the selected layers must match the product, must already be received, must have enough remaining quantity, and must add up exactly to the sale item base quantity.
+
+\subsection{Inventory Dashboard Calculations}
+The backend stock report calculates several useful inventory values for the dashboard and inventory page. The reorder-related formulas are aligned with the inventory management concept that reorder planning depends on demand during lead time and safety stock \cite{paper_2}.
+
+\begin{equation}
+\label{eq:average-unit-cost}
+\text{Average Unit Cost} =
+\frac{\text{Received Purchase Value}}{\text{Received Purchase Units}}
+\end{equation}
+
+\begin{equation}
+\label{eq:average-daily-demand}
+\text{Average Daily Demand} =
+\frac{\text{Sales History Units}}{\text{Sales History Days}}
+\end{equation}
+
+\begin{equation}
+\label{eq:lead-time-demand}
+\text{Lead Time Demand} =
+\text{Average Daily Demand} \times \text{Average Lead Time}
+\end{equation}
+
+\begin{equation}
+\label{eq:safety-stock}
+\text{Safety Stock} =
+\text{Average Daily Demand} \times \text{Safety Stock Days}
+\end{equation}
+
+\begin{equation}
+\label{eq:calculated-reorder-level}
+\text{Calculated Reorder Level} =
+\left\lceil \text{Lead Time Demand} + \text{Safety Stock} \right\rceil
+\end{equation}
+
+\begin{equation}
+\label{eq:order-up-to-level}
+\text{Order-up-to Level} =
+\text{Reorder Level} + \left\lceil \text{Lead Time Demand} \right\rceil
+\end{equation}
+
+\begin{equation}
+\label{eq:recommended-restock}
+\begin{aligned}
+\text{Recommended Restock}
+&= \max(0,\\
+&\quad \text{Order-up-to Level} + \text{Pending Sales}\\
+&\quad + \text{Oversold Units}\\
+&\quad - \text{Available Stock} - \text{Pending Purchases})
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\label{eq:stock-value}
+\text{Stock Value} = \text{Available Stock} \times \text{Average Unit Cost}
+\end{equation}
+
+The inventory page also uses supplier cost history to show supplier options. Supplier options are ranked by the most recent unit cost and order count, so the user can see a practical reorder source.
+
+\subsection{Purchase Payable and Payment Batch Calculations}
+The backend keeps the purchase grand total as the original document total, but it calculates a separate payable amount when purchase items are cancelled.
+
+\begin{equation}
+\label{eq:payable-total}
+\text{Payable Total} =
+\text{Grand Total} \times
+\frac{\text{Non-cancelled Line Amounts}}{\text{All Line Amounts}}
+\end{equation}
+
+This allows the system to keep the original purchase document readable while still showing the correct amount that should be paid to the supplier. Payment batch totals are calculated from their line amounts.
+
+\begin{equation}
+\label{eq:payment-batch-total}
+\text{Payment Batch Total} = \sum \text{Payment Batch Line Amount}
+\end{equation}
+
+Unpaid payment batch lines are synchronized when the related purchase payable total changes. Paid lines are left unchanged because they represent a completed financial record.
+
+\subsection{Billing Note and Credit Note Calculations}
+Billing note totals come from selected eligible sales. Credit notes store line amounts from eligible cancelled or returned sale items. When a billing note has active credit notes, the net amount shown in the billing detail is reduced by the credit total.
+
+\begin{equation}
+\label{eq:billing-net-amount}
+\text{Billing Net Amount} =
+\text{Billing Note Total} - \text{Active Credit Note Total}
+\end{equation}
+
+This makes the receivable amount clearer when a customer has a return or cancellation adjustment.
+
+\subsection{Cashflow and Net Position}
+The dashboard cashflow segment groups open receivables and open payables by due date. It also calculates the open net position.
+
+\begin{equation}
+\label{eq:open-net-position}
+\text{Open Net Position} =
+\text{Open Accounts Receivable} - \text{Open Accounts Payable}
+\end{equation}
+
+Overdue accounts receivable are open billing notes with expected payment dates before today. Overdue accounts payable are open payment batches with planned payment dates before today.
+
+\subsection{Quotation Validity}
+Quotation validity is calculated from the quotation date and validity setting. If the validity mode is calendar days, the valid-until date is the quotation date plus the selected number of days.
+
+\begin{equation}
+\label{eq:quotation-valid-until}
+\text{Valid Until} = \text{Quotation Date} + \text{Validity Days}
+\end{equation}
+
+If the validity mode is business days, weekends are skipped during the date addition. The no-valid-date option stores no valid-until date.
+
 \section{Aisha: A Custom AI Library Chatbot Using the ChatGPT API \cite{paper_3}}
 This article describes the development of a custom chatbot using the ChatGPT API for a university library. The chatbot was designed to answer user questions using prepared system information and a controlled application context. The reference is useful for this project because it shows how a chatbot can be connected to a specific domain instead of being used as a general-purpose conversation tool.
 
@@ -35,6 +227,6 @@ In this Inventory Management System, the AI assistant follows a limited and read
 \section{Summary}
 The reviewed references support the main direction of this project. The wholesale trade reference explains why a trading business needs to manage the connection between suppliers, products, and customers. The spreadsheet and small-business references show why manual records, spreadsheets, and separated files can become difficult to manage as business operations grow.
 
-The web-based inventory system reference supports the idea of building an integrated application for stock and transaction workflows. The inventory management book supports the calculation and reporting features, especially stock availability, replenishment, and inventory value. The chatbot reference supports the idea of adding a controlled AI-assisted interface, while also showing why the assistant should be limited to a clear domain.
+The web-based inventory system reference supports the idea of building an integrated application for stock and transaction workflows. The inventory management book supports the calculation and reporting features, especially stock availability, replenishment, safety stock, reorder level, and inventory value. The chatbot reference supports the idea of adding a controlled AI-assisted interface, while also showing why the assistant should be limited to a clear domain.
 
 Based on these works, this project focuses on developing a practical web-based inventory management system for SME trading businesses. The system combines React, Django REST Framework, and MySQL to manage business records in a structured way. It also adds dashboard summaries and a read-only AI assistant to help users find supported operational information more quickly.
