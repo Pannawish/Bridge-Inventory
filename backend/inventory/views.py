@@ -541,7 +541,7 @@ class InventoryModelViewSet(viewsets.ModelViewSet):
             return Response({"error": "Items must be valid JSON."}, status=status.HTTP_400_BAD_REQUEST)
 
         if not serializer.is_valid():
-            logger.warning("%s create validation error: %s", self.__class__.__name__, serializer.errors)
+            logger.debug("%s create validation error: %s", self.__class__.__name__, serializer.errors)
             return Response(
                 {"error": format_serializer_errors(serializer.errors)},
                 status=status.HTTP_400_BAD_REQUEST,

@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -7,7 +8,9 @@ from dotenv import load_dotenv
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+EXPLICIT_ENV_NAMES = set(os.environ)
 load_dotenv(BASE_DIR / ".env")
+RUNNING_TESTS = "test" in sys.argv
 
 
 def env_int(name, default):
@@ -72,23 +75,31 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-# Local .env uses MYSQL_HOST-style names (with underscore); Railway's MySQL
-# plugin injects MYSQLHOST-style names (no underscore). Read both so the same
-# settings file works locally and on Railway without renaming variables.
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": os.getenv("MYSQL_DATABASE") or os.getenv("MYSQLDATABASE", "inventory_db"),
-        "USER": os.getenv("MYSQL_USER") or os.getenv("MYSQLUSER", "inventory_user"),
-        "PASSWORD": os.getenv("MYSQL_PASSWORD") or os.getenv("MYSQLPASSWORD", "inventory_password"),
-        "HOST": os.getenv("MYSQL_HOST") or os.getenv("MYSQLHOST", "127.0.0.1"),
-        "PORT": os.getenv("MYSQL_PORT") or os.getenv("MYSQLPORT", "3306"),
-        "OPTIONS": {
-            "charset": "utf8mb4",
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+if RUNNING_TESTS and os.getenv("INVENTORY_TEST_DATABASE", "sqlite").lower() == "sqlite":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
         },
-    },
-}
+    }
+else:
+    # Local .env uses MYSQL_HOST-style names (with underscore); Railway's MySQL
+    # plugin injects MYSQLHOST-style names (no underscore). Read both so the same
+    # settings file works locally and on Railway without renaming variables.
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.getenv("MYSQL_DATABASE") or os.getenv("MYSQLDATABASE", "inventory_db"),
+            "USER": os.getenv("MYSQL_USER") or os.getenv("MYSQLUSER", "inventory_user"),
+            "PASSWORD": os.getenv("MYSQL_PASSWORD") or os.getenv("MYSQLPASSWORD", "inventory_password"),
+            "HOST": os.getenv("MYSQL_HOST") or os.getenv("MYSQLHOST", "127.0.0.1"),
+            "PORT": os.getenv("MYSQL_PORT") or os.getenv("MYSQLPORT", "3306"),
+            "OPTIONS": {
+                "charset": "utf8mb4",
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+        },
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -104,6 +115,11 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+if RUNNING_TESTS:
+    PASSWORD_HASHERS = [
+        "django.contrib.auth.hashers.MD5PasswordHasher",
+    ]
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = os.getenv("DJANGO_TIME_ZONE", "Asia/Bangkok")
@@ -125,7 +141,10 @@ CORS_ALLOWED_ORIGINS = [
     ).split(",")
     if origin.strip()
 ]
-INVENTORY_REQUIRE_AUTH = os.getenv("INVENTORY_REQUIRE_AUTH", "False").lower() == "true"
+if RUNNING_TESTS and "INVENTORY_REQUIRE_AUTH" not in EXPLICIT_ENV_NAMES:
+    INVENTORY_REQUIRE_AUTH = False
+else:
+    INVENTORY_REQUIRE_AUTH = os.getenv("INVENTORY_REQUIRE_AUTH", "False").lower() == "true"
 INVENTORY_DEFAULT_PAGE_SIZE = env_int("INVENTORY_DEFAULT_PAGE_SIZE", 25)
 INVENTORY_MAX_PAGE_SIZE = env_int("INVENTORY_MAX_PAGE_SIZE", 100)
 

@@ -6,7 +6,6 @@ from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
 
 from inventory.models import (
     BillingNote,
@@ -33,9 +32,9 @@ from inventory.models import (
 )
 from inventory.services import (
     SALE_STOCK_DEDUCTED_STATUSES,
-    allocate_sale_item_fifo,
     build_stock_report,
     get_available_stock_by_product_id,
+    get_purchase_item_base_unit_cost,
     get_sale_status_from_item_statuses,
 )
 
@@ -1911,15 +1910,69 @@ class Command(BaseCommand):
         """Create FIFO layer allocations for every stock-deducting sale line so
         the per-layer availability shown in the inventory detail (FIFO table)
         matches the stock report."""
-        ordered = sorted(sales, key=lambda sale: (sale.transaction_date, sale.reference_no))
-        for sale in ordered:
-            for item in sale.items.select_related("product").all():
-                if item.item_status not in SALE_STOCK_DEDUCTED_STATUSES:
+        layers_by_product_id = {}
+        purchase_items = (
+            PurchaseItem.objects.select_related("purchase", "purchase__supplier", "product")
+            .filter(item_status=PurchaseItem.ITEM_RECEIVED, base_quantity__gt=0)
+            .order_by("received_date", "purchase__transaction_date", "purchase__created_at", "id")
+        )
+        for purchase_item in purchase_items:
+            layers_by_product_id.setdefault(purchase_item.product_id, []).append(
+                {
+                    "purchase_item": purchase_item,
+                    "remaining": purchase_item.base_quantity or Decimal("0"),
+                    "base_unit_cost": get_purchase_item_base_unit_cost(purchase_item),
+                }
+            )
+
+        sale_ids = [sale.id for sale in sales]
+        sale_items = (
+            SaleItem.objects.select_related("sale", "product")
+            .filter(
+                sale_id__in=sale_ids,
+                item_status__in=SALE_STOCK_DEDUCTED_STATUSES,
+                base_quantity__gt=0,
+            )
+            .order_by("sale__transaction_date", "sale__reference_no", "id")
+        )
+
+        allocations = []
+        for sale_item in sale_items:
+            remaining = sale_item.base_quantity or Decimal("0")
+            layers = layers_by_product_id.get(sale_item.product_id, [])
+            for layer in layers:
+                if remaining <= 0:
+                    break
+                if layer["remaining"] <= 0:
                     continue
-                try:
-                    allocate_sale_item_fifo(item)
-                except ValidationError:
-                    pass
+
+                base_quantity = min(remaining, layer["remaining"])
+                purchase_item = layer["purchase_item"]
+                base_unit_cost = layer["base_unit_cost"]
+                total_cost = (base_quantity * base_unit_cost).quantize(
+                    CENT,
+                    rounding=ROUND_HALF_UP,
+                )
+                quantity = base_quantity / (sale_item.conversion_factor or Decimal("1"))
+                allocations.append(
+                    SaleItemAllocation(
+                        sale_item=sale_item,
+                        purchase_item=purchase_item,
+                        supplier=purchase_item.purchase.supplier,
+                        supplier_name=purchase_item.purchase.supplier_name or "",
+                        product=sale_item.product,
+                        product_name=sale_item.product_name,
+                        sku=sale_item.sku,
+                        quantity=quantity,
+                        base_quantity=base_quantity,
+                        base_unit_cost=base_unit_cost,
+                        total_cost=total_cost,
+                    )
+                )
+                layer["remaining"] -= base_quantity
+                remaining -= base_quantity
+
+        SaleItemAllocation.objects.bulk_create(allocations, batch_size=500)
 
     def seed_billing_notes(self, rng, sales):
         eligible_statuses = {

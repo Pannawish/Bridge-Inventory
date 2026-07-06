@@ -176,12 +176,24 @@ backend/.venv/bin/python backend/manage.py makemigrations --check --dry-run
 backend/.venv/bin/python backend/manage.py test inventory
 ```
 
+Test-run behavior:
+
+- `manage.py test` uses an in-memory SQLite database by default so the suite stays fast and does not depend on a local MySQL server.
+- During tests, `.env` does not force `INVENTORY_REQUIRE_AUTH=True`; tests default to unauthenticated development behavior unless the shell command explicitly sets `INVENTORY_REQUIRE_AUTH`.
+- To run the suite against MySQL intentionally, set `INVENTORY_TEST_DATABASE=mysql`.
+
 If you are already inside `backend/` with the virtualenv active:
 
 ```bash
 python manage.py check
 python manage.py makemigrations --check --dry-run
 python manage.py test inventory
+```
+
+Optional MySQL-backed test run:
+
+```bash
+INVENTORY_TEST_DATABASE=mysql INVENTORY_REQUIRE_AUTH=False python manage.py test inventory
 ```
 
 ## API Overview
