@@ -140,6 +140,59 @@ For deeper codebase context and engineering rules, check out the specialized gui
 
 ## Local Quick Start
 
+### Option A: Docker Setup
+
+Use Docker when you want the easiest handoff to another developer or evaluator. This starts MySQL, Django, and Vite together with the same development defaults used by the local setup.
+
+Prerequisites:
+
+- Docker Desktop, or Docker Engine with Docker Compose
+
+Start the full stack:
+
+```bash
+docker compose up --build
+```
+
+The backend container runs migrations automatically before starting Django. Once the services are ready:
+
+- Frontend: [http://127.0.0.1:5173/](http://127.0.0.1:5173/)
+- Backend API: [http://127.0.0.1:8000/api/](http://127.0.0.1:8000/api/)
+- Django admin: [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
+
+Seed demo operational data:
+
+```bash
+docker compose exec backend python manage.py seed_operational_data
+```
+
+Create an admin user:
+
+```bash
+docker compose exec backend python manage.py createsuperuser
+```
+
+Stop the stack:
+
+```bash
+docker compose down
+```
+
+Reset the Docker database volume and start fresh:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+The Docker setup stores MySQL data in a named `mysql_data` volume and mounts `backend/` and `frontend/` into their containers for development. Optional AI configuration can be passed through your shell environment:
+
+```bash
+OPENAI_API_KEY=your-key docker compose up --build
+```
+
+### Option B: Manual Local Setup
+
 ### 1. Backend Setup
 
 Read the comprehensive backend instructions in [backend/README.md](backend/README.md).
