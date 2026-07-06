@@ -1,0 +1,46 @@
+"""Shared serializer helpers."""
+
+from ._legacy import (
+    build_business_partner_print_profile,
+    build_document_payload,
+    build_file_url,
+    build_legacy_document_payload,
+    build_product_picture_payload,
+    build_product_picture_url,
+    clean_list,
+    compute_billing_note_status,
+    compute_credit_note_vat,
+    compute_payment_batch_status,
+    decimal_or_none,
+    decimal_or_zero,
+    get_selected_list_value,
+    resolve_customer,
+    resolve_product,
+    resolve_supplier,
+    strip_existing_item_id,
+    validate_active_products_for_create,
+    validate_percentage_discount,
+)
+
+__all__ = [
+    "build_business_partner_print_profile",
+    "build_document_payload",
+    "build_file_url",
+    "build_legacy_document_payload",
+    "build_product_picture_payload",
+    "build_product_picture_url",
+    "clean_list",
+    "compute_billing_note_status",
+    "compute_credit_note_vat",
+    "compute_payment_batch_status",
+    "decimal_or_none",
+    "decimal_or_zero",
+    "get_selected_list_value",
+    "resolve_customer",
+    "resolve_product",
+    "resolve_supplier",
+    "strip_existing_item_id",
+    "validate_active_products_for_create",
+    "validate_percentage_discount",
+]
+

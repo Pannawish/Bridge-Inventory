@@ -7,7 +7,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from rest_framework import serializers
 
-from .models import (
+from ..models import (
     ActivityLog,
     BillingNote,
     BillingNoteLine,
@@ -588,7 +588,7 @@ class ProductSerializer(serializers.ModelSerializer):
         }
 
     def get_metric_snapshot(self, product):
-        from .services import get_product_metric_snapshots
+        from ..services import get_product_metric_snapshots
 
         metrics_by_product_id = self.context.get("product_metrics_by_product_id")
         if metrics_by_product_id is None:
@@ -966,7 +966,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
         return validate_percentage_discount(value, "Bill discount")
 
     def validate(self, attrs):
-        from .services import normalize_purchase_items_for_status
+        from ..services import normalize_purchase_items_for_status
 
         supplier_id_value = attrs.pop("supplier_id", None)
         should_resolve_supplier = (
@@ -987,7 +987,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
         source_quotation_id_value = attrs.pop("source_quotation_id", None)
         if source_quotation_id_value:
             try:
-                from .models import Quotation
+                from ..models import Quotation
                 attrs["source_quotation"] = Quotation.objects.get(pk=source_quotation_id_value)
             except Quotation.DoesNotExist:
                 attrs["source_quotation"] = None
@@ -1066,12 +1066,12 @@ class PurchaseSerializer(serializers.ModelSerializer):
             purchase._prefetched_objects_cache = {}
 
     def _apply_status_to_items(self, purchase):
-        from .services import apply_purchase_status_to_items
+        from ..services import apply_purchase_status_to_items
 
         apply_purchase_status_to_items(purchase)
 
     def create(self, validated_data):
-        from .services import recalculate_purchase_payable, sync_product_supplier_links_for_purchase
+        from ..services import recalculate_purchase_payable, sync_product_supplier_links_for_purchase
 
         items = validated_data.pop("items", [])
         legacy_document = validated_data.pop("document", None)
@@ -1090,7 +1090,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
         return purchase
 
     def update(self, instance, validated_data):
-        from .services import (
+        from ..services import (
             recalculate_purchase_payable,
             sync_product_supplier_links_for_purchase,
             sync_supplier_payment_lines_for_purchase,
@@ -1419,12 +1419,12 @@ class SaleSerializer(serializers.ModelSerializer):
         return created_items
 
     def _apply_status_to_items(self, sale):
-        from .services import apply_sale_status_to_items
+        from ..services import apply_sale_status_to_items
 
         apply_sale_status_to_items(sale)
 
     def validate(self, attrs):
-        from .services import (
+        from ..services import (
             SALE_PARTIAL_TRANSACTION_STATUSES,
             get_sale_status_from_items,
             get_sale_stock_issues,
@@ -1450,7 +1450,7 @@ class SaleSerializer(serializers.ModelSerializer):
         source_quotation_id_value = attrs.pop("source_quotation_id", None)
         if source_quotation_id_value:
             try:
-                from .models import Quotation
+                from ..models import Quotation
                 attrs["source_quotation"] = Quotation.objects.get(pk=source_quotation_id_value)
             except Quotation.DoesNotExist:
                 attrs["source_quotation"] = None
@@ -1513,7 +1513,7 @@ class SaleSerializer(serializers.ModelSerializer):
                 [document for document in [legacy_document, *uploaded_documents] if document],
             )
             created_items = self._replace_items(sale, items)
-            from .services import sync_sale_allocations
+            from ..services import sync_sale_allocations
 
             sync_sale_allocations(sale, created_items)
         return sale
@@ -1555,7 +1555,7 @@ class SaleSerializer(serializers.ModelSerializer):
                 if hasattr(instance, "_prefetched_objects_cache"):
                     instance._prefetched_objects_cache = {}
 
-            from .services import sync_sale_allocations
+            from ..services import sync_sale_allocations
 
             sync_sale_allocations(instance, created_items)
 
@@ -2781,7 +2781,7 @@ class AdminRoleSerializer(serializers.ModelSerializer):
         }
 
     def validate_permission_ids(self, permissions):
-        from .access_control import get_managed_permission_options
+        from ..access_control import get_managed_permission_options
 
         allowed_ids = set(get_managed_permission_options().values_list("id", flat=True))
         selected_ids = {permission.id for permission in permissions}

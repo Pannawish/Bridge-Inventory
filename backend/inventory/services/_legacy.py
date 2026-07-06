@@ -9,7 +9,7 @@ from django.utils.dateparse import parse_date
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from .models import (
+from ..models import (
     BillingNote,
     CreditNote,
     Customer,
@@ -1432,13 +1432,13 @@ def build_stock_report():
 
 
 def serialize_light_purchase(purchase, request=None):
-    from .serializers import PurchaseSerializer
+    from ..serializers import PurchaseSerializer
 
     return PurchaseSerializer(purchase, context={"request": request}).data
 
 
 def serialize_light_sale(sale, request=None):
-    from .serializers import SaleSerializer
+    from ..serializers import SaleSerializer
 
     return SaleSerializer(sale, context={"request": request}).data
 

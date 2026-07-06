@@ -14,9 +14,9 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .access_control import ensure_default_inventory_groups, get_managed_permission_options
-from .audit import log_activity, serialize_model_instance
-from .models import (
+from ..access_control import ensure_default_inventory_groups, get_managed_permission_options
+from ..audit import log_activity, serialize_model_instance
+from ..models import (
     ActivityLog,
     BillingNote,
     BillingNoteLine,
@@ -36,8 +36,8 @@ from .models import (
     SaleItem,
     Supplier,
 )
-from .ai_reports import generate_ai_report
-from .serializers import (
+from ..ai_reports import generate_ai_report
+from ..serializers import (
     ActivityLogSerializer,
     AdminRoleSerializer,
     AdminUserSerializer,
@@ -54,8 +54,8 @@ from .serializers import (
     SupplierSerializer,
     PermissionOptionSerializer,
 )
-from .permissions import CanViewActivityLog, InventoryModelPermissions, IsUserAccessAdmin
-from .services import (
+from ..permissions import CanViewActivityLog, InventoryModelPermissions, IsUserAccessAdmin
+from ..services import (
     SALE_INACTIVE_ITEM_STATUSES,
     SALE_STOCK_DEDUCTED_STATUSES,
     answer_inventory_question,
