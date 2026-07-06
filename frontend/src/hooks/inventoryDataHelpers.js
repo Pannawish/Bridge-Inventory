@@ -759,6 +759,11 @@ export function applyInitialDataResults({
     setters.setCreditNoteRows(rows);
     setters.setCreditNotePagination(getCollectionPagination(creditNotePageResult.value));
     setters.setUsingMockCreditNotes(false);
+  } else if (resultWasBlocked(creditNotePageResult)) {
+    setters.setCreditNotes([]);
+    setters.setCreditNoteRows([]);
+    setters.setCreditNotePagination(buildInitialLocalPagination([]));
+    setters.setUsingMockCreditNotes(false);
   } else {
     setters.setCreditNotes(mockCreditNotes);
     const fallbackResponse = buildInitialLocalPagination(mockCreditNotes);
