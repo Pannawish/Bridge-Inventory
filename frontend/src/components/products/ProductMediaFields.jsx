@@ -1,5 +1,6 @@
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getDocumentName } from "./productUtils";
+import { ATTACHABLE_FILE_ACCEPT, isPdfAttachment } from "./productEditorHelpers";
 
 function ProductMediaFields({
   draftProduct,
@@ -40,25 +41,38 @@ function ProductMediaFields({
               {t("products.addPicturesButton")}
               <input
                 type="file"
-                accept="image/*"
+                accept={ATTACHABLE_FILE_ACCEPT}
                 multiple
                 onChange={(event) => {
-                  onAddDraftPictures(event.target.files);
+                  // Snapshot the FileList into a real array BEFORE clearing the
+                  // input. The picker resets synchronously, which empties the live
+                  // FileList before React's state updater reads it — that was the
+                  // "upload twice / preview doesn't show" bug.
+                  const files = Array.from(event.target.files || []);
                   event.target.value = "";
+                  onAddDraftPictures(files);
                 }}
               />
             </label>
           </div>
 
           {selectedDraftPicture?.url ? (
-            <img
-              src={selectedDraftPicture.url}
-              alt={t("products.pictureLabel")}
-              className="product-picture-preview"
-              onError={(event) => {
-                event.target.style.display = "none";
-              }}
-            />
+            isPdfAttachment(selectedDraftPicture) ? (
+              <iframe
+                src={selectedDraftPicture.url}
+                title={selectedDraftPicture.name || t("products.pictureLabel")}
+                className="product-picture-preview product-picture-preview-pdf"
+              />
+            ) : (
+              <img
+                src={selectedDraftPicture.url}
+                alt={t("products.pictureLabel")}
+                className="product-picture-preview"
+                onError={(event) => {
+                  event.target.style.display = "none";
+                }}
+              />
+            )
           ) : (
             <p className="transaction-document-empty">{t("products.noPictureSelected")}</p>
           )}

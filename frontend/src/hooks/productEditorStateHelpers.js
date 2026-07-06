@@ -1,4 +1,4 @@
-import { createDraftPicture } from "../components/products/productEditorHelpers";
+import { createDraftPicture, isAttachableFile } from "../components/products/productEditorHelpers";
 import {
   getCategoryPathSkuCode,
   getProductPictures,
@@ -58,7 +58,7 @@ export function addDraftPicturesHelper(prev, files) {
   }
 
   const nextPictures = Array.from(files || [])
-    .filter((file) => file?.type?.startsWith("image/"))
+    .filter(isAttachableFile)
     .map(createDraftPicture);
 
   if (!nextPictures.length) {

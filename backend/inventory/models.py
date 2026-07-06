@@ -222,7 +222,13 @@ class Product(TimeStampedModel):
 class ProductPicture(TimeStampedModel):
     id = models.CharField(max_length=80, primary_key=True, default=product_picture_id)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="pictures")
-    file = models.FileField(upload_to="products/pictures/")
+    # Attachment bytes live in the database (MySQL longblob) so images/PDFs persist
+    # across Railway redeploys and serve with DEBUG off — the container disk is
+    # ephemeral. `file` is kept nullable only for legacy/back-compat rows.
+    file = models.FileField(upload_to="products/pictures/", blank=True, null=True)
+    content = models.BinaryField(blank=True, null=True)
+    content_type = models.CharField(max_length=100, blank=True)
+    filename = models.CharField(max_length=255, blank=True)
     is_selected = models.BooleanField(default=False)
 
     class Meta:

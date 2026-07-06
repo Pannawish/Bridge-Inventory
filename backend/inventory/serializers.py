@@ -278,12 +278,27 @@ def build_legacy_document_payload(request, file_field):
     }
 
 
+def build_product_picture_url(request, picture):
+    # DB-stored attachments are served by the product-pictures endpoint; older
+    # file-based rows fall back to their media URL.
+    if getattr(picture, "content", None):
+        path = f"/api/product-pictures/{picture.id}/"
+        return request.build_absolute_uri(path) if request else path
+    if picture.file:
+        return build_file_url(request, picture.file)
+    return ""
+
+
 def build_product_picture_payload(request, picture, selected_picture):
-    file_name = picture.file.name.split("/")[-1] if picture.file else "Product picture"
+    file_name = (
+        picture.filename
+        or (picture.file.name.split("/")[-1] if picture.file else "")
+        or "Product attachment"
+    )
     return {
         "id": picture.id,
         "name": file_name,
-        "url": build_file_url(request, picture.file),
+        "url": build_product_picture_url(request, picture),
         "isSelected": picture.id == getattr(selected_picture, "id", None),
     }
 
@@ -635,16 +650,33 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def validate_uploaded_pictures(self, value):
         for picture in value:
-            content_type = getattr(picture, "content_type", "")
-            if not content_type.startswith("image/"):
-                raise serializers.ValidationError("Product pictures must be image files.")
+            content_type = getattr(picture, "content_type", "") or ""
+            name = (getattr(picture, "name", "") or "").lower()
+            is_image = content_type.startswith("image/")
+            is_pdf = content_type == "application/pdf" or name.endswith(".pdf")
+            if not (is_image or is_pdf):
+                raise serializers.ValidationError(
+                    "Product attachments must be an image or PDF file."
+                )
 
         return value
 
     def _add_pictures(self, product, pictures):
         created_pictures = []
         for picture in pictures:
-            created_pictures.append(ProductPicture.objects.create(product=product, file=picture))
+            # Store the bytes in the database so the attachment survives Railway
+            # redeploys (the disk is wiped) and serves with DEBUG off.
+            if hasattr(picture, "seek"):
+                picture.seek(0)
+            created_pictures.append(
+                ProductPicture.objects.create(
+                    product=product,
+                    content=picture.read(),
+                    content_type=getattr(picture, "content_type", "")
+                    or "application/octet-stream",
+                    filename=getattr(picture, "name", "") or "attachment",
+                )
+            )
         return created_pictures
 
     def _remove_pictures(self, product, picture_ids):
@@ -653,7 +685,8 @@ class ProductSerializer(serializers.ModelSerializer):
             return
 
         for picture in product.pictures.filter(id__in=ids):
-            picture.file.delete(save=False)
+            if picture.file:
+                picture.file.delete(save=False)
             picture.delete()
 
     def _select_picture(

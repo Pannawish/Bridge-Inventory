@@ -30,6 +30,25 @@ export function createProduct(overrides = {}) {
   };
 }
 
+// Attachments accepted for a product: common image formats plus PDF. Used both
+// for the file-picker `accept` and to filter dropped/selected files.
+export const ATTACHABLE_FILE_ACCEPT =
+  "image/jpeg,image/jpg,image/png,image/webp,image/gif,application/pdf,.pdf";
+
+export function isAttachableFile(file) {
+  const type = (file?.type || "").toLowerCase();
+  const name = (file?.name || "").toLowerCase();
+  return type.startsWith("image/") || type === "application/pdf" || name.endsWith(".pdf");
+}
+
+// A saved or draft attachment is a PDF if its file type, filename, or URL says so.
+export function isPdfAttachment(picture) {
+  const type = (picture?.file?.type || "").toLowerCase();
+  const name = (picture?.name || "").toLowerCase();
+  const url = (picture?.url || "").toLowerCase().split("?")[0];
+  return type === "application/pdf" || name.endsWith(".pdf") || url.endsWith(".pdf");
+}
+
 export function createDraftPicture(file) {
   const objectUrl =
     typeof URL !== "undefined" && typeof URL.createObjectURL === "function"

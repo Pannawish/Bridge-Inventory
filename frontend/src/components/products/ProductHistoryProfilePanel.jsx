@@ -9,7 +9,7 @@ import {
   getProductSubNames,
   getSelectedProductPicture,
 } from "./productUtils";
-import { getTranslatedProductDisplayName } from "./productEditorHelpers";
+import { getTranslatedProductDisplayName, isPdfAttachment } from "./productEditorHelpers";
 
 function ProductHistoryProfilePanel({
   viewingProduct,
@@ -48,14 +48,22 @@ function ProductHistoryProfilePanel({
       <div className="product-profile-panel">
         <div className="product-profile-media">
           {selectedViewingPicture?.url ? (
-            <img
-              src={selectedViewingPicture.url}
-              alt={getTranslatedProductDisplayName(viewingProduct, t)}
-              className="product-profile-image"
-              onError={(event) => {
-                event.target.style.display = "none";
-              }}
-            />
+            isPdfAttachment(selectedViewingPicture) ? (
+              <iframe
+                src={selectedViewingPicture.url}
+                title={getTranslatedProductDisplayName(viewingProduct, t)}
+                className="product-profile-image product-profile-image-pdf"
+              />
+            ) : (
+              <img
+                src={selectedViewingPicture.url}
+                alt={getTranslatedProductDisplayName(viewingProduct, t)}
+                className="product-profile-image"
+                onError={(event) => {
+                  event.target.style.display = "none";
+                }}
+              />
+            )
           ) : (
             <div className="product-profile-placeholder">{t("products.noImage")}</div>
           )}

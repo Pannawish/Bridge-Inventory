@@ -455,7 +455,7 @@ class ProductPictureUploadTests(APITestCase):
     def picture_file(self, name):
         return SimpleUploadedFile(name, b"product-picture", content_type="image/png")
 
-    def test_product_picture_upload_rejects_non_image_files(self):
+    def test_product_picture_upload_rejects_non_image_non_pdf_files(self):
         response = self.client.post(
             "/api/products/",
             {
@@ -473,7 +473,33 @@ class ProductPictureUploadTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Product pictures must be image files", response.data["error"])
+        self.assertIn("must be an image or PDF", response.data["error"])
+
+    def test_product_picture_upload_accepts_pdf_and_serves_from_db(self):
+        pdf_bytes = b"%PDF-1.4 fake pdf body"
+        response = self.client.post(
+            "/api/products/",
+            {
+                "sku": "PIC-PDF",
+                "productName": "PDF Product",
+                "pictures": [
+                    SimpleUploadedFile("spec.pdf", pdf_bytes, content_type="application/pdf")
+                ],
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        picture = ProductPicture.objects.get()
+        self.assertEqual(picture.content_type, "application/pdf")
+        self.assertEqual(bytes(picture.content), pdf_bytes)
+        # Payload name ends in .pdf so the frontend renders the PDF viewer.
+        self.assertEqual(response.data["productPictures"][0]["name"], "spec.pdf")
+
+        file_response = self.client.get(f"/api/product-pictures/{picture.id}/")
+        self.assertEqual(file_response.status_code, 200)
+        self.assertEqual(file_response["Content-Type"], "application/pdf")
+        self.assertEqual(file_response.content, pdf_bytes)
 
     def test_product_create_accepts_multiple_pictures_and_selected_index(self):
         response = self.client.post(

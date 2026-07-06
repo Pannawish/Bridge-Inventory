@@ -22,6 +22,11 @@ router.register("activity-logs", views.ActivityLogViewSet, basename="activity-lo
 
 urlpatterns = [
     path("", views.api_home, name="api_home"),
+    path(
+        "product-pictures/<str:picture_id>/",
+        views.product_picture_file,
+        name="product_picture_file",
+    ),
     path("dashboard/", views.dashboard, name="dashboard"),
     path("dashboard/segment/", views.dashboard_segment, name="dashboard_segment"),
     path("lookups/products/", views.product_lookups, name="product_lookups"),

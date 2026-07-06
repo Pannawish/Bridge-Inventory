@@ -6,10 +6,12 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError, Q, Sum
+from django.http import Http404, HttpResponse
 from django.utils import timezone
 from rest_framework import status, viewsets
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .access_control import ensure_default_inventory_groups, get_managed_permission_options
@@ -25,6 +27,7 @@ from .models import (
     PaymentBatch,
     PaymentBatchLine,
     Product,
+    ProductPicture,
     ProductSupplier,
     Purchase,
     PurchaseItem,
@@ -1194,6 +1197,24 @@ def api_home(request):
             ],
         }
     )
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def product_picture_file(request, picture_id):
+    # Serve a product attachment's bytes from the database. Public (AllowAny)
+    # because it is loaded by <img>/<iframe> tags, which cannot send the JWT auth
+    # header; the picture id is an unguessable random string.
+    picture = ProductPicture.objects.filter(id=picture_id).first()
+    if not picture or not picture.content:
+        raise Http404("Attachment not found")
+    response = HttpResponse(
+        bytes(picture.content),
+        content_type=picture.content_type or "application/octet-stream",
+    )
+    response["Content-Disposition"] = f'inline; filename="{picture.filename or "attachment"}"'
+    response["Cache-Control"] = "public, max-age=86400"
+    return response
 
 
 @api_view(["GET"])

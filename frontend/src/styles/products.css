@@ -1299,6 +1299,13 @@
   object-fit: cover;
 }
 
+/* PDF attachment in the read-only profile: native viewer needs a real height and
+   must not be forced into the square image aspect-ratio. */
+.product-profile-image-pdf {
+  aspect-ratio: auto;
+  height: 320px;
+}
+
 .product-profile-placeholder {
   display: grid;
   place-items: center;
@@ -1570,6 +1577,14 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel-muted);
+}
+
+/* PDF preview uses the browser's native viewer (scroll/next-page built in), so it
+   needs a real height instead of image object-fit. */
+.product-picture-preview-pdf {
+  height: 420px;
+  max-height: 60vh;
+  display: block;
 }
 
 .product-picture-upload-panel {
