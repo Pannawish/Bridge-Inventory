@@ -204,7 +204,7 @@ Activity logging is implemented in:
 
 - [backend/inventory/models.py](../../backend/inventory/models.py)
 - [backend/inventory/audit.py](../../backend/inventory/audit.py)
-- [backend/inventory/views.py](../../backend/inventory/views.py)
+- [backend/inventory/views/access.py](../../backend/inventory/views/access.py)
 
 Tracked actions:
 

@@ -83,11 +83,34 @@ backend/
 │   ├── models.py
 │   ├── pagination.py
 │   ├── permissions.py
-│   ├── serializers.py
-│   ├── services.py
+│   ├── serializers/
+│   │   ├── __init__.py
+│   │   ├── _legacy.py
+│   │   ├── access.py
+│   │   ├── common.py
+│   │   ├── finance.py
+│   │   ├── master_data.py
+│   │   └── transactions.py
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── _legacy.py
+│   │   ├── chat.py
+│   │   ├── common.py
+│   │   ├── dashboard.py
+│   │   ├── stock.py
+│   │   └── transactions.py
 │   ├── tests.py
 │   ├── urls.py
-│   └── views.py
+│   └── views/
+│       ├── __init__.py
+│       ├── _legacy.py
+│       ├── access.py
+│       ├── ai.py
+│       ├── common.py
+│       ├── dashboard.py
+│       ├── finance.py
+│       ├── master_data.py
+│       └── transactions.py
 ├── manage.py
 └── requirements.txt
 ```
@@ -96,10 +119,12 @@ backend/
 
 - `config/` contains Django project settings and URL bootstrap
 - `inventory/` is the main Django app for domain logic
-- `inventory/services.py` holds stock, allocation, finance, dashboard, and AI chat context logic
+- `inventory/services/` holds stock, allocation, transaction, dashboard, and AI chat context logic
 - `inventory/ai_reports.py` builds supplier, customer, and product report contexts and printable AI report HTML
 - `inventory/access_control.py`, `inventory/permissions.py`, `inventory/auth_views.py`, and `inventory/audit.py` implement JWT login support, role permissions, user-access authorization, and activity logging
-- `inventory/serializers.py` and `inventory/views.py` define API behavior
+- `inventory/serializers/` validates API payloads and maps compatibility fields to normalized models
+- `inventory/views/` defines HTTP endpoints, list filters, eligibility endpoints, and admin access APIs
+- `inventory/*/_legacy.py` files preserve older import paths after the backend was split into focused modules
 - `inventory/management/commands/` contains seed/reset operational commands
 - `inventory/tests.py` is the backend test suite
 

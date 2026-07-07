@@ -2,6 +2,10 @@
 
 The documentation is grouped by topic so each file has a clear owner and purpose.
 
+## Study
+
+- [Codebase Study Guide](./codebase-study-guide.md)
+
 ## AI
 
 - [AI Assistant Guide](./ai/ai-assistant-guide.md)
@@ -22,8 +26,10 @@ The documentation is grouped by topic so each file has a clear owner and purpose
 
 ## Architecture
 
+- [Backend Map](./architecture/backend-map.md)
 - [Codebase Structure](./architecture/codebase-structure.md)
 - [Database Schema](./architecture/database-schema.md)
+- [Frontend Map](./architecture/frontend-map.md)
 - [Frontend Refactor Handoff](./architecture/frontend-refactor-handoff.md)
 
 ## Security

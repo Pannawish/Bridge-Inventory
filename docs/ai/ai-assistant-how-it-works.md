@@ -64,7 +64,7 @@ The frontend sends the question to:
 
 The backend chat view lives in:
 
-- [backend/inventory/views.py](../../backend/inventory/views.py)
+- [backend/inventory/views/ai.py](../../backend/inventory/views/ai.py)
 
 ### Step 2: The backend builds a safe context
 
@@ -83,7 +83,7 @@ Instead, it builds a controlled data package from current app data such as:
 
 This main context builder lives in:
 
-- [backend/inventory/services.py](../../backend/inventory/services.py)
+- [backend/inventory/services/chat.py](../../backend/inventory/services/chat.py)
 
 In simple terms:
 
@@ -295,7 +295,7 @@ If the question is outside the supported scope, the backend returns a structured
 
 This routing logic is handled in the chat presentation builder in:
 
-- [backend/inventory/services.py](../../backend/inventory/services.py)
+- [backend/inventory/services/chat.py](../../backend/inventory/services/chat.py)
 
 If you want the simplest product explanation, it is this:
 

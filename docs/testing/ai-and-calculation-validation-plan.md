@@ -11,7 +11,7 @@ Related references:
 - [AI Assistant: How It Works](../ai/ai-assistant-how-it-works.md)
 - [AI Assistant Guide](../ai/ai-assistant-guide.md)
 - [Business Rules Reference](../business/business-rules-reference.md)
-- [Backend inventory services](../../backend/inventory/services.py)
+- [Backend stock services](../../backend/inventory/services/stock.py)
 - [Backend tests](../../backend/inventory/tests.py)
 - [AI Report backend module](../../backend/inventory/ai_reports.py)
 
@@ -64,7 +64,7 @@ The most important calculations should be validated before validating AI, becaus
 
 ### 3.1 Reorder And Stock Formulas
 
-The stock report is built in [backend/inventory/services.py](../../backend/inventory/services.py), mainly through `build_stock_report()`.
+The stock report is built in [backend/inventory/services/stock.py](../../backend/inventory/services/stock.py), mainly through `build_stock_report()`.
 
 Core formula behavior:
 
