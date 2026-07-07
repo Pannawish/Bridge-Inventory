@@ -8,7 +8,7 @@ services:
       MYSQL_USER: inventory_user
       MYSQL_PASSWORD: inventory_password
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
