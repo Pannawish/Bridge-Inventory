@@ -1,3 +1,5 @@
+// Status badge component for credit note records.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import { formatCreditNoteStatus } from "./creditNoteUtils";
 

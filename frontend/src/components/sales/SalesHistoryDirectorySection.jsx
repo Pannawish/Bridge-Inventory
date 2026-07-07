@@ -1,3 +1,5 @@
+// Section component for sales workflow forms or detail views.
+
 import PaginationControls from "../PaginationControls";
 import TransactionTable from "../TransactionTable";
 import UniversalFilter from "../filters/UniversalFilter";

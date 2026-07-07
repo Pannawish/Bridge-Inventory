@@ -1,3 +1,5 @@
+// Utility module for application shell: product payload.
+
 function isBrowserFile(value) {
   return typeof File !== "undefined" && value instanceof File;
 }

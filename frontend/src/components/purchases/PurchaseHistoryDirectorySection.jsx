@@ -1,3 +1,5 @@
+// Section component for purchase workflow forms or detail views.
+
 import PaginationControls from "../PaginationControls";
 import TransactionTable from "../TransactionTable";
 import UniversalFilter from "../filters/UniversalFilter";

@@ -1,3 +1,5 @@
+// Modal component for inventory control workflows.
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getStatusLabel } from "../../i18n/statusLabels";

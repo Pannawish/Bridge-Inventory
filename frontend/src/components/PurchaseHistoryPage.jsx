@@ -1,3 +1,5 @@
+// Page component for shared component workflows.
+
 import { useEffect, useState } from "react";
 import PurchaseForm from "./PurchaseForm";
 import PurchaseEditForm from "./purchases/PurchaseEditForm";

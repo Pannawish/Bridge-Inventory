@@ -1,3 +1,5 @@
+// Page component for shared component workflows.
+
 import { useEffect, useState } from "react";
 import SalesForm from "./SalesForm";
 import SalesEditForm from "./sales/SalesEditForm";

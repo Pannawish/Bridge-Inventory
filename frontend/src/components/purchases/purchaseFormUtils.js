@@ -1,3 +1,5 @@
+// Helper utilities for purchase workflow behavior.
+
 import { getTodayString } from "../../purchaseStatus";
 import { getProductDefaultPurchaseUnit } from "../../unitConversion";
 import {

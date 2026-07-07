@@ -1,3 +1,5 @@
+// React component for shared component: credit note prompt.
+
 import { useEffect, useMemo, useState } from "react";
 import { formatMoney as fmt } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";

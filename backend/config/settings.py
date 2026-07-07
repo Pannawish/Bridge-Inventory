@@ -1,3 +1,5 @@
+"""Django settings for local and deployed Bridge Inventory environments."""
+
 import os
 import sys
 from datetime import timedelta

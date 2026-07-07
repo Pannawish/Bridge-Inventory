@@ -1,3 +1,5 @@
+// Purchase status derivation shared by forms and history views.
+
 export const purchaseStatuses = [
   "draft",
   "ordered",

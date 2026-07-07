@@ -1,3 +1,5 @@
+// React component for shared component: document ref chip.
+
 import { useLanguage } from "../i18n/LanguageContext";
 
 function DocumentRefChip({ label, docType, onClick }) {

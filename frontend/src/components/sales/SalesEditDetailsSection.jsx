@@ -1,3 +1,5 @@
+// Section component for sales workflow forms or detail views.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getStatusLabel } from "../../i18n/statusLabels";
 import TransactionDocumentsPanel from "../transactions/TransactionDocumentsPanel";

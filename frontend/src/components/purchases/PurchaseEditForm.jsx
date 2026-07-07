@@ -1,3 +1,5 @@
+// React component for purchase workflow: purchase edit form.
+
 import { usePurchaseEditFormState } from "./usePurchaseEditFormState";
 import PurchaseEditDetailsSection from "./PurchaseEditDetailsSection";
 import PurchaseEditLineItemsSection from "./PurchaseEditLineItemsSection";

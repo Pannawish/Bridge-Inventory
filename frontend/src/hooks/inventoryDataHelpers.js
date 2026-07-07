@@ -1,3 +1,5 @@
+// Helper utilities for shared application hook behavior.
+
 import { getDefaultCustomers } from "../components/CustomerPage";
 import { getDefaultSuppliers } from "../components/SupplierPage";
 import { getDefaultProducts } from "../components/ProductsPage";

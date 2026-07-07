@@ -1,3 +1,5 @@
+// Status badge component for billing note records.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import { formatBillingNoteStatus } from "./billingNoteUtils";
 

@@ -1,3 +1,5 @@
+// React component for purchase helper: quick po drawer.
+
 import { useState } from "react";
 import { formatNumber as formatLocaleNumber, formatDate, formatMoney } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";

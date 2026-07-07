@@ -1,3 +1,5 @@
+// Utility module for application shell: tabs.
+
 export const tabGroups = [
   { id: "workspace", labelKey: "sidebar.groupWorkspace" },
   { id: "purchasing", labelKey: "sidebar.groupPurchasing" },

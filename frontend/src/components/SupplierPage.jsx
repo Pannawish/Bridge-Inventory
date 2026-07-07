@@ -1,3 +1,5 @@
+// Page component for shared component workflows.
+
 import SupplierDirectorySection from "./suppliers/SupplierDirectorySection";
 import SupplierEditorModal from "./suppliers/SupplierEditorModal";
 import { useSupplierPageState } from "./suppliers/useSupplierPageState";

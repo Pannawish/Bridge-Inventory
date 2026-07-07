@@ -1,3 +1,5 @@
+// React component for quotation workflow: quotation purchase wizard flow.
+
 import MultiPurchaseWizard from "../MultiPurchaseWizard";
 
 function QuotationPurchaseWizardFlow({

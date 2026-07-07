@@ -1,3 +1,5 @@
+// Helper utilities for supplier management behavior.
+
 import {
   getContactFieldError,
   getRequiredFieldError,

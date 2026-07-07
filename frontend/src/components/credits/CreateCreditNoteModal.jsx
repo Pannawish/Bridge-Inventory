@@ -1,3 +1,5 @@
+// Modal component for credit note workflows.
+
 import { useEffect, useMemo, useState } from "react";
 import { formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";

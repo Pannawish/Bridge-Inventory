@@ -1,3 +1,5 @@
+// Section component for sales workflow forms or detail views.
+
 import { useMemo } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import TransactionDocumentsPanel from "../transactions/TransactionDocumentsPanel";

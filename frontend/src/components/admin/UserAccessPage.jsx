@@ -1,3 +1,5 @@
+// Page component for user access administration workflows.
+
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api";
 import { useAuth } from "../../auth/AuthContext";

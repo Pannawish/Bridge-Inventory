@@ -1,3 +1,5 @@
+// Modal component for product management workflows.
+
 import { formatPurchaseLeadTime, getPurchaseItemDisplayStatus } from "../../purchaseStatus";
 import { getStoredSaleItemStatus } from "../../saleStatus";
 import { getItemQuantityDetails } from "../../unitConversion";

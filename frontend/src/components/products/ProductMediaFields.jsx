@@ -1,3 +1,5 @@
+// React component for product management: product media fields.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getDocumentName } from "./productUtils";
 import { ATTACHABLE_FILE_ACCEPT, isPdfAttachment } from "./productEditorHelpers";

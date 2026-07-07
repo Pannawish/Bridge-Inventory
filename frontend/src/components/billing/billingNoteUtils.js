@@ -1,3 +1,5 @@
+// Helper utilities for billing note behavior.
+
 export const BILLING_NOTE_STATUS_LABEL_KEYS = {
   draft: "billingNote.statusDraft",
   issued: "billingNote.statusIssued",

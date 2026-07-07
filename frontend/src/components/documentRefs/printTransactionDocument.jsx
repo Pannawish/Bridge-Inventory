@@ -1,3 +1,5 @@
+// React component for printable document reference: print transaction document.
+
 import { renderToStaticMarkup } from "react-dom/server";
 import { LanguageProvider } from "../../i18n/LanguageContext";
 import { buildDocConfig } from "./documentRefConfig";

@@ -1,3 +1,5 @@
+// Helper utilities for credit note behavior.
+
 export const CREDIT_NOTE_STATUS_LABEL_KEYS = {
   issued: "creditNote.statusIssued",
   cancelled: "creditNote.statusCancelled",

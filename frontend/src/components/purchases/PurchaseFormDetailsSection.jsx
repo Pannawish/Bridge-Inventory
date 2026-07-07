@@ -1,3 +1,5 @@
+// Section component for purchase workflow forms or detail views.
+
 import { useMemo } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getStatusLabel } from "../../i18n/statusLabels";

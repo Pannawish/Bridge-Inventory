@@ -1,3 +1,5 @@
+// Section component for quotation workflow forms or detail views.
+
 import PaginationControls from "../PaginationControls";
 import UniversalFilter from "../filters/UniversalFilter";
 import { formatDate, formatMoney as fmt } from "../../format";

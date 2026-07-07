@@ -1,3 +1,5 @@
+// React component for transaction detail: transaction detail summary.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import {
   formatCurrency,

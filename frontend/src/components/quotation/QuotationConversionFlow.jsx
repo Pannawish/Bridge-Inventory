@@ -1,3 +1,5 @@
+// React component for quotation workflow: quotation conversion flow.
+
 import SalesForm from "../SalesForm";
 import QuotationConvertSelect from "../QuotationConvertSelect";
 import { useLanguage } from "../../i18n/LanguageContext";

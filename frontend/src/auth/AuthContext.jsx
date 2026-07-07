@@ -1,3 +1,5 @@
+// React component for authentication and authorization: auth context.
+
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { api } from "../api";
 

@@ -1,3 +1,5 @@
+// Section component for supplier management forms or detail views.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getSelectedValue } from "./supplierUtils";
 import PartnerDirectorySection from "../partners/PartnerDirectorySection";

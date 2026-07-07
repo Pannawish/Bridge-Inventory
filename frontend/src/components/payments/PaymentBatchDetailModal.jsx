@@ -1,3 +1,5 @@
+// Modal component for payment batch workflows.
+
 import { formatDate, formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import DocumentRefChip from "../DocumentRefChip";

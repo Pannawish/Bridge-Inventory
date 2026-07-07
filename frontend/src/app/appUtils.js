@@ -1,3 +1,5 @@
+// Helper utilities for application shell behavior.
+
 import { mockQuotations } from "../mockData";
 
 export const PAGE_SIZE = 25;

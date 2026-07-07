@@ -1,3 +1,5 @@
+// Page component for shared component workflows.
+
 import React, { useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { useLanguage } from "../i18n/LanguageContext";

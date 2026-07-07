@@ -1,3 +1,5 @@
+// Modal component for inventory control workflows.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 
 // Math symbols that render as plain operators between formula "pills".

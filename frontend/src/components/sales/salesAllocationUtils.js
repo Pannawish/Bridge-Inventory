@@ -1,3 +1,5 @@
+// Helper utilities for sales workflow behavior.
+
 function allocationRowId() {
   return `sale-allocation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }

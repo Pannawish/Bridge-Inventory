@@ -1,3 +1,5 @@
+// Status badge component for payment batch records.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import { formatPaymentBatchStatus } from "./paymentBatchUtils";
 

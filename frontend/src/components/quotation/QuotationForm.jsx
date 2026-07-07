@@ -1,3 +1,5 @@
+// React component for quotation workflow: quotation form.
+
 import { getProductSku } from "./quotationUtils";
 import { useQuotationFormState } from "./useQuotationFormState";
 import QuotationFormDetailsSection from "./QuotationFormDetailsSection";

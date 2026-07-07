@@ -1,3 +1,5 @@
+// Helper utilities for shared application hook behavior.
+
 import { createDraftPicture, isAttachableFile } from "../components/products/productEditorHelpers";
 import {
   getCategoryPathSkuCode,

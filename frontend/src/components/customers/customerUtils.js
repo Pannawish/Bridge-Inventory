@@ -1,3 +1,5 @@
+// Helper utilities for customer management behavior.
+
 import {
   getContactFieldError,
   getRequiredFieldError,

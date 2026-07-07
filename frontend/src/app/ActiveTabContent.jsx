@@ -1,3 +1,5 @@
+// React component for application shell: active tab content.
+
 import ChatPanel from "../components/ChatPanel";
 import Dashboard from "../components/Dashboard";
 import CustomerPage from "../components/CustomerPage";

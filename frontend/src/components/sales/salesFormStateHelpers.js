@@ -1,3 +1,5 @@
+// Helper utilities for sales workflow behavior.
+
 import { formatMoney as fmt } from "../../format";
 import { buildConvertedItemFields } from "../../unitConversion";
 import {

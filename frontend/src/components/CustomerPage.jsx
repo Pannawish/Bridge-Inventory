@@ -1,3 +1,5 @@
+// Page component for shared component workflows.
+
 import CustomerDirectorySection from "./customers/CustomerDirectorySection";
 import CustomerEditorModal from "./customers/CustomerEditorModal";
 import { useCustomerPageState } from "./customers/useCustomerPageState";

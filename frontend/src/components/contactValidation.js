@@ -1,3 +1,5 @@
+// Utility module for shared component: contact validation.
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TEL_ALLOWED_PATTERN = /^[+()\d.\-\s]+$/;
 const TEL_MIN_DIGITS = 7;

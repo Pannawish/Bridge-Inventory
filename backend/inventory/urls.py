@@ -1,3 +1,5 @@
+"""Inventory app URL routing for viewsets and focused API endpoints."""
+
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 

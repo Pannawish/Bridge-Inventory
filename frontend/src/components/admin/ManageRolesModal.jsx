@@ -1,3 +1,5 @@
+// Modal component for user access administration workflows.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 
 function getRolePermissionIds(role) {

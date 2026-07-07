@@ -1,3 +1,5 @@
+// React component for shared component: tab icon.
+
 const iconProps = {
   width: 22,
   height: 22,

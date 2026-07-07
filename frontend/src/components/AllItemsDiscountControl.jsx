@@ -1,3 +1,5 @@
+// React component for shared component: all items discount control.
+
 import { useLanguage } from "../i18n/LanguageContext";
 
 export default function AllItemsDiscountControl({

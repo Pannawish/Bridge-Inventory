@@ -1,3 +1,5 @@
+// Root React component that wires providers and the app shell.
+
 import { useEffect } from "react";
 import ActiveTabContent from "./app/ActiveTabContent";
 import AppShell from "./app/AppShell";

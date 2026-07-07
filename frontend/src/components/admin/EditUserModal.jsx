@@ -1,3 +1,5 @@
+// Modal component for user access administration workflows.
+
 import { useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 

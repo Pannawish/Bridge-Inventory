@@ -1,3 +1,5 @@
+// React component for shared component: purchase form.
+
 import AllItemsDiscountControl from "./AllItemsDiscountControl";
 import PurchaseFormDetailsSection from "./purchases/PurchaseFormDetailsSection";
 import PurchaseLineItemsSection from "./purchases/PurchaseLineItemsSection";

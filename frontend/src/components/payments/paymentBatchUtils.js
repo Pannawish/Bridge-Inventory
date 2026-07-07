@@ -1,3 +1,5 @@
+// Helper utilities for payment batch behavior.
+
 export const PAYMENT_BATCH_STATUS_LABEL_KEYS = {
   draft: "paymentBatch.statusDraft",
   scheduled: "paymentBatch.statusScheduled",

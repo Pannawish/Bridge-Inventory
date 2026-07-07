@@ -1,3 +1,5 @@
+// React component for shared component: payment line amount.
+
 import { formatMoney as fmt } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";
 

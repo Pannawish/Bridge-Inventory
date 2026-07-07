@@ -1,3 +1,5 @@
+// Helper utilities for quotation workflow behavior.
+
 import {
   computeAmount,
   normalizeDiscounts,

@@ -1,3 +1,5 @@
+"""Permission classes for inventory API access control."""
+
 from django.conf import settings
 from rest_framework.permissions import BasePermission, DjangoModelPermissions, SAFE_METHODS
 

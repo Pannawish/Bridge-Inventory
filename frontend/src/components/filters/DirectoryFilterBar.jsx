@@ -1,3 +1,5 @@
+// React component for directory filtering: directory filter bar.
+
 import { FilterPresets, ActiveFilterChips } from "../FilterControls";
 import { useLanguage } from "../../i18n/LanguageContext";
 

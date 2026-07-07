@@ -1,3 +1,5 @@
+// React component for transaction detail: transaction documents panel.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 
 function TransactionDocumentsPanel({

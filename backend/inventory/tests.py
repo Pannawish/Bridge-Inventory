@@ -1,3 +1,5 @@
+"""Regression tests covering inventory API behavior and business rules."""
+
 from io import StringIO
 import json
 import shutil

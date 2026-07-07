@@ -1,3 +1,5 @@
+// Section component for category management forms or detail views.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 
 function CategoryDirectorySection({

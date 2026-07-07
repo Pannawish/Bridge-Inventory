@@ -1,3 +1,5 @@
+// Section component for supplier management forms or detail views.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getRequiredFieldError } from "../contactValidation";
 import { SUPPLIER_REQUIRED_FIELD_KEYS } from "./supplierUtils";

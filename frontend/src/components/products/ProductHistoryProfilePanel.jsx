@@ -1,3 +1,5 @@
+// React component for product management: product history profile panel.
+
 import { getProductBaseUnit } from "../../unitConversion";
 import { useLanguage } from "../../i18n/LanguageContext";
 import {

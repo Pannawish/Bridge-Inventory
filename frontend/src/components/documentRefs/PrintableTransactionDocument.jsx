@@ -1,3 +1,5 @@
+// React component for printable document reference: printable transaction document.
+
 import DocumentRefContent from "./DocumentRefContent";
 
 function PrintableTransactionDocument({

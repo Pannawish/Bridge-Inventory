@@ -1,3 +1,5 @@
+// Page component for shared component workflows.
+
 import { useEffect, useMemo, useState } from "react";
 import CreateCreditNoteModal from "./credits/CreateCreditNoteModal";
 import CreditNoteDirectorySection from "./credits/CreditNoteDirectorySection";

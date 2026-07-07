@@ -1,3 +1,5 @@
+"""Django app configuration for the inventory domain."""
+
 from django.apps import AppConfig
 
 

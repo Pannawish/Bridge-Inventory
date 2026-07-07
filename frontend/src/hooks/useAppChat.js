@@ -1,3 +1,5 @@
+// React hook for shared application hook state and actions.
+
 import { useEffect, useState } from "react";
 
 function buildIntroMessage(t) {

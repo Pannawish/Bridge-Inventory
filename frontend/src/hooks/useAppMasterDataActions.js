@@ -1,3 +1,5 @@
+// React hook for shared application hook state and actions.
+
 import { PAGE_SIZE, isMockQuotationId, mergeSavedQuotation, removeMockQuotationId } from "../app/appUtils";
 import { buildProductSavePayload } from "../app/productPayload";
 

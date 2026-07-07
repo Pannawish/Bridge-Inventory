@@ -1,3 +1,5 @@
+// React component for application shell: app shell.
+
 import TabIcon from "../components/TabIcon";
 import { tabs, tabGroups } from "./tabs";
 import { useAuth } from "../auth/AuthContext";

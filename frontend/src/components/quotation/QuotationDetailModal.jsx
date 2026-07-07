@@ -1,3 +1,5 @@
+// Modal component for quotation workflow workflows.
+
 import DocumentRefChip from "../DocumentRefChip";
 import { printTransactionDocument } from "../documentRefs/printTransactionDocument";
 import { formatDate, formatMoney as fmt } from "../../format";

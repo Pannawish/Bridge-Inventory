@@ -1,3 +1,5 @@
+// Helper utilities for billing note behavior.
+
 import {
   computeBillingNoteActualPaymentDate,
   computeBillingNoteStatusFromLines,

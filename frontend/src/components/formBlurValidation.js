@@ -1,3 +1,5 @@
+// Utility module for shared component: form blur validation.
+
 export function markFieldBlurredOnBlurCapture(event) {
   const target = event?.target;
 

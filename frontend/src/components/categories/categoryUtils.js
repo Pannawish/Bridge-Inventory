@@ -1,3 +1,5 @@
+// Helper utilities for category management behavior.
+
 export const CATEGORY_STORAGE_KEY = "inventory-management-categories";
 
 const defaultCategories = [

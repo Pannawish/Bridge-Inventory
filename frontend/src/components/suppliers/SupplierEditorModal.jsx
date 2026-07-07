@@ -1,3 +1,5 @@
+// Modal component for supplier management workflows.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import SupplierIdentitySection from "./SupplierIdentitySection";
 import SupplierProcurementSection from "./SupplierProcurementSection";

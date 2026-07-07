@@ -1,3 +1,5 @@
+// Helper utilities for purchase workflow behavior.
+
 import { buildConvertedItemFields } from "../../unitConversion";
 import {
   computeAmount,

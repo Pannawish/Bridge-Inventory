@@ -1,3 +1,5 @@
+// React component for shared component: eligible party combobox.
+
 import { useEffect, useMemo, useRef, useState } from "react";
 
 function normalizeSearch(value) {

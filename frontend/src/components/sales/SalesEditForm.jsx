@@ -1,3 +1,5 @@
+// React component for sales workflow: sales edit form.
+
 import { useSalesEditFormState } from "./useSalesEditFormState";
 import SalesEditDetailsSection from "./SalesEditDetailsSection";
 import SalesEditLineItemsSection from "./SalesEditLineItemsSection";

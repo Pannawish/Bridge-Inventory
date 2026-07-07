@@ -1,3 +1,5 @@
+// Helper utilities for quotation workflow behavior.
+
 import { getToday } from "./quotationDateUtils";
 import { normalizeDiscounts } from "./quotationValueUtils";
 import { findPartnerByCompanyName } from "./quotationDirectoryUtils";

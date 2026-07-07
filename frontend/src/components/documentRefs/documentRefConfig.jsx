@@ -1,3 +1,5 @@
+// React component for printable document reference: document ref config.
+
 import { api } from "../../api";
 import { formatDate, formatMoney as fmt } from "../../format";
 import { getStatusLabel } from "../../i18n/statusLabels";

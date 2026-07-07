@@ -1,3 +1,5 @@
+// Section component for inventory control forms or detail views.
+
 import {
   DAYS_OPTIONS,
   HEALTH_KEYS,

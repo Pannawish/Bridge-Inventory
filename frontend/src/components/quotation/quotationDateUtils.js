@@ -1,3 +1,5 @@
+// Helper utilities for quotation workflow behavior.
+
 export function getToday() {
   return formatDateInputValue(new Date());
 }

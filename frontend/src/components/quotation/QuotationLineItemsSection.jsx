@@ -1,3 +1,5 @@
+// Section component for quotation workflow forms or detail views.
+
 import EligiblePartyCombobox from "../EligiblePartyCombobox";
 import { getProductDefaultSalesUnit, getProductUnitConversions } from "../../unitConversion";
 import { formatMoney as fmt } from "../../format";

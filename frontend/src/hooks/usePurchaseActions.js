@@ -1,3 +1,5 @@
+// React hook for shared application hook state and actions.
+
 import { buildPurchaseUpdatePayload } from "../app/appUtils";
 import { applyPurchaseStatusToItems } from "../purchaseStatus";
 

@@ -1,3 +1,5 @@
+// React hook for payment batch state and actions.
+
 import { useEffect, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { deepEqual } from "../../equality";

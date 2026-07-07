@@ -1,3 +1,5 @@
+// React component for shared component: sales form.
+
 import AllItemsDiscountControl from "./AllItemsDiscountControl";
 import SalesFormDetailsSection from "./sales/SalesFormDetailsSection";
 import SalesLineItemsSection from "./sales/SalesLineItemsSection";

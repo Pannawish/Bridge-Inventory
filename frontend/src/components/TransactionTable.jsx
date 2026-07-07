@@ -1,3 +1,5 @@
+// React component for shared component: transaction table.
+
 import { useState } from "react";
 import {
   markPurchaseItemReceived,

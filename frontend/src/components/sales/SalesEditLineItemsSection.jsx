@@ -1,3 +1,5 @@
+// Section component for sales workflow forms or detail views.
+
 import { formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import {

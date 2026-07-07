@@ -1,3 +1,5 @@
+"""Management command for clearing transactional demo data while preserving master data."""
+
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 

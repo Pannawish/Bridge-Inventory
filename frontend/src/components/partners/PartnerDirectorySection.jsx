@@ -1,3 +1,5 @@
+// Section component for business partner forms or detail views.
+
 import PaginationControls from "../PaginationControls";
 import { useLanguage } from "../../i18n/LanguageContext";
 

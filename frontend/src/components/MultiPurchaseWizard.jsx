@@ -1,3 +1,5 @@
+// React component for shared component: multi purchase wizard.
+
 import { useMemo, useState } from "react";
 import PurchaseForm from "./PurchaseForm";
 import { useLanguage } from "../i18n/LanguageContext";

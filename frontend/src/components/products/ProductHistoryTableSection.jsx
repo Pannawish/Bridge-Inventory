@@ -1,3 +1,5 @@
+// Section component for product management forms or detail views.
+
 import PaginationControls from "../PaginationControls";
 import DocumentRefChip from "../DocumentRefChip";
 import { getPurchaseItemDisplayStatus } from "../../purchaseStatus";

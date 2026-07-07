@@ -1,3 +1,5 @@
+// Modal component for category management workflows.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 
 function CategoryEditorModal({

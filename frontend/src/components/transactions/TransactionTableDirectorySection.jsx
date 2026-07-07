@@ -1,3 +1,5 @@
+// Section component for transaction detail forms or detail views.
+
 import { formatDate } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getStatusLabel } from "../../i18n/statusLabels";

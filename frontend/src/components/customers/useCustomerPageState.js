@@ -1,3 +1,5 @@
+// React hook for customer management state and actions.
+
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import {

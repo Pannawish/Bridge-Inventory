@@ -1,3 +1,5 @@
+// Modal component for inventory control workflows.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 
 // Generic KPI drill-down popup — same chrome as the other detail modals

@@ -1,3 +1,5 @@
+// React component for printable document reference: document ref body.
+
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { buildDocConfig } from "./documentRefConfig";

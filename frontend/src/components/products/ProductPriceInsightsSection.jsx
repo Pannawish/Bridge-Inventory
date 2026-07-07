@@ -1,3 +1,5 @@
+// Section component for product management forms or detail views.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getProductBaseUnit } from "../../unitConversion";
 import { formatDate } from "../../format";

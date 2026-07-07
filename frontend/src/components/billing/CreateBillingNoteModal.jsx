@@ -1,3 +1,5 @@
+// Modal component for billing note workflows.
+
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api";
 import { formatDate, formatMoney as fmt } from "../../format";

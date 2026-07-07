@@ -1,3 +1,5 @@
+"""Audit-log helpers for recording user-facing data changes."""
+
 import logging
 from datetime import date, datetime
 from decimal import Decimal

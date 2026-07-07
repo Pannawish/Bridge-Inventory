@@ -1,3 +1,5 @@
+// Utility module for application shell: mock guest handlers.
+
 import { getProductDisplayName } from "../components/products/productUtils";
 
 function escapeHtml(value) {

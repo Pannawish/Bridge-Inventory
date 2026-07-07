@@ -1,3 +1,5 @@
+// Utility module for shared component: transaction discounts.
+
 export function getActiveTransactionDiscount(enabled, value) {
   const numericValue = Number(value);
 

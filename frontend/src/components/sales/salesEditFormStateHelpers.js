@@ -1,3 +1,5 @@
+// Helper utilities for sales workflow behavior.
+
 import { getProductUnit } from "./salesHistoryUtils";
 import { createInitialAllocationState } from "./salesAllocationUtils";
 

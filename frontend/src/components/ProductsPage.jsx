@@ -1,3 +1,5 @@
+// Page component for shared component workflows.
+
 import { useEffect } from "react";
 import ProductDetailModal from "./products/ProductDetailModal";
 import ProductDirectorySection from "./products/ProductDirectorySection";

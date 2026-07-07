@@ -1,3 +1,5 @@
+// Utility module for language and translation: status labels.
+
 import { formatStatusLabel } from "../purchaseStatus";
 
 export function getStatusLabel(t, status) {

@@ -1,3 +1,5 @@
+// Utility module for user access administration: admin preview data.
+
 export const previewPermissionOptions = [
   "user",
   "group",

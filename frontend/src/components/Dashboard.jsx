@@ -1,3 +1,5 @@
+// React component for shared component: dashboard.
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatNumber as formatLocaleNumber } from "../format";
 import { useLanguage } from "../i18n/LanguageContext";

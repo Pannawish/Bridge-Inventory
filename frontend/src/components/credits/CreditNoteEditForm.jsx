@@ -1,3 +1,5 @@
+// React component for credit note: credit note edit form.
+
 import { useState } from "react";
 import { formatMoney as fmt } from "../../format";
 import DocumentRefChip from "../DocumentRefChip";

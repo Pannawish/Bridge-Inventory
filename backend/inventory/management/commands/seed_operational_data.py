@@ -1,3 +1,5 @@
+"""Management command for seeding linked operational demo data."""
+
 import random
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP

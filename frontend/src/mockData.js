@@ -1,3 +1,5 @@
+// Development mock data used when backend data is unavailable.
+
 import { getDefaultProducts } from "./components/products/defaultProducts";
 import { getDefaultSuppliers } from "./components/suppliers/supplierUtils";
 import { getDefaultCustomers } from "./components/customers/customerUtils";

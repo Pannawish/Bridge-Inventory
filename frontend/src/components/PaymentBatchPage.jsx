@@ -1,3 +1,5 @@
+// Page component for shared component workflows.
+
 import { useEffect, useMemo, useState } from "react";
 import CreatePaymentBatchModal from "./payments/CreatePaymentBatchModal";
 import PaymentBatchDirectorySection from "./payments/PaymentBatchDirectorySection";

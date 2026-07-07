@@ -1,3 +1,5 @@
+// Section component for customer management forms or detail views.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getRequiredFieldError } from "../contactValidation";
 import { CUSTOMER_REQUIRED_FIELD_KEYS } from "./customerUtils";

@@ -1,1 +1,1 @@
-
+"""Inventory management command modules."""

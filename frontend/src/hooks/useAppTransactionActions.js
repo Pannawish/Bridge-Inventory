@@ -1,3 +1,5 @@
+// React hook for shared application hook state and actions.
+
 import { usePurchaseActions } from "./usePurchaseActions";
 import { useSalesActions } from "./useSalesActions";
 

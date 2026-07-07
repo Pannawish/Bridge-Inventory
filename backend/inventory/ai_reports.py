@@ -1,3 +1,5 @@
+"""Backend-prepared printable AI report records for suppliers, customers, and products."""
+
 import json
 import logging
 import re

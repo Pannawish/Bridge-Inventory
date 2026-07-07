@@ -1,3 +1,5 @@
+// React hook for shared application hook state and actions.
+
 import { useMemo, useState } from "react";
 import { withinRange } from "../components/FilterControls";
 import {

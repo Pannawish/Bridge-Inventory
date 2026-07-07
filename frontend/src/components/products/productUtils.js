@@ -1,3 +1,5 @@
+// Helper utilities for product management behavior.
+
 import {
   getCategoryPathById,
   resolveLegacyCategoryId,

@@ -1,3 +1,5 @@
+// React component for shared component: status filter group.
+
 import { useLanguage } from "../i18n/LanguageContext";
 
 function matchesStatusSelection(selectedStatuses = [], presetStatuses = []) {

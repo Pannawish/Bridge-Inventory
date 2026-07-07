@@ -1,3 +1,5 @@
+// Helper utilities for purchase workflow behavior.
+
 import { formatDate, formatMoney as fmt } from "../../format";
 import { getStatusLabel } from "../../i18n/statusLabels";
 import {

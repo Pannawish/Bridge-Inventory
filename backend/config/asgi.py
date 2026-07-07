@@ -1,3 +1,5 @@
+"""ASGI application entry point for the Bridge Inventory backend."""
+
 import os
 
 from django.core.asgi import get_asgi_application

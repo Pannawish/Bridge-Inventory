@@ -1,3 +1,5 @@
+// Modal component for shared component workflows.
+
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../i18n/LanguageContext";
 import DocumentRefBody from "./documentRefs/DocumentRefBody";

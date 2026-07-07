@@ -1,3 +1,5 @@
+// Helper utilities for product management behavior.
+
 import { itemMatchesProduct } from "./productUtils";
 
 export const PRODUCT_HISTORY_PAGE_SIZE = 5;

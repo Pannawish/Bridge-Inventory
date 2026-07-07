@@ -1,3 +1,5 @@
+// Modal component for product management workflows.
+
 import { useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import DocumentRefModal from "../DocumentRefModal";

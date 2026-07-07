@@ -1,3 +1,5 @@
+// Helper utilities for sales workflow behavior.
+
 import { computePaymentDate, formatDate, formatMoney as fmt } from "../../format";
 import { getStatusLabel } from "../../i18n/statusLabels";
 import {

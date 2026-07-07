@@ -1,3 +1,5 @@
+// React hook for shared application hook state and actions.
+
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import {

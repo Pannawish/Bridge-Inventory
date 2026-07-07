@@ -1,3 +1,5 @@
+// React component for transaction detail: transaction detail fields.
+
 import { formatDate } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getStatusLabel } from "../../i18n/statusLabels";

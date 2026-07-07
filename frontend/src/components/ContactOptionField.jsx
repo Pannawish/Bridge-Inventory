@@ -1,3 +1,5 @@
+// React component for shared component: contact option field.
+
 import { useLanguage } from "../i18n/LanguageContext";
 
 function ContactOptionField({

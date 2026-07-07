@@ -1,3 +1,5 @@
+"""WSGI application entry point for the Bridge Inventory backend."""
+
 import os
 
 from django.core.wsgi import get_wsgi_application

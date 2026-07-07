@@ -1,3 +1,5 @@
+// Unit conversion helpers shared by product, purchase, quotation, and sale flows.
+
 import { formatNumber } from "./format";
 
 export function normalizeUnit(value, fallback = "pcs") {

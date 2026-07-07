@@ -1,3 +1,5 @@
+// Utility module for shared application hook: inventory data setters.
+
 export function buildInventoryDataSetters(setters) {
   return {
     setDashboard: setters.setDashboard,

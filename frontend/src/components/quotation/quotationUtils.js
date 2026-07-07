@@ -1,3 +1,5 @@
+// Helper utilities for quotation workflow behavior.
+
 export * from "./quotationDateUtils";
 export * from "./quotationValueUtils";
 export * from "./quotationDirectoryUtils";

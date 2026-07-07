@@ -1,3 +1,5 @@
+// Utility module for shared component: product price metrics.
+
 import { getUnitValueFromBaseValue } from "../unitConversion";
 
 function getMetricValueForSelectedUnit(product, unit, metricKeys) {

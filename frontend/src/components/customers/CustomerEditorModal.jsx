@@ -1,3 +1,5 @@
+// Modal component for customer management workflows.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import CustomerIdentitySection from "./CustomerIdentitySection";
 import CustomerContactSection from "./CustomerContactSection";

@@ -1,3 +1,5 @@
+// Helper utilities for application shell behavior.
+
 import { formatSaleStockIssueMessage } from "../saleStock";
 
 export function buildAppMessageHelpers({ t, language }) {

@@ -1,3 +1,5 @@
+// Helper utilities for transaction detail behavior.
+
 import { getItemBaseQuantity } from "../../unitConversion";
 import { formatMoney as fmt, formatNumber } from "../../format";
 import { getStoredPurchaseItemStatus } from "../../purchaseStatus";

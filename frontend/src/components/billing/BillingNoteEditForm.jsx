@@ -1,3 +1,5 @@
+// React component for billing note: billing note edit form.
+
 import useBillingNoteEditFormState from "./useBillingNoteEditFormState";
 
 function BillingNoteEditForm({ billingNote, onCancel, onSave }) {

@@ -1,3 +1,5 @@
+// React component for product management: product units fields.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 
 function ProductUnitsFields({

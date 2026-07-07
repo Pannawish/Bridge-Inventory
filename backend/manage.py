@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""Django command-line entry point for Bridge Inventory backend tasks."""
+
 import os
 import sys
 

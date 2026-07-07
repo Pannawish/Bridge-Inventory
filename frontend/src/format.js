@@ -1,3 +1,5 @@
+// Formatting helpers for dates, money, locale, and display values.
+
 const DEFAULT_LANGUAGE = "en";
 const LANGUAGE_STORAGE_KEY = "language";
 

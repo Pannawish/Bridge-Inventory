@@ -1,3 +1,5 @@
+// React component for payment batch: payment batch edit form.
+
 import usePaymentBatchEditFormState from "./usePaymentBatchEditFormState";
 
 function PaymentBatchEditForm({ paymentBatch, onCancel, onSave }) {

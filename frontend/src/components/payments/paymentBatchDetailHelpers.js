@@ -1,3 +1,5 @@
+// Helper utilities for payment batch behavior.
+
 import {
   computePaymentBatchActualPaymentDate,
   computePaymentBatchStatusFromLines,

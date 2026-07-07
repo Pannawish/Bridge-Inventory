@@ -1,3 +1,5 @@
+// React component for business partner: partner page shell.
+
 import UniversalFilter from "../filters/UniversalFilter";
 import { useLanguage } from "../../i18n/LanguageContext";
 

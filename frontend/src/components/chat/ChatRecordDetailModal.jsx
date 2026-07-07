@@ -1,3 +1,5 @@
+// Modal component for AI chat workflows.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 
 const HIDDEN_KEYS = new Set([

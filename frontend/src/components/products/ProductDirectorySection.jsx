@@ -1,3 +1,5 @@
+// Section component for product management forms or detail views.
+
 import PaginationControls from "../PaginationControls";
 import UniversalFilter from "../filters/UniversalFilter";
 import { getCategoryLeafLabel } from "../CategoryPage";

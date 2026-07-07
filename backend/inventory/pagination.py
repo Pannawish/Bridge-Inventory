@@ -1,3 +1,5 @@
+"""Optional pagination classes and response shape for inventory list endpoints."""
+
 from django.conf import settings
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response

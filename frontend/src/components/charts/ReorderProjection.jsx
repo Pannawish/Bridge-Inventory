@@ -1,3 +1,5 @@
+// React component for chart visualization: reorder projection.
+
 import { useEffect, useRef, useState } from "react";
 import { formatNumber } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";

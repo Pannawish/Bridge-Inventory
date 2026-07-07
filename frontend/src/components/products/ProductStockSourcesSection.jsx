@@ -1,3 +1,5 @@
+// Section component for product management forms or detail views.
+
 import React, { useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getProductBaseUnit } from "../../unitConversion";

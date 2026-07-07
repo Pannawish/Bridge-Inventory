@@ -1,3 +1,5 @@
+// Helper utilities for inventory control behavior.
+
 import { formatNumber } from "../../format";
 
 export function num(value) {

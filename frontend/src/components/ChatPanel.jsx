@@ -1,3 +1,5 @@
+// React component for shared component: chat panel.
+
 import { useState } from "react";
 import { useLanguage } from "../i18n/LanguageContext";
 import ChatMessageBody from "./chat/ChatMessageBody";

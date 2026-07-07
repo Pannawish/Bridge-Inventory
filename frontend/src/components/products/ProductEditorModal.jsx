@@ -1,3 +1,5 @@
+// Modal component for product management workflows.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import { getTranslatedProductDisplayName } from "./productEditorHelpers";
 import ProductIdentityFields from "./ProductIdentityFields";

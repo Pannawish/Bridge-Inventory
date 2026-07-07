@@ -1,3 +1,5 @@
+// React component for inventory control: inventory control board.
+
 import { useMemo, useState } from "react";
 import { formatMoney as fmt, formatDate } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";

@@ -1,3 +1,5 @@
+// Page component for shared component workflows.
+
 import { useEffect, useMemo, useState } from "react";
 import DocumentRefModal from "./DocumentRefModal";
 import QuotationFormCard from "./quotation/QuotationForm";

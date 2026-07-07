@@ -1,3 +1,5 @@
+// Section component for credit note forms or detail views.
+
 import { formatDate, formatMoney as fmt } from "../../format";
 import { useLanguage } from "../../i18n/LanguageContext";
 import UniversalFilter from "../filters/UniversalFilter";

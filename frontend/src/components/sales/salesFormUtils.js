@@ -1,3 +1,5 @@
+// Helper utilities for sales workflow behavior.
+
 import {
   computeDiscountedAmount,
   getEffectiveDiscounts,

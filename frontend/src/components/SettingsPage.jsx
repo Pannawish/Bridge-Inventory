@@ -1,3 +1,5 @@
+// Page component for shared component workflows.
+
 import { useLanguage } from "../i18n/LanguageContext";
 
 const LANGUAGE_OPTIONS = [

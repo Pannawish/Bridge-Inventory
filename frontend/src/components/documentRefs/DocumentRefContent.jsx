@@ -1,3 +1,5 @@
+// React component for printable document reference: document ref content.
+
 import { getStatusLabel } from "../../i18n/statusLabels";
 import DocumentRefChip from "../DocumentRefChip";
 

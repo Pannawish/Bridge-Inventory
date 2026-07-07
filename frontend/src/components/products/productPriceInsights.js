@@ -1,3 +1,5 @@
+// Utility module for product management: product price insights.
+
 import { getItemBaseQuantity } from "../../unitConversion";
 import { computeItemAmount } from "./productUtils";
 

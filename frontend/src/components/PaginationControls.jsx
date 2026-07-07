@@ -1,3 +1,5 @@
+// React component for shared component: pagination controls.
+
 import { useLanguage } from "../i18n/LanguageContext";
 
 function formatNumber(value, locale) {

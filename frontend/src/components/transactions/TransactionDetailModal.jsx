@@ -1,3 +1,5 @@
+// Modal component for transaction detail workflows.
+
 import { useLanguage } from "../../i18n/LanguageContext";
 import { printTransactionDocument } from "../documentRefs/printTransactionDocument";
 import TransactionDetailFields from "./TransactionDetailFields";

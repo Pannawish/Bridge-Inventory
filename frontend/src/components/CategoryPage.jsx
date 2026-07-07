@@ -1,3 +1,5 @@
+// Page component for shared component workflows.
+
 import UniversalFilter from "./filters/UniversalFilter";
 import CategoryDirectorySection from "./categories/CategoryDirectorySection";
 import CategoryEditorModal from "./categories/CategoryEditorModal";

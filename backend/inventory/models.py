@@ -1,3 +1,5 @@
+"""Database models for master data, transactions, finance records, and audit history."""
+
 import uuid
 
 from django.conf import settings

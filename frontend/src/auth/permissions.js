@@ -1,3 +1,5 @@
+// Utility module for authentication and authorization: permissions.
+
 export const TAB_PERMISSION_MAP = {
   dashboard: null,
   inventory: "inventory.view_product",

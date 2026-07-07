@@ -1,3 +1,5 @@
+// Helper utilities for category management behavior.
+
 import {
   getAssignedCategoryId,
   getCategoryDepth,

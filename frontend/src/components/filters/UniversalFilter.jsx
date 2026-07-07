@@ -1,3 +1,5 @@
+// React component for directory filtering: universal filter.
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import StatusFilterGroup from "../StatusFilterGroup";
 

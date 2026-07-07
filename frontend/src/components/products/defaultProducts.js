@@ -1,3 +1,5 @@
+// Utility module for product management: default products.
+
 import { normalizeProduct } from "./productUtils";
 import { createProduct } from "./productEditorHelpers";
 

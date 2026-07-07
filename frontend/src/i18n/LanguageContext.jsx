@@ -1,3 +1,5 @@
+// React component for language and translation: language context.
+
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { SUPPORTED_LANGUAGES, translations } from "./translations";
 
