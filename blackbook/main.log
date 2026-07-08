@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  8 JUL 2026 18:28
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  8 JUL 2026 19:41
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1387,7 +1387,7 @@ CHAPTER 3.
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10> not avail
 able
-(Font)              size <12> substituted on input line 25.
+(Font)              size <12> substituted on input line 23.
 
 
 
@@ -1395,7 +1395,7 @@ able
 
 LaTeX Font Warning: Font shape `TU/TimesNewRoman(1)/m/n' in size <10.95> not av
 ailable
-(Font)              size <12> substituted on input line 84.
+(Font)              size <12> substituted on input line 82.
 
 
 
@@ -1423,7 +1423,7 @@ Overfull \vbox (10.28255pt too high) has occurred while \output is active []
 [26]
 
 [27]
-Underfull \hbox (badness 1314) in paragraph at lines 366--367
+Underfull \hbox (badness 1314) in paragraph at lines 364--365
 []\TU/TimesNewRoman(0)/m/n/12 During the test, each participant followed the sc
 enario steps and
  []

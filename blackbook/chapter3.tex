@@ -9,13 +9,11 @@ The project was separated into three main layers:
 
 \begin{enumerate}
 	\item \textbf{Frontend layer:} React and Vite were used to build the web pages, forms, filters, tables, modals, and tab navigation.
-	\item \textbf{Backend layer:} Django REST Framework was used to expose APIs, validate data, calculate stock, control eligibility rules, and prepare dashboard and assistant responses.
+	\item \textbf{Backend layer:} Django REST Framework was used to expose APIs, validate data, calculate stock, control eligibility rules, prepare dashboard and assistant responses, and support AI report generation when an API key is configured.
 	\item \textbf{Database layer:} MySQL was used through the Django ORM to store relational business records.
 \end{enumerate}
 
 This structure helped keep the user interface separate from the business rules. The frontend guides the user, but the backend is still responsible for the important checks such as stock validation, transaction eligibility, and payable amount synchronization.
-
-The AI Chat and AI Report functions use an OpenAI API key when the key is configured in the backend environment. The backend sends prepared system data to the configured OpenAI model for supported assistant and report tasks, while keeping a local summary fallback when no API key is available.
 
 \section{Requirement Areas and Web-App Pages}
 The web application is organized around the main work areas that a trading business needs each day. Each sidebar page has a specific purpose, and the pages are connected through shared product, supplier, customer, purchase, sale, and finance data.

@@ -51,7 +51,7 @@
 \contentsline {chapter}{\numberline {4}RESULTS}{32}{}%
 \contentsline {section}{\numberline {4.1}Completed System Overview}{32}{}%
 \contentsline {section}{\numberline {4.2}Implemented Modules}{33}{}%
-\contentsline {section}{\numberline {4.3}How the System Looks in Practice}{34}{}%
+\contentsline {section}{\numberline {4.3}System Implementation}{34}{}%
 \contentsline {section}{\numberline {4.4}Results by Workflow}{46}{}%
 \contentsline {subsection}{\numberline {4.4.1}Master Data Results}{46}{}%
 \contentsline {subsection}{\numberline {4.4.2}Purchasing and Stock Results}{47}{}%

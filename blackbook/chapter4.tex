@@ -44,7 +44,7 @@ The main result is that the system connects business documents together instead 
 	\end{tabularx}
 \end{table}
 
-\section{How the System Looks in Practice}
+\section{System Implementation}
 This section combines the page-development explanation with selected screenshots from the finished application. Each screenshot is paired with a description of what the page does, how it was developed, and why it matters for day-to-day use.
 
 \begin{figure}[H]
@@ -55,7 +55,7 @@ This section combines the page-development explanation with selected screenshots
 	\label{fig:dashboard-page}
 \end{figure}
 
-Figure~\ref{fig:dashboard-page} is the first thing the user sees after logging in. The dashboard page was developed to receive backend dashboard data and show stock health, reorder planning, stock cycling, delivery pipeline, purchase planning, popular products, finance, cashflow, and order coverage. It is also connected to other pages, so a low-stock product can lead the user to the inventory or product page, and an order issue can lead to the purchase or sales page.
+Figure~\ref{fig:dashboard-page} shows the dashboard page used as the main post-login business overview. The dashboard page was developed to receive backend dashboard data and show stock health, reorder planning, stock cycling, delivery pipeline, purchase planning, popular products, finance, cashflow, and order coverage. It is also connected to other pages, so a low-stock product can lead the user to the inventory or product page, and an order issue can lead to the purchase or sales page.
 
 \begin{figure}[H]
 	\centering
@@ -65,7 +65,7 @@ Figure~\ref{fig:dashboard-page} is the first thing the user sees after logging i
 	\label{fig:inventory-page}
 \end{figure}
 
-Figure~\ref{fig:inventory-page} is the daily stock-checking workspace. The inventory page was developed around backend stock report rows instead of calculating stock from full transaction lists in the browser. It includes an inventory control board, searchable directory, filters for health status, category, supplier, value, and reorder need, product detail views, and a quick purchase-order drawer.
+Figure~\ref{fig:inventory-page} shows the inventory page used for daily stock checking and reorder review. The inventory page was developed around backend stock report rows instead of calculating stock from full transaction lists in the browser. It includes an inventory control board, searchable directory, filters for health status, category, supplier, value, and reorder need, product detail views, and a quick purchase-order drawer.
 
 \begin{figure}[H]
 	\centering
@@ -75,7 +75,7 @@ Figure~\ref{fig:inventory-page} is the daily stock-checking workspace. The inven
 	\label{fig:ai-chat-page}
 \end{figure}
 
-Figure~\ref{fig:ai-chat-page} shows the AI chat page where users can type natural-language questions about stock, partners, receivables, payables, or document references. The page was developed as a read-only helper. The backend prepares compact context from current system data and returns a structured answer. If an OpenAI API key is configured, the backend can send the prepared local summary and data context to the configured OpenAI model; otherwise, it returns the local summary. The assistant does not create, edit, approve, cancel, or delete any record.
+Figure~\ref{fig:ai-chat-page} shows the AI chat page used for read-only natural-language questions about stock, partners, receivables, payables, or document references. The page was developed as a read-only helper. The backend prepares compact context from current system data and returns a structured answer. If an OpenAI API key is configured, the backend can send the prepared local summary and data context to the configured OpenAI model; otherwise, it returns the local summary. The assistant does not create, edit, approve, cancel, or delete any record.
 
 \begin{figure}[H]
 	\centering
@@ -85,7 +85,7 @@ Figure~\ref{fig:ai-chat-page} shows the AI chat page where users can type natura
 	\label{fig:ai-report-page}
 \end{figure}
 
-Figure~\ref{fig:ai-report-page} shows the AI report page. The user picks a scope (supplier, customer, or product), selects the specific record, and optionally narrows the date range. The frontend sends the request to the \texttt{/api/ai-reports/} backend endpoint, where the backend collects related purchases, sales, quotations, billing notes, payment batches, credit notes, and stock data. If an OpenAI API key is configured, the backend sends the collected context to the AI model for an executive summary and business analysis; otherwise, it builds a local report from the same data. The final report opens in a new browser tab as a self-contained printable HTML document.
+Figure~\ref{fig:ai-report-page} shows the AI report generation page for creating printable supplier, customer, or product reports. The user picks a scope (supplier, customer, or product), selects the specific record, and optionally narrows the date range. The frontend sends the request to the \texttt{/api/ai-reports/} backend endpoint, where the backend collects related purchases, sales, quotations, billing notes, payment batches, credit notes, and stock data. If an OpenAI API key is configured, the backend sends the collected context to the AI model for an executive summary and business analysis; otherwise, it builds a local report from the same data. The final report opens in a new browser tab as a self-contained printable HTML document.
 
 \begin{figure}[H]
 	\centering
@@ -95,7 +95,7 @@ Figure~\ref{fig:ai-report-page} shows the AI report page. The user picks a scope
 	\label{fig:product-management-form}
 \end{figure}
 
-Figure~\ref{fig:product-management-form} shows the product form where the user manages item details. The products page was developed as the main product catalog, including product creation, editing, disabling, deleting where allowed, SKUs, previous SKUs, names, category links, unit conversions, reorder levels, product pictures, supplier links, average cost information, and product transaction history. Products with transaction history can be disabled instead of removed, which protects old purchase, sale, and quotation records.
+Figure~\ref{fig:product-management-form} shows the product management form for maintaining item master data. The products page was developed as the main product catalog, including product creation, editing, disabling, deleting where allowed, SKUs, previous SKUs, names, category links, unit conversions, reorder levels, product pictures, supplier links, average cost information, and product transaction history. Products with transaction history can be disabled instead of removed, which protects old purchase, sale, and quotation records.
 
 The other master-data pages support the same business foundation. The categories page organizes products in a parent-child tree and shows the full hierarchy in one view. The supplier page stores company profile, contact details, taxpayer ID, branches, shipping addresses, remarks, payment terms, and procurement contact details. The customer page stores company profile, contact details, branches, shipping addresses, remarks, and billing or payment term information.
 
@@ -107,7 +107,7 @@ The other master-data pages support the same business foundation. The categories
 	\label{fig:purchase-workflow}
 \end{figure}
 
-Figure~\ref{fig:purchase-workflow} walks through how a purchase order is entered. The purchases page was developed for supplier-side transactions, including purchase records, line items, attached documents, purchase status, item receiving status, VAT mode, item discounts, bill discount, expected delivery dates, received dates, and payment batch links. Only received purchase items become available stock.
+Figure~\ref{fig:purchase-workflow} shows the purchase workflow for entering and reviewing supplier purchase orders. The purchases page was developed for supplier-side transactions, including purchase records, line items, attached documents, purchase status, item receiving status, VAT mode, item discounts, bill discount, expected delivery dates, received dates, and payment batch links. Only received purchase items become available stock.
 
 \begin{figure}[H]
 	\centering
@@ -117,7 +117,7 @@ Figure~\ref{fig:purchase-workflow} walks through how a purchase order is entered
 	\label{fig:sales-workflow}
 \end{figure}
 
-Figure~\ref{fig:sales-workflow} shows how a customer sale is prepared and tracked. The sales page was developed for customer-side transactions, including sale headers, customer information, customer purchase-order reference, sale items, documents, VAT totals, discounts, and delivery-related statuses. Sale item statuses include pending, packed, shipped, delivered, cancelled, and returned. The backend validates stock before a sale can commit stock, and when stock is committed, allocations are created from received purchase layers.
+Figure~\ref{fig:sales-workflow} shows the sales workflow for preparing and tracking customer orders. The sales page was developed for customer-side transactions, including sale headers, customer information, customer purchase-order reference, sale items, documents, VAT totals, discounts, and delivery-related statuses. Sale item statuses include pending, packed, shipped, delivered, cancelled, and returned. The backend validates stock before a sale can commit stock, and when stock is committed, allocations are created from received purchase layers.
 
 \begin{figure}[H]
 	\centering
@@ -127,7 +127,7 @@ Figure~\ref{fig:sales-workflow} shows how a customer sale is prepared and tracke
 	\label{fig:quotation-workflow}
 \end{figure}
 
-Figure~\ref{fig:quotation-workflow} shows a quotation before it turns into a real purchase or sale. The quotation page was developed for quotation line items, supplier cost options, validity settings, shipping date, payment terms, VAT mode, total values, and conversion to purchase or sales flow. In the database, quotation items are stored in the \texttt{QuotationItem} table and supplier options are stored in \texttt{QuotationItemSupplier}, while the API still returns an \texttt{items} array for frontend compatibility.
+Figure~\ref{fig:quotation-workflow} shows the quotation workflow before a quote is converted into a purchase or sale. The quotation page was developed for quotation line items, supplier cost options, validity settings, shipping date, payment terms, VAT mode, total values, and conversion to purchase or sales flow. In the database, quotation items are stored in the \texttt{QuotationItem} table and supplier options are stored in \texttt{QuotationItemSupplier}, while the API still returns an \texttt{items} array for frontend compatibility.
 
 \begin{figure}[H]
 	\centering
@@ -137,7 +137,7 @@ Figure~\ref{fig:quotation-workflow} shows a quotation before it turns into a rea
 	\label{fig:billing-note-workflow}
 \end{figure}
 
-Figure~\ref{fig:billing-note-workflow} shows how eligible sales are grouped into a billing note for customer invoicing. The billing notes page was developed for customer receivable tracking. It loads backend-controlled eligible sales, groups them into billing notes, tracks whether each line has been received, and shows summary values, status filters, expected payment dates, actual payment dates, bank references, and linked credit note information.
+Figure~\ref{fig:billing-note-workflow} shows the billing note workflow for grouping eligible customer sales into receivable documents. The billing notes page was developed for customer receivable tracking. It loads backend-controlled eligible sales, groups them into billing notes, tracks whether each line has been received, and shows summary values, status filters, expected payment dates, actual payment dates, bank references, and linked credit note information.
 
 The credit notes page was developed for adjustments after a sale is cancelled or returned. The backend provides eligible sale lines, and the credit note stores customer information, sale reference, optional billing note link, line items, and total credited amount. This keeps the credit document connected to the original sale item while preserving a readable adjustment record.
 
@@ -149,7 +149,7 @@ The credit notes page was developed for adjustments after a sale is cancelled or
 	\label{fig:payment-batch-workflow}
 \end{figure}
 
-Figure~\ref{fig:payment-batch-workflow} shows the payment batch page for supplier payables. The payment batches page was developed to load eligible purchases from the backend instead of allowing users to manually select any purchase. Each payment batch stores supplier information, planned and actual payment dates, bank reference, total amount, and paid line status, keeping supplier payment tracking in one place.
+Figure~\ref{fig:payment-batch-workflow} shows the payment batch workflow for grouping eligible supplier purchases into payable batches. The payment batches page was developed to load eligible purchases from the backend instead of allowing users to manually select any purchase. Each payment batch stores supplier information, planned and actual payment dates, bank reference, total amount, and paid line status, keeping supplier payment tracking in one place.
 
 \begin{figure}[H]
 	\centering
@@ -159,7 +159,7 @@ Figure~\ref{fig:payment-batch-workflow} shows the payment batch page for supplie
 	\label{fig:user-access-page}
 \end{figure}
 
-Figure~\ref{fig:user-access-page} shows the user access page where authorized administrators can create staff accounts, assign roles, update account status, and review role permissions. The login and access flow was developed with Simple JWT login, refresh, authenticated profile endpoints, frontend token storage, token refresh behavior, and logout handling. The backend-wide requirement for authentication can be controlled through the \texttt{INVENTORY\_REQUIRE\_AUTH} environment setting.
+Figure~\ref{fig:user-access-page} shows the user access management page for administrator account and role control. The login and access flow was developed with Simple JWT login, refresh, authenticated profile endpoints, frontend token storage, token refresh behavior, and logout handling. The backend-wide requirement for authentication can be controlled through the \texttt{INVENTORY\_REQUIRE\_AUTH} environment setting.
 
 \begin{figure}[H]
 	\centering
@@ -169,7 +169,7 @@ Figure~\ref{fig:user-access-page} shows the user access page where authorized ad
 	\label{fig:activity-log-page}
 \end{figure}
 
-Figure~\ref{fig:activity-log-page} shows the activity log page where authorized users can review important system events such as login, create, update, and delete actions. The access system uses Django groups and permissions, with default roles such as Admin, Manager, Sales, Purchasing, Accounting, and Viewer to control which modules each user can view or update.
+Figure~\ref{fig:activity-log-page} shows the activity log page for reviewing important system events such as login, create, update, and delete actions. The access system uses Django groups and permissions, with default roles such as Admin, Manager, Sales, Purchasing, Accounting, and Viewer to control which modules each user can view or update.
 
 \section{Results by Workflow}
 \subsection{Master Data Results}
