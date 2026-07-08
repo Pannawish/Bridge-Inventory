@@ -2,6 +2,113 @@
 
 This appendix provides a practical guide for using the Inventory Management web application. It is written for daily users such as administrators, product controllers, purchasing staff, sales staff, and finance staff. The guide follows the same business workflow used by the system: prepare master data, create quotations, buy from suppliers, sell to customers, follow up billing and payments, and review the business situation.
 
+\section{Starting the Software}
+
+The software can be started in two main ways. The recommended approach for demonstration is Docker Compose because it starts the MySQL database, Django backend API, and React/Vite frontend together. Manual startup can also be used when the developer wants to run each service directly on the local machine.
+
+\subsection{Starting with Docker Compose}
+
+Before starting, Docker Desktop should be installed and running. From the project root directory, run the following command:
+
+\begin{verbatim}
+docker compose up --build
+\end{verbatim}
+
+The first startup may take a few minutes because Docker needs to download images and build the application containers. When startup is complete, open the frontend application in a browser:
+
+\begin{verbatim}
+http://127.0.0.1:5173/
+\end{verbatim}
+
+The backend API and Django admin are available at:
+
+\begin{verbatim}
+http://127.0.0.1:8000/api/
+http://127.0.0.1:8000/admin/
+\end{verbatim}
+
+The backend container runs database migrations automatically before the server starts. The MySQL container uses port 3306 inside Docker and is exposed to the local machine on port 3307 to avoid conflict with a local MySQL server.
+
+To add demonstration operational data after the containers are running, use:
+
+\begin{verbatim}
+docker compose exec backend python manage.py seed_operational_data
+\end{verbatim}
+
+To create an administrator account for the Django admin page, use:
+
+\begin{verbatim}
+docker compose exec backend python manage.py createsuperuser
+\end{verbatim}
+
+To stop the running containers while keeping the database volume, use:
+
+\begin{verbatim}
+docker compose down
+\end{verbatim}
+
+To reset the Docker database completely, use the following commands only when the existing Docker database data should be deleted:
+
+\begin{verbatim}
+docker compose down -v
+docker compose up --build
+\end{verbatim}
+
+If AI Chat and AI Report should use live AI generation, start Docker Compose with an OpenAI API key:
+
+\begin{verbatim}
+OPENAI_API_KEY=your-key docker compose up --build
+\end{verbatim}
+
+\subsection{Starting Manually without Docker}
+
+Manual startup requires a local MySQL server, Python, and Node.js. First, create the MySQL database and user expected by the default backend environment file:
+
+\begin{verbatim}
+CREATE DATABASE inventory_db
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+CREATE USER 'inventory_user'@'localhost'
+IDENTIFIED BY 'inventory_password';
+GRANT ALL PRIVILEGES ON inventory_db.* TO 'inventory_user'@'localhost';
+GRANT ALL PRIVILEGES ON test_inventory_db.* TO 'inventory_user'@'localhost';
+FLUSH PRIVILEGES;
+\end{verbatim}
+
+In the first terminal, start the backend:
+
+\begin{verbatim}
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+python manage.py migrate
+python manage.py runserver 127.0.0.1:8000
+\end{verbatim}
+
+In the second terminal, start the frontend:
+
+\begin{verbatim}
+cd frontend
+npm install
+npm run dev -- --host 127.0.0.1
+\end{verbatim}
+
+Then open the application at:
+
+\begin{verbatim}
+http://127.0.0.1:5173/
+\end{verbatim}
+
+With the backend virtual environment active inside the backend directory, demonstration data and an administrator account can be created with:
+
+\begin{verbatim}
+python manage.py seed_operational_data
+python manage.py createsuperuser
+\end{verbatim}
+
 \section{Accessing the System}
 
 Users access the system through the web application sign-in page. A staff member should sign in with the username and password assigned by the administrator. If the system is used for demonstration or training only, the guest mode can be used to open the application with mock data. Guest mode should not be used for real business records because changes are not saved to the live database.

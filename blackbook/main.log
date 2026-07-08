@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  6 JUL 2026 19:01
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  8 JUL 2026 18:28
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1587,8 +1587,6 @@ Underfull \hbox (badness 10000) in paragraph at lines 45--52
 
 [69] (AppendixA.tex
 Appendix A.
-File: ../docs/screenshots/sidebar-navigation.png Graphic file (type bmp)
-<../docs/screenshots/sidebar-navigation.png>
 
 
 [70
@@ -1596,17 +1594,26 @@ File: ../docs/screenshots/sidebar-navigation.png Graphic file (type bmp)
 ]
 
 [71]
+
+[72]
+File: ../docs/screenshots/sidebar-navigation.png Graphic file (type bmp)
+<../docs/screenshots/sidebar-navigation.png>
+
+
+[73]
 File: ../docs/screenshots/product-form-unit-conversions.png Graphic file (type 
 bmp)
 <../docs/screenshots/product-form-unit-conversions.png>
 
 
-[72]
+[74]
+
+[75]
 File: ../docs/screenshots/quotation-entry.png Graphic file (type bmp)
 <../docs/screenshots/quotation-entry.png>
 
 
-[73]
+[76]
 File: ../docs/screenshots/purchase-form-receiving-status.png Graphic file (type
  bmp)
 <../docs/screenshots/purchase-form-receiving-status.png>
@@ -1615,18 +1622,18 @@ mp)
 <../docs/screenshots/sales-form-delivery-statuses.png>
 
 
-[74]
+[77]
 
-[75]
+[78]
 File: ../docs/screenshots/dashboard-overview.png Graphic file (type bmp)
 <../docs/screenshots/dashboard-overview.png>
 
 
-[76])
+[79])
 
-[77]
+[80]
 
-[78] 
+[81] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
 (main.aux)
  ***********
@@ -1642,10 +1649,10 @@ LaTeX Font Warning: Size substitutions with differences
 Here is how much of TeX's memory you used:
  24770 strings out of 402990
  528277 string characters out of 5447323
- 1120017 words of memory out of 5000000
+ 1120020 words of memory out of 5000000
  53015 multiletter control sequences out of 15000+600000
  633768 words of font info for 103 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  88i,13n,107p,1086b,964s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (92 pages).
+Output written on main.pdf (95 pages).

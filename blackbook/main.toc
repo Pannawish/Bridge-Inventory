@@ -87,12 +87,15 @@
 \setcounter {tocdepth}{0}
 \renewcommand {\cftchappresnum }{\MakeUppercase []{Appendix~}}\renewcommand {\cftchapnumwidth }{\dimexpr \appendixToCPrefix +2.5em}
 \contentsline {chapter}{\numberline {A}SOFTWARE USER GUIDE}{70}{}%
-\contentsline {section}{\numberline {A.1}Accessing the System}{70}{}%
-\contentsline {section}{\numberline {A.2}Basic Operating Rules}{71}{}%
-\contentsline {section}{\numberline {A.3}First-Time Master Data Setup}{71}{}%
-\contentsline {section}{\numberline {A.4}Daily Transaction Workflow}{73}{}%
-\contentsline {section}{\numberline {A.5}Finance Follow-Up Workflow}{74}{}%
-\contentsline {section}{\numberline {A.6}Inventory and Business Review}{76}{}%
-\contentsline {section}{\numberline {A.7}AI Chat and AI Report}{76}{}%
-\contentsline {section}{\numberline {A.8}Administration}{77}{}%
-\contentsline {section}{\numberline {A.9}Quick Reference}{78}{}%
+\contentsline {section}{\numberline {A.1}Starting the Software}{70}{}%
+\contentsline {subsection}{\numberline {A.1.1}Starting with Docker Compose}{70}{}%
+\contentsline {subsection}{\numberline {A.1.2}Starting Manually without Docker}{71}{}%
+\contentsline {section}{\numberline {A.2}Accessing the System}{73}{}%
+\contentsline {section}{\numberline {A.3}Basic Operating Rules}{73}{}%
+\contentsline {section}{\numberline {A.4}First-Time Master Data Setup}{74}{}%
+\contentsline {section}{\numberline {A.5}Daily Transaction Workflow}{76}{}%
+\contentsline {section}{\numberline {A.6}Finance Follow-Up Workflow}{77}{}%
+\contentsline {section}{\numberline {A.7}Inventory and Business Review}{79}{}%
+\contentsline {section}{\numberline {A.8}AI Chat and AI Report}{79}{}%
+\contentsline {section}{\numberline {A.9}Administration}{80}{}%
+\contentsline {section}{\numberline {A.10}Quick Reference}{81}{}%
