@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  8 JUL 2026 19:48
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  8 JUL 2026 20:13
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1537,27 +1537,19 @@ File: ./figures/chap4/figure-4-12-activity-log.png Graphic file (type bmp)
 
 [59]
 
-[60]
+[60]) (chapter5.tex
 
 [61]
-
-[62]
-
-[63]) (chapter5.tex
-
-[64]
 CHAPTER 5.
 
 
-[65
+[62
 
 ]
 
-[66]
+[63])
 
-[67])
-
-[68] (main.bbl
+[64] (main.bbl
 Underfull \hbox (badness 10000) in paragraph at lines 45--52
 []\TU/TimesNewRoman(0)/m/n/12 The Times.  Sole traders still not prepared for d
 igital tax re-
@@ -1583,39 +1575,39 @@ Underfull \hbox (badness 10000) in paragraph at lines 45--52
 
 )
 
-[69
+[65
 
 ]
 
-[70] (AppendixA.tex
+[66] (AppendixA.tex
 Appendix A.
 
 
-[71
+[67
 
 ]
 
-[72]
+[68]
 
-[73]
+[69]
 File: ../docs/screenshots/sidebar-navigation.png Graphic file (type bmp)
 <../docs/screenshots/sidebar-navigation.png>
 
 
-[74]
+[70]
 File: ../docs/screenshots/product-form-unit-conversions.png Graphic file (type 
 bmp)
 <../docs/screenshots/product-form-unit-conversions.png>
 
 
-[75]
+[71]
 
-[76]
+[72]
 File: ../docs/screenshots/quotation-entry.png Graphic file (type bmp)
 <../docs/screenshots/quotation-entry.png>
 
 
-[77]
+[73]
 File: ../docs/screenshots/purchase-form-receiving-status.png Graphic file (type
  bmp)
 <../docs/screenshots/purchase-form-receiving-status.png>
@@ -1624,18 +1616,18 @@ mp)
 <../docs/screenshots/sales-form-delivery-statuses.png>
 
 
-[78]
+[74]
 
-[79]
+[75]
 File: ../docs/screenshots/dashboard-overview.png Graphic file (type bmp)
 <../docs/screenshots/dashboard-overview.png>
 
 
-[80])
+[76])
 
-[81]
+[77]
 
-[82] 
+[78] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
 (main.aux)
  ***********
@@ -1651,10 +1643,10 @@ LaTeX Font Warning: Size substitutions with differences
 Here is how much of TeX's memory you used:
  24771 strings out of 402990
  528311 string characters out of 5447323
- 1120048 words of memory out of 5000000
+ 1118048 words of memory out of 5000000
  53016 multiletter control sequences out of 15000+600000
  633768 words of font info for 103 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  88i,13n,107p,1086b,964s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (96 pages).
+Output written on main.pdf (92 pages).

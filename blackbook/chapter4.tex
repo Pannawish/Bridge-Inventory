@@ -194,40 +194,15 @@ The workflow results are connected directly to the relational database design. M
 	\end{tabularx}
 \end{table}
 
-\subsection{Master Data Results}
-The master data pages cover products, categories, suppliers, and customers. Products can store SKUs, previous SKUs, names, categories, stock base units, default purchase and sales units, reorder levels, pictures, supplier links, and active status. Categories support hierarchy through parent categories. Suppliers and customers store contact, branch, shipping address, taxpayer, remark, and payment term information.
+The key workflow result is that each module uses the same normalized database instead of keeping isolated screen-only data. Master data supports transactions, transaction line items drive stock and financial values, and finance documents reference eligible source records. This makes the system traceable from product setup through purchasing, sales, billing, payment, reporting, and audit review.
 
-This result is important because the transaction pages depend on these records. Purchases need suppliers and products. Sales need customers and products. Quotations can use products, suppliers, and customers. The master data pages therefore work as the foundation of the system.
-
-\subsection{Purchasing and Stock Results}
-The purchase workflow includes purchase headers, purchase line items, item receiving status, expected delivery date, received date, uploaded documents, VAT fields, discounts, grand total, and payable total. A received purchase item increases available stock, while pending and cancelled purchase items do not.
-
-The stock result is calculated by the backend. The inventory and dashboard pages show current stock, pending purchase units, delayed purchase units, pending sales units, recommended restock, stock value, and supplier options. This makes the inventory page useful for daily checking because the user does not need to manually combine purchase and sales records.
-
-\subsection{Sales Results}
-The sales workflow includes sale headers, customer information, customer purchase order reference, sale line items, delivery statuses, uploaded documents, VAT fields, discounts, billing note links, credit note links, and source quotation links.
-
-The most important result in the sales module is server-side stock validation. A sale can stay as a draft even if there is not enough stock, but it cannot commit unavailable stock when the sale item becomes packed, shipped, or delivered. When stock is committed, the backend creates allocation records from received purchase layers. This gives better traceability between stock received from suppliers and stock sold to customers.
-
-\subsection{Quotation Results}
-The quotation workflow includes quotation date, validity settings, customer and supplier references, shipping date, payment terms, VAT mode, total values, line items, and supplier options for each line. Quotation lines are stored in relational tables, not as one large JSON field. The frontend can also start purchase or sale creation from a quotation.
-
-\subsection{Finance Results}
-The finance workflow uses billing notes, payment batches, and credit notes. Billing notes group eligible sales for customer receivables. Payment batches group eligible purchases for supplier payables. Credit notes are created from eligible cancelled or returned sale items.
-
-The backend eligibility endpoints are one of the useful results of this implementation. They reduce the chance of selecting the same sale into multiple active billing notes, selecting the same purchase into multiple active payment batches, or crediting the same returned/cancelled sale item more than once.
-
-\subsection{Dashboard and Inventory Results}
-The dashboard and inventory pages show the business status without loading every transaction into the frontend. The backend prepares stock report rows, finance summaries, cashflow buckets, product movement, popular products, and order coverage data. This result makes the interface faster and easier to use because the frontend receives summary data that is already prepared for display.
-
-\subsection{AI Assistant Results}
-The AI assistant was implemented as a limited read-only assistant. It can answer supported questions about low stock, restock scope, net position, order coverage, customer summary, supplier summary, overdue or exception issues, and line items for a known reference. The tests also show that questions outside these supported workflows are rejected as outside the current assistant scope.
-
-\subsection{AI Report Results}
-The AI report page provides scope selection, record selection, optional custom date range, and report generation. The backend collects purchases, sales, quotations, billing notes, payment batches, credit notes, and stock data for the selected supplier, customer, or product. It calculates summary metrics such as purchase totals, sales totals, open payables, open receivables, available stock, gross margin, and margin rate. It also builds trend charts, top product or partner charts, and record tables. When an OpenAI API key is configured, the backend sends the data context to the AI model for an executive summary and business analysis. When no API key is available, the backend builds a local report from the same data. The generated report opens in a new browser tab as a self-contained, print-ready HTML document with bilingual support.
-
-\subsection{User Access and Activity Log Results}
-The user-access function includes login, token refresh, authenticated user profile, role assignment, and permission management. Authorized administrators can create users, update account status, assign roles, and manage the permissions inside each role. The frontend uses the authenticated profile to show only the pages that the user is allowed to access. The backend also stores activity logs for important actions such as login, create, update, and delete events, and the activity-log page is only available to users with the correct access.
+\begin{enumerate}
+	\item Master data provides the reusable product, category, supplier, and customer records needed by every transaction workflow.
+	\item Purchasing and sales line items are the main source for stock movement. Received purchase items add stock, while committed sale items allocate stock from received purchase layers.
+	\item Quotations, billing notes, payment batches, and credit notes keep business documents connected through database references, reducing duplicate or unrelated finance records.
+	\item Dashboard, inventory, AI chat, and AI report outputs use backend-prepared data from the same transaction tables, so summary information stays consistent with the stored records.
+	\item User access and activity logs add control and traceability by connecting staff accounts, roles, permissions, and important system events.
+\end{enumerate}
 
 \section{Feature Evidence Summary}
 \begin{table}[H]
@@ -249,20 +224,6 @@ The user-access function includes login, token refresh, authenticated user profi
 		AI report generation & The AI report endpoint collects transaction data for a selected record, calculates metrics and charts, and returns a printable HTML report with optional AI-written analysis. \\ \hline
 	\end{tabularx}
 \end{table}
-
-\section{Key Findings}
-The first key finding is that inventory stock should be derived from transactions, not typed manually into the product record. In this system, stock depends on received purchase items and committed sales. This makes stock more reliable because it follows the actual business documents.
-
-The second key finding is that finance documents need backend eligibility rules. Billing notes, payment batches, and credit notes are easy to duplicate by mistake if the frontend is the only place checking them. Moving the rules to the backend makes the workflow safer.
-
-The third key finding is that historical snapshot fields are useful. Even when products, suppliers, and customers are stored as master data, old transactions still need to keep names, SKUs, prices, and totals so that the document remains understandable later.
-
-\section{Discussion of Objective Achievement}
-The first objective was to record purchase and sales transactions with process status and attachment support. This objective is achieved because purchases and sales both support line items, statuses, document uploads, and transaction detail views.
-
-The second objective was to provide inventory stock information and calculation support. This objective is achieved through backend stock calculations, inventory page stock rows, dashboard summaries, product history, stock layers, reorder information, and recommended restock values.
-
-The third objective was to integrate an AI chatbot connected to backend data. This objective is achieved within the current implemented scope. The assistant can answer supported read-only operational questions from backend data, but it is not a general-purpose chatbot and it does not change system records.
 
 \section{Testing and Evaluation Results}
 The system was evaluated using three types of evidence: automated backend validation, manual scenario testing, and user questionnaire results. Automated tests were used for business rules that must be exact, such as stock calculation, eligibility, and AI output validation. Scenario testing and questionnaires were used to evaluate how users performed the main workflow and how they perceived the system.
@@ -332,7 +293,7 @@ The test first created one product, two received purchase records, one pending p
 	\end{tabularx}
 \end{table}
 
-This result shows that the backend formula matched the manually expected values. The important point is that the dashboard did not only display a number; it returned values that could be reproduced from the input data.
+The backend formula matched the manually expected values shown in Table~\ref{tab:calculation-validation-output}.
 
 \subsection{AI Chat Validation Detail}
 The AI Chat validation checked whether the chat page answers from backend data instead of inventing business values. The test was performed by calling the backend chat function with fixed questions and known data. The important output fields were the answer text, the presentation title, the selected record references, and the model marker.
@@ -355,7 +316,7 @@ In this implementation, AI Chat returns a deterministic backend summary for supp
 	\end{tabularx}
 \end{table}
 
-This validation shows that AI Chat works as a controlled assistant. It can help users find operational information faster, but the important numbers still come from backend records and backend calculations.
+The validation records that supported AI Chat answers used backend records and backend calculations.
 
 \subsection{AI Report Validation Detail}
 The AI Report validation checked whether supplier, customer, and product reports are generated from the correct selected records. The test also checked that the final report is printable HTML, that chart rows come from backend data, and that unsafe model HTML is removed.
@@ -396,7 +357,7 @@ The report test used a controlled supplier and purchase record. The backend buil
 	\end{tabularx}
 \end{table}
 
-This validation shows that AI Report can use AI for presentation, but the selected records, metrics, charts, and tables are still prepared by the backend. The report therefore remains tied to system data rather than free-form model guessing.
+The validation records that selected records, metrics, charts, and tables were prepared by the backend before report output.
 
 \subsection{Manual Scenario Test}
 The manual scenario test asked users to complete the main business flow from quotation to purchase, purchase receiving, payment batch, sale, credit note, and billing note. Ten testers finished the scenario test. Tester names were removed from the stored result file and replaced with anonymous labels for privacy.
@@ -436,10 +397,10 @@ The manual scenario test asked users to complete the main business flow from quo
 	\end{tabularx}
 \end{table}
 
-The average scenario score across all parts was 9.21 out of 10. This suggests that testers were generally able to complete the main workflow successfully. The lower relative scores in Part B and Part F match the written comments, where some users mentioned that quotation-to-purchase flow, sale form details, or status buttons needed clearer visual guidance.
+The average scenario score across all parts was 9.21 out of 10. The lower relative scores in Part B and Part F match written comments about quotation-to-purchase flow, sale form details, and status-button clarity.
 
 \subsection{Questionnaire Result}
-After the scenario test, testers answered a 15-item questionnaire using a 1 to 5 rating scale. The average questionnaire score across all testers was 4.58 out of 5. This indicates a positive overall response to the system.
+After the scenario test, testers answered a 15-item questionnaire using a 1 to 5 rating scale. The average questionnaire score across all testers was 4.58 out of 5.
 
 \begin{table}[H]
 	\centering
@@ -476,7 +437,7 @@ The user comments showed several repeated themes. Positive feedback mentioned th
 	\end{tabularx}
 \end{table}
 
-Overall, the evaluation results show that the implemented system can support the intended business workflow, but the interface can still be improved by making important buttons, statuses, and financial actions easier to find.
+The recorded feedback identifies the main improvement areas as button visibility, status clarity, finance-action discoverability, and information density.
 
 \section{Limitations Found During Development}
 The system is functional, but some limitations remain:
