@@ -49,53 +49,53 @@
 \contentsline {subsection}{\numberline {3.9.6}Questionnaire Method}{29}{}%
 \contentsline {section}{\numberline {3.10}Tools and Technologies Used}{30}{}%
 \contentsline {chapter}{\numberline {4}RESULTS}{32}{}%
-\contentsline {section}{\numberline {4.1}Completed System Overview}{32}{}%
+\contentsline {section}{\numberline {4.1}System Overview}{32}{}%
 \contentsline {section}{\numberline {4.2}Implemented Modules}{33}{}%
 \contentsline {section}{\numberline {4.3}System Implementation}{34}{}%
 \contentsline {section}{\numberline {4.4}Results by Workflow}{46}{}%
-\contentsline {subsection}{\numberline {4.4.1}Master Data Results}{46}{}%
-\contentsline {subsection}{\numberline {4.4.2}Purchasing and Stock Results}{47}{}%
-\contentsline {subsection}{\numberline {4.4.3}Sales Results}{47}{}%
-\contentsline {subsection}{\numberline {4.4.4}Quotation Results}{47}{}%
-\contentsline {subsection}{\numberline {4.4.5}Finance Results}{48}{}%
-\contentsline {subsection}{\numberline {4.4.6}Dashboard and Inventory Results}{48}{}%
-\contentsline {subsection}{\numberline {4.4.7}AI Assistant Results}{48}{}%
-\contentsline {subsection}{\numberline {4.4.8}AI Report Results}{48}{}%
-\contentsline {subsection}{\numberline {4.4.9}User Access and Activity Log Results}{49}{}%
-\contentsline {section}{\numberline {4.5}Feature Evidence Summary}{50}{}%
-\contentsline {section}{\numberline {4.6}Key Findings}{51}{}%
-\contentsline {section}{\numberline {4.7}Discussion of Objective Achievement}{51}{}%
-\contentsline {section}{\numberline {4.8}Testing and Evaluation Results}{51}{}%
-\contentsline {subsection}{\numberline {4.8.1}Automated Backend Validation}{52}{}%
-\contentsline {subsection}{\numberline {4.8.2}Calculation Validation Detail}{53}{}%
-\contentsline {subsection}{\numberline {4.8.3}AI Chat Validation Detail}{55}{}%
-\contentsline {subsection}{\numberline {4.8.4}AI Report Validation Detail}{56}{}%
-\contentsline {subsection}{\numberline {4.8.5}Manual Scenario Test}{58}{}%
-\contentsline {subsection}{\numberline {4.8.6}Questionnaire Result}{61}{}%
-\contentsline {subsection}{\numberline {4.8.7}User Feedback Summary}{61}{}%
-\contentsline {section}{\numberline {4.9}Limitations Found During Development}{62}{}%
-\contentsline {chapter}{\numberline {5}CONCLUSION}{64}{}%
-\contentsline {section}{\numberline {5.1}Brief Project Overview}{64}{}%
-\contentsline {section}{\numberline {5.2}Objective Summary}{64}{}%
-\contentsline {section}{\numberline {5.3}System Design Summary}{64}{}%
-\contentsline {section}{\numberline {5.4}Implementation Summary}{65}{}%
-\contentsline {section}{\numberline {5.5}Result Summary}{65}{}%
-\contentsline {section}{\numberline {5.6}Key Findings}{66}{}%
-\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{66}{}%
-\contentsline {section}{\numberline {5.8}Future Work}{66}{}%
-\contentsline {chapter}{REFERENCES}{68}{}%
+\contentsline {subsection}{\numberline {4.4.1}Master Data Results}{48}{}%
+\contentsline {subsection}{\numberline {4.4.2}Purchasing and Stock Results}{48}{}%
+\contentsline {subsection}{\numberline {4.4.3}Sales Results}{48}{}%
+\contentsline {subsection}{\numberline {4.4.4}Quotation Results}{49}{}%
+\contentsline {subsection}{\numberline {4.4.5}Finance Results}{49}{}%
+\contentsline {subsection}{\numberline {4.4.6}Dashboard and Inventory Results}{49}{}%
+\contentsline {subsection}{\numberline {4.4.7}AI Assistant Results}{49}{}%
+\contentsline {subsection}{\numberline {4.4.8}AI Report Results}{50}{}%
+\contentsline {subsection}{\numberline {4.4.9}User Access and Activity Log Results}{50}{}%
+\contentsline {section}{\numberline {4.5}Feature Evidence Summary}{51}{}%
+\contentsline {section}{\numberline {4.6}Key Findings}{52}{}%
+\contentsline {section}{\numberline {4.7}Discussion of Objective Achievement}{52}{}%
+\contentsline {section}{\numberline {4.8}Testing and Evaluation Results}{52}{}%
+\contentsline {subsection}{\numberline {4.8.1}Automated Backend Validation}{53}{}%
+\contentsline {subsection}{\numberline {4.8.2}Calculation Validation Detail}{54}{}%
+\contentsline {subsection}{\numberline {4.8.3}AI Chat Validation Detail}{56}{}%
+\contentsline {subsection}{\numberline {4.8.4}AI Report Validation Detail}{57}{}%
+\contentsline {subsection}{\numberline {4.8.5}Manual Scenario Test}{59}{}%
+\contentsline {subsection}{\numberline {4.8.6}Questionnaire Result}{62}{}%
+\contentsline {subsection}{\numberline {4.8.7}User Feedback Summary}{62}{}%
+\contentsline {section}{\numberline {4.9}Limitations Found During Development}{63}{}%
+\contentsline {chapter}{\numberline {5}CONCLUSION}{65}{}%
+\contentsline {section}{\numberline {5.1}Brief Project Overview}{65}{}%
+\contentsline {section}{\numberline {5.2}Objective Summary}{65}{}%
+\contentsline {section}{\numberline {5.3}System Design Summary}{65}{}%
+\contentsline {section}{\numberline {5.4}Implementation Summary}{66}{}%
+\contentsline {section}{\numberline {5.5}Result Summary}{66}{}%
+\contentsline {section}{\numberline {5.6}Key Findings}{67}{}%
+\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{67}{}%
+\contentsline {section}{\numberline {5.8}Future Work}{67}{}%
+\contentsline {chapter}{REFERENCES}{69}{}%
 \setcounter {tocdepth}{0}
 \renewcommand {\cftchappresnum }{\MakeUppercase []{Appendix~}}\renewcommand {\cftchapnumwidth }{\dimexpr \appendixToCPrefix +2.5em}
-\contentsline {chapter}{\numberline {A}SOFTWARE USER GUIDE}{70}{}%
-\contentsline {section}{\numberline {A.1}Starting the Software}{70}{}%
-\contentsline {subsection}{\numberline {A.1.1}Starting with Docker Compose}{70}{}%
-\contentsline {subsection}{\numberline {A.1.2}Starting Manually without Docker}{71}{}%
-\contentsline {section}{\numberline {A.2}Accessing the System}{73}{}%
-\contentsline {section}{\numberline {A.3}Basic Operating Rules}{73}{}%
-\contentsline {section}{\numberline {A.4}First-Time Master Data Setup}{74}{}%
-\contentsline {section}{\numberline {A.5}Daily Transaction Workflow}{76}{}%
-\contentsline {section}{\numberline {A.6}Finance Follow-Up Workflow}{77}{}%
-\contentsline {section}{\numberline {A.7}Inventory and Business Review}{79}{}%
-\contentsline {section}{\numberline {A.8}AI Chat and AI Report}{79}{}%
-\contentsline {section}{\numberline {A.9}Administration}{80}{}%
-\contentsline {section}{\numberline {A.10}Quick Reference}{81}{}%
+\contentsline {chapter}{\numberline {A}SOFTWARE USER GUIDE}{71}{}%
+\contentsline {section}{\numberline {A.1}Starting the Software}{71}{}%
+\contentsline {subsection}{\numberline {A.1.1}Starting with Docker Compose}{71}{}%
+\contentsline {subsection}{\numberline {A.1.2}Starting Manually without Docker}{72}{}%
+\contentsline {section}{\numberline {A.2}Accessing the System}{74}{}%
+\contentsline {section}{\numberline {A.3}Basic Operating Rules}{74}{}%
+\contentsline {section}{\numberline {A.4}First-Time Master Data Setup}{75}{}%
+\contentsline {section}{\numberline {A.5}Daily Transaction Workflow}{77}{}%
+\contentsline {section}{\numberline {A.6}Finance Follow-Up Workflow}{78}{}%
+\contentsline {section}{\numberline {A.7}Inventory and Business Review}{80}{}%
+\contentsline {section}{\numberline {A.8}AI Chat and AI Report}{80}{}%
+\contentsline {section}{\numberline {A.9}Administration}{81}{}%
+\contentsline {section}{\numberline {A.10}Quick Reference}{82}{}%

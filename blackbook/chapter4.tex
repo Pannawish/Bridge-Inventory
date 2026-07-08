@@ -1,8 +1,8 @@
 \chapter{RESULTS}
 
-This chapter explains the result of the implemented Inventory Management System. The result is based on the current codebase and the pages that are already implemented in the web application. The calculation formulas are explained in Chapter 2, and the development method is explained in Chapter 3, so this chapter focuses on what the completed system can do and how each page works in practice.
+This chapter explains the result of the implemented Inventory Management System. The result is based on the current codebase and the pages that are already implemented in the web application. The calculation formulas are explained in Chapter 2, and the development method is explained in Chapter 3, so this chapter focuses on what the system can do and how each page works in practice.
 
-\section{Completed System Overview}
+\section{System Overview}
 The final system is a full-stack web application for an SME trading business. It supports the flow from product setup to purchasing, selling, billing, supplier payment, credit note adjustment, inventory checking, dashboard reporting, and limited AI-assisted questions.
 
 The main result is that the system connects business documents together instead of keeping them as separate records. A product can appear in purchases, sales, quotations, inventory reports, and product history. A sale can later become part of a billing note or a credit note. A purchase can later become part of a payment batch. This connection makes the system more useful than a simple product list.
@@ -15,15 +15,15 @@ The main result is that the system connects business documents together instead 
 	\label{tab:implemented-system-modules}
 	\begin{tabularx}{\textwidth}{|B{2.8cm}|Z|D{1.9cm}|}
 		\hline
-		\textbf{Module} & \textbf{Implemented Result} & \textbf{Status} \\ \hline
-		Dashboard & Shows stock, finance, cashflow, product movement, and order coverage summaries. & Completed \\ \hline
-		Inventory & Shows backend-calculated stock rows, reorder need, supplier options, product details, and quick purchase-order preparation. & Completed \\ \hline
-		AI Chat & Answers supported read-only questions about stock, fulfillment, partner summaries, AR/AP exceptions, and document references. & Completed \\ \hline
-		AI Report & Generates printable business reports for a selected supplier, customer, or product with metrics, charts, record tables, and AI analysis. & Completed \\ \hline
-		Purchases & Supports purchase records, line items, receiving status, documents, discounts, VAT totals, payable total, and payment batch links. & Completed \\ \hline
-		Payment Batches & Groups eligible purchases for supplier payment and tracks paid or unpaid lines. & Completed \\ \hline
-		Quotations & Supports quotation records, line items, supplier options, validity settings, VAT totals, and conversion to purchase or sale flow. & Completed \\ \hline
-		Sales & Supports sales records, stock validation, stock allocation, delivery status, documents, VAT totals, billing links, and credit links. & Completed \\ \hline
+		\textbf{Module} & \textbf{Implemented Result} & \textbf{Role} \\ \hline
+		Dashboard & Shows stock, finance, cashflow, product movement, and order coverage summaries. & Operational summary \\ \hline
+		Inventory & Shows backend-calculated stock rows, reorder need, supplier options, product details, and quick purchase-order preparation. & Stock control \\ \hline
+		AI Chat & Answers supported read-only questions about stock, fulfillment, partner summaries, AR/AP exceptions, and document references. & Read-only support \\ \hline
+		AI Report & Generates printable business reports for a selected supplier, customer, or product with metrics, charts, record tables, and AI analysis. & Printable reporting \\ \hline
+		Purchases & Supports purchase records, line items, receiving status, documents, discounts, VAT totals, payable total, and payment batch links. & Supplier ordering \\ \hline
+		Payment Batches & Groups eligible purchases for supplier payment and tracks paid or unpaid lines. & Supplier payable \\ \hline
+		Quotations & Supports quotation records, line items, supplier options, validity settings, VAT totals, and conversion to purchase or sale flow. & Customer offer \\ \hline
+		Sales & Supports sales records, stock validation, stock allocation, delivery status, documents, VAT totals, billing links, and credit links. & Customer order \\ \hline
 	\end{tabularx}
 \end{table}
 
@@ -34,13 +34,13 @@ The main result is that the system connects business documents together instead 
 	\label{tab:implemented-record-modules}
 	\begin{tabularx}{\textwidth}{|B{2.8cm}|Z|D{1.9cm}|}
 		\hline
-		\textbf{Module} & \textbf{Implemented Result} & \textbf{Status} \\ \hline
-		Billing Notes & Groups eligible sales for customer receivable tracking and tracks received or outstanding lines. & Completed \\ \hline
-		Credit Notes & Creates credit notes from eligible cancelled or returned sale items. & Completed \\ \hline
-		Products & Supports product CRUD, SKUs, pictures, unit conversions, reorder levels, active status, supplier links, and product history. & Completed \\ \hline
-		Categories & Supports category records with parent-child hierarchy. & Completed \\ \hline
-		Suppliers & Supports supplier profile, contact, branch, shipping address, procurement contact, and payment term data. & Completed \\ \hline
-		Customers & Supports customer profile, contact, branch, shipping address, and billing term data. & Completed \\ \hline
+		\textbf{Module} & \textbf{Implemented Result} & \textbf{Role} \\ \hline
+		Billing Notes & Groups eligible sales for customer receivable tracking and tracks received or outstanding lines. & Customer receivable \\ \hline
+		Credit Notes & Creates credit notes from eligible cancelled or returned sale items. & Return adjustment \\ \hline
+		Products & Supports product CRUD, SKUs, pictures, unit conversions, reorder levels, active status, supplier links, and product history. & Product catalog \\ \hline
+		Categories & Supports category records with parent-child hierarchy. & Category tree \\ \hline
+		Suppliers & Supports supplier profile, contact, branch, shipping address, procurement contact, and payment term data. & Supplier profile \\ \hline
+		Customers & Supports customer profile, contact, branch, shipping address, and billing term data. & Customer profile \\ \hline
 	\end{tabularx}
 \end{table}
 
@@ -172,26 +172,48 @@ Figure~\ref{fig:user-access-page} shows the user access management page for admi
 Figure~\ref{fig:activity-log-page} shows the activity log page for reviewing important system events such as login, create, update, and delete actions. The access system uses Django groups and permissions, with default roles such as Admin, Manager, Sales, Purchasing, Accounting, and Viewer to control which modules each user can view or update.
 
 \section{Results by Workflow}
+The workflow results are connected directly to the relational database design. Master records such as products, suppliers, customers, and categories provide the reusable business entities. Transaction records then reference those master records while keeping snapshot fields, so historical documents remain readable even if master data changes later. Line-item tables store the actual product quantities, prices, statuses, and totals used by stock, finance, dashboard, and report calculations.
+
+\begin{table}[!htbp]
+	\centering
+	\BlackbookTableSetup
+	\renewcommand{\arraystretch}{1.3}
+	\caption{Workflow Results and Related Database Entities}
+	\label{tab:workflow-database-entity-map}
+	\begin{tabularx}{\textwidth}{|B{3cm}|B{4.7cm}|Z|}
+		\hline
+		\textbf{Workflow Area} & \textbf{Main Database Entities} & \textbf{Relationship to the Result} \\ \hline
+		Master data & \texttt{Product}, \texttt{Category}, \texttt{Supplier}, \texttt{Customer}, \texttt{ProductPicture}, \texttt{ProductUnitConversion}, \texttt{ProductSupplier} & These tables store reusable product and partner records. Transactions reference them through foreign keys while also keeping snapshot names, SKUs, and terms for historical documents. \\ \hline
+		Purchasing and stock & \texttt{Purchase}, \texttt{PurchaseItem}, \texttt{PurchaseDocument}, \texttt{Product}, \texttt{Supplier} & Purchase headers link to suppliers, and purchase items link to products. Received purchase items are the inbound stock source used by inventory and dashboard calculations. \\ \hline
+		Sales & \texttt{Sale}, \texttt{SaleItem}, \texttt{SaleItemAllocation}, \texttt{PurchaseItem}, \texttt{Customer}, \texttt{Product} & Sale headers link to customers, sale items link to products, and allocation rows connect sold quantities back to received purchase layers for traceability. \\ \hline
+		Quotations & \texttt{Quotation}, \texttt{QuotationItem}, \texttt{QuotationItemSupplier}, \texttt{Customer}, \texttt{Supplier}, \texttt{Product} & Quotation headers store customer and supplier context, quotation items store requested products, and supplier option rows store alternative costs for each line. \\ \hline
+		Finance & \texttt{BillingNote}, \texttt{BillingNoteLine}, \texttt{PaymentBatch}, \texttt{PaymentBatchLine}, \texttt{CreditNote}, \texttt{CreditNoteLine}, \texttt{Sale}, \texttt{Purchase} & Finance documents group eligible sales or purchases through line tables, while credit notes reference the original sale so adjustments stay tied to the source transaction. \\ \hline
+		Dashboard and inventory & \texttt{Product}, \texttt{PurchaseItem}, \texttt{SaleItem}, \texttt{ProductSupplier}, \texttt{BillingNote}, \texttt{PaymentBatch} & Dashboard and inventory values are calculated from existing operational tables instead of storing a separate mutable stock total. \\ \hline
+		AI assistant and AI report & \texttt{Product}, \texttt{Supplier}, \texttt{Customer}, \texttt{Purchase}, \texttt{Sale}, \texttt{Quotation}, \texttt{BillingNote}, \texttt{PaymentBatch}, \texttt{CreditNote} & Assistant answers and printable reports use backend-prepared records from the same database entities that support the normal workflows. \\ \hline
+		User access and activity log & \texttt{User}, \texttt{Group}, \texttt{Permission}, \texttt{ActivityLog} & Django authentication tables store users, roles, and permissions, while the activity log records important system actions for review. \\ \hline
+	\end{tabularx}
+\end{table}
+
 \subsection{Master Data Results}
-The master data pages were completed for products, categories, suppliers, and customers. Products can store SKUs, previous SKUs, names, categories, stock base units, default purchase and sales units, reorder levels, pictures, supplier links, and active status. Categories support hierarchy through parent categories. Suppliers and customers store contact, branch, shipping address, taxpayer, remark, and payment term information.
+The master data pages cover products, categories, suppliers, and customers. Products can store SKUs, previous SKUs, names, categories, stock base units, default purchase and sales units, reorder levels, pictures, supplier links, and active status. Categories support hierarchy through parent categories. Suppliers and customers store contact, branch, shipping address, taxpayer, remark, and payment term information.
 
 This result is important because the transaction pages depend on these records. Purchases need suppliers and products. Sales need customers and products. Quotations can use products, suppliers, and customers. The master data pages therefore work as the foundation of the system.
 
 \subsection{Purchasing and Stock Results}
-The purchase workflow was completed with purchase headers, purchase line items, item receiving status, expected delivery date, received date, uploaded documents, VAT fields, discounts, grand total, and payable total. A received purchase item increases available stock, while pending and cancelled purchase items do not.
+The purchase workflow includes purchase headers, purchase line items, item receiving status, expected delivery date, received date, uploaded documents, VAT fields, discounts, grand total, and payable total. A received purchase item increases available stock, while pending and cancelled purchase items do not.
 
 The stock result is calculated by the backend. The inventory and dashboard pages show current stock, pending purchase units, delayed purchase units, pending sales units, recommended restock, stock value, and supplier options. This makes the inventory page useful for daily checking because the user does not need to manually combine purchase and sales records.
 
 \subsection{Sales Results}
-The sales workflow was completed with sale headers, customer information, customer purchase order reference, sale line items, delivery statuses, uploaded documents, VAT fields, discounts, billing note links, credit note links, and source quotation links.
+The sales workflow includes sale headers, customer information, customer purchase order reference, sale line items, delivery statuses, uploaded documents, VAT fields, discounts, billing note links, credit note links, and source quotation links.
 
 The most important result in the sales module is server-side stock validation. A sale can stay as a draft even if there is not enough stock, but it cannot commit unavailable stock when the sale item becomes packed, shipped, or delivered. When stock is committed, the backend creates allocation records from received purchase layers. This gives better traceability between stock received from suppliers and stock sold to customers.
 
 \subsection{Quotation Results}
-The quotation workflow was completed with quotation date, validity settings, customer and supplier references, shipping date, payment terms, VAT mode, total values, line items, and supplier options for each line. Quotation lines are stored in relational tables, not as one large JSON field. The frontend can also start purchase or sale creation from a quotation.
+The quotation workflow includes quotation date, validity settings, customer and supplier references, shipping date, payment terms, VAT mode, total values, line items, and supplier options for each line. Quotation lines are stored in relational tables, not as one large JSON field. The frontend can also start purchase or sale creation from a quotation.
 
 \subsection{Finance Results}
-The finance workflow was completed through billing notes, payment batches, and credit notes. Billing notes group eligible sales for customer receivables. Payment batches group eligible purchases for supplier payables. Credit notes are created from eligible cancelled or returned sale items.
+The finance workflow uses billing notes, payment batches, and credit notes. Billing notes group eligible sales for customer receivables. Payment batches group eligible purchases for supplier payables. Credit notes are created from eligible cancelled or returned sale items.
 
 The backend eligibility endpoints are one of the useful results of this implementation. They reduce the chance of selecting the same sale into multiple active billing notes, selecting the same purchase into multiple active payment batches, or crediting the same returned/cancelled sale item more than once.
 
@@ -202,10 +224,10 @@ The dashboard and inventory pages show the business status without loading every
 The AI assistant was implemented as a limited read-only assistant. It can answer supported questions about low stock, restock scope, net position, order coverage, customer summary, supplier summary, overdue or exception issues, and line items for a known reference. The tests also show that questions outside these supported workflows are rejected as outside the current assistant scope.
 
 \subsection{AI Report Results}
-The AI report page was completed with scope selection, record selection, optional custom date range, and report generation. The backend collects purchases, sales, quotations, billing notes, payment batches, credit notes, and stock data for the selected supplier, customer, or product. It calculates summary metrics such as purchase totals, sales totals, open payables, open receivables, available stock, gross margin, and margin rate. It also builds trend charts, top product or partner charts, and record tables. When an OpenAI API key is configured, the backend sends the data context to the AI model for an executive summary and business analysis. When no API key is available, the backend builds a local report from the same data. The generated report opens in a new browser tab as a self-contained, print-ready HTML document with bilingual support.
+The AI report page provides scope selection, record selection, optional custom date range, and report generation. The backend collects purchases, sales, quotations, billing notes, payment batches, credit notes, and stock data for the selected supplier, customer, or product. It calculates summary metrics such as purchase totals, sales totals, open payables, open receivables, available stock, gross margin, and margin rate. It also builds trend charts, top product or partner charts, and record tables. When an OpenAI API key is configured, the backend sends the data context to the AI model for an executive summary and business analysis. When no API key is available, the backend builds a local report from the same data. The generated report opens in a new browser tab as a self-contained, print-ready HTML document with bilingual support.
 
 \subsection{User Access and Activity Log Results}
-The user-access function was completed with login, token refresh, authenticated user profile, role assignment, and permission management. Authorized administrators can create users, update account status, assign roles, and manage the permissions inside each role. The frontend uses the authenticated profile to show only the pages that the user is allowed to access. The backend also stores activity logs for important actions such as login, create, update, and delete events, and the activity-log page is only available to users with the correct access.
+The user-access function includes login, token refresh, authenticated user profile, role assignment, and permission management. Authorized administrators can create users, update account status, assign roles, and manage the permissions inside each role. The frontend uses the authenticated profile to show only the pages that the user is allowed to access. The backend also stores activity logs for important actions such as login, create, update, and delete events, and the activity-log page is only available to users with the correct access.
 
 \section{Feature Evidence Summary}
 \begin{table}[H]
@@ -377,7 +399,7 @@ The report test used a controlled supplier and purchase record. The backend buil
 This validation shows that AI Report can use AI for presentation, but the selected records, metrics, charts, and tables are still prepared by the backend. The report therefore remains tied to system data rather than free-form model guessing.
 
 \subsection{Manual Scenario Test}
-The manual scenario test asked users to complete the main business flow from quotation to purchase, purchase receiving, payment batch, sale, credit note, and billing note. Ten testers completed the scenario test. Tester names were removed from the stored result file and replaced with anonymous labels for privacy.
+The manual scenario test asked users to complete the main business flow from quotation to purchase, purchase receiving, payment batch, sale, credit note, and billing note. Ten testers finished the scenario test. Tester names were removed from the stored result file and replaced with anonymous labels for privacy.
 
 \begin{table}[H]
 	\centering
@@ -406,11 +428,11 @@ The manual scenario test asked users to complete the main business flow from quo
 		Part A & 151.9 seconds & 9.0/10 & Initial quotation workflow took the longest because it starts the process and requires more data entry. \\ \hline
 		Part B & 71.8 seconds & 8.9/10 & Purchase creation from quotation was generally successful, but some users needed time to understand the flow. \\ \hline
 		Part C & 29.7 seconds & 9.5/10 & Receiving purchase items was one of the faster and clearer tasks. \\ \hline
-		Part D & 65.1 seconds & 9.5/10 & Payment-related workflow was completed with high scores. \\ \hline
-		Part E & 40.4 seconds & 9.2/10 & Sale-related checking was completed successfully, although some users needed to read more information. \\ \hline
-		Part F & 43.1 seconds & 8.9/10 & Status-related actions were completed, but comments showed that status buttons should be clearer. \\ \hline
+		Part D & 65.1 seconds & 9.5/10 & Payment-related workflow received high scores. \\ \hline
+		Part E & 40.4 seconds & 9.2/10 & Sale-related checking was successful, although some users needed to read more information. \\ \hline
+		Part F & 43.1 seconds & 8.9/10 & Status-related actions worked, but comments showed that status buttons should be clearer. \\ \hline
 		Part G & 7.2 seconds & 9.3/10 & The shortest part, showing that the required action was quick once found. \\ \hline
-		Part H & 49.1 seconds & 9.4/10 & Final billing or finance-related workflow was completed with high scores. \\ \hline
+		Part H & 49.1 seconds & 9.4/10 & Final billing or finance-related workflow received high scores. \\ \hline
 	\end{tabularx}
 \end{table}
 
@@ -463,6 +485,6 @@ The system is functional, but some limitations remain:
 	\item Backend-wide authentication is configurable, so the final deployment setting must be checked before production use.
 	\item User access is implemented with role and permission management, but production deployment should still review the final staff roles, permission assignments, and administrator accounts before real company use.
 	\item The frontend still keeps mock-data fallback behavior for demonstration, so final evaluation should use backend-connected data.
-	\item Large-scale production performance testing with many users and a very large database was not completed in the current codebase.
+	\item Large-scale production performance testing with many users and a very large database was not included in the current codebase.
 	\item User testing was conducted with 10 participants, so the result is useful for project evaluation but not enough to represent all possible SME users.
 \end{itemize}
