@@ -122,6 +122,8 @@ export function useAppChat({ api, t, setError, mockMode = false }) {
           content: response.answer || "No answer returned.",
           model: response.used_model,
           presentation: response.presentation || null,
+          conclusion: response.conclusion || "",
+          highlights: response.highlights || [],
         },
       ]);
     } catch (requestError) {

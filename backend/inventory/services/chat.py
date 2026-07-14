@@ -49,6 +49,7 @@ from .dashboard import (
     build_order_coverage_segment,
     build_products_segment,
 )
+from .openai_chat import generate_openai_chat_response
 from .transactions import SALE_INACTIVE_TRANSACTION_STATUSES
 
 
@@ -1811,13 +1812,16 @@ def answer_inventory_question(question, request=None):
     context = build_ai_inventory_context(question, request)
     presentation = build_chat_presentation(question, context)
     local_answer = build_local_chat_answer(question, context, presentation)
-    # Chat answers are used for operational decisions, so the API returns only
-    # the deterministic summary built from current database records.
-    return {
-        "answer": local_answer,
-        "used_model": "local-summary",
+    model_response = generate_openai_chat_response(question, presentation, local_answer)
+    response = {
+        "answer": model_response["answer"] or local_answer,
+        "used_model": model_response["used_model"],
         "presentation": presentation,
     }
+    if model_response["used_model"] != "local-summary":
+        response["conclusion"] = model_response["conclusion"]
+        response["highlights"] = model_response["highlights"]
+    return response
 
 __all__ = [
     "CHAT_INITIAL_RECORD_LIMIT",

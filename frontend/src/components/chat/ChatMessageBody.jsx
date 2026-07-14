@@ -191,6 +191,36 @@ function ChatTextContent({ content }) {
   );
 }
 
+function ChatAiInsights({ conclusion, highlights }) {
+  const { t } = useLanguage();
+  const visibleHighlights = Array.isArray(highlights) ? highlights.filter(Boolean) : [];
+
+  if (!conclusion && !visibleHighlights.length) {
+    return null;
+  }
+
+  return (
+    <div className="chat-section-list chat-ai-insights">
+      {conclusion ? (
+        <section className="chat-section-card">
+          <h5>{t("chat.aiConclusion")}</h5>
+          <p>{conclusion}</p>
+        </section>
+      ) : null}
+      {visibleHighlights.length ? (
+        <section className="chat-section-card">
+          <h5>{t("chat.aiHighlights")}</h5>
+          <ul className="chat-inline-list">
+            {visibleHighlights.map((highlight, index) => (
+              <li key={`highlight-${index}`}>{highlight}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
 function ChatMessageBody({ message, onOpenRecord }) {
   const showText = message.content && (!message.presentation || message.model !== "local-summary");
 
@@ -200,6 +230,7 @@ function ChatMessageBody({ message, onOpenRecord }) {
         <ChatPresentation presentation={message.presentation} onOpenRecord={onOpenRecord} />
       ) : null}
       {showText ? <ChatTextContent content={message.content} /> : null}
+      <ChatAiInsights conclusion={message.conclusion} highlights={message.highlights} />
     </div>
   );
 }

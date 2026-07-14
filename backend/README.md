@@ -90,7 +90,8 @@ Notes:
 
 - `INVENTORY_REQUIRE_AUTH=False` keeps the API open in local development.
 - When `INVENTORY_REQUIRE_AUTH=True`, model viewsets require authentication and enforce Django model permissions through `InventoryModelPermissions`.
-- If `OPENAI_API_KEY` is empty, `/api/chat/` and `/api/ai-reports/` still work using local fallback output instead of calling OpenAI.
+- If `OPENAI_API_KEY` is set, `/api/chat/` uses the configured model to explain backend-prepared, read-only inventory facts. The backend remains authoritative for all stock and financial values.
+- If `OPENAI_API_KEY` is empty or an OpenAI request fails, `/api/chat/` and `/api/ai-reports/` still work using local fallback output.
 - `INVENTORY_DEFAULT_PAGE_SIZE` and `INVENTORY_MAX_PAGE_SIZE` control opt-in pagination limits.
 
 ## MySQL Setup
@@ -343,9 +344,10 @@ Quotations:
 
 Behavior:
 
-- If `OPENAI_API_KEY` is set, the backend calls the configured `OPENAI_MODEL`.
-- If `OPENAI_API_KEY` is empty, the backend returns a local read-only summary built from current inventory data.
-- The response includes `answer`, `used_model`, and a structured `presentation` payload for the frontend chat cards.
+- The backend builds the inventory facts and structured presentation before any model request.
+- If `OPENAI_API_KEY` is set, the backend calls the configured `OPENAI_MODEL` to provide a concise explanation of those verified facts.
+- If `OPENAI_API_KEY` is empty or the model request fails, the backend returns a local read-only summary built from current inventory data.
+- The response includes `answer`, `used_model`, and a structured `presentation` payload for the frontend chat cards. Model-backed responses also include `conclusion` and `highlights`, generated only from the same verified facts.
 
 Current coverage includes:
 

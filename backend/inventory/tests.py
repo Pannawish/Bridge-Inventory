@@ -3656,6 +3656,8 @@ class ChatAssistantAlignmentTests(TestCase):
         response = answer_inventory_question("Which items are low stock?")
 
         self.assertEqual(response["used_model"], "local-summary")
+        self.assertNotIn("conclusion", response)
+        self.assertNotIn("highlights", response)
         self.assertEqual(response["presentation"]["title"], "Restock priorities")
         self.assertIn("Low-stock items: 1", response["answer"])
         self.assertIn("Chat Product (CHAT-1)", response["answer"])
@@ -3685,14 +3687,25 @@ class ChatAssistantAlignmentTests(TestCase):
         self.assertIn("AR: 300", response["answer"])
         self.assertIn("AP: 120", response["answer"])
 
-    def test_chat_uses_deterministic_summary_even_when_model_key_is_configured(self):
+    def test_chat_uses_openai_answer_when_model_key_is_configured(self):
         with self.settings(OPENAI_API_KEY="unused-test-key", OPENAI_MODEL="gpt-test"):
-            response = answer_inventory_question("What is our net position?")
+            with patch(
+                "inventory.services.chat.generate_openai_chat_response",
+                return_value={
+                    "answer": "The verified net position needs attention.",
+                    "conclusion": "Receivables exceed payables.",
+                    "highlights": ["Review overdue receivables."],
+                    "used_model": "gpt-test",
+                },
+            ) as mock_generate_answer:
+                response = answer_inventory_question("What is our net position?")
 
-        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["used_model"], "gpt-test")
+        self.assertEqual(response["answer"], "The verified net position needs attention.")
+        self.assertEqual(response["conclusion"], "Receivables exceed payables.")
+        self.assertEqual(response["highlights"], ["Review overdue receivables."])
         self.assertEqual(response["presentation"]["title"], "Net position")
-        self.assertIn("AR: 300", response["answer"])
-        self.assertIn("AP: 120", response["answer"])
+        mock_generate_answer.assert_called_once()
 
     def test_chat_with_configured_key_answers_from_real_mock_data(self):
         customer = Customer.objects.create(company_name="Configured Chat Customer")
@@ -3706,16 +3719,23 @@ class ChatAssistantAlignmentTests(TestCase):
         )
 
         with self.settings(OPENAI_API_KEY="configured-test-key", OPENAI_MODEL="gpt-test"):
-            response = answer_inventory_question(
-                f"Summarize customer activity for {customer.company_name} from "
-                f"{self.today.isoformat()} to {self.today.isoformat()}"
-            )
+            with patch(
+                "inventory.services.chat.generate_openai_chat_response",
+                return_value={
+                    "answer": "The customer has one verified sale in the selected period.",
+                    "conclusion": "Customer activity was recorded in the selected period.",
+                    "highlights": ["One sale was found."],
+                    "used_model": "gpt-test",
+                },
+            ):
+                response = answer_inventory_question(
+                    f"Summarize customer activity for {customer.company_name} from "
+                    f"{self.today.isoformat()} to {self.today.isoformat()}"
+                )
 
-        self.assertEqual(response["used_model"], "local-summary")
+        self.assertEqual(response["used_model"], "gpt-test")
+        self.assertEqual(response["answer"], "The customer has one verified sale in the selected period.")
         self.assertEqual(response["presentation"]["title"], f"Customer summary: {customer.company_name}")
-        self.assertIn(f"Customer summary: {customer.company_name}", response["answer"])
-        self.assertIn("Sales count: 1", response["answer"])
-        self.assertIn("Sales total: 275", response["answer"])
         recent_sales = next(
             section
             for section in response["presentation"]["sections"]
