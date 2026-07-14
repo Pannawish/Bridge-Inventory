@@ -1,4 +1,5 @@
 .DS_Store
+tmp/
 node_modules/
 dist/
 .env
@@ -10,4 +11,10 @@ __pycache__/
 db.sqlite3
 backend/media/
 backend/staticfiles/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage/
 .claude
