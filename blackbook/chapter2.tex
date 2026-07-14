@@ -1,49 +1,49 @@
 \chapter{LITERATURE REVIEW}
 
-This chapter presents a review of references related to the Inventory Management System. The reviewed works cover trading business workflow, spreadsheet-based business records, web-based inventory systems, inventory management concepts, and AI-assisted query support. These topics are important because the project is not only a stock-counting system. It also connects supplier purchasing, customer sales, quotations, receivables, payables, dashboard summaries, and a limited read-only AI assistant.
+This chapter reviews sources related to wholesale trading, business record keeping, web-based inventory systems, inventory planning, and domain-specific AI assistance. Each source-focused section explains the source's main contribution and identifies the concept that is relevant to the system requirements. Project-specific development methods and results are discussed later in Chapters 3 and 4.
 
 \section{North American Industry Classification System: Wholesale Trade \cite{naics_2022_wholesale_trade}}
-The North American Industry Classification System describes wholesale trade as an intermediate step in the distribution of merchandise. Wholesalers are organized to sell or arrange the purchase and sale of goods for resale, durable non-consumer goods, and raw or intermediate materials. This reference supports the business background of this project because the system is designed for a trading business that works between suppliers and customers.
+The North American Industry Classification System defines wholesale trade as an intermediate stage in the distribution of merchandise. Wholesalers sell or arrange the purchase and sale of goods for resale, durable non-consumer goods, and raw or intermediate materials. This definition distinguishes a reseller from a manufacturer and shows that wholesale work connects an upstream supplier side with a downstream customer side.
 
-In this project, the same idea appears in the main workflow. The business buys products from suppliers, stores received stock, and sells products to customers. Therefore, the system needs to manage both sides of the transaction. Supplier data, purchase records, customer data, sales records, and stock availability must be connected so that the user can understand the full flow of goods and money.
+The applicable concept is the two-sided trading flow. A suitable information system must connect products and stock with supplier purchases, customer sales, and the financial records created by those transactions. Treating purchasing and selling as parts of one flow makes it possible to follow both the movement of goods and the related money.
 
 \section{Qtier-Rapor: Managing Spreadsheet Systems and Improving Corporate Performance, Compliance and Governance \cite{bishop2008spreadsheet}}
-This paper discusses how businesses often use spreadsheet systems to fill gaps in their core administrative systems. Spreadsheets are flexible and easy to start with, but the paper explains that larger spreadsheet systems can become harder to manage and control. This is relevant to small and medium-sized businesses because many businesses begin with simple spreadsheets before moving to a more structured system.
+Bishop discusses how organizations use spreadsheets to fill gaps in their main administrative systems. Spreadsheets are flexible and quick to create, but larger spreadsheet collections can be difficult to control because formulas, versions, ownership, and review procedures may be inconsistent.
 
-The problem is similar to the motivation of this project. A trading business may be able to record products, purchases, sales, and payments in spreadsheets at first. However, when the number of products, suppliers, customers, and transaction statuses increases, the records become harder to check. This supports the need for a web application with a database, backend validation, and clearer workflow separation.
+The applicable concept is controlled, centralized record keeping. Product, transaction, and finance data are easier to review when they share defined fields, validation rules, access controls, and a common database instead of being divided among unrelated spreadsheets. This concept supports traceability and reduces the risk of conflicting versions of the same business record.
 
 \section{Sole Traders Still Not Prepared for Digital Tax Returns in April \cite{times_sage_sole_traders_2025}}
-This article reports research from Sage about sole traders and their preparation for digital tax reporting. It shows that many small business owners still use older methods such as spreadsheets, bank statements, and pen-and-paper records for financial administration. Although the article focuses on tax reporting, it is useful for this project because it shows that manual and semi-manual record keeping is still common in small business environments.
+The article reports Sage research on sole traders who still rely on spreadsheets, bank statements, and paper records for financial administration. It describes the continuing gap between manual record keeping and structured digital processes in small-business environments.
 
-For an inventory trading business, the same issue can affect daily operations. If stock, purchasing, sales, billing, and payment information are kept in separate files or folders, it becomes difficult to answer simple questions quickly. Examples include checking which products are low in stock, which sales can be billed, and which purchases are ready for payment. This project addresses that issue by keeping related records in one web-based system.
+The applicable concept is gradual digital support for routine work. A small-business system should organize records without requiring users to understand complex accounting software. Clear workflows for stock, purchasing, sales, billing, and payment follow-up can make operational information easier to find while reducing repeated manual entry.
 
 \section{A Full-Stack Web Solution for Online FMCG Management System Using MERN: Design, Implementation, and Evaluation \cite{paper_1}}
-This study presents the development of a full-stack web solution for managing fast-moving consumer goods. It discusses a web-based system with inventory management, order processing, stock updates, billing, and user roles. The reference is related to this project because both systems focus on using a web application to reduce manual business work and improve access to operational records.
+Mittal and Arora present a full-stack web solution for fast-moving consumer goods management. The described system combines inventory control, order processing, stock updates, billing, and user roles through a browser-based interface.
 
-The main difference is the technology stack and project scope. The reviewed system uses the MERN stack, while this project uses React for the frontend, Django REST Framework for the backend, and MySQL for the relational database. This project also focuses specifically on SME trading workflows, including purchases, sales, quotations, billing notes, payment batches, credit notes, stock validation, dashboard summaries, and limited AI-assisted operation.
+The applicable concepts are shared web access and integration between operational modules. A browser interface allows different staff roles to use the same current records, while a server-side application can coordinate stock changes, order status, billing, and access control. These concepts are relevant regardless of the specific frontend or backend framework used to implement them.
 
 \section{Essentials of Inventory Management \cite{paper_2}}
-This book explains that inventory management is more than counting available stock. It includes demand, replenishment, physical stock handling, inventory value, and the business decisions connected to stock. These ideas support the design of the inventory and dashboard features in this project.
+Muller explains that inventory management is broader than counting the quantity physically available. It includes demand, replenishment, stock handling, inventory value, and the decisions required to balance availability with cost.
 
-In the implemented system, stock is calculated from received purchase quantities and committed sale quantities. The dashboard and inventory page also show reorder-related information, pending demand, pending purchases, average cost, stock value, and product movement. These features follow the general inventory management idea that a business should understand both the physical quantity of stock and the financial meaning of that stock.
+The applicable concepts are stock visibility, demand awareness, replenishment review, and inventory valuation. Useful inventory information should therefore show not only on-hand quantity, but also expected demand, incoming supply, reorder needs, average cost, stock value, and the transaction history behind those values.
 
 \section{Inventory and Production Management in Supply Chains \cite{silver2016inventory}}
-Silver, Pyke, and Thomas present inventory planning as a set of connected decisions involving demand, replenishment, lead time, service level, stockout risk, and cost. This perspective is relevant to a reseller because the useful stock position is not limited to the quantity currently on hand; it also depends on customer demand and confirmed incoming supply.
+Silver, Pyke, and Thomas describe inventory planning as a connected set of decisions involving demand, replenishment, lead time, service level, stockout risk, and cost. The text explains why an inventory position cannot be judged only from the quantity currently on hand.
 
-The project applies this relationship in its inventory workspace. Available stock, pending sales, pending purchases, lead-time demand, safety stock, and recommended restock are shown together so the user can review both current availability and replenishment pressure. The system does not claim to optimize the entire supply chain, but it uses these established concepts to present traceable operational indicators.
+The applicable concepts are demand during lead time, safety stock, reorder level, and order-up-to planning. Considering these values together provides a traceable basis for deciding when additional stock may be needed and how current demand and confirmed incoming supply affect that decision.
 
 \section{Inventory and Business Calculation Basis}
-This section connects the reviewed inventory-management concepts to the calculation requirements used in the project. Equations~\ref{eq:lead-time-demand} to~\ref{eq:stock-value} are based on demand, replenishment planning, safety stock, and inventory value concepts \cite{paper_2,silver2016inventory}. The remaining equations document project-specific transaction and finance definitions; their implementation and validation are described in Chapters 3 and 4 rather than treated as findings from the literature.
+The system applies the reviewed inventory concepts through a limited set of calculation groups. Equations in this section define quantity normalization, transaction totals, stock availability, replenishment indicators, and finance balances. The reorder calculations are based on demand, lead-time, safety-stock, and inventory-value concepts described by Muller and by Silver, Pyke, and Thomas \cite{paper_2,silver2016inventory}.
 
 \subsection{Unit Conversion and Line Amounts}
-Products can have different purchase or sale units. The backend normalizes transaction quantities into the product base unit.
+Products may be purchased or sold in units that differ from their stock-counting unit. Equation~\ref{eq:base-quantity} converts a transaction quantity into the product's base unit so that all stock movements use the same measure.
 
 \begin{equation}
 \label{eq:base-quantity}
 \text{Base Quantity} = \text{Quantity} \times \text{Conversion Factor}
 \end{equation}
 
-Purchase and sale line amounts are calculated from quantity, unit price or unit cost, and any percentage discount chain. The frontend clamps each discount between 0\% and 100\%.
+Equation~\ref{eq:discounted-amount} calculates a line amount after one or more percentage discounts. Each discount percentage is limited to the range from 0\% to 100\%. For purchases, unit price represents unit cost; for sales and quotations, it represents selling price.
 
 \begin{equation}
 \label{eq:discounted-amount}
@@ -52,188 +52,118 @@ Purchase and sale line amounts are calculated from quantity, unit price or unit 
 \prod_{i=1}^{n}\left(1 - \frac{\text{Discount Percent}_i}{100}\right)
 \end{equation}
 
-For purchases, \textit{Unit Price} means unit cost. For sales and quotations, it means sale price. Sales also apply the bill-level discount to the line amount when the sale total is calculated.
-
 \subsection{VAT Calculation}
-The purchase, sale, and quotation forms support VAT-included and VAT-not-included modes using a 7\% VAT rate.
+The general value-added tax rate used for taxable goods and services in Thailand is 7\% \cite{thailand_revenue_vat}. Equation~\ref{eq:vat-calculation} shows how the same rate is applied when VAT is already included in an item total and when VAT must be added to an item total.
 
 \begin{equation}
-\label{eq:vat-rate}
-\text{VAT Rate} = 0.07
-\end{equation}
-
-For VAT-included transactions:
-
-\begin{equation}
-\label{eq:vat-included-before-vat}
-\text{Total Before VAT} = \frac{\text{Item Total}}{1 + 0.07}
-\end{equation}
-
-\begin{equation}
-\label{eq:vat-included-amount}
-\text{VAT Amount} = \text{Item Total} - \text{Total Before VAT}
-\end{equation}
-
-For VAT-not-included transactions:
-
-\begin{equation}
-\label{eq:vat-excluded-amount}
-\text{VAT Amount} = \text{Item Total} \times 0.07
-\end{equation}
-
-\begin{equation}
-\label{eq:vat-excluded-grand-total}
-\text{Grand Total} = \text{Item Total} + \text{VAT Amount}
+\label{eq:vat-calculation}
+\begin{aligned}
+r &= 0.07,\\
+\text{Included Before VAT} &= \frac{\text{Item Total}}{1+r},\\
+\text{Included VAT} &= \text{Item Total}-\text{Included Before VAT},\\
+\text{Excluded VAT} &= \text{Item Total}\times r,\\
+\text{Excluded Grand Total} &= \text{Item Total}+\text{Excluded VAT}.
+\end{aligned}
 \end{equation}
 
 \subsection{Current Stock}
-The backend calculates product stock from transaction status instead of storing a manual stock number on the product.
+Stock is derived from completed stock movements rather than entered as an independent manual number. As shown in Equation~\ref{eq:current-stock}, received purchase quantities add stock, while sale quantities in stock-committing statuses reduce it.
 
 \begin{equation}
 \label{eq:current-stock}
 \begin{aligned}
 \text{Current Stock} = \max(0,\;&\text{Received Purchase Base Quantity}\\
-&-\text{Committed Sale Base Quantity})
+&-\text{Committed Sale Base Quantity}).
 \end{aligned}
 \end{equation}
 
-Received purchase quantity comes only from purchase items with received status. Committed sale quantity comes only from sale items with packed, shipped, or delivered status. Pending sales are shown separately as demand, but they do not reduce current stock until they reach a stock-deducting status.
+Only purchase items marked as received contribute to available stock. Sale items reduce stock when they are packed, shipped, or delivered. Pending sales remain visible as demand but do not reduce current stock until they reach a stock-committing status.
 
 \subsection{Stock Validation and Allocation}
-Before a sale is allowed to commit stock, the backend compares requested committed quantity with available stock.
+Before inventory is issued for a sale, the requested quantity is compared with the quantity available. A request that exceeds available stock is rejected before the transaction can commit the stock movement.
 
-\begin{equation}
-\label{eq:stock-issue}
-\text{Stock Issue} = (\text{Requested Quantity} > \text{Available Quantity})
-\end{equation}
-
-When stock is committed, the backend creates sale item allocations from received purchase layers. If the user does not choose stock layers manually, the backend uses first-in, first-out allocation. The received layers are ordered by received date, purchase transaction date, purchase creation date, and item ID.
+When stock is available, the quantity is assigned to received purchase batches. The default method uses first-in, first-out allocation, so older available stock is used before newer stock. Equation~\ref{eq:allocation-quantity} limits the quantity taken from a batch to the smaller of the remaining sale requirement and the quantity still available in that batch.
 
 \begin{equation}
 \label{eq:allocation-quantity}
-\text{Allocation Quantity} = \min(\text{Remaining Sale Quantity}, \text{Layer Available Quantity})
+\text{Allocation Quantity} = \min(\text{Remaining Sale Quantity},\text{ Batch Available Quantity})
 \end{equation}
 
-Manual allocation is also supported, but the selected layers must match the product, must already be received, must have enough remaining quantity, and must add up exactly to the sale item base quantity.
+Manual allocation may be used when a specific physical batch is selected. The selected batch must contain the same product, must already be received, and must have enough unallocated quantity.
 
 \subsection{Inventory Dashboard Calculations}
-The backend stock report calculates several useful inventory values for the dashboard and inventory page. The reorder-related formulas are aligned with the inventory management concept that reorder planning depends on demand during lead time and safety stock \cite{paper_2}.
+The first calculation group prepares the cost and demand values used for reorder review. Equation~\ref{eq:reorder-components} defines average unit cost, average daily demand, demand during lead time, safety stock, and the calculated reorder level.
 
 \begin{equation}
-\label{eq:average-unit-cost}
-\text{Average Unit Cost} =
-\frac{\text{Received Purchase Value}}{\text{Received Purchase Units}}
-\end{equation}
-
-\begin{equation}
-\label{eq:average-daily-demand}
-\text{Average Daily Demand} =
-\frac{\text{Sales History Units}}{\text{Sales History Days}}
-\end{equation}
-
-\begin{equation}
-\label{eq:lead-time-demand}
-\text{Lead Time Demand} =
-\text{Average Daily Demand} \times \text{Average Lead Time}
-\end{equation}
-
-\begin{equation}
-\label{eq:safety-stock}
-\text{Safety Stock} =
-\text{Average Daily Demand} \times \text{Safety Stock Days}
-\end{equation}
-
-\begin{equation}
-\label{eq:calculated-reorder-level}
-\text{Calculated Reorder Level} =
-\left\lceil \text{Lead Time Demand} + \text{Safety Stock} \right\rceil
-\end{equation}
-
-\begin{equation}
-\label{eq:order-up-to-level}
-\text{Order-up-to Level} =
-\text{Reorder Level} + \left\lceil \text{Lead Time Demand} \right\rceil
-\end{equation}
-
-\begin{equation}
-\label{eq:recommended-restock}
+\label{eq:reorder-components}
 \begin{aligned}
-\text{Recommended Restock}
-&= \max(0,\\
-&\quad \text{Order-up-to Level} + \text{Pending Sales}\\
-&\quad + \text{Oversold Units}\\
-&\quad - \text{Available Stock} - \text{Pending Purchases})
+\text{Average Unit Cost} &= \frac{\text{Received Purchase Value}}{\text{Received Purchase Units}},\\
+\text{Average Daily Demand} &= \frac{\text{Sales History Units}}{\text{Sales History Days}},\\
+\text{Lead-Time Demand} &= \text{Average Daily Demand}\times\text{Average Lead Time},\\
+\text{Safety Stock} &= \text{Average Daily Demand}\times\text{Safety Stock Days},\\
+\text{Reorder Level} &= \left\lceil\text{Lead-Time Demand}+\text{Safety Stock}\right\rceil.
 \end{aligned}
 \end{equation}
 
+Equation~\ref{eq:restock-and-value} then uses the reorder values with pending demand, oversold quantity, available stock, and pending purchases. It produces a recommended restock quantity and an estimated stock value for review.
+
 \begin{equation}
-\label{eq:stock-value}
-\text{Stock Value} = \text{Available Stock} \times \text{Average Unit Cost}
+\label{eq:restock-and-value}
+\begin{aligned}
+\text{Order-up-to Level} &= \text{Reorder Level}+\left\lceil\text{Lead-Time Demand}\right\rceil,\\
+\text{Recommended Restock} &= \max(0,\;\text{Order-up-to Level}+\text{Pending Sales}\\
+&\quad+\text{Oversold Units}-\text{Available Stock}-\text{Pending Purchases}),\\
+\text{Stock Value} &= \text{Available Stock}\times\text{Average Unit Cost}.
+\end{aligned}
 \end{equation}
 
-The inventory page also uses supplier cost history to show supplier options. Supplier options are ranked by the most recent unit cost and order count, so the user can see a practical reorder source.
+These indicators support reorder review rather than automatically placing an order. Supplier cost history can then be used to compare possible replenishment sources.
 
 \subsection{Purchase Payable and Payment Batch Calculations}
-The backend keeps the purchase grand total as the original document total, but it calculates a separate payable amount when purchase items are cancelled.
+Cancelled purchase lines should not remain payable, while the original purchase document should remain readable. Equation~\ref{eq:purchase-payment-totals} adjusts the payable amount according to the value of non-cancelled lines and calculates a payment batch from the lines included in that batch.
 
 \begin{equation}
-\label{eq:payable-total}
-\text{Payable Total} =
-\text{Grand Total} \times
-\frac{\text{Non-cancelled Line Amounts}}{\text{All Line Amounts}}
+\label{eq:purchase-payment-totals}
+\begin{aligned}
+\text{Payable Total} &= \text{Grand Total}\times
+\frac{\text{Non-cancelled Line Amounts}}{\text{All Line Amounts}},\\
+\text{Payment Batch Total} &= \sum \text{Payment Batch Line Amount}.
+\end{aligned}
 \end{equation}
 
-This allows the system to keep the original purchase document readable while still showing the correct amount that should be paid to the supplier. Payment batch totals are calculated from their line amounts.
-
-\begin{equation}
-\label{eq:payment-batch-total}
-\text{Payment Batch Total} = \sum \text{Payment Batch Line Amount}
-\end{equation}
-
-Unpaid payment batch lines are synchronized when the related purchase payable total changes. Paid lines are left unchanged because they represent a completed financial record.
+Unpaid payment lines can be updated when the related payable amount changes. Paid lines remain unchanged because they represent a completed payment record.
 
 \subsection{Billing Note and Credit Note Calculations}
-Billing note totals come from selected eligible sales. Credit notes store line amounts from eligible cancelled or returned sale items. When a billing note has active credit notes, the net amount shown in the billing detail is reduced by the credit total.
+Credit notes reduce the amount still expected from a customer. Equation~\ref{eq:billing-net-amount} calculates the net billing amount after active credit adjustments are deducted.
 
 \begin{equation}
 \label{eq:billing-net-amount}
-\text{Billing Net Amount} =
-\text{Billing Note Total} - \text{Active Credit Note Total}
+\text{Billing Net Amount} = \text{Billing Note Total}-\text{Active Credit Note Total}
 \end{equation}
 
-This makes the receivable amount clearer when a customer has a return or cancellation adjustment.
-
 \subsection{Cashflow and Net Position}
-The dashboard cashflow segment groups open receivables and open payables by due date. It also calculates the open net position.
+Open receivables and payables are grouped by due date for cashflow review. Equation~\ref{eq:open-net-position} shows whether open customer receivables are greater or lower than open supplier payables.
 
 \begin{equation}
 \label{eq:open-net-position}
-\text{Open Net Position} =
-\text{Open Accounts Receivable} - \text{Open Accounts Payable}
+\text{Open Net Position} = \text{Open Accounts Receivable}-\text{Open Accounts Payable}
 \end{equation}
 
-Overdue accounts receivable are open billing notes with expected payment dates before today. Overdue accounts payable are open payment batches with planned payment dates before today.
+An open item is overdue when its expected or planned payment date is earlier than the current date and it has not been completed.
 
 \subsection{Quotation Validity}
-Quotation validity is calculated from the quotation date and validity setting. If the validity mode is calendar days, the valid-until date is the quotation date plus the selected number of days.
+Quotation validity is determined from the quotation date and the selected validity period. Calendar-day validity adds every day, while business-day validity skips weekends. A quotation may also be stored without a validity end date. This rule is described in text because it is a date-processing rule rather than an inventory calculation.
 
-\begin{equation}
-\label{eq:quotation-valid-until}
-\text{Valid Until} = \text{Quotation Date} + \text{Validity Days}
-\end{equation}
-
-If the validity mode is business days, weekends are skipped during the date addition. The no-valid-date option stores no valid-until date.
+Together, Equations~\ref{eq:base-quantity} to~\ref{eq:open-net-position} provide the calculation basis for four purposes: consistent transaction quantities, correct document totals, controlled stock and replenishment review, and clear receivable or payable balances. Their implementation method is described in Chapter 3, and their validation results are reported in Chapter 4.
 
 \section{Aisha: A Custom AI Library Chatbot Using the ChatGPT API \cite{paper_3}}
-This article describes the development of a custom chatbot using the ChatGPT API for a university library. The chatbot was designed to answer user questions using prepared system information and a controlled application context. The reference is useful for this project because it shows how a chatbot can be connected to a specific domain instead of being used as a general-purpose conversation tool.
+Lappalainen and Narayanan describe a custom chatbot for a university library. The chatbot uses prepared institutional information and a controlled application context so that answers remain focused on the library domain instead of becoming unrestricted general conversation.
 
-In this Inventory Management System, the AI assistant follows a limited and read-only scope. It can support questions about stock and fulfillment, customer or supplier summaries, receivables and payables, and reference or line-item lookup. It does not create, approve, edit, cancel, or delete records. This limitation is important because inventory and finance records must remain controlled by the main application workflow and backend validation.
+The applicable concept is domain-limited question answering. An assistant connected to operational data should define the topics it supports, keep record-changing actions outside the chat interface, and clearly reject or redirect unsupported requests. This boundary is especially important when the available information includes stock or financial records.
 
-The current implementation also uses a structured response schema for model-backed chat output. OpenAI's structured-output guidance describes JSON Schema as a way to constrain response fields \cite{openai_structured_outputs}. In this project, that mechanism separates the answer, conclusion, and highlights while the backend-prepared presentation remains the factual source.
+OpenAI's structured-output guidance describes the use of a JSON Schema to constrain response fields \cite{openai_structured_outputs}. The applicable concept is a predictable response contract: a system can require separate fields for an answer, a conclusion, and highlights while keeping factual values in application-prepared data.
 
 \section{Summary}
-The reviewed references support the main direction of this project. The wholesale trade reference explains why a trading business needs to manage the connection between suppliers, products, and customers. The spreadsheet and small-business references show why manual records, spreadsheets, and separated files can become difficult to manage as business operations grow.
+The reviewed sources establish the main concepts used by the Inventory Management System. Wholesale-trade classification explains the connected supplier-to-customer flow. The spreadsheet and small-business sources support centralized records and straightforward digital workflows. The web-based FMCG study supports integrated browser-based modules and role-aware access.
 
-The web-based inventory system reference supports the idea of building an integrated application for stock and transaction workflows. The inventory-management books support the calculation and reporting features, especially stock availability, replenishment, safety stock, reorder level, and inventory value. The chatbot and structured-output references support a controlled AI-assisted interface with a clearly defined domain and response contract.
-
-Based on these works, this project focuses on developing a practical web-based inventory management system for SME trading businesses. The system combines React, Django REST Framework, and MySQL to manage business records in a structured way. It also adds dashboard summaries and a read-only AI assistant to help users find supported operational information more quickly.
+The inventory-management books provide the basis for stock availability, lead-time demand, safety stock, reorder review, and inventory value. The chatbot and structured-output references support a limited read-only assistant with predictable response sections. These concepts are applied through the architecture and methods described in Chapter 3 and evaluated through the results in Chapter 4.

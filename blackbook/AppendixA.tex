@@ -113,6 +113,8 @@ python manage.py createsuperuser
 
 Users access the system through the web application sign-in page. A staff member should sign in with the username and password assigned by the administrator. If the system is used for demonstration or training only, the guest mode can be used to open the application with mock data. Guest mode should not be used for real business records because changes are not saved to the live database.
 
+Figure~\ref{fig:appendix-sidebar-navigation} shows the sidebar used after sign-in. It groups the operational, transaction, record, administration, and Settings pages so that users can move between related tasks.
+
 \begin{figure}[!htbp]
 	\centering
 	\includegraphics[width=\textwidth,height=0.55\textheight,keepaspectratio]{../docs/screenshots/sidebar-navigation.png}
@@ -120,7 +122,7 @@ Users access the system through the web application sign-in page. A staff member
 	\label{fig:appendix-sidebar-navigation}
 \end{figure}
 
-After signing in, the sidebar is used to move between the main modules. The workspace group contains Dashboard, Inventory, AI Chat, and AI Report. The purchasing group contains Purchases and Payment Batches. The sales group contains Quotation, Sales, Billing Notes, and Credit Notes. The records group contains Products, Categories, Supplier, and Customer. Administration pages such as User Access and Activity Log are shown only to users with suitable permissions, while Settings provides the English/Thai language choice.
+The workspace group contains Dashboard, Inventory, AI Chat, and AI Report. The purchasing group contains Purchases and Payment Batches. The sales group contains Quotation, Sales, Billing Notes, and Credit Notes. The records group contains Products, Categories, Supplier, and Customer. Administration pages such as User Access and Activity Log are shown only to users with suitable permissions, while Settings provides the English/Thai language choice.
 
 \section{Basic Operating Rules}
 
@@ -139,6 +141,8 @@ Before using the system, users should understand the following rules because the
 
 The first step is to prepare the records that transactions depend on. Categories should be created as a clear hierarchy. Products should then be linked to the correct category and configured with SKU, base unit, purchase unit, sales unit, unit conversions, and reorder information. Suppliers and customers should also be created before purchase and sales transactions are entered.
 
+Table~\ref{tab:appendix-master-data-checklist} lists the minimum information that should be prepared in each master-data module before transactions are entered.
+
 \begin{table}[H]
 	\centering
 	\BlackbookTableSetup
@@ -154,6 +158,8 @@ The first step is to prepare the records that transactions depend on. Categories
 	\end{tabularx}
 \end{table}
 
+Figure~\ref{fig:appendix-product-form} shows where product units and conversion quantities are entered. The base unit should represent the smallest unit used for stock calculation. For example, if a product is bought by box but sold by piece, the base unit may be piece and the purchase unit may be box. A conversion such as one box equals ten pieces allows purchase quantities to be converted into stock quantities correctly.
+
 \begin{figure}[!htbp]
 	\centering
 	\includegraphics[width=\textwidth,height=0.55\textheight,keepaspectratio]{../docs/screenshots/product-form-unit-conversions.png}
@@ -161,11 +167,11 @@ The first step is to prepare the records that transactions depend on. Categories
 	\label{fig:appendix-product-form}
 \end{figure}
 
-The base unit is especially important. It should represent the smallest unit used for stock calculation. For example, if a product is bought by box but sold by piece, the base unit may be piece and the purchase unit may be box. A conversion such as one box equals ten pieces allows the system to convert purchase quantities into stock quantities correctly.
-
 \section{Daily Transaction Workflow}
 
 The normal daily workflow begins with a quotation or a direct purchase or sale. A quotation records customer demand and checks whether the requested items have enough available stock. If the quotation shows that stock is short, the user can prepare a purchase from the short-stock lines. If stock is available, the user can convert the quotation into a sale.
+
+Figure~\ref{fig:appendix-quotation-entry} shows the quotation entry screen and the stock-sufficiency information used before conversion.
 
 \begin{figure}[!htbp]
 	\centering
@@ -176,6 +182,8 @@ The normal daily workflow begins with a quotation or a direct purchase or sale. 
 
 Purchases record supplier-side orders. Users choose the supplier, add products, quantities, units, costs, and expected delivery dates, then save the purchase. When goods arrive, each purchase item should be updated to received only after the physical stock has been checked. This receiving action is what makes stock available for future sales.
 
+Figure~\ref{fig:appendix-purchase-receiving} shows the purchase detail and the receiving status that controls when purchased units enter available stock.
+
 \begin{figure}[!htbp]
 	\centering
 	\includegraphics[width=\textwidth,height=0.55\textheight,keepaspectratio]{../docs/screenshots/purchase-form-receiving-status.png}
@@ -184,6 +192,8 @@ Purchases record supplier-side orders. Users choose the supplier, add products, 
 \end{figure}
 
 Sales record customer-side orders. Users choose the customer, add products, quantities, prices, and delivery-related information. The system checks stock and creates stock allocations from received purchase layers. If the user does not choose a specific layer, the system allocates stock using FIFO. Sales items should only be marked packed, shipped, delivered, cancelled, or returned when the real operational event has occurred.
+
+Figure~\ref{fig:appendix-sales-delivery} shows the delivery-status controls used to keep the recorded sale state consistent with the actual order state.
 
 \begin{figure}[!htbp]
 	\centering
@@ -195,6 +205,8 @@ Sales record customer-side orders. Users choose the customer, add products, quan
 \section{Finance Follow-Up Workflow}
 
 Finance users use billing notes, payment batches, and credit notes to follow up completed or adjusted transactions. Billing notes group eligible customer sales for collection. Payment batches group eligible supplier purchases for payment. Credit notes record returned or cancelled sale items.
+
+Table~\ref{tab:appendix-finance-follow-up} explains the business side and main user action for each finance follow-up module.
 
 \begin{table}[H]
 	\centering
@@ -216,6 +228,8 @@ These modules rely on backend eligibility checks. If a sale or purchase does not
 
 The dashboard and inventory pages are used for daily review. The dashboard summarizes urgent reorder items, stock movement, delivery planning, cash-flow pressure, popular products, and order coverage. The inventory page gives a more detailed stock-control view with product stock, pending purchases, demand, reorder values, supplier options, and product history.
 
+Figure~\ref{fig:appendix-dashboard-review} shows the dashboard overview used to review these business indicators together.
+
 \begin{figure}[!htbp]
 	\centering
 	\includegraphics[width=\textwidth,height=0.55\textheight,keepaspectratio]{../docs/screenshots/dashboard-overview.png}
@@ -236,6 +250,8 @@ AI Report creates printable reports for a selected supplier, customer, or produc
 Administrators use the User Access page to create staff accounts, assign roles, activate or deactivate users, and review role permissions. The Activity Log page is used to review important system activity such as login, creation, update, and deletion events. Staff should be assigned only the access required for their responsibility.
 
 \section{Quick Reference}
+
+Table~\ref{tab:appendix-quick-reference} maps common user goals to the page and main action used to complete each goal.
 
 \begin{table}[H]
 	\centering

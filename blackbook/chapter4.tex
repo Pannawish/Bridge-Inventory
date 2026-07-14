@@ -11,136 +11,154 @@ The main result is that the system connects business documents together instead 
 All requirement areas mapped in Tables~\ref{tab:requirement-page-map} and~\ref{tab:record-support-page-map} were implemented. The completed workspace includes Dashboard, Inventory, AI Chat, AI Report, Purchases, Payment Batches, Quotation, Sales, Billing Notes, Credit Notes, Products, Categories, Supplier, Customer, User Access, Activity Log, and Settings. The following section presents page-level evidence without repeating the full requirement map.
 
 \section{System Implementation}
-This section combines the page-development explanation with selected screenshots from the finished application. Each screenshot is paired with a description of what the page does, how it was developed, and why it matters for day-to-day use.
+This section combines the page-development explanation with selected screenshots from the finished application. Each figure is described and referenced first, with the corresponding screenshot placed directly underneath. This consistent order connects every screenshot to the text that explains it.
+
+Figure~\ref{fig:dashboard-page} presents the dashboard page, which is the main post-login business overview. It receives backend dashboard data and shows stock health, reorder planning, stock cycling, delivery pipeline, purchase planning, popular products, finance, cashflow, and order coverage. It is connected to other pages, so a low-stock product can lead the user to the inventory or product page, and an order issue can lead to the purchase or sales page.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-1-dashboard.png}
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figure-4-1-dashboard.png}
 	\vspace{10pt}
 	\caption{Dashboard Page}
 	\label{fig:dashboard-page}
 \end{figure}
 
-Figure~\ref{fig:dashboard-page} shows the dashboard page used as the main post-login business overview. The dashboard page was developed to receive backend dashboard data and show stock health, reorder planning, stock cycling, delivery pipeline, purchase planning, popular products, finance, cashflow, and order coverage. It is also connected to other pages, so a low-stock product can lead the user to the inventory or product page, and an order issue can lead to the purchase or sales page.
+Figure~\ref{fig:inventory-page} presents the inventory page used for daily stock checking and reorder review. It uses backend stock report rows instead of calculating stock from full transaction lists in the browser. The interface includes an inventory control board, searchable directory, filters for health status, category, supplier, value, and reorder need, product detail views, and a quick purchase-order drawer.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-2-inventory.png}
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figure-4-2-inventory.png}
 	\vspace{10pt}
 	\caption{Inventory Page}
 	\label{fig:inventory-page}
 \end{figure}
 
-Figure~\ref{fig:inventory-page} shows the inventory page used for daily stock checking and reorder review. The inventory page was developed around backend stock report rows instead of calculating stock from full transaction lists in the browser. It includes an inventory control board, searchable directory, filters for health status, category, supplier, value, and reorder need, product detail views, and a quick purchase-order drawer.
+Figure~\ref{fig:ai-chat-page} presents the AI Chat page used for read-only questions about stock, partners, receivables, payables, and document references. The program first prepares the factual answer from current records. Without an OpenAI API key, the page displays a limited local summary. With a configured key, AI improves the explanation and adds a conclusion and question-specific highlights without changing the prepared facts. The assistant does not create, edit, approve, cancel, or delete records.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-3-ai-chat.png}
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figure-4-3-ai-chat.png}
 	\vspace{10pt}
 	\caption{AI Chat Assistant Page}
 	\label{fig:ai-chat-page}
 \end{figure}
 
-Figure~\ref{fig:ai-chat-page} shows the AI Chat page used for read-only natural-language questions about stock, partners, receivables, payables, or document references. The backend first prepares the factual answer and structured presentation from current system data. If an OpenAI API key is configured, the model explains those verified facts and returns a separate conclusion and two to four question-specific highlights through a structured response. If the key is missing, the request fails, or the structured model output is invalid, the endpoint returns the deterministic local summary. The assistant does not create, edit, approve, cancel, or delete any record.
+Figure~\ref{fig:ai-report-page} presents the AI Report page used to create printable supplier, customer, or product reports. The user chooses the report type and record and may narrow the reporting dates. The program collects related transactions, finance records, stock values, charts, and tables. Without an OpenAI API key, it produces a local report; with a configured key, AI adds written analysis to the same verified information. The final report opens as a printable webpage.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-4-ai-report.png}
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figure-4-4-ai-report.png}
 	\vspace{10pt}
 	\caption{AI Report Generation Page}
 	\label{fig:ai-report-page}
 \end{figure}
 
-Figure~\ref{fig:ai-report-page} shows the AI report generation page for creating printable supplier, customer, or product reports. The user picks a scope (supplier, customer, or product), selects the specific record, and optionally narrows the date range. The frontend sends the request to the \texttt{/api/ai-reports/} backend endpoint, where the backend collects related purchases, sales, quotations, billing notes, payment batches, credit notes, and stock data. If an OpenAI API key is configured, the backend sends the collected context to the AI model for an executive summary and business analysis; otherwise, it builds a local report from the same data. The final report opens in a new browser tab as a self-contained printable HTML document.
+Figure~\ref{fig:product-management-form} presents the product form used to maintain item master data, including product identifiers, names, category, units and conversions, reorder settings, image or PDF attachments, supplier links, and cost or margin information. Products connected to transactions can be disabled instead of deleted so that historical purchases, sales, and quotations remain readable.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-5-product-form.png}
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figure-4-5-product-form.png}
 	\vspace{10pt}
 	\caption{Product Management Form}
 	\label{fig:product-management-form}
 \end{figure}
 
-Figure~\ref{fig:product-management-form} shows the product management form for maintaining item master data. The Products page was developed as the main product catalog, including product creation, editing, disabling, deleting where allowed, SKUs, previous SKUs, names, category links, unit conversions, reorder levels, image or PDF attachments, supplier links, average cost and margin information, and product transaction history. Products with transaction history can be disabled instead of removed, which protects old purchase, sale, and quotation records.
-
 The other master-data pages support the same business foundation. The categories page organizes products in a parent-child tree and shows the full hierarchy in one view. The supplier page stores company profile, contact details, taxpayer ID, branches, shipping addresses, remarks, payment terms, and procurement contact details. The customer page stores company profile, contact details, branches, shipping addresses, remarks, and billing or payment term information.
+
+Figure~\ref{fig:purchase-workflow} presents the purchase page used to enter and review supplier purchase orders. It records the supplier, items, attached documents, overall purchase status, receiving status, taxes, discounts, and delivery dates. Only an item marked as received becomes available stock.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-6-purchase-workflow.png}
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figure-4-6-purchase-workflow.png}
 	\vspace{10pt}
 	\caption{Purchase Workflow}
 	\label{fig:purchase-workflow}
 \end{figure}
 
-Figure~\ref{fig:purchase-workflow} shows the purchase workflow for entering and reviewing supplier purchase orders. The purchases page was developed for supplier-side transactions, including purchase records, line items, attached documents, purchase status, item receiving status, VAT mode, item discounts, bill discount, expected delivery dates, received dates, and payment batch links. Only received purchase items become available stock.
+Figure~\ref{fig:sales-workflow} presents the sales page used to prepare and track customer orders. It records customer details, the customer purchase-order reference, items, documents, tax totals, discounts, and delivery statuses. Before a sale can reserve or issue stock, the available quantity is checked and the sold quantity is assigned to received purchase batches.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-7-sales-workflow.png}
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figure-4-7-sales-workflow.png}
 	\vspace{10pt}
 	\caption{Sales Workflow}
 	\label{fig:sales-workflow}
 \end{figure}
 
-Figure~\ref{fig:sales-workflow} shows the sales workflow for preparing and tracking customer orders. The sales page was developed for customer-side transactions, including sale headers, customer information, customer purchase-order reference, sale items, documents, VAT totals, discounts, and delivery-related statuses. Sale item statuses include pending, packed, shipped, delivered, cancelled, and returned. The backend validates stock before a sale can commit stock, and when stock is committed, allocations are created from received purchase layers.
+Figure~\ref{fig:quotation-workflow} presents the quotation page used before a quotation is converted into a purchase or sale. It records requested items, supplier cost options, selling prices, gross-margin review, validity, shipping date, payment terms, VAT, and total values. Quotation lines are stored in the relational \textit{QuotationItem} and \textit{QuotationItemSupplier} tables.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-8-quotation-workflow.png}
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figure-4-8-quotation-workflow.png}
 	\vspace{10pt}
 	\caption{Quotation Workflow}
 	\label{fig:quotation-workflow}
 \end{figure}
 
-Figure~\ref{fig:quotation-workflow} shows the quotation workflow before a quote is converted into a purchase or sale. The Quotation page was developed for quotation line items, supplier cost options, selling prices, gross-margin review, validity settings, shipping date, payment terms, VAT mode, total values, and conversion to purchase or sales flow. In the database, quotation items are stored in the \texttt{QuotationItem} table and supplier options are stored in \texttt{QuotationItemSupplier}, while the API still returns an \texttt{items} array for frontend compatibility.
+Figure~\ref{fig:billing-note-workflow} presents the billing note page used to group eligible customer sales into a receivable document. It tracks the included sales, outstanding or received status, expected and actual payment dates, bank references, and related credit notes.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-9-billing-note-workflow.png}
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figure-4-9-billing-note-workflow.png}
 	\vspace{10pt}
 	\caption{Billing Note Workflow}
 	\label{fig:billing-note-workflow}
 \end{figure}
 
-Figure~\ref{fig:billing-note-workflow} shows the billing note workflow for grouping eligible customer sales into receivable documents. The billing notes page was developed for customer receivable tracking. It loads backend-controlled eligible sales, groups them into billing notes, tracks whether each line has been received, and shows summary values, status filters, expected payment dates, actual payment dates, bank references, and linked credit note information.
-
-The credit notes page was developed for adjustments after a sale is cancelled or returned. The backend provides eligible sale lines, and the credit note stores customer information, sale reference, optional billing note link, line items, and total credited amount. This keeps the credit document connected to the original sale item while preserving a readable adjustment record.
+Figure~\ref{fig:credit-notes-page} presents the Credit Notes page used to record adjustments after a sale is cancelled or returned. The backend provides eligible sale lines, and the credit note stores customer information, sale reference, optional billing note link, line items, and total credited amount. This keeps the credit document connected to the original sale item while preserving a readable adjustment record.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figure-4-10-payment-batch-workflow.png}
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figures/chap4/credit notes.png}
+	\vspace{10pt}
+	\caption{Credit Notes Page}
+	\label{fig:credit-notes-page}
+\end{figure}
+
+Figure~\ref{fig:payment-batch-workflow} presents the payment batch page used to group eligible supplier purchases for payment. It stores the supplier, planned and actual payment dates, bank reference, total amount, and paid status for each included purchase.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figure-4-10-payment-batch-workflow.png}
 	\vspace{10pt}
 	\caption{Payment Batch Workflow}
 	\label{fig:payment-batch-workflow}
 \end{figure}
 
-Figure~\ref{fig:payment-batch-workflow} shows the payment batch workflow for grouping eligible supplier purchases into payable batches. The payment batches page was developed to load eligible purchases from the backend instead of allowing users to manually select any purchase. Each payment batch stores supplier information, planned and actual payment dates, bank reference, total amount, and paid line status, keeping supplier payment tracking in one place.
+Figure~\ref{fig:user-access-page} presents the User Access page used by an administrator to manage staff accounts and roles. The login and access process uses password verification, access and refresh tokens, authenticated profiles, and permission checks to control protected pages and actions.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth,height=0.65\textheight,keepaspectratio]{figure-4-11-user-access.png}
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figures/chap4/user access.png}
 	\vspace{10pt}
 	\caption{User Access Management Page}
 	\label{fig:user-access-page}
 \end{figure}
 
-Figure~\ref{fig:user-access-page} shows the user access management page for administrator account and role control. The login and access flow was developed with Simple JWT login, refresh, authenticated profile endpoints, frontend token storage, token refresh behavior, and logout handling. The backend-wide requirement for authentication can be controlled through the \texttt{INVENTORY\_REQUIRE\_AUTH} environment setting.
+Figure~\ref{fig:activity-log-page} presents the Activity Log page used to review important events such as login, record creation, update, and deletion. Access to this page depends on the user's assigned role and permissions.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth,height=0.65\textheight,keepaspectratio]{figure-4-12-activity-log.png}
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figure-4-12-activity-log.png}
 	\vspace{10pt}
 	\caption{Activity Log Page}
 	\label{fig:activity-log-page}
 \end{figure}
 
-Figure~\ref{fig:activity-log-page} shows the activity log page for reviewing important system events such as login, create, update, and delete actions. The access system uses Django groups and permissions, with default roles such as Admin, Manager, Sales, Purchasing, Accounting, and Viewer to control which modules each user can view or update.
+Figure~\ref{fig:settings-page} presents the Settings page used to switch the interface between English and Thai. The language choice changes user-facing labels and guidance while preserving the same records and backend business rules.
 
-The Settings page completes the implemented navigation by allowing users to switch the interface between English and Thai. The language choice changes user-facing labels and guidance while preserving the same records and backend business rules.
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\textwidth,height=0.62\textheight,keepaspectratio]{figures/chap4/setting.png}
+	\vspace{10pt}
+	\caption{Settings Page}
+	\label{fig:settings-page}
+\end{figure}
 
 \section{Results by Workflow}
 The workflow results are connected directly to the relational database design. Master records such as products, suppliers, customers, and categories provide the reusable business entities. Transaction records then reference those master records while keeping snapshot fields, so historical documents remain readable even if master data changes later. Line-item tables store the actual product quantities, prices, statuses, and totals used by stock, finance, dashboard, and report calculations.
+
+Table~\ref{tab:workflow-database-entity-map} connects each visible workflow area to the main database records that produce its result. It shows that the pages are not isolated: master data supports transactions, transaction lines produce stock movement, and finance or reporting functions read those same records.
 
 \begin{table}[!htbp]
 	\centering
@@ -173,6 +191,8 @@ The key workflow result is that each module uses the same normalized database in
 \end{enumerate}
 
 \section{Feature Evidence Summary}
+Table~\ref{tab:feature-evidence-summary} summarizes the implemented evidence used to confirm the main technical features. Each row states the observable behavior that demonstrates the feature in the completed system.
+
 \begin{table}[H]
 	\centering
 	\BlackbookTableSetup
@@ -193,11 +213,15 @@ The key workflow result is that each module uses the same normalized database in
 	\end{tabularx}
 \end{table}
 
+The evidence shows that important rules are enforced by shared backend services and database records rather than by individual screens alone. This is especially important for stock allocation, finance eligibility, access control, and AI output because these functions must remain consistent regardless of which page requests the information.
+
 \section{Testing and Evaluation Results}
 The system was evaluated using three types of evidence: automated backend validation, manual scenario testing, and user questionnaire results. Automated tests were used for business rules that must be exact, such as stock calculation, eligibility, and AI output validation. Scenario testing and questionnaires were used to evaluate how users performed the main workflow and how they perceived the system.
 
 \subsection{Automated Backend Validation}
 The final full backend suite contained 106 automated tests, and all 106 passed. This suite includes pagination, filtering, product data, transaction validation, stock allocation, finance eligibility, calculation, AI Chat, AI Report, user access, permission enforcement, and activity logging. For presentation continuity, the Blackbook also preserves a historical 30-case black-box aligned workflow selection; all 30 selected cases passed. The smaller recorded 5-test AI/calculation run and 6-test access/activity run are therefore treated as earlier focused evidence rather than the current total.
+
+Table~\ref{tab:automated-validation-result-summary} presents the test groups, pass results, and the main behavior confirmed by each group.
 
 \begin{table}[H]
 	\centering
@@ -216,10 +240,12 @@ The final full backend suite contained 106 automated tests, and all 106 passed. 
 	\end{tabularx}
 \end{table}
 
-\subsection{Calculation Validation Detail}
+\subsection{Calculation Validation}
 The calculation validation focused on the reorder point and recommended restock calculation because this is one of the most important inventory decisions in the system. The test did not use random data. Instead, it created fixed purchase and sale records in a temporary Django test database so that the expected result could be calculated manually.
 
 The test first created one product, two received purchase records, one pending purchase record, two committed sales, and one pending sale. Then the test called the dashboard API, which runs the same backend stock report calculation used by the real dashboard and inventory page. The backend output was compared with the manually calculated expected values.
+
+Table~\ref{tab:calculation-validation-input} lists the controlled input values and explains why each value was included. Table~\ref{tab:calculation-validation-output} then compares the manually expected result with the value returned by the program. The tested calculation follows the reorder components and restock definitions in Equations~\ref{eq:reorder-components} and~\ref{eq:restock-and-value}.
 
 \begin{table}[H]
 	\centering
@@ -260,12 +286,14 @@ The test first created one product, two received purchase records, one pending p
 	\end{tabularx}
 \end{table}
 
-The backend formula matched the manually expected values shown in Table~\ref{tab:calculation-validation-output}.
+As shown in Table~\ref{tab:calculation-validation-output}, every calculated output matched the manually expected value. The result confirms that the same controlled inputs produce available stock of 60 units, a reorder level of 48 units, a recommended restock quantity of 18 units, and a stock value of 300.
 
-\subsection{AI Chat Validation Detail}
+\subsection{AI Chat Validation}
 The AI Chat validation checked whether the chat page answers from backend data instead of inventing business values. The test was performed by calling the backend chat function with fixed questions and known data. The important output fields were the answer text, presentation title, selected record references, model marker, conclusion, and highlights.
 
-Without an API key, AI Chat returns a deterministic backend summary marked as \texttt{local-summary}. With a configured key, the model receives only the verified backend answer and presentation, then returns structured answer, conclusion, and highlight fields. If the model call or structured validation fails, the endpoint falls back to \texttt{local-summary}. Unsupported broad questions remain outside the assistant's operational scope.
+Without an API key, AI Chat returns a limited local summary prepared from the selected records. With a configured key, AI improves the wording and adds a conclusion and highlights while using the same factual information. If the AI request fails, the local summary remains available. Requests outside the supported read-only topics receive an out-of-scope response instead of an invented answer.
+
+Table~\ref{tab:ai-chat-validation-input-output} shows the sample questions, the known information used for comparison, the expected answer, and the result for both local and AI-assisted conditions.
 
 \begin{table}[H]
 	\centering
@@ -283,12 +311,14 @@ Without an API key, AI Chat returns a deterministic backend summary marked as \t
 	\end{tabularx}
 \end{table}
 
-The validation records that both local and model-backed AI Chat answers use backend records and calculations as the factual source.
+All checks in Table~\ref{tab:ai-chat-validation-input-output} passed. Customer totals, net position, and low-stock information matched the prepared records; the unsupported request was declined; and the configured-key condition added a conclusion and highlights without changing the verified record references.
 
-\subsection{AI Report Validation Detail}
+\subsection{AI Report Validation}
 The AI Report validation checked whether supplier, customer, and product reports are generated from the correct selected records. The test also checked that the final report is printable HTML, that chart rows come from backend data, and that unsafe model HTML is removed.
 
-The report test used a controlled supplier and purchase record. The backend built a report context containing the supplier name, purchase reference, purchase amount, metrics, chart rows, and tables. With the API key setting configured, the model response was simulated so that the test could check the system behavior without depending on internet availability or changing AI output. This is important because automated tests must be repeatable.
+The report test used a controlled supplier and purchase record. The program prepared the supplier name, purchase reference, purchase amount, metrics, chart rows, and tables. For the configured-key condition, a fixed AI response was used so that the same expected result could be checked every time. This controlled approach keeps automated tests repeatable.
+
+Table~\ref{tab:ai-report-validation-input} lists the known report inputs. Table~\ref{tab:ai-report-validation-output} lists the expected document, chart, content-safety, and current-data checks performed on the generated report.
 
 \begin{table}[H]
 	\centering
@@ -324,10 +354,12 @@ The report test used a controlled supplier and purchase record. The backend buil
 	\end{tabularx}
 \end{table}
 
-The validation records that selected records, metrics, charts, and tables were prepared by the backend before report output.
+All checks in Table~\ref{tab:ai-report-validation-output} passed. The report contained the expected supplier, purchase reference, and amount; it remained printable; its charts used prepared data; and unsafe webpage elements were removed. These results show that optional AI writing did not replace the verified records and totals.
 
 \subsection{Manual Scenario Test}
-The manual scenario test asked users to complete the main business flow from quotation to purchase, purchase receiving, payment batch, sale, credit note, and billing note. Ten testers finished the scenario test. Tester names were removed from the stored result file and replaced with anonymous labels for privacy.
+The manual scenario test asked users to complete the main process from quotation to purchase, purchase receiving, payment batch, sale, credit note, and billing note. Ten testers finished the scenario test.
+
+Table~\ref{tab:scenario-test-participant-summary} summarizes the participant group and scenario coverage. Table~\ref{tab:scenario-test-average-result} then reports the average completion time, score, and interpretation for each part.
 
 \begin{table}[H]
 	\centering
@@ -369,6 +401,8 @@ The average scenario score across all parts was 9.21 out of 10. The lower relati
 \subsection{Questionnaire Result}
 After the scenario test, testers answered a 15-item questionnaire using a 1 to 5 rating scale. The average questionnaire score across all testers was 4.58 out of 5.
 
+Table~\ref{tab:questionnaire-result-summary} summarizes the response count, scale, average score, and overall interpretation of the questionnaire.
+
 \begin{table}[H]
 	\centering
 	\BlackbookTableSetup
@@ -387,6 +421,8 @@ After the scenario test, testers answered a 15-item questionnaire using a 1 to 5
 
 \subsection{User Feedback Summary}
 The user comments showed several repeated themes. Positive feedback mentioned that purchase order status was understandable, quotation-to-purchase flow was useful, credit note creation could be simple, and connected data reduced the need for repeated entry. Improvement feedback focused mainly on visual clarity and consistency.
+
+Table~\ref{tab:user-feedback-themes} groups comments with similar meaning so that the most common positive points and improvement areas can be reviewed together.
 
 \begin{table}[H]
 	\centering

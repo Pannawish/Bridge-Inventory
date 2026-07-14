@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  14 JUL 2026 19:26
+This is XeTeX, Version 3.141592653-2.6-0.999993 (MiKTeX 22.1) (preloaded format=xelatex 2025.12.3)  14 JUL 2026 23:38
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1308,7 +1308,7 @@ CHAPTER 1.
 [2]
 
 [3]
-Underfull \hbox (badness 1009) in paragraph at lines 72--72
+Underfull \hbox (badness 1009) in paragraph at lines 74--74
 []|\TU/TimesNewRoman(0)/m/n/8 9: Quotation, Billing Notes, and
  []
 
@@ -1334,19 +1334,19 @@ CHAPTER 2.
 
 [11]
 
-[12]
+[12]) (chapter3.tex
 
 [13]
-
-[14]) (chapter3.tex
-
-[15]
 CHAPTER 3.
 
 
-[16
+[14
 
 ]
+
+[15]
+
+[16]
 
 [17]
 
@@ -1369,26 +1369,24 @@ CHAPTER 3.
 [26]
 
 [27]
-
-[28]
-Underfull \hbox (badness 1314) in paragraph at lines 367--368
+Underfull \hbox (badness 1314) in paragraph at lines 387--388
 []\TU/TimesNewRoman(0)/m/n/12 During the test, each participant followed the sc
 enario steps and
  []
 
 
 
-[29]
+[28]
 
-[30]) (chapter4.tex
+[29]) (chapter4.tex
+
+[30]
 
 [31]
-
-[32]
 CHAPTER 4.
 
 
-[33
+[32
 
 ]
 File: ./figures/chap4/figure-4-1-dashboard.png Graphic file (type bmp)
@@ -1397,57 +1395,64 @@ File: ./figures/chap4/figure-4-2-inventory.png Graphic file (type bmp)
 <./figures/chap4/figure-4-2-inventory.png>
 
 
-[34]
+[33]
 File: ./figures/chap4/figure-4-3-ai-chat.png Graphic file (type bmp)
 <./figures/chap4/figure-4-3-ai-chat.png>
 
 
-[35]
+[34]
 File: ./figures/chap4/figure-4-4-ai-report.png Graphic file (type bmp)
 <./figures/chap4/figure-4-4-ai-report.png>
 
 
-[36]
+[35]
 File: ./figures/chap4/figure-4-5-product-form.png Graphic file (type bmp)
 <./figures/chap4/figure-4-5-product-form.png>
 
 
-[37]
+[36]
 File: ./figures/chap4/figure-4-6-purchase-workflow.png Graphic file (type bmp)
 <./figures/chap4/figure-4-6-purchase-workflow.png>
 
 
-[38]
+[37]
 File: ./figures/chap4/figure-4-7-sales-workflow.png Graphic file (type bmp)
 <./figures/chap4/figure-4-7-sales-workflow.png>
 
 
-[39]
+[38]
 File: ./figures/chap4/figure-4-8-quotation-workflow.png Graphic file (type bmp)
 
 <./figures/chap4/figure-4-8-quotation-workflow.png>
 
 
-[40]
+[39]
 File: ./figures/chap4/figure-4-9-billing-note-workflow.png Graphic file (type b
 mp)
 <./figures/chap4/figure-4-9-billing-note-workflow.png>
+
+
+[40]
+File: figures/chap4/credit notes.png Graphic file (type bmp)
+<figures/chap4/credit notes.png>
 
 
 [41]
 File: ./figures/chap4/figure-4-10-payment-batch-workflow.png Graphic file (type
  bmp)
 <./figures/chap4/figure-4-10-payment-batch-workflow.png>
+File: figures/chap4/user access.png Graphic file (type bmp)
+<figures/chap4/user access.png>
 
 
 [42]
-File: ./figures/chap4/figure-4-11-user-access.png Graphic file (type bmp)
-<./figures/chap4/figure-4-11-user-access.png>
+File: ./figures/chap4/figure-4-12-activity-log.png Graphic file (type bmp)
+<./figures/chap4/figure-4-12-activity-log.png>
 
 
 [43]
-File: ./figures/chap4/figure-4-12-activity-log.png Graphic file (type bmp)
-<./figures/chap4/figure-4-12-activity-log.png>
+File: figures/chap4/setting.png Graphic file (type bmp)
+<figures/chap4/setting.png>
 
 
 [44]
@@ -1478,23 +1483,21 @@ File: ./figures/chap4/figure-4-12-activity-log.png Graphic file (type bmp)
 
 [57]
 
-[58]
+[58]) (chapter5.tex
 
-[59]) (chapter5.tex
-
-[60]
+[59]
 CHAPTER 5.
 
 
-[61
+[60
 
 ]
 
-[62]
+[61]
 
-[63])
+[62])
 
-[64] (main.bbl
+[63] (main.bbl
 Underfull \hbox (badness 6364) in paragraph at lines 46--52
 []\TU/TimesNewRoman(0)/m/n/12 OpenAI.  \TU/TimesNewRoman(0)/m/it/12 Structured 
 Model Outputs\TU/TimesNewRoman(0)/m/n/12 .  OpenAI Developer Documenta-
@@ -1502,42 +1505,43 @@ Model Outputs\TU/TimesNewRoman(0)/m/n/12 .  OpenAI Developer Documenta-
 
 )
 
-[65
+[64
 
 ]
 
-[66] (AppendixA.tex
+[65] (AppendixA.tex
 Appendix A.
 
 
-[67
+[66
 
 ]
 
-[68]
+[67]
 
-[69]
+[68]
 File: ../docs/screenshots/sidebar-navigation.png Graphic file (type bmp)
 <../docs/screenshots/sidebar-navigation.png>
 
+
+[69]
 
 [70]
 File: ../docs/screenshots/product-form-unit-conversions.png Graphic file (type 
 bmp)
 <../docs/screenshots/product-form-unit-conversions.png>
+File: ../docs/screenshots/quotation-entry.png Graphic file (type bmp)
+<../docs/screenshots/quotation-entry.png>
+File: ../docs/screenshots/purchase-form-receiving-status.png Graphic file (type
+ bmp)
+<../docs/screenshots/purchase-form-receiving-status.png>
 
 
 [71]
 
 [72]
-File: ../docs/screenshots/quotation-entry.png Graphic file (type bmp)
-<../docs/screenshots/quotation-entry.png>
-
 
 [73]
-File: ../docs/screenshots/purchase-form-receiving-status.png Graphic file (type
- bmp)
-<../docs/screenshots/purchase-form-receiving-status.png>
 File: ../docs/screenshots/sales-form-delivery-statuses.png Graphic file (type b
 mp)
 <../docs/screenshots/sales-form-delivery-statuses.png>
@@ -1554,7 +1558,9 @@ File: ../docs/screenshots/dashboard-overview.png Graphic file (type bmp)
 
 [77])
 
-[78] 
+[78]
+
+[79] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
 (main.aux)
  ***********
@@ -1563,12 +1569,12 @@ L3 programming layer <2025-11-06>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 24381 strings out of 402990
- 519346 string characters out of 5447323
- 1022535 words of memory out of 5000000
- 52627 multiletter control sequences out of 15000+600000
+ 24390 strings out of 402990
+ 519574 string characters out of 5447323
+ 1022320 words of memory out of 5000000
+ 52633 multiletter control sequences out of 15000+600000
  633832 words of font info for 111 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 88i,13n,107p,858b,964s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 88i,13n,107p,895b,964s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (92 pages).
+Output written on main.pdf (93 pages).

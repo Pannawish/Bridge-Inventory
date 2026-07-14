@@ -12,7 +12,7 @@
 \contentsline {section}{\numberline {1.2}Objective}{1}{}%
 \contentsline {section}{\numberline {1.3}Scope}{2}{}%
 \contentsline {section}{\numberline {1.4}Expected Results}{4}{}%
-\contentsline {section}{\numberline {1.5}Timeline}{5}{}%
+\contentsline {section}{\numberline {1.5}Timeline}{4}{}%
 \contentsline {chapter}{\numberline {2}LITERATURE REVIEW}{6}{}%
 \contentsline {section}{\numberline {2.1}North American Industry Classification System: Wholesale Trade \cite {naics_2022_wholesale_trade}}{6}{}%
 \contentsline {section}{\numberline {2.2}Qtier-Rapor: Managing Spreadsheet Systems and Improving Corporate Performance, Compliance and Governance \cite {bishop2008spreadsheet}}{6}{}%
@@ -20,71 +20,71 @@
 \contentsline {section}{\numberline {2.4}A Full-Stack Web Solution for Online FMCG Management System Using MERN: Design, Implementation, and Evaluation \cite {paper_1}}{7}{}%
 \contentsline {section}{\numberline {2.5}Essentials of Inventory Management \cite {paper_2}}{8}{}%
 \contentsline {section}{\numberline {2.6}Inventory and Production Management in Supply Chains \cite {silver2016inventory}}{8}{}%
-\contentsline {section}{\numberline {2.7}Inventory and Business Calculation Basis}{9}{}%
-\contentsline {subsection}{\numberline {2.7.1}Unit Conversion and Line Amounts}{9}{}%
+\contentsline {section}{\numberline {2.7}Inventory and Business Calculation Basis}{8}{}%
+\contentsline {subsection}{\numberline {2.7.1}Unit Conversion and Line Amounts}{8}{}%
 \contentsline {subsection}{\numberline {2.7.2}VAT Calculation}{9}{}%
-\contentsline {subsection}{\numberline {2.7.3}Current Stock}{10}{}%
+\contentsline {subsection}{\numberline {2.7.3}Current Stock}{9}{}%
 \contentsline {subsection}{\numberline {2.7.4}Stock Validation and Allocation}{10}{}%
-\contentsline {subsection}{\numberline {2.7.5}Inventory Dashboard Calculations}{11}{}%
-\contentsline {subsection}{\numberline {2.7.6}Purchase Payable and Payment Batch Calculations}{12}{}%
-\contentsline {subsection}{\numberline {2.7.7}Billing Note and Credit Note Calculations}{13}{}%
-\contentsline {subsection}{\numberline {2.7.8}Cashflow and Net Position}{13}{}%
-\contentsline {subsection}{\numberline {2.7.9}Quotation Validity}{14}{}%
-\contentsline {section}{\numberline {2.8}Aisha: A Custom AI Library Chatbot Using the ChatGPT API \cite {paper_3}}{14}{}%
-\contentsline {section}{\numberline {2.9}Summary}{15}{}%
-\contentsline {chapter}{\numberline {3}METHODOLOGY}{16}{}%
-\contentsline {section}{\numberline {3.1}Development Approach}{16}{}%
-\contentsline {section}{\numberline {3.2}Requirement Areas and Web-App Pages}{17}{}%
-\contentsline {section}{\numberline {3.3}System Architecture}{18}{}%
-\contentsline {section}{\numberline {3.4}Frontend Methodology}{19}{}%
-\contentsline {section}{\numberline {3.5}Backend and API Methodology}{20}{}%
-\contentsline {section}{\numberline {3.6}Database Design Methodology}{22}{}%
-\contentsline {section}{\numberline {3.7}Business Workflow Design}{22}{}%
-\contentsline {section}{\numberline {3.8}Validation and Security Design}{24}{}%
-\contentsline {section}{\numberline {3.9}Testing Methodology}{24}{}%
-\contentsline {subsection}{\numberline {3.9.1}Automated Backend Validation Method}{26}{}%
-\contentsline {subsection}{\numberline {3.9.2}Calculation Validation Method}{27}{}%
-\contentsline {subsection}{\numberline {3.9.3}AI Chat Validation Method}{27}{}%
-\contentsline {subsection}{\numberline {3.9.4}AI Report Validation Method}{28}{}%
-\contentsline {subsection}{\numberline {3.9.5}Manual Scenario Test Method}{29}{}%
-\contentsline {subsection}{\numberline {3.9.6}Questionnaire Method}{30}{}%
-\contentsline {section}{\numberline {3.10}Tools and Technologies Used}{31}{}%
-\contentsline {chapter}{\numberline {4}RESULTS}{33}{}%
-\contentsline {section}{\numberline {4.1}System Overview}{33}{}%
-\contentsline {section}{\numberline {4.2}Implemented Modules}{33}{}%
-\contentsline {section}{\numberline {4.3}System Implementation}{34}{}%
-\contentsline {section}{\numberline {4.4}Results by Workflow}{45}{}%
-\contentsline {section}{\numberline {4.5}Feature Evidence Summary}{48}{}%
-\contentsline {section}{\numberline {4.6}Testing and Evaluation Results}{49}{}%
-\contentsline {subsection}{\numberline {4.6.1}Automated Backend Validation}{49}{}%
-\contentsline {subsection}{\numberline {4.6.2}Calculation Validation Detail}{50}{}%
-\contentsline {subsection}{\numberline {4.6.3}AI Chat Validation Detail}{52}{}%
-\contentsline {subsection}{\numberline {4.6.4}AI Report Validation Detail}{53}{}%
-\contentsline {subsection}{\numberline {4.6.5}Manual Scenario Test}{55}{}%
-\contentsline {subsection}{\numberline {4.6.6}Questionnaire Result}{57}{}%
-\contentsline {subsection}{\numberline {4.6.7}User Feedback Summary}{58}{}%
-\contentsline {section}{\numberline {4.7}Limitations Found During Development}{59}{}%
-\contentsline {chapter}{\numberline {5}CONCLUSION}{61}{}%
-\contentsline {section}{\numberline {5.1}Brief Project Overview}{61}{}%
-\contentsline {section}{\numberline {5.2}Objective Summary}{61}{}%
-\contentsline {section}{\numberline {5.3}System Design Summary}{62}{}%
-\contentsline {section}{\numberline {5.4}Implementation Summary}{62}{}%
-\contentsline {section}{\numberline {5.5}Result Summary}{62}{}%
-\contentsline {section}{\numberline {5.6}Key Findings}{63}{}%
-\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{63}{}%
-\contentsline {section}{\numberline {5.8}Future Work}{63}{}%
-\contentsline {chapter}{REFERENCES}{65}{}%
+\contentsline {subsection}{\numberline {2.7.5}Inventory Dashboard Calculations}{10}{}%
+\contentsline {subsection}{\numberline {2.7.6}Purchase Payable and Payment Batch Calculations}{11}{}%
+\contentsline {subsection}{\numberline {2.7.7}Billing Note and Credit Note Calculations}{12}{}%
+\contentsline {subsection}{\numberline {2.7.8}Cashflow and Net Position}{12}{}%
+\contentsline {subsection}{\numberline {2.7.9}Quotation Validity}{12}{}%
+\contentsline {section}{\numberline {2.8}Aisha: A Custom AI Library Chatbot Using the ChatGPT API \cite {paper_3}}{13}{}%
+\contentsline {section}{\numberline {2.9}Summary}{13}{}%
+\contentsline {chapter}{\numberline {3}METHODOLOGY}{14}{}%
+\contentsline {section}{\numberline {3.1}Development Approach}{14}{}%
+\contentsline {section}{\numberline {3.2}Requirement Areas and Web-App Pages}{15}{}%
+\contentsline {section}{\numberline {3.3}System Architecture}{16}{}%
+\contentsline {section}{\numberline {3.4}Frontend Methodology}{18}{}%
+\contentsline {section}{\numberline {3.5}Backend and API Methodology}{18}{}%
+\contentsline {section}{\numberline {3.6}Database Design Methodology}{20}{}%
+\contentsline {section}{\numberline {3.7}Business Workflow Design}{21}{}%
+\contentsline {section}{\numberline {3.8}Validation and Security Design}{22}{}%
+\contentsline {section}{\numberline {3.9}Testing Methodology}{23}{}%
+\contentsline {subsection}{\numberline {3.9.1}Automated Backend Validation Method}{25}{}%
+\contentsline {subsection}{\numberline {3.9.2}Calculation Validation Method}{26}{}%
+\contentsline {subsection}{\numberline {3.9.3}AI Chat Validation Method}{26}{}%
+\contentsline {subsection}{\numberline {3.9.4}AI Report Validation Method}{27}{}%
+\contentsline {subsection}{\numberline {3.9.5}Manual Scenario Test Method}{28}{}%
+\contentsline {subsection}{\numberline {3.9.6}Questionnaire Method}{29}{}%
+\contentsline {section}{\numberline {3.10}Tools and Technologies Used}{30}{}%
+\contentsline {chapter}{\numberline {4}RESULTS}{32}{}%
+\contentsline {section}{\numberline {4.1}System Overview}{32}{}%
+\contentsline {section}{\numberline {4.2}Implemented Modules}{32}{}%
+\contentsline {section}{\numberline {4.3}System Implementation}{33}{}%
+\contentsline {section}{\numberline {4.4}Results by Workflow}{44}{}%
+\contentsline {section}{\numberline {4.5}Feature Evidence Summary}{46}{}%
+\contentsline {section}{\numberline {4.6}Testing and Evaluation Results}{48}{}%
+\contentsline {subsection}{\numberline {4.6.1}Automated Backend Validation}{48}{}%
+\contentsline {subsection}{\numberline {4.6.2}Calculation Validation}{49}{}%
+\contentsline {subsection}{\numberline {4.6.3}AI Chat Validation}{51}{}%
+\contentsline {subsection}{\numberline {4.6.4}AI Report Validation}{53}{}%
+\contentsline {subsection}{\numberline {4.6.5}Manual Scenario Test}{54}{}%
+\contentsline {subsection}{\numberline {4.6.6}Questionnaire Result}{56}{}%
+\contentsline {subsection}{\numberline {4.6.7}User Feedback Summary}{57}{}%
+\contentsline {section}{\numberline {4.7}Limitations Found During Development}{58}{}%
+\contentsline {chapter}{\numberline {5}CONCLUSION}{60}{}%
+\contentsline {section}{\numberline {5.1}Brief Project Overview}{60}{}%
+\contentsline {section}{\numberline {5.2}Objective Summary}{60}{}%
+\contentsline {section}{\numberline {5.3}System Design Summary}{61}{}%
+\contentsline {section}{\numberline {5.4}Implementation Summary}{61}{}%
+\contentsline {section}{\numberline {5.5}Result Summary}{61}{}%
+\contentsline {section}{\numberline {5.6}Key Findings}{62}{}%
+\contentsline {section}{\numberline {5.7}Obstacles and Challenges}{62}{}%
+\contentsline {section}{\numberline {5.8}Future Work}{62}{}%
+\contentsline {chapter}{REFERENCES}{64}{}%
 \setcounter {tocdepth}{0}
 \renewcommand {\cftchappresnum }{\MakeUppercase []{Appendix~}}\renewcommand {\cftchapnumwidth }{\dimexpr \appendixToCPrefix +2.5em}
-\contentsline {chapter}{\numberline {A}SOFTWARE USER GUIDE}{67}{}%
-\contentsline {section}{\numberline {A.1}Starting the Software}{67}{}%
-\contentsline {subsection}{\numberline {A.1.1}Starting with Docker Compose}{67}{}%
-\contentsline {subsection}{\numberline {A.1.2}Starting Manually without Docker}{68}{}%
-\contentsline {section}{\numberline {A.2}Accessing the System}{70}{}%
+\contentsline {chapter}{\numberline {A}SOFTWARE USER GUIDE}{66}{}%
+\contentsline {section}{\numberline {A.1}Starting the Software}{66}{}%
+\contentsline {subsection}{\numberline {A.1.1}Starting with Docker Compose}{66}{}%
+\contentsline {subsection}{\numberline {A.1.2}Starting Manually without Docker}{67}{}%
+\contentsline {section}{\numberline {A.2}Accessing the System}{69}{}%
 \contentsline {section}{\numberline {A.3}Basic Operating Rules}{70}{}%
-\contentsline {section}{\numberline {A.4}First-Time Master Data Setup}{71}{}%
-\contentsline {section}{\numberline {A.5}Daily Transaction Workflow}{73}{}%
-\contentsline {section}{\numberline {A.6}Finance Follow-Up Workflow}{76}{}%
+\contentsline {section}{\numberline {A.4}First-Time Master Data Setup}{70}{}%
+\contentsline {section}{\numberline {A.5}Daily Transaction Workflow}{71}{}%
+\contentsline {section}{\numberline {A.6}Finance Follow-Up Workflow}{74}{}%
 \contentsline {section}{\numberline {A.7}Inventory and Business Review}{76}{}%
 \contentsline {section}{\numberline {A.8}AI Chat and AI Report}{77}{}%
 \contentsline {section}{\numberline {A.9}Administration}{77}{}%

@@ -18,6 +18,8 @@ This structure helped keep the user interface separate from the business rules. 
 \section{Requirement Areas and Web-App Pages}
 The web application is organized around the main work areas that a trading business needs each day. Each sidebar page has a specific purpose, and the pages are connected through shared product, supplier, customer, purchase, sale, and finance data.
 
+Tables~\ref{tab:requirement-page-map} and~\ref{tab:record-support-page-map} describe how the business requirements are divided among the implemented pages. Table~\ref{tab:requirement-page-map} covers the main operational pages, while Table~\ref{tab:record-support-page-map} continues with record management, administration, and language support.
+
 \begin{table}[H]
 	\centering
 	\BlackbookTableSetup
@@ -59,6 +61,8 @@ The web application is organized around the main work areas that a trading busin
 \section{System Architecture}
 The system uses a three-tier web architecture. React is responsible for the user interface, Django REST Framework provides the API and business rules, and MySQL stores the relational records. The frontend does not connect directly to the database. Every important action goes through the API.
 
+Figure~\ref{fig:system-architecture-overview} shows the direction of communication between the user interface, API, business services, database, and read-only assistant.
+
 \begin{figure}[H]
 \centering
 \resizebox{0.68\textwidth}{!}{
@@ -87,6 +91,8 @@ The system uses a three-tier web architecture. React is responsible for the user
 \label{fig:system-architecture-overview}
 \end{figure}
 
+Table~\ref{tab:architecture-components} explains the responsibility and implementation used for each architecture layer shown in Figure~\ref{fig:system-architecture-overview}.
+
 \begin{table}[H]
 	\centering
 	\BlackbookTableSetup
@@ -112,6 +118,8 @@ The frontend also keeps a mock-data fallback for development and demonstration. 
 
 \section{Backend and API Methodology}
 The backend was developed as a Django project with one main inventory application. Django REST Framework viewsets provide CRUD endpoints for products, categories, suppliers, customers, purchases, sales, quotations, billing notes, payment batches, and credit notes. Separate API views provide dashboard summaries, dashboard segments, lookup lists, product history, product stock layers, eligibility lists, and chat responses.
+
+Table~\ref{tab:api-endpoint-groups} summarizes the main endpoint groups and the part of the application served by each group.
 
 \begin{table}[H]
 	\centering
@@ -145,6 +153,8 @@ The database was designed as a relational MySQL schema managed by Django migrati
 
 The system also keeps snapshot fields inside transaction records. A sale item stores product name, SKU, quantity, price, and amount. A purchase stores supplier name and line item details. These snapshot values are important because old business documents should remain readable even if a product, supplier, or customer is edited later.
 
+Table~\ref{tab:database-model-groups} groups the principal database models according to the business records they store.
+
 \begin{table}[H]
 	\centering
 	\BlackbookTableSetup
@@ -165,6 +175,10 @@ The system also keeps snapshot fields inside transaction records. A sale item st
 The main workflow starts from master data. Products belong to categories and are used in purchase, sale, and quotation line items. Purchases bring stock into the system only when purchase items are received. Sales commit stock only when sale items are packed, shipped, or delivered. This is why the system does not treat product stock as a manually edited field.
 
 Quotations are used before purchase or sales records are created. Billing notes are created from eligible sales for customer receivable tracking. Payment batches are created from eligible purchases for supplier payable tracking. Credit notes are created from eligible cancelled or returned sale lines. Dashboard summaries, AI Chat, and AI Report read from the operational records, while user access and activity logs support administration and audit review.
+
+Figure~\ref{fig:business-workflow-design} shows how master data, transactions, stock movement, finance documents, reports, and access control are connected in the overall process.
+
+\vspace{0.6\baselineskip}
 
 \begin{figure}[H]
 \centering
@@ -250,10 +264,12 @@ Quotations are used before purchase or sales records are created. Billing notes 
 \section{Validation and Security Design}
 Validation is handled mainly by the backend. The frontend helps the user by showing form messages and previews, but direct API calls still need to be safe. The backend validates stock availability, active product usage, allocation rules, document eligibility, quotation validity dates, and finance document selection rules.
 
-Security support is implemented with Simple JWT, Django groups, and Django model permissions. The backend exposes login, token refresh, and authenticated profile endpoints. The frontend stores and refreshes tokens, then attaches the access token to API requests. The authenticated profile includes the user's roles, permissions, and access flags for user management and activity logs. In local development, the backend can allow unauthenticated access depending on \texttt{INVENTORY\_REQUIRE\_AUTH}; when that setting is enabled, API access requires authentication and model-level permissions are checked for protected CRUD actions.
+Security begins with the login process. A user enters an assigned username and password, and the backend verifies those credentials before issuing an access token and a refresh token. The frontend sends the access token with later API requests and uses the refresh token to obtain a replacement when the access token expires. After login, the authenticated profile endpoint returns the user's roles, permissions, and page-access flags so that the interface and protected backend actions apply the same access rules. Simple JWT provides the tokens, while Django groups and model permissions define what each role can do. In local development, authentication can be optional through \texttt{INVENTORY\_REQUIRE\_AUTH}; in an authenticated deployment, protected actions require both a valid login and the necessary permission.
 
 \section{Testing Methodology}
-Testing was designed to check both technical correctness and user workflow understanding. The technical tests focused on backend behavior because the backend owns the most important business rules, including stock calculation, stock validation, finance eligibility, payable synchronization, and AI data preparation. Manual testing and questionnaires were added to check whether users could complete the main business workflow and understand the interface.
+Testing was designed to check both technical correctness and user understanding of the program flow. The automated tests focused on backend behavior because the backend owns the most important business rules, including stock calculation, stock validation, finance eligibility, payable synchronization, and AI data preparation. Manual user testing followed the main transaction process, and questionnaires recorded whether participants could understand the interface and complete the required tasks.
+
+Table~\ref{tab:testing-summary} provides an overview of the areas checked before the individual testing methods are described.
 
 \begin{table}[H]
 	\centering
@@ -279,11 +295,9 @@ Testing was designed to check both technical correctness and user workflow under
 \subsection{Automated Backend Validation Method}
 Automated backend validation was conducted with Django and Django REST Framework test cases. The tests used a temporary test database, created controlled records, called backend APIs or service functions, and compared the returned values with expected behavior. This method was used because backend rules must still be correct even if a user bypasses the frontend and calls the API directly.
 
-The preserved black-box test history contains a selected 30-case workflow suite for presentation. That historical selection covered product validation, quotation behavior, purchase workflow, sales stock validation, finance eligibility, credit notes, payment batches, payable synchronization, and lookup behavior. It did not contain dedicated pagination or filtering cases. The final full backend suite contains 106 tests, including separate coverage for pagination, filtering, reorder calculation, AI Chat, AI Report, user access, permission enforcement, and activity logging. The test command used for the full backend suite was:
+The preserved black-box test history contains a selected 30-case workflow suite for presentation. That historical selection covered product validation, quotation behavior, purchase workflow, sales stock validation, finance eligibility, credit notes, payment batches, payable synchronization, and lookup behavior. It did not contain dedicated pagination or filtering cases. The final full backend suite contains 106 tests, including separate coverage for pagination, filtering, reorder calculation, AI Chat, AI Report, user access, permission enforcement, and activity logging.
 
-\begin{verbatim}
-backend/.venv/bin/python backend/manage.py test inventory
-\end{verbatim}
+Table~\ref{tab:automated-backend-test-method} describes how controlled data, test actions, and expected results were used for repeatable backend validation.
 
 \begin{table}[H]
 	\centering
@@ -306,6 +320,8 @@ The calculation validation focused on the reorder point and inventory dashboard 
 
 The test created one product, received purchase stock, committed sales, pending sales, pending purchases, and lead-time samples. After the records were created, the dashboard stock report calculation was executed. The output was checked against expected values such as available stock, average unit cost, average daily demand, safety stock, reorder level, recommended restock, days until stockout, and stock value.
 
+Table~\ref{tab:calculation-validation-method} summarizes the controlled inputs, comparison step, expected result, and reason for this calculation check.
+
 \begin{table}[H]
 	\centering
 	\BlackbookTableSetup
@@ -322,9 +338,11 @@ The test created one product, received purchase stock, committed sales, pending 
 \end{table}
 
 \subsection{AI Chat Validation Method}
-AI Chat validation was designed to confirm that the assistant answered from backend data and stayed within the supported assistant scope. The tests used known database records and sent fixed chat questions to the backend chat function. The checked output included the answer text, presentation title, referenced records, model marker, and the structured AI conclusion and highlights returned when a model was configured.
+The AI Chat check was designed to answer two simple questions: whether the assistant uses the correct system records and whether it stays within its read-only purpose. Known sample records were prepared, and the same questions were asked so that names, totals, stock values, and document links could be compared with expected answers.
 
-The method also tested unsupported questions. This was important because the assistant should not invent broad business reports or perform actions outside the current read-only assistant scope. When an API key setting was configured, the validation still checked that operational answers remained tied to backend summaries and selected records.
+The program was checked in two operating conditions. Without an \mbox{OpenAI} API key, it should still answer supported questions with a limited summary prepared by the system. With an API key, it may improve the wording and add a conclusion and highlights, but the facts must remain the same. Unsupported requests should receive a clear out-of-scope message and a list of the stock, partner, finance, or document questions that the assistant can answer.
+
+Table~\ref{tab:ai-chat-validation-method} summarizes the sample information, questions, expected behavior, and purpose of this check.
 
 \begin{table}[H]
 	\centering
@@ -333,18 +351,20 @@ The method also tested unsupported questions. This was important because the ass
 	\label{tab:ai-chat-validation-method}
 	\begin{tabularx}{\textwidth}{|B{3.1cm}|Z|}
 		\hline
-		\textbf{Method Item} & \textbf{Description} \\ \hline
-		Input data & Known customer, sale, stock, billing, and payment records were prepared or selected from the backend context. \\ \hline
-		Test action & Fixed user questions were sent to AI Chat, such as customer activity, net position, low stock, and unsupported broad requests. \\ \hline
-		Expected output & Supported questions should return backend-based facts. A configured model should explain those facts and add a conclusion and highlights; local fallback should remain available, and unsupported questions should be rejected as outside scope. \\ \hline
-		Reason for method & AI Chat must help users read system data without inventing values or changing records. \\ \hline
+		\textbf{Check} & \textbf{Description} \\ \hline
+		Sample information & Known customer, sale, stock, billing, and payment records were prepared so their values could be checked directly. \\ \hline
+		Questions asked & The assistant received fixed questions about customer activity, net position, low stock, and a request outside its supported purpose. \\ \hline
+		Expected behavior & Supported questions should use the prepared records. The no-key condition should return a limited local summary, the configured-key condition should add an explanation, conclusion, and highlights, and unsupported questions should be declined. \\ \hline
+		Purpose & The check confirms that AI Chat helps users read existing information without inventing values or changing records. \\ \hline
 	\end{tabularx}
 \end{table}
 
 \subsection{AI Report Validation Method}
-AI Report validation checked whether report generation used the selected supplier, customer, or product records correctly. The method focused on the report context before and after the AI-written body was added. The backend prepared metrics, charts, record tables, and selected transaction references, then returned a self-contained printable HTML report.
+The AI Report check examined whether a report showed the correct information for the supplier, customer, or product selected by the user. A small set of known records was prepared, a report was generated, and its names, transaction references, totals, charts, and tables were compared with those records. The print function and page structure were also checked.
 
-The validation also checked report safety. Model-style HTML was simulated during testing so the system could verify that unsafe content was removed and that chart rows came from backend-prepared data. This makes the test repeatable and prevents the result from depending on changing AI output.
+The program was checked both with and without AI assistance. Without an \mbox{OpenAI} API key, the report should still contain the system-prepared facts and a local written summary. With an API key, AI may add written analysis, but it must not replace the verified totals, records, or chart data. The check also confirmed that unsafe webpage content, such as scripts, was removed before the report was displayed.
+
+Table~\ref{tab:ai-report-validation-method} summarizes the information used, the report-generation step, the expected output, and the reason for the check.
 
 \begin{table}[H]
 	\centering
@@ -353,18 +373,20 @@ The validation also checked report safety. Model-style HTML was simulated during
 	\label{tab:ai-report-validation-method}
 	\begin{tabularx}{\textwidth}{|B{3.1cm}|Z|}
 		\hline
-		\textbf{Method Item} & \textbf{Description} \\ \hline
-		Input data & A selected supplier, customer, or product was used with related purchases, sales, quotations, finance records, and stock data. \\ \hline
-		Test action & The report endpoint generated the report context and final HTML document for the selected scope. \\ \hline
-		Expected output & The report should contain correct selected-record references, summary metrics, backend chart rows, tables, a print button, and sanitized HTML. \\ \hline
-		Reason for method & AI Report may use AI for presentation, but the business values and charts must still come from reliable backend data. \\ \hline
+		\textbf{Check} & \textbf{Description} \\ \hline
+		Sample information & A known supplier, customer, or product was selected together with related transactions, finance records, and stock information. \\ \hline
+		Report generation & The program created the report for the selected record and prepared it as a printable webpage. \\ \hline
+		Expected behavior & The report should show the correct record names, totals, references, charts, tables, and print control. Any unsafe webpage content should be removed. \\ \hline
+		Purpose & The check confirms that optional AI writing does not change the verified business values used in the report. \\ \hline
 	\end{tabularx}
 \end{table}
 
 \subsection{Manual Scenario Test Method}
-Manual scenario testing was conducted to check whether users could complete the main business workflow in the system. The scenario was divided into parts that followed the intended workflow: quotation, purchase creation, purchase receiving, supplier payment, sale checking, status update, credit note, and billing note.
+Manual scenario testing was conducted to check whether users could complete the main transaction process in the system. The scenario was divided into parts that followed the intended sequence: quotation, purchase creation, purchase receiving, supplier payment, sale checking, status update, credit note, and billing note.
 
 During the test, each participant followed the scenario steps and recorded the time and score for each part. Tester names were removed from the stored result file for privacy. This method was used because automated tests can prove that rules work, but they cannot show whether users can understand the screen flow and find the required actions.
+
+Table~\ref{tab:manual-scenario-test-method} describes the prepared tasks, the participant action, the expected outcome, and the reason for manual testing.
 
 \begin{table}[H]
 	\centering
@@ -382,9 +404,11 @@ During the test, each participant followed the scenario steps and recorded the t
 \end{table}
 
 \subsection{Questionnaire Method}
-After the scenario test, participants answered a questionnaire using a rating scale. The questionnaire measured their perception of usability, workflow clarity, system usefulness, and areas that may need improvement. Written comments were also reviewed to find repeated feedback themes.
+After the scenario test, participants answered a questionnaire using a five-point rating scale, where a higher value represented a more positive response. The questions covered ease of use, clarity of the transaction steps, usefulness of the information shown, and overall confidence in using the system.
 
-The questionnaire was used as a supporting evaluation method. It did not replace automated validation, but it helped show whether the implemented system was understandable and useful to users after they tried the workflow.
+The ratings were averaged to show the general response to each part of the system. Written comments were read and grouped by common ideas mentioned by more than one participant, such as difficulty finding buttons or understanding a status. The questionnaire supported the technical tests by showing how people understood the program after using it; it was not used as a replacement for functional validation.
+
+Table~\ref{tab:questionnaire-method} explains the information collected, how it was summarized, the expected result, and the purpose of the questionnaire.
 
 \begin{table}[H]
 	\centering
@@ -393,16 +417,18 @@ The questionnaire was used as a supporting evaluation method. It did not replace
 	\label{tab:questionnaire-method}
 	\begin{tabularx}{\textwidth}{|B{3.1cm}|Z|}
 		\hline
-		\textbf{Method Item} & \textbf{Description} \\ \hline
-		Input data & Participants answered rating-scale questions and optional written feedback after completing the scenario test. \\ \hline
-		Test action & Scores were summarized, and comments were grouped into repeated themes such as easy areas, difficult areas, and visual clarity. \\ \hline
-		Expected output & The questionnaire should show general user perception and highlight improvement areas for the interface and workflow. \\ \hline
-		Reason for method & Questionnaire feedback adds user-centered evidence that cannot be captured by automated backend tests alone. \\ \hline
+		\textbf{Step} & \textbf{Description} \\ \hline
+		Information collected & Participants provided ratings and optional written comments after completing the scenario tasks. \\ \hline
+		Summary method & Ratings were averaged, and comments with similar meaning were grouped into common positive points and improvement areas. \\ \hline
+		Expected result & The questionnaire should show how understandable and useful the system appeared to participants and identify interface areas that need improvement. \\ \hline
+		Purpose & The questionnaire adds user feedback that cannot be measured by automated program tests alone. \\ \hline
 	\end{tabularx}
 \end{table}
 
 \section{Tools and Technologies Used}
 The project used separate tools for frontend development, backend development, database storage, authentication, AI integration, styling, and testing. These tools were selected to support a full-stack web application with server-side business rules and a React-based user interface.
+
+Table~\ref{tab:tools-technologies} lists each main tool and the role it serves in the completed system.
 
 \begin{table}[H]
 	\centering
