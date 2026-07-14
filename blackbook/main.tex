@@ -15,7 +15,6 @@
 \usepackage{url}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
-\usepackage{lipsum} %Generate dummy text for testing
  %====== List of Coding Color Style ==============
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
@@ -45,14 +44,13 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Thesis Title 
 \newcommand{\thesisTitle}{Inventory Management}
-\newcommand{\thesisTitleTH}{ชื่อวิทยานิพนธ์}
+\newcommand{\thesisTitleTH}{การจัดการสินค้าคงคลัง}
 
 %Thesis Keywords
-\newcommand{\thesisKeywordsTH}{ ลาเท็ก / วิทยานิพนธ์ (\~{}5 คำ)}
+\newcommand{\thesisKeywordsTH}{ การจัดการสินค้าคงคลัง / ธุรกิจ SME / ระบบสารสนเทศ / ปัญญาประดิษฐ์}
 \newcommand{\thesisKeywords}{ Inventory Management / SME Trading / Django REST Framework / React / MySQL / AI Assistant}
 
-\newcommand{\totalPageTH}{๒๘}   %Total pages (See. the total number in English Acknowledgement Page then fill up here!)
-%\newcommand{\totalPageTH}{\pageref{LastPage}}
+% A Thai abstract is intentionally not included in this report.
 
 %First Author name
 \newcommand{\thesisFirstTitleName}{Mr.}
@@ -98,7 +96,7 @@
 
 
 %Month, year and date of thesis publication
-\newcommand{\thesisGradDateTH}{15 กรกฎาคม 2567}  %Graduate Date/Month/Year
+\newcommand{\thesisGradDateTH}{19 กรกฎาคม 2569}  %Graduate Date/Month/Year
 \newcommand{\thesisGradDate}{July 19, 2026} %Graduated Year
 \newcommand{\thesisAcademicYear}{2026} %Academic Year
 \newcommand{\thesisAcademicYearTH}{๒๕๖๙} %Academic Year
@@ -110,17 +108,15 @@
 %Advisor name
 \newcommand{\thesisAdv}{Asst. Prof. Mingmanas Sivaraksa}		%with title name
 \newcommand{\thesisAdvTH}{ผศ.ดร. มิ่งมานัส ศิวรักษ์ }		%with title name
-\newcommand{\advDegree}{Ph.D. (Data Science),\\ Ph.D. (Computer Engineering)}
+\newcommand{\advDegree}{Ph.D. (Information Engineering)}
 
 %Thesis Committees
 \newcommand{\Chair}{\thesisAdv}
 \newcommand{\ChairDegree}{\advDegree}
-\newcommand{\committeeI}{Committee 1} % TODO: Replace with actual committee member name.
-\newcommand{\committeeIDegree}{Ph.D. (Computer Engineering)}
-\newcommand{\committeeII}{Committee 2} % TODO: Replace with actual committee member name.
-\newcommand{\committeeIIDegree}{Ph.D. (Computer Engineering)}
-\newcommand{\committeeIII}{Committee 3} % TODO: Replace with actual committee member name.
-\newcommand{\committeeIIIDegree}{Ph.D. (Computer Science)}
+\newcommand{\committeeI}{Asst. Prof. Lalita Narupiyakul}
+\newcommand{\committeeIDegree}{Ph.D. (Computer Science)}
+\newcommand{\committeeII}{Asst. Prof. Dr. Tuangyot Supeekit}
+\newcommand{\committeeIIDegree}{Ph.D. (Industrial Engineering and Systems)}
 
 \begin{document}
 %---- Cover Page Section ------
@@ -151,6 +147,7 @@
 \newpage
 %---- Bibliography -----
 \pagestyle{bibliography}
+\setlength{\bibsep}{3pt}
 \bibliography{references} 
 \bibliographystyle{abbrvnat}
 \newpage

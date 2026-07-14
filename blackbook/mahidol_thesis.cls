@@ -63,7 +63,6 @@
  [    %Default font 
      Ligatures=TeX, 
      Script=Latin, 
-     SizeFeatures = {Size=12},
     %  Scale = 1.33,            %Scale Default Font size (12pt) to 16pt (1.33)
     %  Path=./Font/,
     %  Extension = .ttf,
@@ -312,21 +311,21 @@ entitled\\
 \thispagestyle{empty}
 \begin{spacing}{1.15}
 \begin{center}
-Thesis\\
+Computer Engineering Project\\
 entitled\\
 \@cpFont{\MakeUppercase{\thesisTitle}}
 \\[\baselineskip]
 was submitted to the Faculty of Engineering \& International College,\\
-Mahidiol University\\
+Mahidol University\\
 for the degree of Bachelor of Engineering (\thesisDepENG)\\
 on\\
 \thesisGradDate
 \vfill
-\noindent\@advSignbox{\Chair, \ChairDegree\\ Chair Committee}
+\noindent\@advSignbox{\Chair, \ChairDegree\\Committee Chair}
 \\[4\baselineskip]
 \noindent\@advSignbox{\committeeI, \committeeIDegree\\Committee}
 \\[4\baselineskip]
-\noindent\@advSignbox{\committeeII, \committeeIIDegree\\Comittee}
+\noindent\@advSignbox{\committeeII, \committeeIIDegree\\Committee}
 \end{center}
 \end{spacing}
 \clearpage

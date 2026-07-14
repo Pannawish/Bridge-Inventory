@@ -3,7 +3,7 @@
 This chapter explains how the Inventory Management web application was developed. The focus is on the development approach, architecture, workflow design, validation method, testing method, and tools used in the project. In this project, we built the system as a React web application connected to a Django REST Framework backend and a MySQL database.
 
 \section{Development Approach}
-We developed the system step by step, starting from the data that every other workflow depends on. The first part was master data, such as products, categories, suppliers, and customers. After that, we developed the transaction modules: purchases, sales, and quotations. The finance-related modules, including billing notes, payment batches, and credit notes, were added after the main transactions were already working. Finally, we connected the dashboard, inventory workspace, and AI chat page to the backend data.
+We developed the system step by step, starting from the data that every other workflow depends on. The first part was master data, such as products, categories, suppliers, and customers. After that, we developed the transaction modules: purchases, sales, and quotations. The finance-related modules, including billing notes, payment batches, and credit notes, were added after the main transactions were already working. Finally, we connected the dashboard, inventory workspace, AI pages, administration pages, and language settings to the backend-supported workflow.
 
 The project was separated into three main layers:
 
@@ -28,7 +28,7 @@ The web application is organized around the main work areas that a trading busin
 		\textbf{Requirement Area} & \textbf{Web-App Page} & \textbf{Purpose in the System} \\ \hline
 		Operation summary & Dashboard & Shows stock, finance, cashflow, product movement, and order coverage summaries. \\ \hline
 		Inventory control & Inventory & Shows stock health, reorder information, supplier options, product details, and quick purchase-order preparation. \\ \hline
-		Assistant support & AI Chat & Answers supported read-only questions about stock, fulfillment, partners, AR/AP exceptions, and document references. \\ \hline
+		Assistant support & AI Chat & Answers supported read-only questions from verified backend facts; configured AI responses add a conclusion and question-specific highlights. \\ \hline
 		Report generation & AI Report & Generates printable supplier, customer, or product reports with metrics, charts, record tables, and AI-written analysis. \\ \hline
 		Purchasing & Purchases & Records purchase orders, line items, receiving status, documents, VAT totals, discounts, and payable values. \\ \hline
 		Supplier payment & Payment Batches & Groups eligible purchases for supplier payment and tracks paid or unpaid lines. \\ \hline
@@ -47,10 +47,12 @@ The web application is organized around the main work areas that a trading busin
 		\textbf{Requirement Area} & \textbf{Web-App Page} & \textbf{Purpose in the System} \\ \hline
 		Customer billing & Billing Notes & Groups eligible sales into customer billing notes and tracks received or outstanding lines. \\ \hline
 		Returns and cancellation adjustment & Credit Notes & Creates credit notes from eligible cancelled or returned sale items. \\ \hline
-		Product records & Products & Manages product details, SKUs, pictures, units, reorder levels, active status, suppliers, and history. \\ \hline
+		Product records & Products & Manages product details, SKUs, image/PDF attachments, units, reorder levels, active status, suppliers, margin information, and history. \\ \hline
 		Category records & Categories & Manages product categories using a parent-child category tree. \\ \hline
 		Supplier records & Supplier & Manages supplier profile, contact information, procurement contact, branches, shipping addresses, and terms. \\ \hline
 		Customer records & Customer & Manages customer profile, contact information, branches, shipping addresses, and billing terms. \\ \hline
+		Administration and audit & User Access / Activity Log & Manages users, roles, and permissions, and provides authorized review of system activity. \\ \hline
+		Language preference & Settings & Switches the application interface between English and Thai. \\ \hline
 	\end{tabularx}
 \end{table}
 
@@ -81,7 +83,7 @@ The system uses a three-tier web architecture. React is responsible for the user
 \end{tikzpicture}
 }
 \vspace{1em}
-\caption{System architecture overview}
+\caption{System Architecture Overview}
 \label{fig:system-architecture-overview}
 \end{figure}
 
@@ -104,7 +106,7 @@ The system uses a three-tier web architecture. React is responsible for the user
 \section{Frontend Methodology}
 The frontend was developed with React components, hooks, and helper files. Large pages are split into smaller sections, such as form details, line items, totals, directory tables, and detail modals. This made the code easier to manage because a purchase form, for example, has different concerns from a purchase history table.
 
-The API client in \texttt{frontend/src/api.js} centralizes communication with the backend. It builds query strings, sends JSON or form-data requests, attaches bearer tokens, retries a request after token refresh, and dispatches an authentication-expired event when refresh fails. The frontend permission helper uses the profile returned from \texttt{/api/auth/me/} to show or hide navigation tabs such as products, purchases, sales, user access, and activity log. The data-loading hooks keep full lookup data separate from paginated directory rows, so forms can still access reference data while history pages can use pagination.
+The API client in \texttt{frontend/src/api.js} centralizes communication with the backend. It builds query strings, sends JSON or form-data requests, attaches bearer tokens, retries a request after token refresh, and dispatches an authentication-expired event when refresh fails. The frontend permission helper uses the profile returned from \texttt{/api/auth/me/} to show or hide navigation tabs such as products, purchases, sales, user access, and activity log. The data-loading hooks keep full lookup data separate from paginated directory rows, so forms can still access reference data while history pages can use pagination. User-facing text is selected from English and Thai dictionaries through the language context, and the Settings page controls the active interface language.
 
 The frontend also keeps a mock-data fallback for development and demonstration. This fallback is useful when the backend is not running, but it is not treated as the final authority. The backend remains the source of truth for stock validation, eligibility, and financial synchronization.
 
@@ -114,6 +116,7 @@ The backend was developed as a Django project with one main inventory applicatio
 \begin{table}[H]
 	\centering
 	\BlackbookTableSetup
+	\renewcommand{\arraystretch}{1.45}
 	\caption{Main API Endpoint Groups}
 	\label{tab:api-endpoint-groups}
 	\begin{tabularx}{\textwidth}{|B{4cm}|Z|}
@@ -127,7 +130,7 @@ The backend was developed as a Django project with one main inventory applicatio
 		\texttt{/api/eligibility/...} & Backend-controlled lists for billing-note sales, payment-batch purchases, and credit-note sale lines. \\ \hline
 		\texttt{/api/dashboard/}, \texttt{/api/dashboard/segment/} & Dashboard summary and segmented operational reports. \\ \hline
 		\texttt{/api/products/<id>/history/} and \texttt{/stock-layers/} & Product transaction history and received stock layer details. \\ \hline
-		\texttt{/api/chat/} & Read-only assistant answers for supported questions. \\ \hline
+		\texttt{/api/chat/} & Read-only assistant answers from backend-prepared facts. Configured OpenAI responses include a conclusion and highlights; failures use the local summary. \\ \hline
 		\texttt{/api/ai-reports/} & Generates printable HTML reports for a selected supplier, customer, or product with metrics, charts, and record tables. \\ \hline
 		\texttt{/api/auth/login/}, \texttt{/refresh/}, \texttt{/me/} & Login, token refresh, and authenticated user profile. \\ \hline
 		\texttt{/api/admin/users/}, \texttt{/admin/roles/} & User account management, role assignment, and role permission management for authorized administrators. \\ \hline
@@ -240,7 +243,7 @@ Quotations are used before purchase or sales records are created. Billing notes 
 \end{tikzpicture}
 }
 \vspace{1em}
-\caption{Business workflow design}
+\caption{Business Workflow Design}
 \label{fig:business-workflow-design}
 \end{figure}
 
@@ -261,7 +264,7 @@ Testing was designed to check both technical correctness and user workflow under
 		\hline
 		\textbf{Test Area} & \textbf{What It Checks} \\ \hline
 		Pagination and filtering & Paginated responses, page size limits, search, status filters, date filters, and product or partner filters. \\ \hline
-		Product data & Product picture upload, active/disabled behavior, lookup data, stock filter, average cost, and product history. \\ \hline
+		Product data & Product image/PDF upload, active/disabled behavior, lookup data, stock filter, average cost, margin visibility, and product history. \\ \hline
 		Stock validation & Sales cannot commit more stock than available received purchase layers. \\ \hline
 		Stock allocation & FIFO allocation, manual allocation, and stock layer remaining quantity are handled correctly. \\ \hline
 		Reorder calculation & Fixed mock purchase and sale data is used to confirm available stock, average cost, lead time, daily demand, safety stock, reorder level, recommended restock, days until stockout, and stock value. \\ \hline
@@ -276,7 +279,7 @@ Testing was designed to check both technical correctness and user workflow under
 \subsection{Automated Backend Validation Method}
 Automated backend validation was conducted with Django and Django REST Framework test cases. The tests used a temporary test database, created controlled records, called backend APIs or service functions, and compared the returned values with expected behavior. This method was used because backend rules must still be correct even if a user bypasses the frontend and calls the API directly.
 
-The preserved black-box test history contains a selected 30-case workflow suite for presentation. That selected suite covered product validation, quotation behavior, purchase workflow, sales stock validation, finance eligibility, credit notes, payment batches, payable synchronization, lookup endpoints, filters, and pagination. The current backend test coverage also includes additional focused tests for reorder calculation, AI Chat, AI Report, user access, permission enforcement, and activity logging. The test command used for the backend suite was:
+The preserved black-box test history contains a selected 30-case workflow suite for presentation. That historical selection covered product validation, quotation behavior, purchase workflow, sales stock validation, finance eligibility, credit notes, payment batches, payable synchronization, and lookup behavior. It did not contain dedicated pagination or filtering cases. The final full backend suite contains 106 tests, including separate coverage for pagination, filtering, reorder calculation, AI Chat, AI Report, user access, permission enforcement, and activity logging. The test command used for the full backend suite was:
 
 \begin{verbatim}
 backend/.venv/bin/python backend/manage.py test inventory
@@ -319,7 +322,7 @@ The test created one product, received purchase stock, committed sales, pending 
 \end{table}
 
 \subsection{AI Chat Validation Method}
-AI Chat validation was designed to confirm that the assistant answered from backend data and stayed within the supported assistant scope. The tests used known database records and sent fixed chat questions to the backend chat function. The checked output included the answer text, presentation title, referenced records, and the model marker.
+AI Chat validation was designed to confirm that the assistant answered from backend data and stayed within the supported assistant scope. The tests used known database records and sent fixed chat questions to the backend chat function. The checked output included the answer text, presentation title, referenced records, model marker, and the structured AI conclusion and highlights returned when a model was configured.
 
 The method also tested unsupported questions. This was important because the assistant should not invent broad business reports or perform actions outside the current read-only assistant scope. When an API key setting was configured, the validation still checked that operational answers remained tied to backend summaries and selected records.
 
@@ -333,7 +336,7 @@ The method also tested unsupported questions. This was important because the ass
 		\textbf{Method Item} & \textbf{Description} \\ \hline
 		Input data & Known customer, sale, stock, billing, and payment records were prepared or selected from the backend context. \\ \hline
 		Test action & Fixed user questions were sent to AI Chat, such as customer activity, net position, low stock, and unsupported broad requests. \\ \hline
-		Expected output & Supported questions should return backend-based summaries, while unsupported questions should be rejected as outside scope. \\ \hline
+		Expected output & Supported questions should return backend-based facts. A configured model should explain those facts and add a conclusion and highlights; local fallback should remain available, and unsupported questions should be rejected as outside scope. \\ \hline
 		Reason for method & AI Chat must help users read system data without inventing values or changing records. \\ \hline
 	\end{tabularx}
 \end{table}
@@ -415,7 +418,7 @@ The project used separate tools for frontend development, backend development, d
 		API framework & Django REST Framework & Provides serializers, viewsets, API views, JSON responses, parsers, and API tests. \\ \hline
 		Database & MySQL & Stores relational inventory, transaction, and finance data. \\ \hline
 		Authentication and access control & Simple JWT and Django permissions & Provides access and refresh token authentication, authenticated profiles, user-role management, permission checks, and activity-log access control. \\ \hline
-		AI integration & OpenAI API key with local fallback & Supports read-only assistant answers and AI report analysis when an OpenAI API key is configured, with local summary fallback when no key is available. \\ \hline
+		AI integration & OpenAI API with local fallback & Uses structured model output for read-only chat explanations, conclusions, and highlights, and for AI report analysis when configured; backend-prepared local output remains available after missing keys or API failures. \\ \hline
 		Styling & CSS files by domain & Provides the compact inventory system interface. \\ \hline
 		Testing & Django TestCase and DRF APITestCase & Validates backend business rules and API behavior. \\ \hline
 	\end{tabularx}

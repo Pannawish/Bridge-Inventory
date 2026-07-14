@@ -1,14 +1,14 @@
 \chapter{CONCLUSION}
 
 \section{Brief Project Overview}
-The Inventory Management System was developed as a web application for SME trading businesses that buy products from suppliers and resell them to customers. The system covers the main daily work of this type of business, including product records, suppliers, customers, purchases, sales, quotations, billing notes, payment batches, credit notes, inventory checking, dashboard summaries, limited AI-assisted questions, and printable AI-generated reports.
+The Inventory Management System was developed as a web application for SME trading businesses that buy products from suppliers and resell them to customers. The system covers product and partner records, purchases, sales, quotations, billing notes, payment batches, credit notes, inventory and margin review, dashboard summaries, limited AI-assisted questions, printable AI-generated reports, administration, activity logs, and language settings.
 
 The project was built with a React and Vite frontend, a Django REST Framework backend, and a MySQL database. The main idea of the system is to connect stock, documents, and finance records together so the user can follow the business workflow from purchase to sale and payment.
 
 \section{Objective Summary}
-The project objectives focused on three main goals: recording purchase and sales transactions with status and document attachment support, showing useful inventory stock information, and adding an AI chatbot that can answer supported questions from backend data.
+The project objectives focused on three main goals: recording purchase and sales transactions with status and document attachment support, showing useful inventory and margin information, and adding an AI chatbot that can answer supported questions from backend data.
 
-The implemented system meets these goals within the current project scope. Purchases and sales support status tracking and documents. Inventory stock is calculated from received purchases and committed sales. The assistant can answer supported read-only questions, but it cannot create or edit records.
+The implemented system meets these goals within the current project scope. Purchases and sales support status tracking and documents. Inventory stock is calculated from received purchases and committed sales, while cost and selling-price data support gross-margin review. The assistant can answer supported read-only questions but cannot create or edit records; configured AI wording remains grounded in the backend-prepared presentation.
 
 \section{System Design Summary}
 The system was designed as a three-layer web application. The frontend handles the pages and user interaction. The backend handles APIs, validation, stock rules, eligibility rules, dashboard summaries, and assistant context. The database stores the actual business records using relational tables.
@@ -16,17 +16,19 @@ The system was designed as a three-layer web application. The frontend handles t
 This design was useful because it keeps important business rules on the backend. The frontend can make the system easier to use, but the backend still controls the rules that protect stock, billing, supplier payments, and credit notes.
 
 \section{Implementation Summary}
-The frontend implementation includes pages for dashboard, inventory, AI chat, AI report, purchases, payment batches, quotations, sales, billing notes, credit notes, products, categories, suppliers, customers, user access, and activity logs. It also includes a shared API client, authentication handling, permission-based navigation, pagination support, filters, modals, document references, bilingual text, and mock-data fallback for development.
+The frontend implementation includes pages for Dashboard, Inventory, AI Chat, AI Report, Purchases, Payment Batches, Quotation, Sales, Billing Notes, Credit Notes, Products, Categories, Supplier, Customer, User Access, Activity Log, and Settings. It also includes a shared API client, authentication handling, permission-based navigation, pagination support, filters, modals, document references, bilingual text, and mock-data fallback for development.
 
-The backend implementation includes Django models, serializers, viewsets, service functions, dashboard endpoints, lookup endpoints, eligibility endpoints, authentication endpoints, user and role management endpoints, activity logging, AI report generation, management commands, and backend tests. The most important backend logic includes stock calculation, stock allocation, sale stock validation, purchase payable calculation, finance eligibility, permission enforcement, assistant answer preparation, and AI report context building.
+The backend implementation includes Django models, serializers, viewsets, service functions, dashboard endpoints, lookup endpoints, eligibility endpoints, authentication endpoints, user and role management endpoints, activity logging, AI report generation, management commands, and backend tests. The most important backend logic includes stock calculation, stock allocation, sale stock validation, margin inputs, purchase payable calculation, finance eligibility, permission enforcement, assistant fact preparation, structured AI response validation, and AI report context building.
 
 \section{Result Summary}
 The final result is a working inventory management system that connects the main trading workflows. A received purchase can increase stock, a committed sale can reduce stock, a billing note can track money expected from a customer, and a payment batch can track money that needs to be paid to a supplier.
 
-The dashboard and inventory pages make the system easier to review because they summarize stock and finance information in one place. The assistant adds another way to ask about supported operational information, but it stays within a narrow read-only scope. The AI report page extends this further by letting the user generate printable supplier, customer, or product reports with metrics, charts, and business analysis.
+The dashboard and inventory pages make the system easier to review because they summarize stock and finance information in one place. The assistant adds another way to ask about supported operational information while staying within a narrow read-only scope. When configured, OpenAI adds an explanation, conclusion, and highlights to verified backend facts; local fallback remains available. The AI Report page generates printable supplier, customer, or product reports with metrics, charts, and business analysis.
+
+The quantitative evaluation was consistently positive. The final automated backend suite passed 106 of 106 tests, while the preserved presentation subset passed 30 of 30 cases. Ten scenario-test participants achieved an average score of 9.21 out of 10, and the questionnaire average was 4.58 out of 5. These results show strong technical correctness and favorable user evaluation within the tested scope.
 
 \section{Key Findings}
-The main finding is that the system is most useful when inventory, sales, purchasing, billing, payment, and reporting are connected through the same transaction records. This makes stock status, financial follow-up, and business documents easier to check from one system instead of being managed separately.
+The main finding is that the system is most useful when inventory, margin, sales, purchasing, billing, payment, and reporting are connected through the same transaction records. This makes stock status, reseller margin, financial follow-up, and business documents easier to check from one system instead of being managed separately. The evaluation also indicates that the main remaining usability issues are button visibility, status clarity, finance-action discoverability, and information density rather than missing core workflows.
 
 \section{Obstacles and Challenges}
 The main challenge was keeping connected workflows consistent. Purchase, sale, stock, billing, payment, and credit-note records affect one another, so the backend had to enforce rules while the interface still stayed practical for daily users.

@@ -27,8 +27,13 @@ This book explains that inventory management is more than counting available sto
 
 In the implemented system, stock is calculated from received purchase quantities and committed sale quantities. The dashboard and inventory page also show reorder-related information, pending demand, pending purchases, average cost, stock value, and product movement. These features follow the general inventory management idea that a business should understand both the physical quantity of stock and the financial meaning of that stock.
 
-\section{Business Calculation Formulas}
-This section describes the main calculation logic that is implemented in the web application. Equations~\ref{eq:lead-time-demand} to~\ref{eq:stock-value} are connected to inventory management ideas from \textit{Essentials of Inventory Management}, especially demand, replenishment planning, safety stock, and inventory value \cite{paper_2}. The other formulas are project-specific transaction and finance rules used by this system.
+\section{Inventory and Production Management in Supply Chains \cite{silver2016inventory}}
+Silver, Pyke, and Thomas present inventory planning as a set of connected decisions involving demand, replenishment, lead time, service level, stockout risk, and cost. This perspective is relevant to a reseller because the useful stock position is not limited to the quantity currently on hand; it also depends on customer demand and confirmed incoming supply.
+
+The project applies this relationship in its inventory workspace. Available stock, pending sales, pending purchases, lead-time demand, safety stock, and recommended restock are shown together so the user can review both current availability and replenishment pressure. The system does not claim to optimize the entire supply chain, but it uses these established concepts to present traceable operational indicators.
+
+\section{Inventory and Business Calculation Basis}
+This section connects the reviewed inventory-management concepts to the calculation requirements used in the project. Equations~\ref{eq:lead-time-demand} to~\ref{eq:stock-value} are based on demand, replenishment planning, safety stock, and inventory value concepts \cite{paper_2,silver2016inventory}. The remaining equations document project-specific transaction and finance definitions; their implementation and validation are described in Chapters 3 and 4 rather than treated as findings from the literature.
 
 \subsection{Unit Conversion and Line Amounts}
 Products can have different purchase or sale units. The backend normalizes transaction quantities into the product base unit.
@@ -224,9 +229,11 @@ This article describes the development of a custom chatbot using the ChatGPT API
 
 In this Inventory Management System, the AI assistant follows a limited and read-only scope. It can support questions about stock and fulfillment, customer or supplier summaries, receivables and payables, and reference or line-item lookup. It does not create, approve, edit, cancel, or delete records. This limitation is important because inventory and finance records must remain controlled by the main application workflow and backend validation.
 
+The current implementation also uses a structured response schema for model-backed chat output. OpenAI's structured-output guidance describes JSON Schema as a way to constrain response fields \cite{openai_structured_outputs}. In this project, that mechanism separates the answer, conclusion, and highlights while the backend-prepared presentation remains the factual source.
+
 \section{Summary}
 The reviewed references support the main direction of this project. The wholesale trade reference explains why a trading business needs to manage the connection between suppliers, products, and customers. The spreadsheet and small-business references show why manual records, spreadsheets, and separated files can become difficult to manage as business operations grow.
 
-The web-based inventory system reference supports the idea of building an integrated application for stock and transaction workflows. The inventory management book supports the calculation and reporting features, especially stock availability, replenishment, safety stock, reorder level, and inventory value. The chatbot reference supports the idea of adding a controlled AI-assisted interface, while also showing why the assistant should be limited to a clear domain.
+The web-based inventory system reference supports the idea of building an integrated application for stock and transaction workflows. The inventory-management books support the calculation and reporting features, especially stock availability, replenishment, safety stock, reorder level, and inventory value. The chatbot and structured-output references support a controlled AI-assisted interface with a clearly defined domain and response contract.
 
 Based on these works, this project focuses on developing a practical web-based inventory management system for SME trading businesses. The system combines React, Django REST Framework, and MySQL to manage business records in a structured way. It also adds dashboard summaries and a read-only AI assistant to help users find supported operational information more quickly.

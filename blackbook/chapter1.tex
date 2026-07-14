@@ -11,14 +11,14 @@ This project was created to bring those daily tasks into one web application. Th
 \begin{enumerate}
 	\item To develop a system that records purchase and sales transactions, including the current status of each process, with an attachment file function that links all supporting documents directly to the corresponding transactions.
 	\item To develop an inventory management system that displays the overall product stock in the warehouse and provides tools for calculating essential inventory information.
-	\item To integrate an AI chatbot using the ChatGPT API that connects to the system's backend data, allowing users to request supported operational summaries through text queries.
+	\item To integrate a read-only AI chatbot using the OpenAI API that explains backend-prepared facts when configured and retains a deterministic local summary when the API is unavailable.
 \end{enumerate}
 
 \section{Scope}
 The scope of this project is based on the features that are already implemented in the Inventory Management System codebase. The system covers the following areas:
 
 \begin{enumerate}
-	\item \textbf{Master data management:} The system manages categories, products, suppliers, and customers. Product records include SKUs, previous SKUs, product names, categories, unit conversions, reorder levels, active or disabled status, product pictures, and supplier-specific sourcing information.
+	\item \textbf{Master data management:} The system manages categories, products, suppliers, and customers. Product records include SKUs, previous SKUs, product names, categories, unit conversions, reorder levels, active or disabled status, image or PDF attachments, and supplier-specific sourcing information.
 	
 	\item \textbf{Purchasing workflow:} The system records purchase transactions, supplier information, purchase line items, expected delivery dates, received dates, item statuses, VAT totals, bill discounts, supplier tax invoice references, uploaded documents, and payable totals. The backend keeps purchase status and purchase item status in sync.
 	
@@ -30,11 +30,13 @@ The scope of this project is based on the features that are already implemented 
 	
 	\item \textbf{Finance workflow:} The system supports billing notes for customer receivables, payment batches for supplier payables, and credit notes for cancelled or returned sales lines. Backend eligibility endpoints prevent users from selecting invalid transactions for these finance documents.
 	
-	\item \textbf{Dashboard and reporting:} The backend provides dashboard summary and segment endpoints for finance, trends, product movement, cashflow, and order coverage.
+	\item \textbf{Dashboard, margin, and reporting:} The backend provides dashboard summary and segment endpoints for finance, trends, product movement, cashflow, order coverage, and gross-margin visibility. Product, quotation, and sales data retain the purchase-cost and selling-price information needed to review reseller margin.
 	
 	\item \textbf{Authentication and user access flow:} The backend includes JWT login, refresh, and authenticated user profile endpoints. The frontend supports login, token refresh, logout, and guest mode. The system also includes a user-access page for managing users, roles, and role permissions. Backend-wide authentication enforcement is controlled by the \texttt{INVENTORY\_REQUIRE\_AUTH} setting, and protected API actions use Django model permissions when authentication enforcement is enabled.
 	
-	\item \textbf{AI-assisted operation:} The system includes a text-based inventory assistant endpoint for read-only questions covering stock and fulfillment, customer or supplier summaries, receivables and payables with exception checks, and reference or line-item lookup. It also includes an AI report page that generates printable business reports for a selected supplier, customer, or product.
+	\item \textbf{AI-assisted operation:} The system includes a text-based inventory assistant endpoint for read-only questions covering stock and fulfillment, customer or supplier summaries, receivables and payables with exception checks, and reference or line-item lookup. With an OpenAI API key, the model explains verified backend facts and returns a conclusion and question-specific highlights; without a key or after an API failure, the same endpoint returns its local summary. The system also includes an AI report page that generates printable business reports for a selected supplier, customer, or product.
+
+	\item \textbf{Language and settings:} The application supports English and Thai interface text. The Settings page allows the user to choose the interface language without changing the underlying business records.
 \end{enumerate}
 
 \section{Expected Results}

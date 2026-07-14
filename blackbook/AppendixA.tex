@@ -120,7 +120,7 @@ Users access the system through the web application sign-in page. A staff member
 	\label{fig:appendix-sidebar-navigation}
 \end{figure}
 
-After signing in, the sidebar is used to move between the main modules. The workspace group contains dashboard, inventory, AI chat, and AI report tools. The purchasing group contains purchases and payment batches. The sales group contains quotations, sales, billing notes, and credit notes. The records group contains products, categories, suppliers, and customers. Administration pages such as user access and activity log are shown only to users with suitable permissions.
+After signing in, the sidebar is used to move between the main modules. The workspace group contains Dashboard, Inventory, AI Chat, and AI Report. The purchasing group contains Purchases and Payment Batches. The sales group contains Quotation, Sales, Billing Notes, and Credit Notes. The records group contains Products, Categories, Supplier, and Customer. Administration pages such as User Access and Activity Log are shown only to users with suitable permissions, while Settings provides the English/Thai language choice.
 
 \section{Basic Operating Rules}
 
@@ -148,7 +148,7 @@ The first step is to prepare the records that transactions depend on. Categories
 		\hline
 		\textbf{Module} & \textbf{Required Setup} \\ \hline
 		Categories & Create the parent and child category tree used to organize products. \\ \hline
-		Products & Enter SKU, product name, category, base unit, purchase and sales units, unit conversions, reorder point, and active status. \\ \hline
+		Products & Enter SKU, product name, category, base unit, purchase and sales units, unit conversions, reorder point, active status, and any image or PDF attachment. \\ \hline
 		Suppliers & Enter supplier name, tax ID, contacts, address, payment terms, and bank or procurement details. \\ \hline
 		Customers & Enter customer name, tax ID, billing address, shipping address, contacts, and payment terms. \\ \hline
 	\end{tabularx}
@@ -227,7 +227,7 @@ Users should review low-stock products before promising new delivery dates. They
 
 \section{AI Chat and AI Report}
 
-AI Chat is a read-only helper for asking supported operational questions. Suitable questions include low-stock checks, supplier or customer summaries, overdue receivables, overdue payables, order coverage, and document reference lookups. The assistant should be treated as a summarizing tool; the backend data and transaction records remain the source of truth.
+AI Chat is a read-only helper for asking supported operational questions. Suitable questions include low-stock checks, supplier or customer summaries, overdue receivables, overdue payables, order coverage, and document reference lookups. With an OpenAI API key configured, the answer includes AI-written wording, a conclusion, and question-specific highlights based on the verified backend presentation. Without a key or after an API failure, the page displays the deterministic local summary. In both modes, backend data and transaction records remain the source of truth.
 
 AI Report creates printable reports for a selected supplier, customer, or product. The user selects the report scope, selects the record, chooses a reporting period if needed, and generates the report. The generated report includes backend-prepared metrics, related records, chart data, and a written analysis. The report can be printed or saved as a PDF from the browser.
 
@@ -240,6 +240,7 @@ Administrators use the User Access page to create staff accounts, assign roles, 
 \begin{table}[H]
 	\centering
 	\BlackbookTableSetup
+	\renewcommand{\arraystretch}{1.45}
 	\caption{Quick Reference for Common User Goals}
 	\label{tab:appendix-quick-reference}
 	\begin{tabularx}{\textwidth}{|B{3.5cm}|B{3cm}|Z|}
@@ -257,5 +258,6 @@ Administrators use the User Access page to create staff accounts, assign roles, 
 		Ask operational questions & AI Chat & Ask supported read-only questions about stock, partners, AP, AR, and documents. \\ \hline
 		Generate printable analysis & AI Report & Select supplier, customer, or product and generate a printable report. \\ \hline
 		Manage staff access & User Access & Create users, assign roles, and review permissions. \\ \hline
+		Change interface language & Settings & Switch the user interface between English and Thai. \\ \hline
 	\end{tabularx}
 \end{table}
