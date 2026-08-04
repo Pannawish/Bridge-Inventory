@@ -14,13 +14,11 @@ Scope notes:
 .
 ├── AGENTS.md
 ├── HANDOUT.md
-├── LICENSE
 ├── README.md
 ├── backend/
 ├── blackbook/
 ├── docs/
-├── frontend/
-└── netlify.toml
+└── frontend/
 ```
 
 ## Backend

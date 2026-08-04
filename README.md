@@ -267,13 +267,6 @@ backend/.venv/bin/python backend/manage.py clear_operational_data --include-mast
 
 ---
 
-## Contributing & Extension Rules
+## Development Guidelines
 
-If you adopt this repository to learn or to construct your own custom ERP program, please read [AGENTS.md](AGENTS.md) carefully.
-
-> [!WARNING]
-> **Critical Codebase Commitments:**
-> 1.  **Keep it Relational**: Use MySQL migration schemas. Prefer Relational/3NF links for master catalog variables over large ad-hoc JSON blobs.
-> 2.  **Audit Snapshots**: Never remove historical snapshot variables (e.g. `supplier_name`, prices, SKUs) from transaction tables—these act as durable financial logs even if master objects are edited.
-> 3.  **No Monoliths**: Preserve the split components architecture. Put business rules in named helpers or hooks rather than growing large view files.
-> 4.  **Stay Bilingual (Optional for Self-Extensions)**: By default, the app supports English and Thai through the `t()` helper. If you are extending the app for your own private use or business, maintaining the bilingual dictionary is not strictly required.
+Before modifying the project, read [AGENTS.md](./AGENTS.md) for architecture, business-rule, testing, and coding standards.
